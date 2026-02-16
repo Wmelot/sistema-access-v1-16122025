@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import {
     Calendar as CalendarIcon,
     Home,
@@ -206,6 +207,7 @@ export function SidebarContent({
 }
 
 function NavItem({ href, icon: Icon, label, isCollapsed, locked = false, className, onClick, showLoading }: { href: string, icon: any, label: string, isCollapsed: boolean, locked?: boolean, className?: string, onClick?: () => void, showLoading?: (msg?: string) => void }) {
+    const pathname = usePathname();
     if (locked) {
         return (
             <div
@@ -234,23 +236,19 @@ function NavItem({ href, icon: Icon, label, isCollapsed, locked = false, classNa
         <Link
             href={href}
             onClick={(e) => {
-                if (!href.startsWith('#')) {
+                // Check if the link goes to a different page to avoid stuck loaders
+                const isCurrentPath = pathname === href || pathname === href?.split('?')[0];
+
+                if (!href.startsWith('#') && !isCurrentPath) {
                     if (showLoading) {
                         showLoading(`Abrindo ${label}...`);
-                        // Auto-hide after timeout as safety (since nextjs route events are tricky in app dir without events)
-                        setTimeout(() => {
-                            // We can't easily hide it from here if the context isn't exposed to let us know navigation finished.
-                            // But usually the new page will load and if the layout re-renders it might persist or reset.
-                            // Actually, GlobalLoader is in RootLayout. It persists.
-                            // We need to hide it when path changes. The hook in layout or loader provider should handle this.
-                            // For now let's just trigger it.
-                        }, 5000);
+                        // No need for local setTimeout here as GlobalLoaderProvider has a safety one
                     } else {
                         toast.loading(`Abrindo ${label}...`, { id: `nav-${href}` });
                     }
-
-                    if (onClick) onClick();
                 }
+
+                if (onClick) onClick();
             }}
             className={cn(
                 "flex items-center gap-3 rounded-lg py-2 text-zinc-600 transition-all hover:text-zinc-900 hover:bg-zinc-50 active:scale-95 active:brightness-90 w-full font-medium",

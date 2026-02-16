@@ -29,17 +29,14 @@ export const useGlobalLoader = () => {
 
 // Component to handle route changes causing loader to hide
 const RouteChangeHandler = () => {
-    const { setIsLoading } = useGlobalLoader();
+    const { hideLoading } = useGlobalLoader();
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
     useEffect(() => {
-        // Delay before hiding the loader to ensure hydration is likely complete
-        const timer = setTimeout(() => {
-            setIsLoading(false);
-        }, 800);
-        return () => clearTimeout(timer);
-    }, [pathname, searchParams, setIsLoading]);
+        // Hide immediately on path change to improve perceived performance
+        hideLoading();
+    }, [pathname, searchParams, hideLoading]);
 
     return null;
 };
@@ -47,6 +44,7 @@ const RouteChangeHandler = () => {
 export const GlobalLoaderProvider = ({ children }: { children: React.ReactNode }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState("PROCESSANDO...");
+    const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         if (typeof document !== 'undefined') {
@@ -54,15 +52,27 @@ export const GlobalLoaderProvider = ({ children }: { children: React.ReactNode }
         }
     }, [isLoading]);
 
+    const hideLoading = useCallback(() => {
+        setIsLoading(false);
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+    }, []);
+
     const showLoading = useCallback((message: string = "PROCESSANDO...") => {
+        // If already showing for the SAME message, ignore to avoid resetting timeouts unnecessarily
         setLoadingMessage(message.toUpperCase());
         setIsLoading(true);
 
-        // Safety timeout: Auto-dismiss after 15 seconds if navigation stalls
-        setTimeout(() => setIsLoading(false), 15000);
-    }, []);
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-    const hideLoading = useCallback(() => setIsLoading(false), []);
+        // Safety timeout: Auto-dismiss after 8 seconds if navigation stalls
+        timeoutRef.current = setTimeout(() => {
+            setIsLoading(false);
+            timeoutRef.current = null;
+        }, 8000);
+    }, []);
 
     return (
         <GlobalLoaderContext.Provider value={{ setIsLoading, showLoading, hideLoading, isLoading }}>

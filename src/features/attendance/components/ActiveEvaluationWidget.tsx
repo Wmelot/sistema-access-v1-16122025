@@ -71,11 +71,12 @@ export function ActiveEvaluationWidget({ className, slug: propSlug }: { classNam
         // Run immediately on mount
         checkActive()
 
-        // Poll frequently (2s) for instant "Yellow Card" feedback after starting attendance
-        const interval = setInterval(checkActive, 2000)
+        // Poll less frequently (15s) to reduce server load
+        // Sync between tabs is already handled by ActiveAttendanceProvider's storage listener
+        const interval = setInterval(checkActive, 15000)
 
         return () => clearInterval(interval)
-    }, [pathname])
+    }, []) // Removed pathname dependency to avoid unnecessary re-polling on nav
 
     // 2. Timer Logic
     useEffect(() => {

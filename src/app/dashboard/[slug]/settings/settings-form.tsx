@@ -15,9 +15,16 @@ import { Slider } from "@/components/ui/slider"
 import ReactCrop, { type Crop, PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 import { canvasPreview } from '@/lib/utils/canvasPreview'
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { ShieldCheck, TimerReset, Lock, Unlock, AlertCircle, Activity, Cpu, Bot, Sparkles, CheckCircle2, AlertTriangle, XCircle, ArrowRight, Info } from 'lucide-react'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
+import { toggleSupportAccess } from './organization/support-actions'
+import { runSystemDiagnostic } from './organization/debug-actions'
+import { cn } from "@/lib/utils"
 
 const MySwal = withReactContent(Swal)
 
@@ -99,6 +106,25 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
         state: initialSettings?.address?.state || '',
         zip: initialSettings?.address?.zip || ''
     });
+
+    // --- SUPPORT & DIAGNOSTIC STATES ---
+    const [supportStatus, setSupportStatus] = useState({
+        active: initialSettings?.support_access_active || false,
+        until: initialSettings?.support_access_until || null
+    });
+    const [supportLoading, setSupportLoading] = useState(false);
+    const [diagnosticLoading, setDiagnosticLoading] = useState(false);
+    const [diagnosticData, setDiagnosticData] = useState<{ results: any[], aiAnalysis: string } | null>(null);
+
+    // Sync support state if initialSettings change
+    useEffect(() => {
+        if (initialSettings) {
+            setSupportStatus({
+                active: initialSettings.support_access_active || false,
+                until: initialSettings.support_access_until || null
+            });
+        }
+    }, [initialSettings]);
 
     // --- SWEET ALERT HELPERS ---
     const showAlert = (title: string, text: string, icon: 'success' | 'error' | 'warning', confirmBtnText = 'OK') => {
@@ -269,6 +295,41 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
             } catch (error) {
                 console.error('ViaCEP error:', error);
             }
+        }
+    }
+
+    async function handleToggleSupport() {
+        if (!initialSettings?.id) return;
+        setSupportLoading(true);
+        const nextActive = !supportStatus.active;
+
+        try {
+            const res = await toggleSupportAccess(initialSettings.id, nextActive);
+            if (res.error) throw new Error(res.error);
+
+            toast.success(nextActive ? "Acesso de suporte liberado!" : "Acesso de suporte revogado.");
+            setSupportStatus({
+                active: nextActive,
+                until: res.until || null
+            });
+        } catch (e: any) {
+            toast.error(e.message);
+        } finally {
+            setSupportLoading(false);
+        }
+    }
+
+    async function handleRunDiagnostic() {
+        setDiagnosticLoading(true);
+        setDiagnosticData(null);
+        try {
+            const data = await runSystemDiagnostic(slug);
+            setDiagnosticData(data);
+            toast.success("Diagnóstico concluído!");
+        } catch (e) {
+            toast.error("Erro ao executar diagnóstico");
+        } finally {
+            setDiagnosticLoading(false);
         }
     }
 
@@ -694,6 +755,159 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
                             </div>
                         </div>
                     </CardContent>
+                </Card>
+
+                {/* --- SUPORTE TÉCNICO --- */}
+                <Card className={cn(
+                    "border-2 transition-all duration-500",
+                    supportStatus.active ? "border-amber-200 bg-amber-50/20 shadow-lg shadow-amber-100" : "border-slate-100 bg-slate-50/50"
+                )}>
+                    <CardHeader className="pb-3">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="space-y-1">
+                                <CardTitle className={cn(
+                                    "flex items-center gap-2 text-base font-bold",
+                                    supportStatus.active ? "text-amber-700" : "text-slate-700"
+                                )}>
+                                    <ShieldCheck className={cn("w-5 h-5", supportStatus.active ? "text-amber-500 animate-pulse" : "text-slate-400")} />
+                                    Acesso para Suporte Técnico
+                                </CardTitle>
+                                <CardDescription className="text-sm leading-relaxed max-w-lg">
+                                    Libera temporariamente o acesso total aos dados da clínica para o desenvolvedor realizar manutenções ou correções de erros.
+                                </CardDescription>
+                            </div>
+                            <Button
+                                type="button"
+                                variant={supportStatus.active ? "destructive" : "outline"}
+                                size="sm"
+                                disabled={supportLoading}
+                                onClick={handleToggleSupport}
+                                className="font-bold text-xs rounded-xl h-10 px-6 transition-all active:scale-95 shrink-0"
+                            >
+                                {supportLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : (supportStatus.active ? <Lock className="w-4 h-4 mr-2" /> : <Unlock className="w-4 h-4 mr-2" />)}
+                                {supportStatus.active ? "Revogar Acesso" : "Liberar Acesso (4h)"}
+                            </Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        {supportStatus.active && supportStatus.until ? (
+                            <div className="bg-white/80 p-4 rounded-xl border border-amber-100 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+                                <div className="flex items-center gap-4">
+                                    <div className="bg-amber-100 p-2 rounded-lg">
+                                        <TimerReset className="w-5 h-5 text-amber-500" />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <p className="text-[10px] font-black uppercase text-amber-600 tracking-wider">Acesso Expira Em:</p>
+                                        <p className="text-sm font-bold text-amber-900">
+                                            {format(new Date(supportStatus.until), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                                        </p>
+                                    </div>
+                                </div>
+                                <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200 font-bold px-3 py-1">ATIVO</Badge>
+                            </div>
+                        ) : (
+                            <div className="flex items-start gap-3 p-3 bg-zinc-100/50 rounded-lg">
+                                <AlertCircle className="w-4 h-4 mt-0.5 text-slate-400" />
+                                <p className="text-xs font-medium text-slate-500 leading-relaxed italic">
+                                    Seus dados estão protegidos por criptografia e RLS. O suporte só terá acesso se você clicar no botão acima.
+                                </p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* --- DIAGNÓSTICO DE SISTEMA --- */}
+                <Card className="border-slate-200 bg-white shadow-sm overflow-hidden mb-6">
+                    <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-4">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="space-y-1">
+                                <CardTitle className="text-base flex items-center gap-2 font-bold">
+                                    <Activity className="w-5 h-5 text-indigo-500" />
+                                    Saúde do Sistema
+                                </CardTitle>
+                                <CardDescription className="text-xs">Identifique inconsistências ou problemas técnicos na sua conta com ajuda de IA.</CardDescription>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                className="h-9 text-xs font-bold px-4 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/50 transition-all shadow-sm"
+                                disabled={diagnosticLoading}
+                                onClick={handleRunDiagnostic}
+                            >
+                                {diagnosticLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Cpu className="w-4 h-4 mr-2" />}
+                                Executar Check-up Técnico
+                            </Button>
+                        </div>
+                    </CardHeader>
+                    {diagnosticData && (
+                        <CardContent className="p-0 border-t border-slate-100">
+                            {/* Technical Checks List */}
+                            <div className="divide-y divide-slate-100 bg-slate-50/10">
+                                {diagnosticData.results.map((res: any, i: number) => (
+                                    <div key={i} className="px-5 py-3 flex items-start gap-4 transition-colors hover:bg-slate-50/50">
+                                        {res.status === 'success' && <div className="bg-green-100 p-1 rounded-full"><CheckCircle2 className="w-3.5 h-3.5 text-green-600" /></div>}
+                                        {res.status === 'warning' && <div className="bg-amber-100 p-1 rounded-full"><AlertTriangle className="w-3.5 h-3.5 text-amber-600" /></div>}
+                                        {res.status === 'error' && <div className="bg-red-100 p-1 rounded-full"><XCircle className="w-3.5 h-3.5 text-red-600" /></div>}
+                                        <div className="space-y-0.5 flex-1">
+                                            <div className="flex items-center gap-1.5">
+                                                <p className="text-xs font-bold text-slate-700 tracking-tight">{res.name}</p>
+                                                {res.details && (
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Info className="w-3 h-3 text-slate-400 cursor-help" />
+                                                            </TooltipTrigger>
+                                                            <TooltipContent className="max-w-xs bg-slate-900 text-white border-slate-800">
+                                                                <p className="text-[11px] leading-relaxed">{res.details}</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                )}
+                                            </div>
+                                            <p className="text-[11px] text-slate-500 leading-snug">{res.message}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* AI INSIGHT SECTION */}
+                            {diagnosticData.aiAnalysis && (
+                                <div className="p-5 bg-indigo-50/50 border-t border-indigo-100 animate-in fade-in slide-in-from-bottom-3 duration-700">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="bg-gradient-to-br from-indigo-600 to-violet-700 p-2 rounded-xl shadow-md shadow-indigo-200">
+                                            <Bot className="w-4 h-4 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-black text-indigo-950 uppercase tracking-widest flex items-center gap-2">
+                                                Axiom Assistant (IA)
+                                                <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+                                            </p>
+                                            <p className="text-[10px] text-indigo-600 font-bold opacity-80 italic">Análise de causa raiz e guia de reparo</p>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white/80 backdrop-blur rounded-2xl p-4 border border-indigo-100 shadow-sm leading-relaxed">
+                                        <p className="text-xs text-slate-700 whitespace-pre-wrap font-medium">
+                                            {diagnosticData.aiAnalysis}
+                                        </p>
+                                    </div>
+                                    <div className="mt-4 flex items-center justify-between">
+                                        <Button
+                                            variant="ghost"
+                                            className="h-auto p-2 text-[10px] text-indigo-700 font-black hover:bg-indigo-100/50 rounded-lg group"
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(diagnosticData.aiAnalysis)
+                                                toast.success("Parecer da IA copiado!")
+                                            }}
+                                        >
+                                            COPIAR PARECER TÉCNICO <ArrowRight className="ml-1.5 w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                                        </Button>
+                                        <p className="text-[9px] text-slate-400 font-medium tracking-tight">Análise gerada via Gemini 1.5</p>
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    )}
                 </Card>
 
                 <div className="flex justify-end pt-4 pb-10 md:pb-0">

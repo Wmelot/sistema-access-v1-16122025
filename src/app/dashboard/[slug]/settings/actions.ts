@@ -27,6 +27,8 @@ export type ClinicSettings = {
     features?: Record<string, any>;
     trial_ends_at?: string;
     status?: string;
+    support_access_active?: boolean;
+    support_access_until?: string;
 };
 
 export async function getClinicSettings(slug?: string) {
@@ -93,6 +95,8 @@ export async function getClinicSettings(slug?: string) {
             plan: orgData?.plan,
             status: orgData?.status,
             trial_ends_at: orgData?.trial_ends_at,
+            support_access_active: orgData?.support_access_active,
+            support_access_until: orgData?.support_access_until,
             features: orgData?.features || extendedSettings?.features || {}
         };
 

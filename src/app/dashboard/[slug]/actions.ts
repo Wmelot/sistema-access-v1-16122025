@@ -4,6 +4,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { db } from "@/lib/db"
 import { getCurrentUserPermissions, hasPermission, isMasterUser } from "@/lib/rbac"
 import { differenceInYears } from "date-fns"
+import { getActiveOrgId, maskDataIfRequired } from "@/lib/auth-actions-utils"
 
 
 // --- TYPES ---
@@ -72,17 +73,24 @@ export async function getDashboardMetrics(professionalId?: string | null, slug?:
     const profile: any = profileRaw || {}
 
     let orgId = profile.organization_id // Default
+    let isSupportMode = false;
 
-    // If slug is provided (Manual context override), fetch the orgId for that slug
+    // If slug is provided (Manual context override), resolve the active organization ID
     if (slug) {
-        const { data: orgData } = await supabase
-            .from('organizations')
-            .select('id')
-            .eq('slug', slug)
-            .single()
-
-        if (orgData) {
-            orgId = orgData.id
+        try {
+            const activeOrg = await getActiveOrgId(slug)
+            orgId = activeOrg.orgId
+            isSupportMode = activeOrg.isSupportMode
+        } catch (e) {
+            // If access is denied, return empty metrics immediately
+            return {
+                birthdays: { today: [], week: [] },
+                financials: null,
+                my_finance: { total: 0, received: 0, pending: 0 },
+                demographics: { men: 0, women: 0, children: 0, total: 0 },
+                yearly_comparison: { appointments: { current: [], last: [] }, revenue: { current: [], last: [] }, completed: { current: [], last: [] } },
+                categories: []
+            }
         }
     }
 
@@ -135,13 +143,18 @@ export async function getDashboardMetrics(professionalId?: string | null, slug?:
     const birthdaysWeek: any[] = []
 
     // Helper to process list
-    const checkBirthdays = (list: any[], type: 'patient' | 'professional') => {
+    const checkBirthdays = async (list: any[], type: 'patient' | 'professional') => {
         if (!list) return
-        list.forEach(p => {
+        for (const p of list) {
             const dobRaw = p.date_of_birth
-            if (!dobRaw) return
+            if (!dobRaw) continue
 
-            const name = type === 'patient' ? p.name : `${p.full_name} (${p.role || 'Prof.'})`
+            let name = type === 'patient' ? p.name : `${p.full_name} (${p.role || 'Prof.'})`
+
+            // [PRIVACY] Mask patient names in support mode
+            if (type === 'patient' && isSupportMode) {
+                name = (await maskDataIfRequired({ name }, true)).name
+            }
             // Prefer professional_profile_color, fallback to color
             const color = p.professional_profile_color || p.color || null
 
@@ -167,7 +180,7 @@ export async function getDashboardMetrics(professionalId?: string | null, slug?:
                 }
             }
 
-            if (!day || !month) return
+            if (!day || !month) continue
 
             // Birthday this year
             const bdayThisYear = new Date(today.getFullYear(), month - 1, day)
@@ -186,7 +199,7 @@ export async function getDashboardMetrics(professionalId?: string | null, slug?:
 
             if (bdayThisYear.getTime() === todayMidnight.getTime()) {
                 birthdaysToday.push(personData)
-                return
+                continue
             }
 
             // 2. Check Upcoming (7 Days)
@@ -197,11 +210,11 @@ export async function getDashboardMetrics(professionalId?: string | null, slug?:
                 // Corner case: Dec 30 to Jan 5 (New Year transition)
                 birthdaysWeek.push(personData)
             }
-        })
+        }
     }
 
-    checkBirthdays(patients || [], 'patient')
-    checkBirthdays(professionals || [], 'professional')
+    await checkBirthdays(patients || [], 'patient')
+    await checkBirthdays(professionals || [], 'professional')
 
     // --- FINANCIALS (Clinic Wide) ---
     let financials = null

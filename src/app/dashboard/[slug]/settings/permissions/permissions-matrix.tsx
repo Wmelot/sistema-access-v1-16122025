@@ -15,43 +15,56 @@ interface PermissionsMatrixProps {
 
 const TOOLTIPS: Record<string, string> = {
     // Agenda
-    'schedule.view': 'Permite visualizar a agenda e os agendamentos. Sem esta permissão, o usuário não consegue ver nenhum agendamento.',
-    'schedule.create': 'Permite criar novos agendamentos na agenda.',
-    'schedule.update': 'Permite editar agendamentos existentes (horário, paciente, observações, etc.).',
-    'schedule.delete': 'Permite excluir agendamentos. Ação irreversível.',
-    'schedule.block': 'Permite criar bloqueios na agenda (férias, folgas, horários indisponíveis).',
-    'schedule.fit_in': 'Permite criar agendamentos de encaixe fora dos horários padrão.',
-    'schedule.menu_visible': 'Controla se o menu "Agenda" aparece na barra lateral.',
-    'appointments.view': 'Permite visualizar a agenda e os agendamentos.',
-    'appointments.edit': 'Permite editar agendamentos existentes.',
+    'schedule.view': 'Visualizar a agenda e atendimentos.',
+    'schedule.create': 'Criar novos agendamentos.',
+    'schedule.update': 'Editar agendamentos existentes.',
+    'schedule.delete': 'Remover agendamentos (Ação irreversível).',
+    'schedule.block': 'Criar bloqueios de horário (férias, folgas).',
+    'schedule.fit_in': 'Permitir agendamentos de encaixe.',
+    'schedule.menu_visible': 'Exibir o menu de Agenda na barra lateral.',
+    'appointments.view': 'Visualizar agendamentos.',
+    'appointments.edit': 'Editar detalhes de agendamentos.',
+    'appointments.view_all': 'Permite visualizar a agenda de TODOS os profissionais da clínica.',
+    'appointments.view_own': 'Permite visualizar apenas a sua PRÓPRIA agenda.',
+    'appointments.manage_all': 'Permite gerenciar a agenda de QUALQUER profissional.',
+    'appointments.manage_own': 'Permite gerenciar apenas os SEUS próprios agendamentos.',
 
     // Pacientes
-    'patients.view': 'Permite visualizar a lista de pacientes e seus dados básicos.',
-    'patients.create': 'Permite cadastrar novos pacientes no sistema.',
-    'patients.update': 'Permite editar dados cadastrais dos pacientes.',
-    'patients.edit': 'Permite editar dados cadastrais dos pacientes.',
-    'patients.delete': 'Permite excluir pacientes do sistema.',
-    'patients.records': 'Permite acessar e editar prontuários médicos e evoluções clínicas.',
-    'patients.certificates': 'Permite emitir atestados médicos.',
-    'patients.prescriptions': 'Permite emitir receitas e prescrições médicas.',
-    'patients.files': 'Permite fazer upload e gerenciar arquivos dos pacientes.',
-    'patients.menu_visible': 'Controla se o menu "Pacientes" aparece na barra lateral.',
+    'patients.view': 'Visualizar lista de pacientes cadastrados.',
+    'patients.create': 'Cadastrar novos pacientes no sistema.',
+    'patients.update': 'Atualizar dados cadastrais de pacientes.',
+    'patients.edit': 'Editar informações de pacientes.',
+    'patients.delete': 'Excluir permanentemente registros de pacientes.',
+    'patients.records': 'Acessar históricos clínicos e evoluções.',
+    'patients.certificates': 'Emitir atestados e documentos médicos.',
+    'patients.prescriptions': 'Emitir receitas e prescrições.',
+    'patients.files': 'Gerenciar anexos, exames e documentos enviados.',
+    'patients.menu_visible': 'Exibir o menu de Pacientes na barra lateral.',
+    'patients.view_all': 'Permite ver TODOS os pacientes cadastrados na clínica.',
+    'patients.view_assigned': 'Permite ver apenas os pacientes vinculados a você ou sob seu cuidado.',
 
     // Financeiro
-    'financial.view': 'Permite visualizar informações financeiras gerais da clínica.',
-    'financial.view_clinic': 'Permite visualizar o financeiro da clínica.',
-    'financial.create': 'Permite criar novos lançamentos financeiros.',
-    'financial.update': 'Permite editar lançamentos financeiros existentes.',
-    'financial.delete': 'Permite excluir lançamentos financeiros.',
-    'financial.cash_flow': 'Permite acessar o fluxo de caixa e extratos bancários.',
-    'financial.accounts': 'Permite gerenciar contas a pagar e a receber.',
-    'financial.discounts': 'Permite aplicar descontos em consultas e procedimentos.',
-    'financial.menu_visible': 'Controla se o menu "Financeiro" aparece na barra lateral.',
-    'financial.overview_menu': 'Permite acessar a visão geral financeira.',
-    'financial.dre_menu': 'Permite acessar o DRE Gerencial.',
-    'financial.pricing_menu': 'Permite acessar e editar a tabela de preços.',
-    'financial.products_menu': 'Permite acessar o cadastro de produtos.',
-    'financial.services_menu': 'Permite acessar o cadastro de serviços.',
+    'financial.view': 'Visualizar informações financeiras básicas.',
+    'financial.view_clinic': 'Visualizar o faturamento total e saúde financeira da CLÍNICA.',
+    'financial.view_own': 'Visualizar apenas as SUAS comissões e ganhos individuais.',
+    'financial.create': 'Lançar novas receitas ou despesas.',
+    'financial.update': 'Editar lançamentos financeiros existentes.',
+    'financial.delete': 'Excluir registros do financeiro.',
+    'financial.cash_flow': 'Acessar fluxo de caixa detalhado e extratos.',
+    'financial.accounts': 'Gerenciar contas a pagar, receber e contas bancárias.',
+    'financial.discounts': 'Aplicar ou gerenciar políticas de desconto.',
+    'financial.menu_visible': 'Exibir o menu Financeiro na barra lateral.',
+    'financial.overview_menu': 'Acessar o painel geral de métricas financeiras.',
+    'financial.dre_menu': 'Acompanhar o DRE (Demonstrativo de Resultados) gerencial.',
+    'financial.pricing_menu': 'Gerenciar a tabela de preços e valores de procedimentos.',
+    'financial.products_menu': 'Gerenciar cadastro de produtos e venda de itens.',
+    'financial.services_menu': 'Gerenciar cadastro e valores de serviços prestados.',
+
+    // Outros
+    'records.view_all': 'Ler prontuários e evoluções de TODOS os pacientes da clínica.',
+    'records.view_assigned': 'Ler prontuários apenas dos SEUS pacientes vinculados.',
+    'records.edit_all': 'Editar qualquer prontuário ou evolução no sistema.',
+    'records.edit_own': 'Editar apenas os prontuários que você mesmo criou.',
 
     // Estoque
     'inventory.view': 'Permite visualizar o estoque de produtos e materiais.',
@@ -69,20 +82,22 @@ const TOOLTIPS: Record<string, string> = {
     'reminders.menu_visible': 'Controla se o menu "Lembretes" aparece na barra lateral.',
 
     // Configurações e Sistema
-    'settings.professionals_menu': 'Permite acessar o cadastro de profissionais.',
-    'settings.forms_menu': 'Permite criar e editar formulários personalizados.',
-    'settings.questionnaires_menu': 'Permite gerenciar questionários padronizados.',
-    'settings.locations_menu': 'Permite cadastrar e gerenciar locais de atendimento.',
-    'settings.whatsapp_menu': 'Permite configurar integrações com WhatsApp.',
-    'settings.reports_menu': 'Permite criar e editar modelos de relatórios.',
-    'settings.system_menu': 'Permite acessar configurações avançadas do sistema.',
-    'settings.migration_menu': 'Permite usar ferramentas de migração de dados.',
-    'roles.manage': 'Permite gerenciar perfis de acesso e permissões.',
-    'settings.edit': 'Permite editar configurações gerais do sistema.',
-    'system.access': 'Permite acesso básico ao sistema.',
-    'system.manage_apis': 'Permite gerenciar chaves de API (apenas Master).',
-    'system.view_logs': 'Permite visualizar logs de auditoria do sistema.',
-    'dashboard.menu_visible': 'Controla se o menu "Tela Inicial" aparece na barra lateral.',
+    'settings.professionals_menu': 'Gerenciar equipe, usuários e escalas de trabalho.',
+    'settings.forms_menu': 'Criar e editar formulários técnicos personalizados.',
+    'settings.questionnaires_menu': 'Gerenciar envios de questionários de saúde.',
+    'settings.locations_menu': 'Gerenciar salas, unidades e locais de atendimento.',
+    'settings.whatsapp_menu': 'Configurar conta e mensagens automáticas do WhatsApp.',
+    'settings.reports_menu': 'Criar e editar modelos de relatórios de impressão.',
+    'settings.system_menu': 'Configurações críticas e técnicas do sistema Axiom.',
+    'settings.view': 'Visualizar configurações básicas da clínica.',
+    'settings.manage': 'Alterar dados da clínica, logo e identidade visual.',
+    'settings.migration_menu': 'Acessar ferramentas de importação de dados externos.',
+    'roles.manage': 'Gerenciar cargos, perfis e permissões da matriz (Permissão de alto risco).',
+    'settings.edit': 'Permitir alteração de campos em configurações.',
+    'system.access': 'Permissão fundamental de acesso ao portal do sistema.',
+    'system.manage_apis': 'Acesso a chaves de API e integrações externas.',
+    'system.view_logs': 'Acessar logs de auditoria (Histórico de alterações no sistema).',
+    'dashboard.menu_visible': 'Exibir o dashboard inicial com métricas na barra lateral.',
 }
 
 export function PermissionsMatrix({ roles, permissions, initialRolePerms }: PermissionsMatrixProps) {
@@ -93,9 +108,28 @@ export function PermissionsMatrix({ roles, permissions, initialRolePerms }: Perm
         return rolePerms.some(rp => rp.role_id === roleId && rp.permission_id === permId)
     }
 
-    // Group permissions by module
+    // --- Deduplicate Roles by Name ---
+    const uniqueRoles = roles.reduce((acc: any[], role) => {
+        const trimmedName = role.name?.trim()
+        if (!acc.some(r => r.name?.trim() === trimmedName)) {
+            acc.push({ ...role, name: trimmedName }) // Ensure name is trimmed in the UI too
+        }
+        return acc
+    }, [])
+
+    // Group permissions by module and Unify Module Names
     const permissionsByModule = permissions.reduce((acc, perm) => {
-        const mod = perm.module || 'Geral'
+        let mod = perm.module || 'Geral'
+
+        // Unify English/Portuguese and similar names
+        if (mod === 'Patients') mod = 'Pacientes'
+        if (mod === 'Record') mod = 'Prontuários'
+        if (mod === 'Records') mod = 'Prontuários'
+        if (mod === 'Schedule') mod = 'Agenda'
+        if (mod === 'Setting') mod = 'Configurações'
+        if (mod === 'Settings') mod = 'Configurações'
+        if (mod === 'System') mod = 'Sistema'
+
         if (!acc[mod]) acc[mod] = []
         acc[mod].push(perm)
         return acc
@@ -119,7 +153,7 @@ export function PermissionsMatrix({ roles, permissions, initialRolePerms }: Perm
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-[300px]">Permissão / Ação</TableHead>
-                                    {roles.map(role => (
+                                    {uniqueRoles.map(role => (
                                         <TableHead key={role.id} className="text-center bg-muted/30 min-w-[100px]">
                                             <div className="flex flex-col items-center">
                                                 <span className="font-semibold text-foreground">{role.name}</span>
@@ -132,7 +166,7 @@ export function PermissionsMatrix({ roles, permissions, initialRolePerms }: Perm
                                 {Object.entries(permissionsByModule).map(([moduleName, perms]) => (
                                     <>
                                         <TableRow key={`module-${moduleName}`} className="bg-muted/50 hover:bg-muted/50">
-                                            <TableCell colSpan={roles.length + 1} className="font-semibold py-2">
+                                            <TableCell colSpan={uniqueRoles.length + 1} className="font-semibold py-2">
                                                 {moduleName.charAt(0).toUpperCase() + moduleName.slice(1)}
                                             </TableCell>
                                         </TableRow>
@@ -152,7 +186,7 @@ export function PermissionsMatrix({ roles, permissions, initialRolePerms }: Perm
                                                         {/* Module code removed here as requested */}
                                                     </div>
                                                 </TableCell>
-                                                {roles.map(role => {
+                                                {uniqueRoles.map(role => {
                                                     const active = hasPerm(role.id, perm.id)
 
                                                     return (

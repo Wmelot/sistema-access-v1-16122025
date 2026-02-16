@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ShoeScale } from "../ui/ShoeScale";
 import { calculateMinimalistIndex } from "@/utils/clinical-references";
 import { useMemo, useState } from "react";
-import { Info, AlertTriangle, CheckCircle2, Search, Check, ChevronsUpDown } from "lucide-react";
+import { Info, AlertTriangle, CheckCircle2, Search, Check, ChevronsUpDown, Video, Youtube, BookOpen } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SHOE_DATABASE, ShoeModel } from "@/app/dashboard/[slug]/assessments/shoe-database";
@@ -132,46 +133,64 @@ export const ShoeSection = () => {
                     <h2 className="text-xl font-black text-slate-800 tracking-tight">Avaliação do Calçado & Índice Minimalista</h2>
                 </div>
 
-                {/* BUSCA DE CALÇADOS DATABSE */}
-                <Popover open={searchOpen} onOpenChange={setSearchOpen}>
-                    <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-8 gap-2 border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold text-xs rounded-full px-4 shadow-sm">
-                            <Search className="w-3.5 h-3.5" /> Buscar Banco de Dados (The Running Clinic)
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[350px] p-0 rounded-2xl shadow-2xl border-indigo-100" align="end">
-                        <Command className="rounded-2xl">
-                            <CommandInput placeholder="Ex: Pegasus, Nimbus, Adios Pro..." className="h-10" />
-                            <CommandList className="max-h-[300px]">
-                                <CommandEmpty>Calçado não encontrado no banco.</CommandEmpty>
-                                <CommandGroup heading="Calçados Cadastrados">
-                                    {SHOE_DATABASE.map((shoe) => (
-                                        <CommandItem
-                                            key={shoe.id}
-                                            value={`${shoe.brand} ${shoe.model} `}
-                                            onSelect={() => applyShoeModel(shoe)}
-                                            className="px-4 py-3 cursor-pointer hover:bg-slate-50 border-b border-slate-50 last:border-0"
-                                        >
-                                            <div className="flex flex-col gap-0.5 w-full">
-                                                <div className="flex justify-between items-center">
-                                                    <span className="font-bold text-slate-800 text-sm">{shoe.brand} {shoe.model}</span>
-                                                    <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-600 border-none">{shoe.minimalismIndex}%</Badge>
+                <div className="flex items-center gap-3">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 rounded-full text-red-500 hover:text-red-600 hover:bg-red-50"
+                                    onClick={() => window.open('https://www.youtube.com/watch?v=OcJgc8wTk9k', '_blank')}
+                                >
+                                    <BookOpen className="w-4 h-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent className="text-[10px] font-bold">Ver Tutorial Técnico</TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+
+                    {/* BUSCA DE CALÇADOS DATABSE */}
+                    <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-8 gap-2 border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold text-xs rounded-full px-4 shadow-sm">
+                                <Search className="w-3.5 h-3.5" /> Buscar Banco de Dados
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[350px] p-0 rounded-2xl shadow-2xl border-indigo-100" align="end">
+                            <Command className="rounded-2xl">
+                                <CommandInput placeholder="Ex: Pegasus, Nimbus, Adios Pro..." className="h-10" />
+                                <CommandList className="max-h-[300px]">
+                                    <CommandEmpty>Calçado não encontrado no banco.</CommandEmpty>
+                                    <CommandGroup heading="Calçados Cadastrados">
+                                        {SHOE_DATABASE.map((shoe) => (
+                                            <CommandItem
+                                                key={shoe.id}
+                                                value={`${shoe.brand} ${shoe.model} `}
+                                                onSelect={() => applyShoeModel(shoe)}
+                                                className="px-4 py-3 cursor-pointer hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                                            >
+                                                <div className="flex flex-col gap-0.5 w-full">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="font-bold text-slate-800 text-sm">{shoe.brand} {shoe.model}</span>
+                                                        <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-600 border-none">{shoe.minimalismIndex}%</Badge>
+                                                    </div>
+                                                    <div className="flex gap-2 text-[10px] text-slate-400 font-medium">
+                                                        <span>{shoe.weight}g</span>
+                                                        <span>•</span>
+                                                        <span>Drop {shoe.drop}mm</span>
+                                                        <span>•</span>
+                                                        <span className="uppercase">{shoe.type}</span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex gap-2 text-[10px] text-slate-400 font-medium">
-                                                    <span>{shoe.weight}g</span>
-                                                    <span>•</span>
-                                                    <span>Drop {shoe.drop}mm</span>
-                                                    <span>•</span>
-                                                    <span className="uppercase">{shoe.type}</span>
-                                                </div>
-                                            </div>
-                                        </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                            </CommandList>
-                        </Command>
-                    </PopoverContent>
-                </Popover>
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -180,9 +199,29 @@ export const ShoeSection = () => {
                     {/* Score Card */}
                     <div className="bg-slate-900 text-white p-6 rounded-[2rem] shadow-2xl relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-700">
-                            <span className="text-9xl font-black">M</span>
+                            <Youtube className="w-24 h-24" />
                         </div>
-                        <h3 className="text-xs font-bold uppercase opacity-60 mb-1 tracking-widest">Minimalist Index</h3>
+                        <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-xs font-bold uppercase opacity-60 tracking-widest">Minimalist Index</h3>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Info className="w-3.5 h-3.5 text-slate-500 cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-[280px] p-4 bg-slate-800 text-white border-none shadow-2xl">
+                                        <div className="space-y-2">
+                                            <p className="font-bold text-sm text-indigo-400">Minimalismo x Maximalismo</p>
+                                            <p className="text-[10px] leading-relaxed">
+                                                <strong className="text-white">Minimalistas (&gt;70%):</strong> Menos interferência no movimento, drop baixo e alta flexibilidade. Exige adaptação gradual.
+                                            </p>
+                                            <p className="text-[10px] leading-relaxed">
+                                                <strong className="text-white">Maximalistas (&lt;30%):</strong> Solas espessas, drop alto e muita estabilidade. Reduzem a carga em tecidos específicos mas mudam a mecânica.
+                                            </p>
+                                        </div>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
                         <div className="flex items-baseline gap-1">
                             <span className="text-6xl font-black tracking-tighter">{currentScore}</span>
                             <span className="text-xl font-bold text-slate-500">%</span>
@@ -210,13 +249,37 @@ export const ShoeSection = () => {
                             )} />
                             <FormField control={control} name="calcado.peso_gramas" render={({ field }) => (
                                 <FormItem className="space-y-1">
-                                    <FormLabel className="text-[10px] uppercase font-bold text-slate-500">Peso (g)</FormLabel>
+                                    <div className="flex items-center gap-1.5">
+                                        <FormLabel className="text-[10px] uppercase font-bold text-slate-500">Peso (g)</FormLabel>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Info className="w-3 h-3 text-slate-300 hover:text-indigo-500 cursor-help" />
+                                                </TooltipTrigger>
+                                                <TooltipContent className="text-[10px] bg-slate-900 text-white border-slate-800">
+                                                    {ORIENTATIONS.peso}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
                                     <FormControl><Input {...field} type="number" className="h-8 bg-slate-50 border-none text-xs text-center font-bold" placeholder="0g" /></FormControl>
                                 </FormItem>
                             )} />
                             <FormField control={control} name="calcado.drop_mm" render={({ field }) => (
                                 <FormItem className="space-y-1">
-                                    <FormLabel className="text-[10px] uppercase font-bold text-slate-500">Drop (mm)</FormLabel>
+                                    <div className="flex items-center gap-1.5">
+                                        <FormLabel className="text-[10px] uppercase font-bold text-slate-500">Drop (mm)</FormLabel>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Info className="w-3 h-3 text-slate-300 hover:text-indigo-500 cursor-help" />
+                                                </TooltipTrigger>
+                                                <TooltipContent className="text-[10px] bg-slate-900 text-white border-slate-800">
+                                                    {ORIENTATIONS.drop}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
                                     <FormControl><Input {...field} type="number" className="h-8 bg-slate-50 border-none text-xs text-center font-bold" placeholder="0mm" /></FormControl>
                                 </FormItem>
                             )} />

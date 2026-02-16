@@ -11,6 +11,7 @@ import { FinancialService } from "@/services/financial-service"
 import { sendMessage } from "@/app/dashboard/[slug]/settings/communication/actions"
 import { hasPermission } from "@/lib/rbac"
 import { normalizePhone } from "@/utils/format-phone"
+import { getActiveOrgId, maskDataIfRequired } from "@/lib/auth-actions-utils"
 
 
 export async function createPatient(formData: FormData, slug?: string) {
@@ -59,16 +60,21 @@ export async function createPatient(formData: FormData, slug?: string) {
         if (!authUser) return { error: 'Usuário não autenticado' }
 
         const supabaseAdmin = await createAdminClient()
-        const { data: profile } = await supabaseAdmin.from('profiles').select('organization_id').eq('id', authUser.id).single()
-        let organization_id = profile?.organization_id
 
-        if (slug) {
-            const { data: orgData } = await supabaseAdmin.from('organizations').select('id').eq('slug', slug).single()
-            if (orgData) organization_id = orgData.id
-        }
-
-        if (!organization_id) {
-            return { error: 'Erro crítico: Perfil de usuário sem organização vinculada.' }
+        // [SECURITY] Resolve Active Organization (Handles Support Mode)
+        let organization_id: string;
+        try {
+            if (slug) {
+                const activeOrg = await getActiveOrgId(slug)
+                organization_id = activeOrg.orgId
+            } else {
+                const { data: profile } = await supabaseAdmin.from('profiles').select('organization_id').eq('id', authUser.id).single()
+                const userOrgId = profile?.organization_id
+                if (!userOrgId) return { error: 'Usuário sem organização vinculada.' }
+                organization_id = userOrgId
+            }
+        } catch (e: any) {
+            return { error: e.message }
         }
 
         if (cpf) {
@@ -230,18 +236,21 @@ export async function getPatients({
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { data: [], count: 0 }
 
-        const { data: profile } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).single()
-        userOrgId = profile?.organization_id
-
-        if (slug) {
-            const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
-            if (orgData) {
-                // [PRIVACY] Master CAN see patients of other clinics (Super Admin Bypass)
-                userOrgId = orgData.id
+        let isSupportMode = false;
+        try {
+            if (slug) {
+                const activeOrg = await getActiveOrgId(slug)
+                userOrgId = activeOrg.orgId
+                isSupportMode = activeOrg.isSupportMode
+            } else {
+                const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+                userOrgId = profile?.organization_id
             }
+        } catch (e) {
+            return { data: [], count: 0 } // Access Denied
         }
 
-        if (!userOrgId) return { data: [], count: 0 } // Extra safety
+        if (!userOrgId) return { data: [], count: 0 }
 
         // [FIX] Using Admin Client instead of direct PC connection to avoid Pooler/Tenant errors
         const supabaseAdmin = await createAdminClient()
@@ -269,7 +278,10 @@ export async function getPatients({
             date_of_birth: p.birthdate
         }))
 
-        return { data: normalized, count: totalCount || 0 }
+        // [PRIVACY] Mask data if in support mode
+        const maskedData = await maskDataIfRequired(normalized, isSupportMode)
+
+        return { data: maskedData, count: totalCount || 0 }
     } catch (err: any) {
         console.error("ERROR in getPatients:", err)
         return { data: [], count: 0 }
@@ -284,16 +296,18 @@ export async function quickCreatePatient(name: string, phone?: string, slug?: st
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Usuário não autenticado' }
 
-    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-    let organization_id = profile?.organization_id
-
-    if (slug) {
-        const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
-        if (orgData) organization_id = orgData.id
-    }
-
-    if (!organization_id) {
-        return { error: 'Erro de permissão: Organização não encontrada.' }
+    let organization_id: string;
+    try {
+        if (slug) {
+            const activeOrg = await getActiveOrgId(slug)
+            organization_id = activeOrg.orgId
+        } else {
+            const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+            if (!profile?.organization_id) return { error: 'Organização não encontrada.' }
+            organization_id = profile.organization_id
+        }
+    } catch (e: any) {
+        return { error: e.message }
     }
 
     // [DUPLICATE CHECK] - Search by partial name match AND phone number
@@ -388,15 +402,19 @@ export async function getPatient(id: string, slug?: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
-    const { data: profile } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).single()
-    let userOrgId = profile?.organization_id
-
-    if (slug) {
-        const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
-        if (orgData) {
-            // [PRIVACY] Master CAN see patients of other clinics (Super Admin Bypass)
-            userOrgId = orgData.id
+    let userOrgId: string | undefined;
+    let isSupportMode = false;
+    try {
+        if (slug) {
+            const activeOrg = await getActiveOrgId(slug)
+            userOrgId = activeOrg.orgId
+            isSupportMode = activeOrg.isSupportMode
+        } else {
+            const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+            userOrgId = profile?.organization_id
         }
+    } catch (e) {
+        return null
     }
 
     if (!userOrgId) return null
@@ -419,41 +437,44 @@ export async function getPatient(id: string, slug?: string) {
     // Normalize
     const data = { ...patientData, date_of_birth: patientData.birthdate }
 
-    if (data && data.address) {
+    // [PRIVACY] Mask data if in support mode
+    const finalData = await maskDataIfRequired(data, isSupportMode)
+
+    if (finalData && finalData.address) {
         let parsed: any = null
 
-        if (typeof data.address === 'object') {
-            parsed = data.address
-        } else if (typeof data.address === 'string' && data.address.trim().startsWith('{')) {
+        if (typeof finalData.address === 'object') {
+            parsed = finalData.address
+        } else if (typeof finalData.address === 'string' && finalData.address.trim().startsWith('{')) {
             try {
-                parsed = JSON.parse(data.address)
+                parsed = JSON.parse(finalData.address)
             } catch (e) {
                 // Ignore parse error, treat as string
             }
         }
 
         if (parsed) {
-            (data as any).full_address_object = parsed // Keep original if needed
-                ; (data as any).address = parsed.street || parsed.address || ''
-                ; (data as any).number = parsed.number || ''
-                ; (data as any).complement = parsed.complement || ''
-                ; (data as any).neighborhood = parsed.neighborhood || ''
-                ; (data as any).city = parsed.city || ''
-                ; (data as any).state = parsed.state || ''
-                ; (data as any).zip_code = parsed.zip_code || parsed.cep || ''
+            (finalData as any).full_address_object = parsed // Keep original if needed
+                ; (finalData as any).address = parsed.street || parsed.address || ''
+                ; (finalData as any).number = parsed.number || ''
+                ; (finalData as any).complement = parsed.complement || ''
+                ; (finalData as any).neighborhood = parsed.neighborhood || ''
+                ; (finalData as any).city = parsed.city || ''
+                ; (finalData as any).state = parsed.state || ''
+                ; (finalData as any).zip_code = parsed.zip_code || parsed.cep || ''
         }
     }
 
     // [FIX] Aggressively serialize ALL Date objects to strings
-    if (data) {
-        Object.keys(data).forEach(key => {
-            if (data[key] instanceof Date) {
-                data[key] = data[key].toISOString()
+    if (finalData) {
+        Object.keys(finalData).forEach(key => {
+            if (finalData[key] instanceof Date) {
+                finalData[key] = finalData[key].toISOString()
             }
         })
     }
 
-    return data
+    return finalData
 }
 
 
@@ -464,16 +485,19 @@ export async function updatePatient(id: string, formData: FormData, slug?: strin
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Usuário não autenticado' }
 
-    // Fetch user's profile to get their organization
-    const { data: userProfile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-    let userOrgId = userProfile?.organization_id
-
-    if (slug) {
-        const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
-        if (orgData) userOrgId = orgData.id
+    let userOrgId: string;
+    try {
+        if (slug) {
+            const activeOrg = await getActiveOrgId(slug)
+            userOrgId = activeOrg.orgId
+        } else {
+            const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+            if (!profile?.organization_id) return { error: 'Organização não identificada.' }
+            userOrgId = profile.organization_id
+        }
+    } catch (e: any) {
+        return { error: e.message }
     }
-
-    if (!userOrgId) return { error: 'Erro de permissão: Organização não identificada.' }
 
     // Verify if the patient belongs to the user's organization
     const { data: patientCheck } = await supabase.from('patients').select('organization_id').eq('id', id).single()

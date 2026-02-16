@@ -24,7 +24,9 @@ import {
     TrendingUp,
     Download,
     CircleUser,
-    HelpCircle
+    HelpCircle,
+    Cpu,
+    Search
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -200,6 +202,14 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
                     href: `${dashboardPrefix}/integrations`,
                     color: "text-slate-600",
                     bg: "bg-slate-100"
+                },
+                {
+                    title: "Saúde e Suporte (IA)",
+                    description: "Diagnóstico técnico e acesso para o suporte.",
+                    icon: Cpu,
+                    href: `${dashboardPrefix}/settings?tab=general`,
+                    color: "text-indigo-600",
+                    bg: "bg-indigo-50"
                 }
             ]
         },

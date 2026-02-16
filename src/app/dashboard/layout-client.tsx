@@ -371,7 +371,10 @@ function DashboardLayoutContent({
                                 <Link href={`${dashboardPrefix}/financial`}>
                                     <DropdownMenuItem
                                         className="cursor-pointer gap-2 py-2.5"
-                                        onClick={() => showLoading("ABRINDO FINANCEIRO...")}
+                                        onClick={() => {
+                                            const target = `${dashboardPrefix}/financial`;
+                                            if (pathname !== target) showLoading("ABRINDO FINANCEIRO...");
+                                        }}
                                     >
                                         <DollarSign className="h-4 w-4 text-emerald-600" />
                                         <span className="font-medium">Financeiro geral</span>
@@ -384,7 +387,10 @@ function DashboardLayoutContent({
                                 <Link href={`${dashboardPrefix}/management`}>
                                     <DropdownMenuItem
                                         className="cursor-pointer gap-2 py-2.5"
-                                        onClick={() => showLoading("ABRINDO CONFIGURAÇÕES...")}
+                                        onClick={() => {
+                                            const target = `${dashboardPrefix}/management`;
+                                            if (pathname !== target) showLoading("ABRINDO CONFIGURAÇÕES...");
+                                        }}
                                     >
                                         <Settings className="h-4 w-4 text-blue-600" />
                                         <span className="font-medium">Configurações gerais</span>
@@ -394,7 +400,13 @@ function DashboardLayoutContent({
 
                             {/* CONFIGURAÇÕES DE PERFIL */}
                             <Link href={`${dashboardPrefix}/profile/me`}>
-                                <DropdownMenuItem className="cursor-pointer gap-2 py-2.5" onClick={() => showLoading("ABRINDO PERFIL...")}>
+                                <DropdownMenuItem
+                                    className="cursor-pointer gap-2 py-2.5"
+                                    onClick={() => {
+                                        const target = `${dashboardPrefix}/profile/me`;
+                                        if (pathname !== target) showLoading("ABRINDO PERFIL...");
+                                    }}
+                                >
                                     <CircleUser className="h-4 w-4 text-zinc-600" />
                                     <span className="font-medium">Configurações de perfil</span>
                                 </DropdownMenuItem>
@@ -403,7 +415,12 @@ function DashboardLayoutContent({
                             {/* PAINEL MASTER - Somente wmelot@gmail.com */}
                             {currentUser?.email === 'wmelot@gmail.com' && (
                                 <Link href="/admin">
-                                    <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 text-indigo-700 font-bold bg-indigo-50/50" onClick={() => showLoading("ACESSANDO PAINEL MASTER...")}>
+                                    <DropdownMenuItem
+                                        className="cursor-pointer gap-2 py-2.5 text-indigo-700 font-bold bg-indigo-50/50"
+                                        onClick={() => {
+                                            if (pathname !== '/admin') showLoading("ACESSANDO PAINEL MASTER...");
+                                        }}
+                                    >
                                         <Shield className="h-4 w-4" />
                                         Painel Master
                                     </DropdownMenuItem>
@@ -412,7 +429,13 @@ function DashboardLayoutContent({
 
                             {/* SUPORTE */}
                             <Link href={`${dashboardPrefix}/support`}>
-                                <DropdownMenuItem className="cursor-pointer gap-2 py-2.5" onClick={() => showLoading("ABRINDO SUPORTE...")}>
+                                <DropdownMenuItem
+                                    className="cursor-pointer gap-2 py-2.5"
+                                    onClick={() => {
+                                        const target = `${dashboardPrefix}/support`;
+                                        if (pathname !== target) showLoading("ABRINDO SUPORTE...");
+                                    }}
+                                >
                                     <MessageSquare className="h-4 w-4 text-orange-600" />
                                     <span className="font-medium">Suporte</span>
                                 </DropdownMenuItem>
