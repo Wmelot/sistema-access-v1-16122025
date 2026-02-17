@@ -207,12 +207,12 @@ function DashboardLayoutContent({
     }, [startTime, activeAttendanceId])
 
     // Date Sync Logic
-    const dateParam = searchParams.get('date')
+    const dateParam = searchParams?.get('date')
     const date = dateParam ? new Date(dateParam + 'T12:00:00') : new Date()
 
     const handleDateSelect = (newDate: Date | undefined) => {
         if (!newDate) return
-        const params = new URLSearchParams(searchParams.toString())
+        const params = new URLSearchParams(searchParams?.toString() || "")
         params.set('date', newDate.toISOString().split('T')[0])
         router.push(`${pathname}?${params.toString()}`)
     }

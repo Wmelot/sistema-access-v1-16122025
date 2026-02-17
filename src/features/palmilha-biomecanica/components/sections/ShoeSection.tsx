@@ -29,11 +29,20 @@ export const ShoeSection = () => {
     const [isSavingShoe, setIsSavingShoe] = useState(false);
     const params = useParams();
     const slug = params?.slug as string;
+    const [orgSettings, setOrgSettings] = useState<any>(null);
 
     // Fetch custom shoes on mount
     useEffect(() => {
         fetchCustomShoes().then(setCustomShoes);
-    }, []);
+        // Fetch org settings if slug is available
+        if (slug) {
+            import("@/app/dashboard/[slug]/settings/organization/actions").then(mod => {
+                mod.getOrganizationSettings(slug).then(data => {
+                    if (data?.org) setOrgSettings(data.org);
+                });
+            });
+        }
+    }, [slug]);
 
     const ALL_SHOES = useMemo(() => {
         const brandsPriority = ['Adidas', 'Asics', 'Brooks', 'Hoka', 'Mizuno', 'New Balance', 'Nike', 'On Running', 'Puma', 'Saucony', 'Olympikus'];
@@ -47,8 +56,6 @@ export const ShoeSection = () => {
     }, [customShoes]);
 
     async function handleSaveNewShoe() {
-        // We need organization_id. For now let's hope it's in the slug or provided.
-        // Usually we fetch org by slug if not available.
         const modelName = shoeVals?.modelo;
         if (!modelName || modelName.trim() === "" || modelName.includes("Ex:")) {
             toast.error("Por favor, digite o nome do modelo de tênis primeiro.");
@@ -57,27 +64,33 @@ export const ShoeSection = () => {
 
         const parts = modelName.trim().split(' ');
         const brand = parts[0];
-        const model = parts.slice(1).join(' ') || 'Modelo Desconhecido';
+        const model = parts.slice(1).join(' ') || 'Modelo Personalizado';
 
         setIsSavingShoe(true);
-        // We need an org ID. We can use a trick to get it or just pass null and let server handle if possible.
-        // But better to get it.
-        const res = await saveShoeModel({
-            brand,
-            model,
-            weight: Number(shoeVals?.peso_gramas || 0),
-            drop: Number(shoeVals?.drop_mm || 0),
-            stackHeight: 0, // Not explicitly in V3 simple fields
-            minimalismIndex: currentScore
-        });
-        setIsSavingShoe(false);
+        try {
+            const res = await saveShoeModel({
+                brand,
+                model,
+                weight: Number(shoeVals?.peso_gramas || 0),
+                drop: Number(shoeVals?.drop_mm || 0),
+                stackHeight: 0,
+                minimalismIndex: currentScore,
+                organization_id: orgSettings?.id || null,
+                is_global: true
+            });
 
-        if (res.success) {
-            toast.success("Modelo salvo no banco de dados global!");
-            const updated = await fetchCustomShoes();
-            setCustomShoes(updated);
-        } else {
-            toast.error("Erro ao salvar: " + res.error);
+            if (res.success) {
+                toast.success("Modelo salvo no banco de dados global!");
+                const updated = await fetchCustomShoes();
+                setCustomShoes(updated);
+            } else {
+                toast.error("Erro ao salvar: " + res.error);
+            }
+        } catch (e) {
+            console.error("Save Shoe Error:", e);
+            toast.error("Erro inesperado ao salvar tênis.");
+        } finally {
+            setIsSavingShoe(false);
         }
     }
 

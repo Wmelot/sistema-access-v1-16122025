@@ -18,6 +18,7 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { formatPhoneDisplay } from '@/utils/format-phone';
+import { useGlobalLoader } from '@/components/providers/global-loader-provider';
 
 export default function PalmilhaSandboxPage() {
     const params = useParams();
@@ -70,8 +71,11 @@ export default function PalmilhaSandboxPage() {
         }
     }, [pendingData, isRestoring]);
 
+    const { showLoading } = useGlobalLoader();
+
     const handleFormChange = (newType: string) => {
         if (newType === 'palmilha') return;
+        showLoading();
         if (newType === 'palmilha-v3') {
             router.push(`/dashboard/${slug}/test-form/palmilha-v3`);
             return;

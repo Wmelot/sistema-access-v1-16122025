@@ -29,13 +29,19 @@ export const useGlobalLoader = () => {
 
 // Component to handle route changes causing loader to hide
 const RouteChangeHandler = () => {
-    const { hideLoading } = useGlobalLoader();
+    const { hideLoading, isLoading } = useGlobalLoader();
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
     useEffect(() => {
-        // Hide immediately on path change to improve perceived performance
-        hideLoading();
+        // We only hide automatically if the loader was NOT shown manually with a message
+        // This is a bit tricky with the current state. 
+        // Let's just add a small delay to the hide to allow the new page to start rendering
+        const timer = setTimeout(() => {
+            hideLoading();
+        }, 800); // 800ms fade out / render window
+
+        return () => clearTimeout(timer);
     }, [pathname, searchParams, hideLoading]);
 
     return null;

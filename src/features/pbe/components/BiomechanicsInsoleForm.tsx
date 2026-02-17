@@ -5,7 +5,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 
 import { useDebouncedCallback } from "use-debounce";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { Form, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -521,11 +521,25 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
     const [searchOpen, setSearchOpen] = useState(false);
     const [customShoes, setCustomShoes] = useState<ShoeModel[]>([]);
     const [isSavingShoe, setIsSavingShoe] = useState(false);
+    const searchParams = useSearchParams();
 
     // Fetch custom shoes on mount
     useEffect(() => {
         fetchCustomShoes().then(setCustomShoes);
-    }, []);
+
+        // Auto-fill from URL if present
+        if (searchParams) {
+            const weight = searchParams.get("shoe.weight");
+            const drop = searchParams.get("shoe.drop");
+            const stack = searchParams.get("shoe.stack");
+            const model = searchParams.get("shoe.model");
+
+            if (weight) form.setValue("shoe.weight", weight);
+            if (drop) form.setValue("shoe.drop", drop);
+            if (stack) form.setValue("shoe.stack", stack);
+            if (model) form.setValue("shoe.model", model);
+        }
+    }, [searchParams]);
 
     const ALL_SHOES = useMemo(() => {
         const brandsPriority = ['Adidas', 'Asics', 'Brooks', 'Hoka', 'Mizuno', 'New Balance', 'Nike', 'On Running', 'Puma', 'Saucony', 'Olympikus'];
@@ -539,42 +553,42 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
     }, [customShoes]);
 
     async function handleSaveNewShoe() {
-        if (!orgSettings?.id) {
-            toast.error("Configurações da organização não carregadas.");
-            return;
-        }
-
         const modelName = form.getValues("shoe.model");
         if (!modelName || modelName.trim() === "" || modelName.includes("Selecione")) {
             toast.error("Por favor, digite o nome do modelo de tênis primeiro.");
             return;
         }
 
-        // Split brand and model if possible
-        const parts = modelName.split(' ');
+        // Split brand and model if possible (improved)
+        const parts = modelName.trim().split(' ');
         const brand = parts[0];
-        const model = parts.slice(1).join(' ') || 'Modelo Desconhecido';
+        const model = parts.slice(1).join(' ') || 'Modelo Personalizado';
 
         setIsSavingShoe(true);
-        const res = await saveShoeModel({
-            brand,
-            model,
-            weight: Number(form.getValues("shoe.weight") || 0),
-            drop: Number(form.getValues("shoe.drop") || 0),
-            stackHeight: Number(form.getValues("shoe.stack") || 0),
-            minimalismIndex: minIndexResult,
-            organization_id: orgSettings.id,
-            is_global: true // Master users can make it global
-        });
-        setIsSavingShoe(false);
+        try {
+            const res = await saveShoeModel({
+                brand,
+                model,
+                weight: Number(form.getValues("shoe.weight") || 0),
+                drop: Number(form.getValues("shoe.drop") || 0),
+                stackHeight: Number(form.getValues("shoe.stack") || 0),
+                minimalismIndex: minIndexResult,
+                organization_id: orgSettings?.id,
+                is_global: true
+            });
 
-        if (res.success) {
-            toast.success("Modelo salvo no banco de dados global!");
-            // Refresh list
-            const updated = await fetchCustomShoes();
-            setCustomShoes(updated);
-        } else {
-            toast.error("Erro ao salvar: " + res.error);
+            if (res.success) {
+                toast.success("Modelo salvo no banco de dados global!");
+                const updated = await fetchCustomShoes();
+                setCustomShoes(updated);
+            } else {
+                toast.error("Erro ao salvar: " + res.error);
+            }
+        } catch (e) {
+            console.error("Save Shoe Error:", e);
+            toast.error("Erro inesperado ao salvar tênis.");
+        } finally {
+            setIsSavingShoe(false);
         }
     }
 
@@ -1649,6 +1663,16 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                             {shoeRecommendations.details}
                                                         </p>
                                                     </div>
+                                                </div>
+
+                                                {/* NOVO: CAMPO DE NOME DO MODELO PARA SALVAMENTO */}
+                                                <div className="space-y-1">
+                                                    <FormLabel className="text-[10px] uppercase font-bold text-slate-500">Modelo / Marca do Tênis</FormLabel>
+                                                    <Input
+                                                        {...form.register("shoe.model")}
+                                                        placeholder="Ex: Nike Pegasus 40, Olympikus Corre 3..."
+                                                        className="h-10 bg-white border-slate-200 font-bold text-slate-700"
+                                                    />
                                                 </div>
 
                                                 {/* 4. DADOS TÉCNICOS DO CALÇADO (FOTO 3 RESTAURADA) */}
