@@ -2863,6 +2863,8 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                             patientEmail={form.watch("patient.email")}
                                             patientPhone={form.watch("patient.phone")}
                                             openSection={openSection}
+                                            patient={patient}
+                                            professional={professional}
                                         />
                                     </Accordion>
                                 </form>

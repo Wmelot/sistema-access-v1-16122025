@@ -13,7 +13,8 @@ import { checkNavicularStatus } from "@/utils/clinical-references"
 import { createAssessment } from "@/app/dashboard/[slug]/patients/actions/assessments"
 import { registerInsoleDelivery } from "@/app/dashboard/[slug]/patients/actions/insoles"
 import { useParams } from "next/navigation"
-import { Calendar as CalendarIcon } from "lucide-react"
+import { Calendar as CalendarIcon, Upload, FileCheck, X } from "lucide-react"
+import { sendOrderToPropulsao } from "@/app/dashboard/[slug]/patients/actions/propulsao-actions"
 
 // --- CONSTANTS ---
 const COLOR_LEFT_FOOT = '#14b8a6' // Teal-500
@@ -29,6 +30,8 @@ interface PropulsaoAccordionItemProps {
     disabled?: boolean
     openSection: string | null
     form?: any
+    patient?: any
+    professional?: any
 }
 
 interface FootConfig {
@@ -77,9 +80,14 @@ const ELEVATION_OPTIONS = [
     { label: '2.0 cm', value: '2.0' },
 ]
 
-export function PropulsaoAccordionItem({ value, data, patientId, patientName, patientEmail, patientPhone, disabled, openSection, form }: PropulsaoAccordionItemProps) {
+export function PropulsaoAccordionItem({ value, data, patientId, patientName, patientEmail, patientPhone, disabled, openSection, form, patient, professional }: PropulsaoAccordionItemProps) {
     const [isLoading, setIsLoading] = useState(false)
     const [isSent, setIsSent] = useState(false)
+    const [propulsaoStatus, setPropulsaoStatus] = useState<{ success?: boolean, orderNumber?: string, error?: string } | null>(null)
+
+    // Scanner Files (Base64)
+    const [fileE, setFileE] = useState<string | null>(null)
+    const [fileD, setFileD] = useState<string | null>(null)
 
     // GENERAL OPTIONS DEFAULTS
     const [produto, setProduto] = useState('Slim')
@@ -354,6 +362,11 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
     }
 
     const handleSend = async () => {
+        if (!patientId || patientId === 'sandbox') {
+            toast.error("Não é possível enviar pedidos reais em modo Sandbox.")
+            return
+        }
+
         setIsLoading(true)
         try {
             const prescriptionData = {
@@ -369,24 +382,46 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                 totalPrice: calculatePrice
             }
 
+            // 1. Enviar para a Propulsão
+            const propulsaoRes = await sendOrderToPropulsao(
+                {
+                    ...prescriptionData,
+                    fileE: fileE || "UExhY2Vob2xkZXI=",
+                    fileD: fileD || "UExhY2Vob2xkZXI="
+                },
+                { nome: patientName, email: patientEmail },
+                { id: professional?.id || 'FISIO', nome: professional?.full_name || 'Fisioterapeuta' }
+            )
+
+            setPropulsaoStatus(propulsaoRes)
+
+            // 2. Salvar localmente no prontuário
             await createAssessment(
                 patientId,
                 'insoles_prescription',
-                prescriptionData,
+                {
+                    ...prescriptionData,
+                    propulsaoOrder: propulsaoRes.success ? propulsaoRes.orderNumber : null
+                },
                 {
                     total: calculatePrice,
                     model: produto,
-                    type: tipoPalmilha
+                    type: tipoPalmilha,
+                    propulsaoOrder: propulsaoRes.success ? propulsaoRes.orderNumber : null
                 },
-                `Prescrição de Palmilha - ${produto}`,
+                `Prescrição de Palmilha - ${produto} ${propulsaoRes.success ? `(Pedido Propulsão: ${propulsaoRes.orderNumber})` : ''}`,
                 slug
             )
 
             setIsSent(true)
-            toast.success("Prescrição registrada com sucesso no prontuário!")
+            if (propulsaoRes.success) {
+                toast.success(`Pedido enviado à Propulsão (#${propulsaoRes.orderNumber}) e salvo no prontuário!`)
+            } else {
+                toast.warning("Prescrição salva no prontuário, mas houve um erro ao enviar para a Propulsão. Verifique o log.")
+            }
         } catch (error) {
             console.error("Erro ao salvar prescrição:", error)
-            toast.error("Erro ao salvar prescrição localmente.")
+            toast.error("Erro ao processar pedido.")
         } finally {
             setIsLoading(false)
         }
@@ -520,8 +555,26 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
 
                         {/* 2. Feet Config */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FootForm side="left" color={COLOR_LEFT_FOOT} label="Pé Esquerdo" config={leftFoot} onUpdate={updateFoot} onTogglePad={updatePad} />
-                            <FootForm side="right" color={COLOR_RIGHT_FOOT} label="Pé Direito" config={rightFoot} onUpdate={updateFoot} onTogglePad={updatePad} />
+                            <FootForm
+                                side="left"
+                                color={COLOR_LEFT_FOOT}
+                                label="Pé Esquerdo"
+                                config={leftFoot}
+                                onUpdate={updateFoot}
+                                onTogglePad={updatePad}
+                                scannerFile={fileE}
+                                onFileChange={setFileE}
+                            />
+                            <FootForm
+                                side="right"
+                                color={COLOR_RIGHT_FOOT}
+                                label="Pé Direito"
+                                config={rightFoot}
+                                onUpdate={updateFoot}
+                                onTogglePad={updatePad}
+                                scannerFile={fileD}
+                                onFileChange={setFileD}
+                            />
                         </div>
                     </div>
 
@@ -578,13 +631,19 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                                 <div className="mt-6">
                                     {!isSent ? (
                                         <Button className="w-full bg-green-600 hover:bg-green-700 h-10 font-bold shadow-md" onClick={handleSend} disabled={isLoading}>
-                                            {isLoading ? <Loader2 className="animate-spin" /> : <>Confirmar e Salvar <CheckCircle className="ml-2 w-4 h-4" /></>}
+                                            {isLoading ? <Loader2 className="animate-spin" /> : <>ENVIAR PARA FÁBRICA <Send className="ml-2 w-4 h-4" /></>}
                                         </Button>
                                     ) : (
                                         <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-center text-green-800 text-sm">
                                             <p className="font-bold flex items-center justify-center gap-2">
-                                                <CheckCircle2 className="w-4 h-4" /> Prescrição Salva!
+                                                <CheckCircle2 className="w-4 h-4" />
+                                                {propulsaoStatus?.success ? `PEDIDO ACEITO (#${propulsaoStatus.orderNumber})` : 'SALVO NO PRONTUÁRIO'}
                                             </p>
+                                            {propulsaoStatus && !propulsaoStatus.success && (
+                                                <p className="text-[10px] text-red-500 mt-1 font-medium italic">
+                                                    Erro no envio: {propulsaoStatus.error}
+                                                </p>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -712,7 +771,40 @@ function FootSummary({ side, config, color }: { side: string, config: FootConfig
     )
 }
 
-function FootForm({ side, color, label, config, onUpdate, onTogglePad }: { side: 'left' | 'right', color?: string, label: string, config: FootConfig, onUpdate: any, onTogglePad: any }) {
+function FootForm({
+    side,
+    color,
+    label,
+    config,
+    onUpdate,
+    onTogglePad,
+    scannerFile,
+    onFileChange
+}: {
+    side: 'left' | 'right',
+    color?: string,
+    label: string,
+    config: FootConfig,
+    onUpdate: any,
+    onTogglePad: any,
+    scannerFile: string | null,
+    onFileChange: (base64: string | null) => void
+}) {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        const reader = new FileReader()
+        reader.onloadend = () => {
+            const base64String = reader.result as string
+            // Remove data:application/octet-stream;base64, or similar prefixes
+            const cleanBase64 = base64String.split(',')[1]
+            onFileChange(cleanBase64)
+            toast.success("Arquivo do scanner carregado com sucesso!")
+        }
+        reader.readAsDataURL(file)
+    }
+
     return (
         <div className="space-y-4">
             <h3 className="font-bold text-lg mb-4 flex items-center gap-2" style={{ color: color }}>
@@ -852,6 +944,43 @@ function FootForm({ side, color, label, config, onUpdate, onTogglePad }: { side:
                             </div>
                         ))}
                     </div>
+                </div>
+
+                {/* 6. Scanner 3D Upload */}
+                <div className="pt-3 border-t border-slate-200 mt-2">
+                    <Label className="text-xs mb-2 block font-semibold text-slate-700 flex items-center gap-2">
+                        <Upload className="w-3 h-3" /> Scanner 3D (Arqv. STL)
+                    </Label>
+                    {!scannerFile ? (
+                        <div className="relative group">
+                            <input
+                                type="file"
+                                accept=".stl,.obj,.ply"
+                                onChange={handleFileChange}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            />
+                            <div className="border-2 border-dashed border-slate-200 rounded-lg p-4 text-center group-hover:border-blue-300 transition-colors bg-white">
+                                <p className="text-[10px] text-slate-400 font-medium tracking-tight">
+                                    Clique para selecionar o arquivo do scanner
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-between bg-blue-50 border border-blue-100 p-2 rounded-lg">
+                            <div className="flex items-center gap-2 overflow-hidden">
+                                <FileCheck className="w-4 h-4 text-blue-600 shrink-0" />
+                                <span className="text-[10px] font-bold text-blue-800 truncate">Scanner Carregado!</span>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onFileChange(null)}
+                                className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-500 rounded-full"
+                            >
+                                <X className="w-3 h-3" />
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
