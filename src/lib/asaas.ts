@@ -160,3 +160,26 @@ export async function getOrCreateAsaasCustomer(id: string) {
 
     throw new Error(`Falha ao criar cliente no Asaas para: ${targetPatient.name}`);
 }
+
+export async function createAsaasInvoice(paymentId: string, apiKey?: string) {
+    const key = apiKey || ASAAS_API_KEY
+    if (!key) throw new Error("Asaas API Key not configured")
+
+    // Nota Fiscal de Serviço (NFS-e) logic
+    const res = await fetch(`${ASAAS_API_URL}/payments/${paymentId}/invoices`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'access_token': key
+        },
+        body: JSON.stringify({
+            // Default configuration for service invoices
+            // Usually requires previously configured municipal settings in Asaas dashboard
+            effectiveDate: new Date().toISOString().split('T')[0]
+        })
+    })
+
+    const json = await res.json()
+    if (!res.ok) throw new Error(json.errors?.[0]?.description || 'Erro ao emitir nota fiscal no Asaas')
+    return json
+}

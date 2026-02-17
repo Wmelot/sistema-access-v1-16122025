@@ -131,8 +131,8 @@ export function TenantResponsibleManager({ tenantId, maxPros, usedPros, usagePer
                                 </Label>
                                 {owner ? (
                                     <div className="flex flex-col">
-                                        <span className="font-medium text-sm text-zinc-900">{maskName(owner.full_name) || 'Sem nome'}</span>
-                                        <span className="text-xs text-zinc-500 truncate" title={owner.email}>{maskEmail(owner.email)}</span>
+                                        <span className="font-medium text-sm text-zinc-900">{owner.full_name || 'Sem nome'}</span>
+                                        <span className="text-xs text-zinc-500 truncate" title={owner.email}>{owner.email}</span>
                                         {owner.role && <Badge variant="outline" className="w-fit mt-1 text-[10px] h-4 px-1">{owner.role}</Badge>}
                                     </div>
                                 ) : (
@@ -221,8 +221,8 @@ export function TenantResponsibleManager({ tenantId, maxPros, usedPros, usagePer
                             profiles.map((profile) => (
                                 <div key={profile.id} className="flex items-center justify-between p-3 rounded-lg border border-zinc-100 bg-zinc-50/50">
                                     <div className="flex flex-col">
-                                        <span className="text-sm font-medium text-zinc-900">{maskName(profile.full_name) || 'Sem nome'}</span>
-                                        <span className="text-xs text-zinc-500">{maskEmail(profile.email)}</span>
+                                        <span className="text-sm font-medium text-zinc-900">{profile.full_name || 'Sem nome'}</span>
+                                        <span className="text-xs text-zinc-500">{profile.email}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Badge variant="outline" className="text-xs capitalize">{profile.role || 'user'}</Badge>

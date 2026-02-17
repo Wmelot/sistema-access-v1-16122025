@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ShoeScale } from "../ui/ShoeScale";
 import { calculateMinimalistIndex } from "@/utils/clinical-references";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Info, AlertTriangle, CheckCircle2, Search, Check, ChevronsUpDown, Video, Youtube, BookOpen } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -17,11 +17,69 @@ import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { saveShoeModel, fetchCustomShoes } from "@/app/dashboard/[slug]/assessments/shoe-actions";
+import { Loader2, Database } from "lucide-react";
+import { useParams } from "next/navigation";
 
 export const ShoeSection = () => {
     const { control, setValue } = useFormContext();
     const shoeVals = useWatch({ control, name: "calcado" });
     const [searchOpen, setSearchOpen] = useState(false);
+    const [customShoes, setCustomShoes] = useState<ShoeModel[]>([]);
+    const [isSavingShoe, setIsSavingShoe] = useState(false);
+    const params = useParams();
+    const slug = params?.slug as string;
+
+    // Fetch custom shoes on mount
+    useEffect(() => {
+        fetchCustomShoes().then(setCustomShoes);
+    }, []);
+
+    const ALL_SHOES = useMemo(() => {
+        const brandsPriority = ['Adidas', 'Asics', 'Brooks', 'Hoka', 'Mizuno', 'New Balance', 'Nike', 'On Running', 'Puma', 'Saucony', 'Olympikus'];
+        const combined = [...SHOE_DATABASE, ...customShoes];
+        return combined.sort((a, b) => {
+            const aPriority = brandsPriority.indexOf(a.brand);
+            const bPriority = brandsPriority.indexOf(b.brand);
+            if (aPriority !== bPriority) return (aPriority === -1 ? 1 : aPriority) - (bPriority === -1 ? 1 : bPriority);
+            return a.model.localeCompare(b.model);
+        });
+    }, [customShoes]);
+
+    async function handleSaveNewShoe() {
+        // We need organization_id. For now let's hope it's in the slug or provided.
+        // Usually we fetch org by slug if not available.
+        const modelName = shoeVals?.modelo;
+        if (!modelName || modelName.trim() === "" || modelName.includes("Ex:")) {
+            toast.error("Por favor, digite o nome do modelo de tênis primeiro.");
+            return;
+        }
+
+        const parts = modelName.trim().split(' ');
+        const brand = parts[0];
+        const model = parts.slice(1).join(' ') || 'Modelo Desconhecido';
+
+        setIsSavingShoe(true);
+        // We need an org ID. We can use a trick to get it or just pass null and let server handle if possible.
+        // But better to get it.
+        const res = await saveShoeModel({
+            brand,
+            model,
+            weight: Number(shoeVals?.peso_gramas || 0),
+            drop: Number(shoeVals?.drop_mm || 0),
+            stackHeight: 0, // Not explicitly in V3 simple fields
+            minimalismIndex: currentScore
+        });
+        setIsSavingShoe(false);
+
+        if (res.success) {
+            toast.success("Modelo salvo no banco de dados global!");
+            const updated = await fetchCustomShoes();
+            setCustomShoes(updated);
+        } else {
+            toast.error("Erro ao salvar: " + res.error);
+        }
+    }
 
     // --- TOOLTIPS DE ORIENTAÇÃO (THE RUNNING CLINIC) ---
     const ORIENTATIONS = {
@@ -163,7 +221,7 @@ export const ShoeSection = () => {
                                 <CommandList className="max-h-[300px]">
                                     <CommandEmpty>Calçado não encontrado no banco.</CommandEmpty>
                                     <CommandGroup heading="Calçados Cadastrados">
-                                        {SHOE_DATABASE.map((shoe) => (
+                                        {ALL_SHOES.map((shoe) => (
                                             <CommandItem
                                                 key={shoe.id}
                                                 value={`${shoe.brand} ${shoe.model} `}
@@ -222,9 +280,21 @@ export const ShoeSection = () => {
                                 </Tooltip>
                             </TooltipProvider>
                         </div>
-                        <div className="flex items-baseline gap-1">
-                            <span className="text-6xl font-black tracking-tighter">{currentScore}</span>
-                            <span className="text-xl font-bold text-slate-500">%</span>
+                        <div className="flex items-center justify-between mt-4">
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-6xl font-black tracking-tighter">{currentScore}</span>
+                                <span className="text-xl font-bold text-slate-500">%</span>
+                            </div>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-[9px] font-black uppercase tracking-tighter bg-white/10 border-white/20 text-white hover:bg-white hover:text-slate-900 transition-all gap-1.5"
+                                onClick={handleSaveNewShoe}
+                                disabled={isSavingShoe}
+                            >
+                                {isSavingShoe ? <Loader2 className="w-3 h-3 animate-spin" /> : <Database className="w-3 h-3" />}
+                                Salvar no Banco Global
+                            </Button>
                         </div>
                         <div className="mt-4 h-2 bg-slate-800 rounded-full overflow-hidden">
                             <div

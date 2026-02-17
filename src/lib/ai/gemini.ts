@@ -81,3 +81,37 @@ export async function generateDiagnosticAnalysis(findings: any[]) {
         return "Não foi possível gerar análise de IA para este diagnóstico.";
     }
 }
+
+export async function generateStrategicAnalysis(metrics: any) {
+    if (!apiKey) throw new Error("GEMINI_API_KEY is not defined");
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+
+    const prompt = `
+    ATUE COMO UM CONSULTOR DE NEGÓCIOS DE ALTO NÍVEL (Business Shark) ESPECIALISTA EM ESCALABILIDADE DE CLÍNICAS DE SAÚDE E SAAS.
+    Analise os seguintes dados da plataforma Axiom e de suas clínicas clientes:
+    ${JSON.stringify(metrics, null, 2)}
+
+    OBJETIVOS DA SUA ANÁLISE:
+    1. **Identificação de Churn:** Quais clínicas estão em risco? (Baixo engajamento, queda de agendamentos).
+    2. **Estratégias de Crescimento:** Sugira 3 estratégias práticas (ex: planos de fidelidade, bonificação, descontos por indicação).
+    3. **Pós-Venda Premium:** Como elevar a percepção de valor da clínica para o paciente?
+    4. **Métricas Chave:** Quais métricas o Master deve observar agora?
+
+    FORMATO:
+    - Use um tom profissional, direto e ambicioso (Shark approach).
+    - Organize em seções claras com títulos curtos. Sempre use um título principal impactante.
+    - Foco em retenção e LTV (Lifetime Value).
+    - Idioma: Português (PT-BR).
+    - NÃO USE MARKDOWN COMPLEXO, apenas texto limpo e organizado.
+    `;
+
+    try {
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        return response.text().trim();
+    } catch (error) {
+        console.error("AI Strategy Error:", error);
+        return "Erro ao processar inteligência estratégica. Verifique a configuração da API Key.";
+    }
+}

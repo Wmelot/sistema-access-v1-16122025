@@ -16,7 +16,6 @@ export function SettingsTabs({ children }: SettingsTabsProps) {
         { value: "general", label: "Geral", icon: Settings },
         { value: "plans", label: "Planos", icon: CreditCard },
         { value: "ai", label: "IA (Gemini)", icon: Cpu },
-        { value: "logs", label: "Logs", icon: ScrollText },
     ]
 
     return (
@@ -54,7 +53,6 @@ export function SettingsTabs({ children }: SettingsTabsProps) {
                 <TabsContent value="general">{children.general}</TabsContent>
                 <TabsContent value="plans">{children.plans}</TabsContent>
                 <TabsContent value="ai">{children.ai}</TabsContent>
-                <TabsContent value="logs">{children.logs}</TabsContent>
             </div>
         </Tabs>
     )

@@ -40,8 +40,21 @@ export const SHOE_DATABASE: ShoeModel[] = [
     { id: 'saucony-ride-18', brand: 'Saucony', model: 'Ride 18', type: 'road', weight: 280, drop: 8, stackHeight: 35, flexibility: 'medium', stabilityControl: false, minimalismIndex: 45 },
     { id: 'saucony-endorphin-speed-4', brand: 'Saucony', model: 'Endorphin Speed 4', type: 'road', weight: 233, drop: 8, stackHeight: 36, flexibility: 'medium', stabilityControl: true, minimalismIndex: 40 },
 
-    // --- SCRAPED DATA (The Running Clinic  & Originals) ---
+    // --- OLYMPIKUS (NATIONAL BENCHMARKS) ---
+    { id: 'olympikus-corre-vento-2', brand: 'Olympikus', model: 'Corre Vento 2', type: 'road', weight: 168, drop: 4, stackHeight: 23, flexibility: 'high', stabilityControl: false, minimalismIndex: 76 },
+    { id: 'olympikus-corre-3', brand: 'Olympikus', model: 'Corre 3', type: 'road', weight: 210, drop: 8, stackHeight: 28, flexibility: 'medium', stabilityControl: false, minimalismIndex: 48 },
+    { id: 'olympikus-corre-grafeno-2', brand: 'Olympikus', model: 'Corre Grafeno 2', type: 'race', weight: 241, drop: 8, stackHeight: 30, flexibility: 'low', stabilityControl: true, minimalismIndex: 36 },
+    { id: 'olympikus-veloz-2', brand: 'Olympikus', model: 'Veloz 2', type: 'road', weight: 230, drop: 8, stackHeight: 25, flexibility: 'medium', stabilityControl: false, minimalismIndex: 44 },
+
+    // --- NEW FROM GOOGLE SHEETS / CLINICAL DATA ---
+    { id: 'inov8-trailtalon', brand: 'Inov8', model: 'Trailtalon', type: 'trail', weight: 289, drop: 8, stackHeight: 34, flexibility: 'medium', stabilityControl: true, minimalismIndex: 34 },
+    { id: 'xero-shoes-hfs-2', brand: 'Xero Shoes', model: 'HFS II', type: 'minimalist', weight: 210, drop: 0, stackHeight: 11, flexibility: 'high', stabilityControl: false, minimalismIndex: 92 },
+    { id: 'vivo-primus-lite-3', brand: 'Vivobarefoot', model: 'Primus Lite III', type: 'minimalist', weight: 200, drop: 0, stackHeight: 6, flexibility: 'high', stabilityControl: false, minimalismIndex: 96 },
     { id: 'merrell-vapor-6-boa', brand: 'Merrell', model: 'Vapor Glove 6 Boa®', type: 'road', weight: 195, drop: 0, stackHeight: 6, flexibility: 'high', stabilityControl: false, minimalismIndex: 92 },
+    { id: 'altra-olympus-275', brand: 'Altra', model: 'Olympus 2.75', type: 'trail', weight: 339, drop: 0, stackHeight: 33, flexibility: 'medium', stabilityControl: false, minimalismIndex: 44 },
+    { id: 'scott-supertrac-speed', brand: 'Scott', model: 'Supertrac Speed RC', type: 'trail', weight: 215, drop: 3, stackHeight: 18, flexibility: 'high', stabilityControl: false, minimalismIndex: 72 },
+
+    // --- SCRAPED DATA (The Running Clinic  & Originals) ---
     { id: 'puma-propio', brand: 'Puma', model: 'Propio', type: 'road', weight: 145, drop: 4, stackHeight: 20, flexibility: 'high', stabilityControl: false, minimalismIndex: 68 },
     { id: 'hoka-mach-x-3', brand: 'Hoka', model: 'Mach X 3', type: 'road', weight: 264, drop: 9.5, stackHeight: 42.9, flexibility: 'low', stabilityControl: true, minimalismIndex: 28 },
     { id: 'saucony-kinvara-16', brand: 'Saucony', model: 'Kinvara 16', type: 'road', weight: 206, drop: 4, stackHeight: 28, flexibility: 'medium', stabilityControl: false, minimalismIndex: 60 },

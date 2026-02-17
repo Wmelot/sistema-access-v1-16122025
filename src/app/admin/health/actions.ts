@@ -32,9 +32,9 @@ export async function getSystemHealth() {
             },
             {
                 name: "AI Diagnostics (Gemini)",
-                status: process.env.GOOGLE_GENERATIVE_AI_API_KEY ? "operational" : "warning",
+                status: process.env.GEMINI_API_KEY ? "operational" : "warning",
                 desc: "Motor de análise e relatórios automáticos",
-                details: process.env.GOOGLE_GENERATIVE_AI_API_KEY ? "API Key Configurada" : "API Key Ausente"
+                details: process.env.GEMINI_API_KEY ? "API Key Configurada" : "API Key Ausente"
             },
             {
                 name: "Z-API / WhatsApp Messenger",

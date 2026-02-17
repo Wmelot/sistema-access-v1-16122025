@@ -185,8 +185,8 @@ export async function getLogs(slug?: string, startDate?: string, endDate?: strin
     const { data: profile } = await adminClient.from('profiles').select('organization_id').eq('id', user.id).single()
     const userOrgId = profile?.organization_id
 
-    // Security check: Only Master Org can use masterMode
-    const isMaster = userOrgId === '00000000-0000-0000-0000-000000000001'
+    // Security check: Only Master Org (or Master User) can use masterMode
+    const isMaster = userOrgId === '00000000-0000-0000-0000-000000000001' || user.email === 'wmelot@gmail.com'
     const useMasterMode = masterMode && isMaster
 
     let organizationId = userOrgId
@@ -280,7 +280,7 @@ export async function getAccessLogs(slug?: string, startDate?: string, endDate?:
     const { data: profile } = await adminClient.from('profiles').select('organization_id').eq('id', user.id).single()
     const userOrgId = profile?.organization_id
 
-    const isMaster = userOrgId === '00000000-0000-0000-0000-000000000001'
+    const isMaster = userOrgId === '00000000-0000-0000-0000-000000000001' || user.email === 'wmelot@gmail.com'
     const useMasterMode = masterMode && isMaster
 
     let organizationId = userOrgId

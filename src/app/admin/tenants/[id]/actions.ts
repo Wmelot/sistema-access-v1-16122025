@@ -63,7 +63,7 @@ export async function getTenantDetails(id: string) {
     // 2c. Fetch ALL Profiles (for Staff List) - [NEW]
     const { data: allProfiles } = await supabase
         .from('profiles')
-        .select('id, email, full_name, role, created_at, active') // active might be inferred or distinct
+        .select('id, email, full_name, role, created_at')
         .eq('organization_id', id)
         .order('full_name', { ascending: true });
 
@@ -72,21 +72,33 @@ export async function getTenantDetails(id: string) {
         .select('id', { count: 'exact', head: true })
         .eq('organization_id', id);
 
-    // 3. Fetch Owner/Admin Profile
-    // Trying to find a profile with role 'admin' or 'owner', or falling back to the oldest created profile.
+    // 3. Fetch Owner/Admin Profile using explicit owner_id
     let ownerProfile = null;
 
-    // First try: specific role if exists (common pattern)
-    const { data: adminProfiles } = await supabase
-        .from('profiles')
-        .select('id, email, full_name, role, created_at')
-        .eq('organization_id', id)
-        // .eq('role', 'admin') // Uncomment if role column exists and is used
-        .order('created_at', { ascending: true }) // Oldest user is likely owner
-        .limit(1);
+    if (org.owner_id) {
+        const { data: owner } = await supabase
+            .from('profiles')
+            .select('id, email, full_name, role, created_at')
+            .eq('id', org.owner_id)
+            .single();
 
-    if (adminProfiles && adminProfiles.length > 0) {
-        ownerProfile = adminProfiles[0];
+        if (owner) {
+            ownerProfile = owner;
+        }
+    }
+
+    // Fallback: If no explicit owner_id, try the oldest user
+    if (!ownerProfile) {
+        const { data: adminProfiles } = await supabase
+            .from('profiles')
+            .select('id, email, full_name, role, created_at')
+            .eq('organization_id', id)
+            .order('created_at', { ascending: true })
+            .limit(1);
+
+        if (adminProfiles && adminProfiles.length > 0) {
+            ownerProfile = adminProfiles[0];
+        }
     }
 
     return {
@@ -165,7 +177,7 @@ export async function updateTenantResponsible(tenantId: string, email: string, p
 }
 
 export async function forceSuperAdminClaim(tenantId: string) {
-    const supabase = createAdminClient();
+    const supabase = await createAdminClient();
 
     // 1. Find the Master User (Warley)
     const { data: profile, error: searchError } = await supabase
@@ -178,20 +190,55 @@ export async function forceSuperAdminClaim(tenantId: string) {
         return { error: 'Super Admin "wmelot@gmail.com" não encontrado no sistema.' };
     }
 
-    // 2. Force link to this tenant
+    // 2. Force link to this tenant and elevate to MASTER role
+    // MASTER Role ID: 4ab599a7-e891-410b-814e-e19286db1d4b
     const { error: updateError } = await supabase
         .from('profiles')
         .update({
             organization_id: tenantId,
-            role: 'admin'
-        })
+            role: 'master',
+            role_id: '4ab599a7-e891-410b-814e-e19286db1d4b'
+        } as any)
         .eq('id', profile.id);
 
     if (updateError) {
-        return { error: `Erro ao forçar vínculo: ${updateError.message}` };
+        console.error('Error updating profile:', updateError);
+        return { error: `Erro ao atualizar perfil: ${updateError.message}` };
+    }
+
+    // 3. Update Organization Owner
+    const { error: orgError } = await supabase
+        .from('organizations')
+        .update({ owner_id: profile.id })
+        .eq('id', tenantId);
+
+    if (orgError) {
+        console.error('Error updating organization owner:', orgError);
+        return { error: `Erro ao assumir responsabilidade na organização: ${orgError.message}` };
+    }
+
+    // 4. [NEW] Sync other users' role_ids with their 'role' text column to fix UI divergence
+    // This fixes the Felipe (Admin shown as Prof) and Tester (Prof shown as Admin) issues
+    const { data: others } = await supabase
+        .from('profiles')
+        .select('id, role')
+        .eq('organization_id', tenantId)
+        .neq('id', profile.id);
+
+    if (others) {
+        for (const user of others) {
+            let roleId = null;
+            if (user.role === 'admin') roleId = '01f448ce-e356-4ca8-806e-b7514737e53c'; // Admin
+            else if (user.role === 'professional') roleId = '79a4b584-db65-4fa5-9379-24d10b32491d'; // Profissional
+
+            if (roleId) {
+                await supabase.from('profiles').update({ role_id: roleId }).eq('id', user.id);
+            }
+        }
     }
 
     revalidatePath(`/admin/tenants/${tenantId}`);
+    revalidatePath(`/dashboard/[slug]/professionals`, 'page');
     return { success: true };
 }
 

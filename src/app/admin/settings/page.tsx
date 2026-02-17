@@ -12,6 +12,7 @@ import { PlanEditor } from "../plans/plan-editor";
 import { PlansManager } from "./components/plans-manager";
 
 import { SettingsTabs } from "./components/settings-tabs";
+import { GlobalResetPasswordButton } from "./components/global-reset-password-button";
 
 export const dynamic = 'force-dynamic';
 
@@ -21,103 +22,70 @@ export default async function AdminSettingsPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Configurações Master</h1>
-                <p className="text-zinc-500">Painel de controle central da plataforma Axiom.</p>
+                <h1 className="text-3xl font-black tracking-tight text-zinc-900">Configurações Master</h1>
+                <p className="text-sm text-zinc-500 font-medium">Painel de controle central da plataforma Axiom.</p>
             </div>
 
             <SettingsTabs>
                 {{
                     general: (
                         <div className="space-y-4">
-                            <Card>
+                            <Card className="border-zinc-200">
                                 <CardHeader>
-                                    <CardTitle>Identidade Visual Padrão</CardTitle>
-                                    <CardDescription>Defina as cores e logo padrão para novas clínicas.</CardDescription>
+                                    <CardTitle className="text-sm font-bold">Identidade Visual Padrão</CardTitle>
+                                    <CardDescription className="text-xs text-zinc-500">Defina as cores e logo padrão para novas clínicas.</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="grid gap-2">
-                                        <Label>Nome da Plataforma (Whitelabel)</Label>
-                                        <Input defaultValue="Axiom" readOnly />
+                                        <Label className="text-xs">Nome da Plataforma (Whitelabel)</Label>
+                                        <Input defaultValue="Axiom" readOnly className="bg-zinc-50 border-zinc-200" />
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label>Domínio Base</Label>
-                                        <Input defaultValue="access.axiom.com.br" disabled />
+                                        <Label className="text-xs">Domínio Base</Label>
+                                        <Input defaultValue="access.axiom.com.br" disabled className="bg-zinc-50 border-zinc-200" />
                                     </div>
                                 </CardContent>
                             </Card>
 
-                            <Card>
+                            <Card className="border-zinc-200">
                                 <CardHeader>
-                                    <CardTitle>Segurança Global</CardTitle>
-                                    <CardDescription>Políticas de acesso e senhas.</CardDescription>
+                                    <CardTitle className="text-sm font-bold">Segurança Global</CardTitle>
+                                    <CardDescription className="text-xs text-zinc-500">Políticas de acesso, senhas e auditoria central.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <Button variant="outline" className="text-red-600 border-red-200 bg-red-50 hover:bg-red-100 w-full sm:w-auto">
-                                        Forçar Reset de Senha (Global)
-                                    </Button>
+                                    <GlobalResetPasswordButton />
                                 </CardContent>
                             </Card>
                         </div>
                     ),
                     plans: <PlansManager initialPlans={plans} />,
                     ai: (
-                        <Card>
+                        <Card className="border-zinc-200">
                             <CardHeader>
-                                <CardTitle>Configuração Google Gemini</CardTitle>
-                                <CardDescription>Gerencie a inteligência artificial do sistema.</CardDescription>
+                                <CardTitle className="text-sm font-bold">Configuração Google Gemini</CardTitle>
+                                <CardDescription className="text-xs text-zinc-500">Gerencie o motor de inteligência artificial clínica.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="grid gap-2">
-                                    <Label>API Key (Google AI Studio)</Label>
-                                    <Input type="password" value="**************************" disabled />
-                                    <p className="text-xs text-zinc-500">Definido em .env.local (GEMINI_API_KEY)</p>
+                                    <Label className="text-xs">Chave de API (Google AI Studio)</Label>
+                                    <Input type="password" value="**************************" disabled className="bg-zinc-50 border-zinc-200" />
+                                    <p className="text-[10px] text-zinc-400 italic">Definido em variável de ambiente (GEMINI_API_KEY)</p>
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label>Prompt do System (Evolução Clínica)</Label>
-                                    <div className="p-3 bg-zinc-50 border rounded-md text-sm text-zinc-600 font-mono overflow-x-auto whitespace-pre-wrap">
-                                        "ATUE COMO UM FISIOTERAPEUTA SÊNIOR..." (Definido em código: gemini.ts)
+                                    <Label className="text-xs font-bold">Arquitetura de Prompt (Evolução Clínica)</Label>
+                                    <div className="p-3 bg-zinc-900 border rounded-md text-[11px] text-emerald-400 font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed">
+                                        "ATUE COMO UM FISIOTERAPEUTA SÊNIOR..." (Otimizado via gemini.ts)
                                     </div>
                                 </div>
 
                                 <hr className="my-2 border-zinc-100" />
 
                                 <div className="grid gap-2">
-                                    <Label>Diagnóstico de Conexão</Label>
+                                    <Label className="text-xs">Diagnóstico em Tempo Real</Label>
                                     <TestAIButton />
                                 </div>
                             </CardContent>
                         </Card>
-                    ),
-                    logs: (
-                        <div className="space-y-4">
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
-                                    <div className="space-y-1">
-                                        <CardTitle>Logs de Auditoria</CardTitle>
-                                        <CardDescription>Acompanhe todas as ações realizadas no sistema para conformidade LGPD.</CardDescription>
-                                    </div>
-                                    <ScrollText className="h-5 w-5 text-muted-foreground" />
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-sm text-zinc-600 mb-6">
-                                        Clique no botão abaixo para abrir o painel completo de auditoria.
-                                        Você pode filtrar por data, exportar relatórios e visualizar detalhes de cada operação.
-                                    </p>
-                                    <Button
-                                        onClick={() => {
-                                            // Trigger log viewer via a custom event or shared state if possible, 
-                                            // but layout-client handles it. Since we are in the same client-side context (mostly),
-                                            // we can use a custom event.
-                                            window.dispatchEvent(new CustomEvent('open-lgpd-logs'))
-                                        }}
-                                        className="w-full sm:w-auto gap-2"
-                                    >
-                                        <ScrollText className="h-4 w-4" />
-                                        Visualizar Registro de Atividades
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        </div>
                     )
                 }}
             </SettingsTabs>

@@ -163,8 +163,8 @@ export function MasterLogsTabs({ auditLogs, accessLogs }: MasterLogsTabsProps) {
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
                                                     <Building2 className="h-3 w-3 text-zinc-400" />
-                                                    <span className="text-xs font-bold text-zinc-700">
-                                                        {log.organization?.name || <span className="text-zinc-300 italic">Sem vínculo</span>}
+                                                    <span className="font-bold text-zinc-900 group-hover:text-primary transition-colors">
+                                                        {log.organization?.name || (log.organization_id === '00000000-0000-0000-0000-000000000001' || !log.organization_id ? 'Axiom Central' : <span className="text-zinc-400 italic font-normal">Sem vínculo</span>)}
                                                     </span>
                                                 </div>
                                             </TableCell>
@@ -242,7 +242,7 @@ export function MasterLogsTabs({ auditLogs, accessLogs }: MasterLogsTabsProps) {
                                             <div className="flex items-center gap-2">
                                                 <Building2 className="h-3 w-3 text-zinc-400" />
                                                 <span className="text-xs font-bold text-zinc-700">
-                                                    {log.organization?.name || <span className="text-zinc-300 italic">Sem vínculo</span>}
+                                                    {log.organization?.name || (log.organization_id === '00000000-0000-0000-0000-000000000001' || !log.organization_id ? 'Axiom Central' : <span className="text-zinc-300 italic">Sem vínculo</span>)}
                                                 </span>
                                             </div>
                                         </TableCell>

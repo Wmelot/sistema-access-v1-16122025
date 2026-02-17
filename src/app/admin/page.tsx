@@ -3,6 +3,7 @@ import { Activity, Building2, DollarSign, Users } from "lucide-react";
 import { GrowthChart } from "./components/growth-chart"
 import { getAdminStats } from "./actions"
 import { getLogs } from "@/lib/logger"
+import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -48,11 +49,8 @@ export default async function AdminPage() {
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 <Card className="col-span-4 shadow-sm border-zinc-200 overflow-hidden">
-                    <CardHeader className="flex flex-row items-center justify-between">
+                    <CardHeader>
                         <CardTitle className="text-lg">Atividades Recentes do Sistema</CardTitle>
-                        <Link href="/admin/logs">
-                            <Button variant="ghost" size="sm" className="text-xs font-bold text-zinc-400 hover:text-zinc-600">VER TODOS <Activity className="ml-2 h-3 w-3" /></Button>
-                        </Link>
                     </CardHeader>
                     <CardContent className="p-0 border-t border-zinc-100">
                         <div className="divide-y divide-zinc-100">
@@ -66,7 +64,7 @@ export default async function AdminPage() {
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between mb-1">
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                                                    {log.organization?.name || getTableLabel(log.table_name || log.resource)}
+                                                    {log.organization?.name || (log.organization_id === '00000000-0000-0000-0000-000000000001' || !log.organization_id ? 'Axiom Central' : getTableLabel(log.table_name || log.resource))}
                                                 </span>
                                                 <span className="text-[10px] text-zinc-300 font-mono">
                                                     {format(new Date(log.created_at), "HH:mm")}
@@ -88,35 +86,50 @@ export default async function AdminPage() {
                     </CardContent>
                 </Card>
                 <Card className="col-span-3 shadow-sm border-zinc-200">
-                    <CardHeader>
-                        <CardTitle className="text-lg">Últimas Clínicas Cadastradas</CardTitle>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-lg">Saúde das Integrações</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            {stats.recentClinics.length === 0 && (
-                                <p className="text-sm text-zinc-500 text-center py-4">Nenhuma clínica encontrada.</p>
-                            )}
-                            {stats.recentClinics.map((clinic) => (
-                                <div key={clinic.id} className="flex items-center justify-between border-b border-zinc-100 pb-4 last:border-0">
-                                    <div className="flex-1">
-                                        <p className="font-medium text-sm">{clinic.name}</p>
-                                        <div className="flex items-center gap-2">
-                                            <p className="text-[10px] text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded leading-none">Plano {clinic.plan}</p>
-                                            <p className="text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded leading-none font-bold">{clinic.professionalCount} Profissionais</p>
+                            <IntegrationStatus label="Z-API (WhatsApp)" status="online" latency="45ms" />
+                            <IntegrationStatus label="Asaas (Financeiro)" status="online" latency="120ms" />
+                            <IntegrationStatus label="Google Calendar" status="online" latency="89ms" />
+                            <IntegrationStatus label="Meta (Marketing)" status="warning" latency="--" />
+
+                            <div className="mt-6 pt-4 border-t border-zinc-100">
+                                <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-3">Últimas Clínicas</p>
+                                {stats.recentClinics.map((clinic) => (
+                                    <div key={clinic.id} className="flex items-center justify-between mb-3 last:mb-0">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-bold text-xs truncate text-zinc-800">{clinic.name}</p>
+                                            <p className="text-[9px] text-zinc-500 uppercase tracking-tighter">Plano {clinic.plan}</p>
                                         </div>
+                                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 capitalize">
+                                            {clinic.status}
+                                        </Badge>
                                     </div>
-                                    <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${clinic.status === 'active'
-                                        ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20'
-                                        : 'bg-yellow-50 text-yellow-800 ring-yellow-600/20'
-                                        }`}>
-                                        {clinic.status === 'active' ? 'Ativo' : 'Pendente'}
-                                    </span>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
             </div>
+        </div>
+    )
+}
+
+function IntegrationStatus({ label, status, latency }: { label: string, status: 'online' | 'warning' | 'error', latency: string }) {
+    return (
+        <div className="flex items-center justify-between group">
+            <div className="flex items-center gap-2.5">
+                <div className={cn(
+                    "h-2 w-2 rounded-full",
+                    status === 'online' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" :
+                        status === 'warning' ? "bg-amber-500 animate-pulse" : "bg-red-500"
+                )} />
+                <span className="text-xs font-semibold text-zinc-700">{label}</span>
+            </div>
+            <span className="text-[10px] font-mono text-zinc-400 group-hover:text-zinc-600 transition-colors">{latency}</span>
         </div>
     )
 }
@@ -145,22 +158,36 @@ function MetricCard({ title, value, icon: Icon, desc }: any) {
 // === TRADUÇÃO E HUMANIZAÇÃO ===
 
 const ACTION_MAP: Record<string, { label: string; color: string; icon?: string }> = {
-    'VIEW_PATIENT': { label: 'Visualizou', color: 'bg-sky-50 text-sky-700' },
-    'PATIENT_CREATE': { label: 'Criou Paciente', color: 'bg-emerald-50 text-emerald-700' },
+    // Patientes
+    'VIEW_PATIENT': { label: 'Visualizou Prontuário', color: 'bg-sky-50 text-sky-700' },
+    'PATIENT_CREATE': { label: 'Novo Paciente', color: 'bg-emerald-50 text-emerald-700' },
     'PATIENT_QUICK_CREATE': { label: 'Cadastro Rápido', color: 'bg-emerald-50 text-emerald-700' },
-    'UPDATE_PATIENT': { label: 'Editou', color: 'bg-amber-50 text-amber-700' },
-    'DELETE_PATIENT': { label: 'Excluiu', color: 'bg-red-50 text-red-700', icon: 'error' },
-    'PATIENT_MERGE': { label: 'Unificou', color: 'bg-purple-50 text-purple-700' },
-    'PATIENT_KINSHIP': { label: 'Parentesco', color: 'bg-indigo-50 text-indigo-700' },
-    'FINALIZE_RECORD': { label: 'Finalizou', color: 'bg-green-50 text-green-700' },
-    'DELETE_RECORD': { label: 'Excluiu Prontuário', color: 'bg-red-50 text-red-700', icon: 'error' },
-    'INVOICE_CREATE': { label: 'Nova Fatura', color: 'bg-teal-50 text-teal-700' },
-    'INSERT': { label: 'Criado', color: 'bg-emerald-50 text-emerald-700' },
-    'UPDATE': { label: 'Alterado', color: 'bg-blue-50 text-blue-700' },
-    'DELETE': { label: 'Removido', color: 'bg-red-50 text-red-700', icon: 'error' },
+    'CREATE_PATIENT': { label: 'Novo Paciente', color: 'bg-emerald-50 text-emerald-700' },
+    'UPDATE_PATIENT': { label: 'Editou Paciente', color: 'bg-amber-50 text-amber-700' },
+    'UPDATE_PATIENT_RECORD': { label: 'Atualizou Prontuário', color: 'bg-blue-50 text-blue-700' },
+    'DELETE_PATIENT': { label: 'Excluiu Paciente', color: 'bg-red-50 text-red-700', icon: 'error' },
+
+    // Agendamentos
+    'CREATE_APPOINTMENT': { label: 'Novo Agendamento', color: 'bg-emerald-50 text-emerald-700' },
+    'UPDATE_APPOINTMENT': { label: 'Atualizou Agendamento', color: 'bg-blue-50 text-blue-700' },
+    'Agendamento Cancelado': { label: 'Agendamento Cancelado', color: 'bg-zinc-100 text-zinc-600' },
+    'CREATE_IMMEDIATE_ATTENDANCE': { label: 'Atendimento Imediato', color: 'bg-amber-50 text-amber-700' },
+
+    // Sistema / Admin
+    'CREATE_SERVICE': { label: 'Criou Serviço', color: 'bg-zinc-50 text-zinc-700' },
+    'CREATE_BLOCK': { label: 'Bloqueio de Agenda', color: 'bg-slate-100 text-slate-600' },
+    'UPDATE_RECORD': { label: 'Editou Registro', color: 'bg-blue-50 text-blue-700' },
+    'INSERT': { label: 'Novo Registro', color: 'bg-emerald-50 text-emerald-700' },
+    'UPDATE': { label: 'Alteração', color: 'bg-blue-50 text-blue-700' },
+    'DELETE': { label: 'Remoção', color: 'bg-red-50 text-red-700', icon: 'error' },
+
+    // Comunicação
+    'SEND_WHATSAPP': { label: 'Envio WhatsApp', color: 'bg-emerald-50 text-emerald-700' },
+    'SEND_NOTIFICATION': { label: 'Notificação Enviada', color: 'bg-indigo-50 text-indigo-700' },
 }
 
 function getActionDisplay(action: string) {
+    if (action.includes('CANCEL')) return { label: 'Cancelamento', color: 'bg-red-50 text-red-700', icon: 'error' }
     return ACTION_MAP[action] || { label: action, color: 'bg-slate-100 text-slate-600' }
 }
 

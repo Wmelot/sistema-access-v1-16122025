@@ -88,6 +88,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info as InfoIcon } from "lucide-react";
 import { getOrganizationSettings } from "@/app/dashboard/[slug]/settings/organization/actions";
+import { saveShoeModel, fetchCustomShoes } from "@/app/dashboard/[slug]/assessments/shoe-actions";
 import { QuestionnaireSender } from "./QuestionnaireSender";
 
 const QUESTIONNAIRES_BY_CATEGORY = [
@@ -518,6 +519,64 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
     const [feegowImportOpen, setFeegowImportOpen] = useState(false);
     const [feegowText, setFeegowText] = useState("");
     const [searchOpen, setSearchOpen] = useState(false);
+    const [customShoes, setCustomShoes] = useState<ShoeModel[]>([]);
+    const [isSavingShoe, setIsSavingShoe] = useState(false);
+
+    // Fetch custom shoes on mount
+    useEffect(() => {
+        fetchCustomShoes().then(setCustomShoes);
+    }, []);
+
+    const ALL_SHOES = useMemo(() => {
+        const brandsPriority = ['Adidas', 'Asics', 'Brooks', 'Hoka', 'Mizuno', 'New Balance', 'Nike', 'On Running', 'Puma', 'Saucony', 'Olympikus'];
+        const combined = [...SHOE_DATABASE, ...customShoes];
+        return combined.sort((a, b) => {
+            const aPriority = brandsPriority.indexOf(a.brand);
+            const bPriority = brandsPriority.indexOf(b.brand);
+            if (aPriority !== bPriority) return (aPriority === -1 ? 1 : aPriority) - (bPriority === -1 ? 1 : bPriority);
+            return a.model.localeCompare(b.model);
+        });
+    }, [customShoes]);
+
+    async function handleSaveNewShoe() {
+        if (!orgSettings?.id) {
+            toast.error("Configurações da organização não carregadas.");
+            return;
+        }
+
+        const modelName = form.getValues("shoe.model");
+        if (!modelName || modelName.trim() === "" || modelName.includes("Selecione")) {
+            toast.error("Por favor, digite o nome do modelo de tênis primeiro.");
+            return;
+        }
+
+        // Split brand and model if possible
+        const parts = modelName.split(' ');
+        const brand = parts[0];
+        const model = parts.slice(1).join(' ') || 'Modelo Desconhecido';
+
+        setIsSavingShoe(true);
+        const res = await saveShoeModel({
+            brand,
+            model,
+            weight: Number(form.getValues("shoe.weight") || 0),
+            drop: Number(form.getValues("shoe.drop") || 0),
+            stackHeight: Number(form.getValues("shoe.stack") || 0),
+            minimalismIndex: minIndexResult,
+            organization_id: orgSettings.id,
+            is_global: true // Master users can make it global
+        });
+        setIsSavingShoe(false);
+
+        if (res.success) {
+            toast.success("Modelo salvo no banco de dados global!");
+            // Refresh list
+            const updated = await fetchCustomShoes();
+            setCustomShoes(updated);
+        } else {
+            toast.error("Erro ao salvar: " + res.error);
+        }
+    }
 
     const ORIENTATIONS = {
         peso: "O peso impacta diretamente no custo metabólico da corrida. Cada 100g extra aumenta em ~1% o oxigênio consumido.",
@@ -1493,7 +1552,7 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                                 <CommandList className="max-h-[300px]">
                                                                     <CommandEmpty>Calçado não encontrado no banco.</CommandEmpty>
                                                                     <CommandGroup heading="Calçados (The Running Clinic)">
-                                                                        {SHOE_DATABASE.map((shoe) => (
+                                                                        {ALL_SHOES.map((shoe) => (
                                                                             <CommandItem
                                                                                 key={shoe.id}
                                                                                 value={`${shoe.brand} ${shoe.model} `}
@@ -1695,7 +1754,19 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                         <p className="text-[10px] text-slate-400">Metodologia: The Running Clinic.</p>
                                                     </div>
                                                     <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 z-10">
-                                                        <div className="text-5xl font-black text-white">{minIndexResult}%</div>
+                                                        <div className="flex flex-col items-center sm:items-end gap-2">
+                                                            <div className="text-5xl font-black text-white">{minIndexResult}%</div>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-7 text-[9px] font-black uppercase tracking-tighter bg-white/10 border-white/20 text-white hover:bg-white hover:text-slate-900 transition-all gap-1.5"
+                                                                onClick={handleSaveNewShoe}
+                                                                disabled={isSavingShoe}
+                                                            >
+                                                                {isSavingShoe ? <Loader2 className="w-3 h-3 animate-spin" /> : <Database className="w-3 h-3" />}
+                                                                Salvar no Banco Global
+                                                            </Button>
+                                                        </div>
                                                         <Badge className={cn("px-4 py-1.5 font-bold text-[11px] w-full sm:w-auto justify-center shadow-lg",
                                                             minIndexResult > 70 ? "bg-green-500 shadow-green-500/20" :
                                                                 minIndexResult < 30 ? "bg-red-500 shadow-red-500/20" :
