@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { format, addDays, isPast, isFuture } from 'date-fns'
 import { useParams } from 'next/navigation'
 import { ptBR } from 'date-fns/locale'
-import { Calendar as CalendarIcon, CheckCircle2, AlertCircle, Clock, XCircle, Plus, Footprints, Zap, MessageCircle, Send } from 'lucide-react'
+import { Calendar as CalendarIcon, CheckCircle2, AlertCircle, Clock, XCircle, Plus, Footprints, Zap, MessageCircle, Send, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,8 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import {
     Dialog,
     DialogContent,
@@ -70,22 +72,31 @@ export function InsolesTab({ patientId, followUps, assessments = [] }: InsolesTa
     const [maintenanceDate, setMaintenanceDate] = useState<Date | undefined>(new Date())
     const [maintenanceType, setMaintenanceType] = useState<'insoles_1y' | 'insoles_40d'>('insoles_1y')
     const [isSendingMaintenance, setIsSendingMaintenance] = useState(false)
-    const handleRegister = async () => {
-        // ... (rest of function) ...
 
+    // New delivery state
+    const [deliveryNote, setDeliveryNote] = useState('')
+    const [registrationType, setRegistrationType] = useState<'delivery' | 'adjustment'>('delivery')
+    const handleRegister = async () => {
         if (!date) return
 
         setIsSubmitting(true)
         try {
-            const res = await registerInsoleDelivery(patientId, date, slug)
+            const res = await registerInsoleDelivery(
+                patientId,
+                date,
+                slug,
+                deliveryNote,
+                registrationType === 'adjustment'
+            )
             if (res.success) {
-                toast.success('Entrega registrada com sucesso!')
+                toast.success(registrationType === 'adjustment' ? 'Ajuste registrado!' : 'Entrega registrada!')
                 setIsDialogOpen(false)
+                setDeliveryNote('')
             } else {
                 toast.error(res.message)
             }
         } catch (error) {
-            toast.error('Erro ao registrar entrega.')
+            toast.error('Erro na operação.')
         } finally {
             setIsSubmitting(false)
         }
@@ -241,40 +252,67 @@ export function InsolesTab({ patientId, followUps, assessments = [] }: InsolesTa
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[425px]">
                             <DialogHeader>
-                                <DialogTitle>Registrar Nova Palmilha</DialogTitle>
+                                <DialogTitle>Registrar {registrationType === 'adjustment' ? 'Ajuste' : 'Entrega'} de Palmilha</DialogTitle>
                                 <DialogDescription>
-                                    Informe a data de entrega. O sistema agendará automaticamente os feedbacks de 40 dias e 1 ano.
+                                    Informe os detalhes da {registrationType === 'adjustment' ? 'ação' : 'entrega'}. {registrationType === 'delivery' && "O sistema agendará automaticamente os feedbacks de 40 dias e 1 ano."}
                                 </DialogDescription>
                             </DialogHeader>
-                            <div className="py-4">
-                                <label className="text-sm font-medium mb-2 block">Data da Entrega</label>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant={"outline"}
-                                            className={cn(
-                                                "w-full justify-start text-left font-normal",
-                                                !date && "text-muted-foreground"
-                                            )}
-                                        >
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {date ? format(date, "PPP", { locale: ptBR }) : <span>Selecione uma data</span>}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0">
-                                        <Calendar
-                                            mode="single"
-                                            selected={date}
-                                            onSelect={setDate}
-                                            initialFocus
-                                        />
-                                    </PopoverContent>
-                                </Popover>
+                            <div className="space-y-4 py-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bold uppercase text-slate-500">Tipo de Registro</Label>
+                                        <Select value={registrationType} onValueChange={(v: any) => setRegistrationType(v)}>
+                                            <SelectTrigger className="h-10">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="delivery">Primeira Entrega</SelectItem>
+                                                <SelectItem value="adjustment">Ajuste / Revisão</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bold uppercase text-slate-500">Data</Label>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant={"outline"}
+                                                    className={cn(
+                                                        "w-full justify-start text-left font-normal h-10",
+                                                        !date && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {date ? format(date, "dd/MM/yyyy") : <span>Selecione</span>}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={date}
+                                                    onSelect={setDate}
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold uppercase text-slate-500">Notas Clínicas (Evolução)</Label>
+                                    <Textarea
+                                        placeholder="Descreva detalhes da entrega ou ajuste para o prontuário..."
+                                        value={deliveryNote}
+                                        onChange={(e) => setDeliveryNote(e.target.value)}
+                                        className="min-h-[100px]"
+                                    />
+                                    <p className="text-[10px] text-muted-foreground italic">* Este texto será salvo como uma nova evolução no prontuário.</p>
+                                </div>
                             </div>
                             <DialogFooter>
                                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-                                <Button onClick={handleRegister} disabled={!date || isSubmitting}>
-                                    {isSubmitting ? 'Registrando...' : 'Confirmar Entrega'}
+                                <Button onClick={handleRegister} disabled={!date || isSubmitting} className="bg-primary">
+                                    {isSubmitting ? 'Salvando...' : 'Confirmar Registro'}
                                 </Button>
                             </DialogFooter>
                         </DialogContent>
@@ -282,159 +320,207 @@ export function InsolesTab({ patientId, followUps, assessments = [] }: InsolesTa
                 </div>
             </div>
 
-            {followUps.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                    {followUps.map((item) => (
-                        <Card key={item.id} className={cn(
-                            "transition-all",
-                            item.status === 'alert' ? "border-red-500 bg-red-50" : "hover:bg-slate-50"
-                        )}>
-                            <CardHeader className="pb-2">
-                                <div className="flex justify-between items-start">
-                                    <div className="flex items-center gap-2">
-                                        <Footprints className="h-5 w-5 text-primary" />
-                                        <div>
-                                            <CardTitle className="text-base">{getTitle(item.type, item.response_data?.is_backup)}</CardTitle>
-                                            <CardDescription>
-                                                Entrega: {format(new Date(item.delivery_date), "dd/MM/yyyy")}
-                                            </CardDescription>
-                                        </div>
-                                    </div>
-                                    {getStatusBadge(item.status)}
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <Clock className="h-4 w-4 text-muted-foreground" />
-                                        <span>
-                                            Programado para: <strong>{format(new Date(item.scheduled_date), "dd 'de' MMMM, yyyy", { locale: ptBR })}</strong>
-                                        </span>
-                                    </div>
-
-                                    {item.status === 'completed' && item.response_data && (
-                                        <div className="bg-white p-3 rounded border text-sm mt-2">
-                                            {item.response_data.is_backup ? (
-                                                <div className="space-y-1">
-                                                    <p className="font-bold text-slate-700 italic">Registro de Histórico (Backup)</p>
-                                                    <p className="text-slate-600">{item.response_data.observation}</p>
-                                                    {item.response_data.original_service && (
-                                                        <Badge variant="outline" className="text-[10px] mt-2">
-                                                            Serviço: {item.response_data.original_service}
-                                                        </Badge>
-                                                    )}
+            <div className="space-y-6">
+                {/* Prescription History Section */}
+                {assessments.filter(a => a.type === 'insoles_prescription').length > 0 && (
+                    <div className="space-y-4">
+                        <h4 className="text-sm font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                            <FileText className="h-4 w-4" /> Histórico de Prescrições
+                        </h4>
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            {assessments
+                                .filter(a => a.type === 'insoles_prescription')
+                                .map((prescription) => (
+                                    <Card key={prescription.id} className="bg-white hover:shadow-md transition-shadow border-slate-200">
+                                        <CardHeader className="p-4 pb-2">
+                                            <div className="flex justify-between items-start">
+                                                <div className="p-2 bg-blue-50 rounded-lg">
+                                                    <Footprints className="h-4 w-4 text-blue-600" />
                                                 </div>
-                                            ) : (
-                                                <div className="space-y-3">
-                                                    <div className="flex justify-between items-center">
-                                                        <p className="font-semibold text-slate-900 border-b pb-1 flex-1">Resultados da Avaliação</p>
+                                                {prescription.data?.propulsaoOrder && (
+                                                    <Badge variant="outline" className="text-[10px] font-mono bg-slate-50">
+                                                        #{prescription.data.propulsaoOrder}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="p-4 pt-0">
+                                            <div className="space-y-1">
+                                                <p className="font-bold text-slate-900 line-clamp-1">
+                                                    {prescription.data?.produto || 'Palmilha'} - {prescription.data?.type || '3D'}
+                                                </p>
+                                                <p className="text-[11px] text-slate-500">
+                                                    Prescrito em: {format(new Date(prescription.created_at), "dd/MM/yyyy HH:mm")}
+                                                </p>
+                                            </div>
+                                            <div className="mt-4 flex flex-wrap gap-1.5">
+                                                <Badge variant="secondary" className="text-[9px] uppercase px-1.5 py-0 bg-slate-100">{prescription.data?.model || 'Slim'}</Badge>
+                                                <Badge variant="secondary" className="text-[9px] uppercase px-1.5 py-0 bg-slate-100">Tam: {prescription.data?.tamanho || '-'}</Badge>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                        </div>
+                        <div className="border-t border-dashed my-6" />
+                    </div>
+                )}
+
+                <h4 className="text-sm font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                    <Clock className="h-4 w-4" /> Monitoramento & Acompanhamento
+                </h4>
+
+                {followUps.length > 0 ? (
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {followUps.map((item) => (
+                            <Card key={item.id} className={cn(
+                                "transition-all",
+                                item.status === 'alert' ? "border-red-500 bg-red-50" : "hover:bg-slate-50"
+                            )}>
+                                <CardHeader className="pb-2">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-2">
+                                            <Footprints className="h-5 w-5 text-primary" />
+                                            <div>
+                                                <CardTitle className="text-base">{getTitle(item.type, item.response_data?.is_backup)}</CardTitle>
+                                                <CardDescription>
+                                                    Entrega: {format(new Date(item.delivery_date), "dd/MM/yyyy")}
+                                                </CardDescription>
+                                            </div>
+                                        </div>
+                                        {getStatusBadge(item.status)}
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <Clock className="h-4 w-4 text-muted-foreground" />
+                                            <span>
+                                                Programado para: <strong>{format(new Date(item.scheduled_date), "dd 'de' MMMM, yyyy", { locale: ptBR })}</strong>
+                                            </span>
+                                        </div>
+
+                                        {item.status === 'completed' && item.response_data && (
+                                            <div className="bg-white p-3 rounded border text-sm mt-2">
+                                                {item.response_data.is_backup ? (
+                                                    <div className="space-y-1">
+                                                        <p className="font-bold text-slate-700 italic">Registro de Histórico (Backup)</p>
+                                                        <p className="text-slate-600">{item.response_data.observation}</p>
+                                                        {item.response_data.original_service && (
+                                                            <Badge variant="outline" className="text-[10px] mt-2">
+                                                                Serviço: {item.response_data.original_service}
+                                                            </Badge>
+                                                        )}
                                                     </div>
-
-                                                    {/* Decision Tree / Clinical Alerts */}
-                                                    {item.type === 'insoles_40d' && (
-                                                        <div className={cn(
-                                                            "p-3 rounded-lg border flex flex-col gap-2",
-                                                            item.response_data.calculateScore?.alert ? "bg-red-50 border-red-100" : "bg-green-50 border-green-100"
-                                                        )}>
-                                                            <div className="flex items-center gap-2">
-                                                                {item.response_data.calculateScore?.alert ? (
-                                                                    <AlertCircle className="h-4 w-4 text-red-600" />
-                                                                ) : (
-                                                                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                                                )}
-                                                                <span className={cn(
-                                                                    "font-bold uppercase text-[10px] tracking-widest",
-                                                                    item.response_data.calculateScore?.alert ? "text-red-700" : "text-green-700"
-                                                                )}>
-                                                                    Decisão Clínica
-                                                                </span>
-                                                            </div>
-                                                            <p className="text-xs">
-                                                                {item.response_data.calculateScore?.alert
-                                                                    ? "Paciente relata desconforto ou falta de ajuste. Recomenda-se AGENDAR REVISÃO PRESENCIAL para ajustes finos."
-                                                                    : "Adaptação dentro da normalidade. Manter acompanhamento regular."}
-                                                            </p>
+                                                ) : (
+                                                    <div className="space-y-3">
+                                                        <div className="flex justify-between items-center">
+                                                            <p className="font-semibold text-slate-900 border-b pb-1 flex-1">Resultados da Avaliação</p>
                                                         </div>
-                                                    )}
 
-                                                    {item.type === 'insoles_1y' && (
-                                                        <div className={cn(
-                                                            "p-3 rounded-lg border flex flex-col gap-2",
-                                                            item.response_data.calculateScore?.alert ? "bg-indigo-50 border-indigo-100" : "bg-green-50 border-green-100"
-                                                        )}>
-                                                            <div className="flex items-center gap-2">
-                                                                {item.response_data.calculateScore?.alert ? (
-                                                                    <Zap className="h-4 w-4 text-indigo-600" />
-                                                                ) : (
-                                                                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                                                )}
-                                                                <span className={cn(
-                                                                    "font-bold uppercase text-[10px] tracking-widest",
-                                                                    item.response_data.calculateScore?.alert ? "text-indigo-700" : "text-green-700"
-                                                                )}>
-                                                                    Insight de Manutenção
-                                                                </span>
-                                                            </div>
-                                                            <p className="text-xs">
-                                                                {item.response_data.calculateScore?.alert
-                                                                    ? "Palmilha com sinais de desgaste ou paciente interessado em renovação. OPORTUNIDADE DE UPSELL / RENOVAÇÃO."
-                                                                    : "Palmilha em bom estado. Manter acompanhamento."}
-                                                            </p>
-                                                        </div>
-                                                    )}
-
-                                                    <div className="grid grid-cols-2 gap-2 text-[11px]">
-                                                        <div className="bg-slate-50 p-2 rounded">
-                                                            <span className="text-slate-500 block mb-0.5">Nota Média</span>
-                                                            <span className="font-bold text-slate-800">{item.response_data.calculateScore?.average || item.response_data.calculateScore?.score}</span>
-                                                        </div>
-                                                        <div className="bg-slate-50 p-2 rounded">
-                                                            <span className="text-slate-500 block mb-0.5">Status</span>
-                                                            <span className={cn(
-                                                                "font-bold",
-                                                                item.response_data.calculateScore?.riskColor === 'red' ? 'text-red-600' :
-                                                                    item.response_data.calculateScore?.riskColor === 'blue' ? 'text-indigo-600' : 'text-green-600'
+                                                        {/* Decision Tree / Clinical Alerts */}
+                                                        {item.type === 'insoles_40d' && (
+                                                            <div className={cn(
+                                                                "p-3 rounded-lg border flex flex-col gap-2",
+                                                                item.response_data.calculateScore?.alert ? "bg-red-50 border-red-100" : "bg-green-50 border-green-100"
                                                             )}>
-                                                                {item.response_data.calculateScore?.classification}
-                                                            </span>
+                                                                <div className="flex items-center gap-2">
+                                                                    {item.response_data.calculateScore?.alert ? (
+                                                                        <AlertCircle className="h-4 w-4 text-red-600" />
+                                                                    ) : (
+                                                                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                                                    )}
+                                                                    <span className={cn(
+                                                                        "font-bold uppercase text-[10px] tracking-widest",
+                                                                        item.response_data.calculateScore?.alert ? "text-red-700" : "text-green-700"
+                                                                    )}>
+                                                                        Decisão Clínica
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-xs">
+                                                                    {item.response_data.calculateScore?.alert
+                                                                        ? "Paciente relata desconforto ou falta de ajuste. Recomenda-se AGENDAR REVISÃO PRESENCIAL para ajustes finos."
+                                                                        : "Adaptação dentro da normalidade. Manter acompanhamento regular."}
+                                                                </p>
+                                                            </div>
+                                                        )}
+
+                                                        {item.type === 'insoles_1y' && (
+                                                            <div className={cn(
+                                                                "p-3 rounded-lg border flex flex-col gap-2",
+                                                                item.response_data.calculateScore?.alert ? "bg-indigo-50 border-indigo-100" : "bg-green-50 border-green-100"
+                                                            )}>
+                                                                <div className="flex items-center gap-2">
+                                                                    {item.response_data.calculateScore?.alert ? (
+                                                                        <Zap className="h-4 w-4 text-indigo-600" />
+                                                                    ) : (
+                                                                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                                                    )}
+                                                                    <span className={cn(
+                                                                        "font-bold uppercase text-[10px] tracking-widest",
+                                                                        item.response_data.calculateScore?.alert ? "text-indigo-700" : "text-green-700"
+                                                                    )}>
+                                                                        Insight de Manutenção
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-xs">
+                                                                    {item.response_data.calculateScore?.alert
+                                                                        ? "Palmilha com sinais de desgaste ou paciente interessado em renovação. OPORTUNIDADE DE UPSELL / RENOVAÇÃO."
+                                                                        : "Palmilha em bom estado. Manter acompanhamento."}
+                                                                </p>
+                                                            </div>
+                                                        )}
+
+                                                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                                            <div className="bg-slate-50 p-2 rounded">
+                                                                <span className="text-slate-500 block mb-0.5">Nota Média</span>
+                                                                <span className="font-bold text-slate-800">{item.response_data.calculateScore?.average || item.response_data.calculateScore?.score}</span>
+                                                            </div>
+                                                            <div className="bg-slate-50 p-2 rounded">
+                                                                <span className="text-slate-500 block mb-0.5">Status</span>
+                                                                <span className={cn(
+                                                                    "font-bold",
+                                                                    item.response_data.calculateScore?.riskColor === 'red' ? 'text-red-600' :
+                                                                        item.response_data.calculateScore?.riskColor === 'blue' ? 'text-indigo-600' : 'text-green-600'
+                                                                )}>
+                                                                    {item.response_data.calculateScore?.classification}
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                                )}
+                                            </div>
+                                        )}
 
-                                    {item.status === 'pending' && (
-                                        <div className="flex justify-end mt-2">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-red-500 hover:text-red-600 hover:bg-red-50 h-8"
-                                                onClick={() => handleCancel(item.id)}
-                                            >
-                                                Cancelar Envio
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            ) : (
-                <EmptyState
-                    icon={Footprints}
-                    title="Nenhuma palmilha registrada"
-                    description="Registre a data de entrega da palmilha para ativar o monitoramento automático."
-                    action={
-                        <Button onClick={() => setIsDialogOpen(true)} variant="outline">
-                            Registrar Primeira Entrega
-                        </Button>
-                    }
-                />
-            )}
-
-
+                                        {item.status === 'pending' && (
+                                            <div className="flex justify-end mt-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-red-500 hover:text-red-600 hover:bg-red-50 h-8"
+                                                    onClick={() => handleCancel(item.id)}
+                                                >
+                                                    Cancelar Envio
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                ) : (
+                    <EmptyState
+                        icon={Footprints}
+                        title="Nenhuma entrega registrada"
+                        description="Registre a data de entrega ou ajuste da palmilha para ativar o monitoramento automático."
+                        action={
+                            <Button onClick={() => setIsDialogOpen(true)} variant="outline">
+                                Registrar Primeira Ação
+                            </Button>
+                        }
+                    />
+                )}
+            </div>
         </div>
     )
 }

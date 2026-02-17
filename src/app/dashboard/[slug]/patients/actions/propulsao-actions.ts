@@ -118,16 +118,17 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             Arco_Dir: mapArc(orderData.rightFoot.arco),
             SuporteArco_dir: mapFlex(orderData.rightFoot.flexibilidade),
 
-            // Mandatory Placeholders for STL Files
-            fileE: "UExhY2Vob2xkZXI=",
-            fileD: "UExhY2Vob2xkZXI="
+            // Files from Client
+            fileE: orderData.fileE || "UExhY2Vob2xkZXI=",
+            fileD: orderData.fileD || "UExhY2Vob2xkZXI="
         };
 
         // 4. Send Request to Propulsão API
         const response = await fetch("https://us-central1-dev-propulsao.cloudfunctions.net/pedidos_axion", {
             method: "POST",
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "x-axion-token": AXION_TOKEN
             },
             body: JSON.stringify({
                 payload: base64Payload,

@@ -11,6 +11,7 @@ export async function getPatientRecords(patientId: string, type?: 'assessment' |
             id,
             created_at,
             content,
+            template_id,
             organization_id,
             appointment_id,
             appointments (

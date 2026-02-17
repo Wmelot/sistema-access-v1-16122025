@@ -13,7 +13,7 @@ import { checkNavicularStatus } from "@/utils/clinical-references"
 import { createAssessment } from "@/app/dashboard/[slug]/patients/actions/assessments"
 import { registerInsoleDelivery } from "@/app/dashboard/[slug]/patients/actions/insoles"
 import { useParams } from "next/navigation"
-import { Calendar as CalendarIcon, Upload, FileCheck, X } from "lucide-react"
+import { Calendar as CalendarIcon, Upload, FileCheck, X, Info } from "lucide-react"
 import { sendOrderToPropulsao } from "@/app/dashboard/[slug]/patients/actions/propulsao-actions"
 
 // --- CONSTANTS ---
@@ -94,8 +94,6 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
     const [tipoPalmilha, setTipoPalmilha] = useState('Inteira')
     const [cobertura, setCobertura] = useState('EVA Azul (Padrão)')
     const [tamanho, setTamanho] = useState('')
-    const [deliveryDate, setDeliveryDate] = useState<string>('')
-    const [isRegisteringDelivery, setIsRegisteringDelivery] = useState(false)
 
     // Feet Configuration
     const [leftFoot, setLeftFoot] = useState<FootConfig>(DEFAULT_FOOT)
@@ -507,49 +505,14 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                                 </div>
                             </div>
 
-                            {/* Row 3: Data de Entrega & Registro */}
-                            <div className="pt-4 border-t border-slate-100">
-                                <div className="flex flex-col md:flex-row items-end gap-4">
-                                    <div className="space-y-2 flex-grow">
-                                        <Label className="flex items-center gap-2">
-                                            <CalendarIcon className="w-3.5 h-3.5 text-blue-500" />
-                                            Data de Entrega (Inicia acompanhamento automático)
-                                        </Label>
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="date"
-                                                value={deliveryDate}
-                                                onChange={(e) => {
-                                                    setDeliveryDate(e.target.value)
-                                                    if (form) form.setValue("plan.deliveryDate", e.target.value)
-                                                }}
-                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                            />
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => {
-                                                    const today = new Date().toISOString().split('T')[0]
-                                                    setDeliveryDate(today)
-                                                    if (form) form.setValue("plan.deliveryDate", today)
-                                                }}
-                                                className="h-10 px-3 shrink-0 text-xs font-bold"
-                                            >
-                                                HOJE
-                                            </Button>
-                                        </div>
-                                    </div>
-                                    <Button
-                                        onClick={handleRegisterDelivery}
-                                        disabled={isRegisteringDelivery}
-                                        className="h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 shadow-md transition-all active:scale-95 gap-2"
-                                    >
-                                        {isRegisteringDelivery ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                                        {deliveryDate ? "REGISTRAR ENTREGA" : "ENTREGAR HOJE"}
-                                    </Button>
+                            <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-xl flex gap-3 items-start shadow-sm">
+                                <Info className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                                <div className="space-y-1">
+                                    <p className="text-xs text-blue-900 font-bold uppercase tracking-tight">Registro de Entrega</p>
+                                    <p className="text-[11px] text-blue-800 leading-relaxed italic">
+                                        Para registrar a <strong>entrega física</strong> (que gera uma evolução no prontuário) e programar os acompanhamentos automáticos, utilize a aba <strong>"Palmilhas"</strong> no perfil do paciente.
+                                    </p>
                                 </div>
-                                <p className="text-[10px] text-slate-400 mt-2 font-medium italic">
-                                    * Ao registrar a entrega, o sistema agenda automaticamente mensagens de acompanhamento para 40 dias e 1 ano.
-                                </p>
                             </div>
                         </div>
 
@@ -680,7 +643,7 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                 </div>
 
             </AccordionContent>
-        </AccordionItem>
+        </AccordionItem >
     )
 }
 

@@ -6,57 +6,51 @@ import { addDays, format } from "date-fns"
 import { sendMessage, getWhatsappConfig } from "@/app/dashboard/[slug]/settings/communication/actions"
 import { headers } from "next/headers"
 
-export async function registerInsoleDelivery(patientId: string, deliveryDate: Date, slug?: string) {
+export async function registerInsoleDelivery(patientId: string, deliveryDate: Date, slug?: string, note?: string, isAdjustment: boolean = false) {
     const supabase = await createClient()
+    const { createAdminClient } = await import("@/lib/supabase/server")
+    const adminSupabase = await createAdminClient()
 
     try {
         // 1. Fetch Organization Context
         const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error("Não autorizado")
+
         let organizationId = null
 
-        if (user) {
-            const { data: userProfile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-            organizationId = userProfile?.organization_id
-        }
+        const { data: userProfile } = await adminSupabase.from('profiles').select('organization_id').eq('id', user.id).single()
+        organizationId = userProfile?.organization_id
 
         if (slug) {
-            const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+            const { data: orgData } = await adminSupabase.from('organizations').select('id').eq('slug', slug).single()
             if (orgData) organizationId = orgData.id
         }
 
         // Fallback to patient's org
         if (!organizationId) {
-            const { data: patient } = await supabase.from('patients').select('organization_id').eq('id', patientId).single()
+            const { data: patient } = await adminSupabase.from('patients').select('organization_id').eq('id', patientId).single()
             organizationId = patient?.organization_id
         }
 
         // 2. Calculate scheduled dates
         const deliveryAsDate = new Date(deliveryDate)
-        // Set to noon to avoid any timezone/DST shifts causing off-by-one
         deliveryAsDate.setHours(12, 0, 0, 0)
 
         const date40d = addDays(deliveryAsDate, 40)
-        const date1y = addDays(deliveryAsDate, 365) // Standard 1 year (365 days)
+        const date1y = addDays(deliveryAsDate, 365)
 
         console.log(`[Insoles] Registering delivery for patient ${patientId} on ${deliveryAsDate.toISOString()}`)
-        console.log(`[Insoles] Scheduled 40d: ${date40d.toISOString()}`)
-        console.log(`[Insoles] Scheduled 1y: ${date1y.toISOString()}`)
 
-        // 2.5 Cancel ANY previous PENDING insole follow-ups for this patient
-        // This prevents "zombie" or duplicate messages if professional re-registers
-        const { error: cancelError } = await supabase
+        // 2.5 Cancel ANY previous PENDING insole follow-ups
+        await adminSupabase
             .from('assessment_follow_ups')
             .update({ status: 'cancelled' })
             .eq('patient_id', patientId)
             .in('type', ['insoles_40d', 'insoles_1y'])
             .eq('status', 'pending');
 
-        if (cancelError) {
-            console.warn(`[Insoles] Non-critical error cancelling previous follow-ups: ${cancelError.message}`);
-        }
-
         // 3. Insert Insole 40 days follow-up
-        const { error: error40d } = await supabase
+        const { error: error40d } = await adminSupabase
             .from('assessment_follow_ups')
             .insert({
                 patient_id: patientId,
@@ -71,7 +65,7 @@ export async function registerInsoleDelivery(patientId: string, deliveryDate: Da
         if (error40d) throw new Error(`Error scheduling 40d: ${error40d.message}`)
 
         // 4. Insert Insole 1 year follow-up
-        const { error: error1y } = await supabase
+        const { error: error1y } = await adminSupabase
             .from('assessment_follow_ups')
             .insert({
                 patient_id: patientId,
@@ -84,6 +78,28 @@ export async function registerInsoleDelivery(patientId: string, deliveryDate: Da
             })
 
         if (error1y) throw new Error(`Error scheduling 1y: ${error1y.message}`)
+
+        // 5. Create clinical evolution record if note is provided
+        if (note) {
+            const { error: recordError } = await adminSupabase
+                .from('patient_records')
+                .insert({
+                    patient_id: patientId,
+                    organization_id: organizationId,
+                    professional_id: user.id,
+                    template_id: 'e0000000-0000-0000-0000-000000000001', // Clinical Evolution
+                    content: {
+                        note,
+                        _record_type: 'evolution',
+                        title: isAdjustment ? 'Ajuste de Palmilha' : 'Entrega de Palmilha'
+                    },
+                    status: 'finalized'
+                })
+
+            if (recordError) {
+                console.error(`[Insoles] Error creating evolution record: ${recordError.message}`)
+            }
+        }
 
         if (slug) {
             revalidatePath(`/dashboard/${slug}/patients/${patientId}`)

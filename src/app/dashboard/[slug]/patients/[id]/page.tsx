@@ -36,6 +36,7 @@ import { FinancialTab } from "./financial-tab"
 import { AssessmentTab } from "../components/AssessmentTab"
 import { PatientReportsTab } from "../components/PatientReportsTab"
 import { QuestionnairesTab } from "../components/QuestionnairesTab"
+import { EvolutionTab } from "../components/EvolutionTab"
 
 import { cn } from "@/lib/utils"
 import { formatPhoneDisplay, getPhoneFlag } from "@/utils/format-phone"
@@ -397,24 +398,39 @@ export default async function PatientDetailPage({
                         </div>
                     </TabsContent>
 
-                    <TabsContent value="records" className="mt-6">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                                <div>
-                                    <CardTitle>Histórico de Evoluções</CardTitle>
-                                    <CardDescription>Acompanhe a trajetória clínica do paciente</CardDescription>
-                                </div>
-                                <InstantEvolutionButton patientId={id} patientName={patient.name} />
-                            </CardHeader>
-                            <CardContent>
-                                <PatientReportsTab
-                                    patientId={id}
-                                    patientName={patient.name}
-                                    records={evolutionRecords}
-                                    slug={slug}
-                                />
-                            </CardContent>
-                        </Card>
+                    <TabsContent value="evolutions" className="mt-6">
+                        <div className="space-y-6">
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                                    <div>
+                                        <CardTitle>Linha do Tempo de Evoluções</CardTitle>
+                                        <CardDescription>Acompanhe o histórico de atendimentos e entregas</CardDescription>
+                                    </div>
+                                    <InstantEvolutionButton patientId={id} patientName={patient.name} />
+                                </CardHeader>
+                                <CardContent>
+                                    <EvolutionTab
+                                        patientId={id}
+                                        records={evolutionRecords}
+                                    />
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Gerador de Laudos e Documentos</CardTitle>
+                                    <CardDescription>Crie documentos técnicos baseados nas evoluções acima</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <PatientReportsTab
+                                        patientId={id}
+                                        patientName={patient.name}
+                                        records={evolutionRecords}
+                                        slug={slug}
+                                    />
+                                </CardContent>
+                            </Card>
+                        </div>
                     </TabsContent>
 
                     <TabsContent value="assessments" className="mt-6">
@@ -500,12 +516,32 @@ export default async function PatientDetailPage({
                         />
                     </TabsContent>
 
-                    <TabsContent value="documents" className="mt-6">
+                    <TabsContent value="reports" className="mt-6">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0">
                                 <div>
-                                    <CardTitle>Documentos e Anexos</CardTitle>
-                                    <CardDescription>Gerencie exames, termos e arquivos em geral</CardDescription>
+                                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                        <FileText className="h-4 w-4 text-primary" />
+                                        Documentos e Anexos
+                                    </CardTitle>
+                                    <CardDescription className="text-xs">Gerencie exames, termos e arquivos em geral</CardDescription>
+                                </div>
+                                <DocumentUploadDialog patientId={id} />
+                            </CardHeader>
+                            <CardContent className="space-y-8">
+                                <PatientDocumentsList documents={documents} />
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="attachments" className="mt-6">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                                <div>
+                                    <CardTitle className="text-sm font-bold flex items-center gap-2 text-primary">
+                                        <Paperclip className="h-4 w-4" /> Anexos e Arquivos
+                                    </CardTitle>
+                                    <CardDescription className="text-xs">Exames e arquivos carregados</CardDescription>
                                 </div>
                                 <DocumentUploadDialog patientId={id} />
                             </CardHeader>
