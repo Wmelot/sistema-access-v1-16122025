@@ -36,7 +36,7 @@ export function LocationsClient({ locations, slug }: { locations: any[], slug: s
                 title="Locais de Atendimento"
                 description="Gerencie onde os atendimentos podem ocorrer e a capacidade de cada local."
             >
-                <LocationsDialog />
+                <LocationsDialog existingNames={locations.map(l => l.name)} />
             </ManagementHeader>
             <Card className="border-none shadow-none bg-transparent sm:border sm:shadow-sm sm:bg-white">
                 <CardHeader className="hidden sm:block">
@@ -152,6 +152,7 @@ export function LocationsClient({ locations, slug }: { locations: any[], slug: s
                     if (!open) setEditingLocation(null)
                 }}
                 initialData={editingLocation}
+                existingNames={locations.map(l => l.name)}
                 trigger={<span className="hidden"></span>} // Hidden trigger since we control open state
             />
         </div>

@@ -18,7 +18,26 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createRole, updateRole, getRoleMembers, getAllProfiles, updateRoleMembers } from "./actions"
 import { toast } from "sonner"
-import { Plus, Check, Shield, User, Loader2 } from "lucide-react"
+import {
+    Plus,
+    Check,
+    Shield,
+    User,
+    Loader2,
+    Info,
+    LayoutGrid,
+    Settings2,
+    ChevronRight
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { useSidebar } from "@/hooks/use-sidebar"
+import { Switch } from "@/components/ui/switch"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface RoleFormDialogProps {
     role?: any // If present, edit mode
@@ -27,10 +46,14 @@ interface RoleFormDialogProps {
 }
 
 export function RoleFormDialog({ role, allPermissions, trigger }: RoleFormDialogProps) {
+    const { isCollapsed } = useSidebar()
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [name, setName] = useState(role?.name || "")
     const [description, setDescription] = useState(role?.description || "")
+
+    // Calculate dynamic sidebar width
+    const sidebarWidth = isCollapsed ? 60 : 250
 
     // Permissions logic
     const initialPerms = role?.permissions?.map((p: any) => p.permission_id) || []
@@ -124,16 +147,88 @@ export function RoleFormDialog({ role, allPermissions, trigger }: RoleFormDialog
         }
     }
 
-    // Group permissions by module
-    const groupedPermissions = allPermissions.reduce((acc: any, curr: any) => {
-        const module = curr.module || 'Outros'
-        if (!acc[module]) acc[module] = []
-        acc[module].push(curr)
+    // Permission Item Component with Tooltip and Switch
+    const PermissionItem = ({ perm }: { perm: any }) => (
+        <TooltipProvider delayDuration={100}>
+            <div className={cn(
+                "flex items-center justify-between p-3 rounded-lg border transition-all duration-200",
+                selectedPermissions.includes(perm.id)
+                    ? "bg-primary/5 border-primary/20 shadow-sm"
+                    : "bg-white border-slate-200 hover:border-slate-300"
+            )}>
+                <div className="flex-1 mr-4">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                        <Label
+                            htmlFor={perm.id}
+                            className="text-sm font-semibold text-slate-700 cursor-pointer"
+                        >
+                            {perm.description || perm.code}
+                        </Label>
+                        {perm.explanation && (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="max-w-[250px]">
+                                    <p>{perm.explanation}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-mono block">
+                        {perm.code}
+                    </span>
+                </div>
+                <Switch
+                    id={perm.id}
+                    checked={selectedPermissions.includes(perm.id)}
+                    onCheckedChange={() => togglePermission(perm.id)}
+                    className="data-[state=checked]:bg-primary"
+                />
+            </div>
+        </TooltipProvider>
+    )
+
+    // Unified Interface Grouping Logic
+    const interfaceGroups = allPermissions.reduce((acc: any, p: any) => {
+        if (p.code.startsWith('sidebar.') || p.code.startsWith('user_menu.')) {
+            const key = p.code.split('.')[1]
+            if (!acc[key]) acc[key] = { key, label: '', icon: null, sidebar: null, header: null }
+
+            if (p.code.startsWith('sidebar.')) acc[key].sidebar = p
+            if (p.code.startsWith('user_menu.')) acc[key].header = p
+
+            // Normalize label: Remove prefixes like "Sidebar: " or "Menu Usuário: "
+            if (!acc[key].label) {
+                acc[key].label = p.description.replace(/Sidebar: |Menu Usuário: |Atalho |Exibir: /g, '')
+            }
+        }
+        return acc
+    }, {})
+
+    const interfaceModules = Object.values(interfaceGroups).sort((a: any, b: any) => a.label.localeCompare(b.label))
+
+    const managementPerms = allPermissions.filter(p =>
+        p.module === 'Gestão (Módulos)' ||
+        (!p.code.startsWith('sidebar.') && !p.code.startsWith('user_menu.'))
+    )
+
+    // Group management perms by prefix or manual title
+    const groupedManagement = managementPerms.reduce((acc: any, curr: any) => {
+        let title = 'Geral'
+        if (curr.module && curr.module !== 'Gestão (Módulos)') {
+            title = curr.module
+        } else if (curr.description?.includes(':')) {
+            title = curr.description.split(':')[0]
+        }
+
+        if (!acc[title]) acc[title] = []
+        acc[title].push(curr)
         return acc
     }, {})
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={setOpen} modal={false}>
             <DialogTrigger asChild>
                 {trigger || (
                     <Button>
@@ -141,138 +236,254 @@ export function RoleFormDialog({ role, allPermissions, trigger }: RoleFormDialog
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-                <DialogHeader>
-                    <DialogTitle>{role ? "Editar Perfil" : "Novo Perfil de Acesso"}</DialogTitle>
-                    <DialogDescription>
-                        Gerencie permissões e membros deste perfil.
-                    </DialogDescription>
-                </DialogHeader>
+            <DialogContent
+                overlayClassName={cn(
+                    "transition-all duration-300 ease-in-out",
+                    isCollapsed ? "left-[60px]" : "left-[250px]"
+                )}
+                className={cn(
+                    "flex flex-col p-0 transition-all duration-300 ease-in-out z-[150] rounded-xl overflow-hidden shadow-2xl border bg-slate-50",
+                    "sm:max-w-[1100px] w-[calc(98vw-var(--sidebar-w)-2rem)] sm:left-[calc(50%+var(--sidebar-w)/2)] !translate-x-[-50%] top-[74px] !translate-y-0 h-[calc(100vh-90px)]"
+                )}
+                style={{ "--sidebar-w": `${sidebarWidth}px` } as any}
+                onPointerDownOutside={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (target?.closest('[data-sidebar="true"]') || target?.closest('.sidebar-toggle-btn') || target?.closest('aside')) {
+                        e.preventDefault();
+                    }
+                }}
+            >
+                <div className="p-6 bg-white border-b flex-none flex items-center justify-between">
+                    <div>
+                        <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-800">
+                            <Shield className="h-5 w-5 text-primary" />
+                            {role ? "Configurar Perfil de Acesso" : "Novo Perfil de Acesso"}
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-500">
+                            Configure permissões detalhadas e membros do perfil.
+                        </DialogDescription>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="outline"
+                            onClick={() => setOpen(false)}
+                            className="bg-white"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleSubmit}
+                            disabled={loading}
+                            className="px-6"
+                        >
+                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Salvar Alterações
+                        </Button>
+                    </div>
+                </div>
 
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-                    <TabsList className="grid w-full grid-cols-2 mb-4">
-                        <TabsTrigger value="general">Detalhes & Permissões</TabsTrigger>
-                        <TabsTrigger value="members" disabled={!role}>Membros da Equipe</TabsTrigger>
-                    </TabsList>
+                <div className="flex-1 flex overflow-hidden">
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex overflow-hidden">
+                        <div className="w-64 bg-slate-50 border-r p-4 flex flex-col gap-1 overflow-y-auto">
+                            <TabsList className="bg-transparent flex flex-col h-auto w-full p-0 gap-1 space-y-0">
+                                <TabsTrigger
+                                    value="general"
+                                    className="w-full justify-start gap-3 px-4 py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary border border-transparent data-[state=active]:border-slate-200"
+                                >
+                                    <Settings2 className="h-4 w-4" /> Info & Equipe
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="interface"
+                                    className="w-full justify-start gap-3 px-4 py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary border border-transparent data-[state=active]:border-slate-200"
+                                >
+                                    <LayoutGrid className="h-4 w-4" /> Interface e Menus
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="management"
+                                    className="w-full justify-start gap-3 px-4 py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary border border-transparent data-[state=active]:border-slate-200"
+                                >
+                                    <Shield className="h-4 w-4" /> Gestão (Módulos)
+                                </TabsTrigger>
+                            </TabsList>
+                        </div>
 
-                    <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+                        <div className="flex-1 bg-white overflow-y-auto p-8">
+                            <TabsContent value="general" className="m-0 space-y-8 animate-in fade-in-50 duration-300">
+                                <section>
+                                    <h3 className="text-lg font-bold text-slate-800 mb-4">Informações Básicas</h3>
+                                    <div className="grid gap-6">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="name" className="text-slate-600">Nome do Perfil</Label>
+                                            <Input
+                                                id="name"
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                                placeholder="Ex: Auditor Clínico"
+                                                className="max-w-md h-11"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="description" className="text-slate-600">Descrição Técnica</Label>
+                                            <Textarea
+                                                id="description"
+                                                value={description}
+                                                onChange={(e) => setDescription(e.target.value)}
+                                                placeholder="Explique quem deve usar este perfil e por que..."
+                                                className="max-w-2xl min-h-[100px]"
+                                            />
+                                        </div>
+                                    </div>
+                                </section>
 
-                        <TabsContent value="general" className="flex-1 flex flex-col overflow-hidden mt-0">
-                            <div className="grid gap-4 flex-none mb-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="name">Nome do Perfil</Label>
-                                    <Input
-                                        id="name"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        placeholder="Ex: Financeiro"
-                                        required
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="description">Descrição</Label>
-                                    <Textarea
-                                        id="description"
-                                        value={description}
-                                        onChange={(e) => setDescription(e.target.value)}
-                                        placeholder="Breve descrição das responsabilidades..."
-                                    />
-                                </div>
-                            </div>
+                                {role && (
+                                    <section>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="text-lg font-bold text-slate-800">Equipe Vinculada</h3>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={loadMembersData}
+                                                disabled={membersLoading}
+                                            >
+                                                {membersLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Atualizar Lista"}
+                                            </Button>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                            {profiles.map((profile: any) => (
+                                                <div
+                                                    key={profile.id}
+                                                    onClick={() => toggleMember(profile.id)}
+                                                    className={cn(
+                                                        "flex items-center space-x-3 p-3 rounded-xl border cursor-pointer transition-all",
+                                                        selectedMembers.includes(profile.id)
+                                                            ? "bg-primary/5 border-primary/20 ring-1 ring-primary/10"
+                                                            : "bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50"
+                                                    )}
+                                                >
+                                                    <div className={cn(
+                                                        "h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold",
+                                                        selectedMembers.includes(profile.id) ? "bg-primary text-white" : "bg-slate-100 text-slate-500"
+                                                    )}>
+                                                        {profile.full_name?.substring(0, 1).toUpperCase()}
+                                                    </div>
+                                                    <div className="flex-1 overflow-hidden">
+                                                        <p className="text-xs font-bold truncate">{profile.full_name}</p>
+                                                        <p className="text-[10px] text-slate-400 truncate">{profile.email}</p>
+                                                    </div>
+                                                    <Checkbox
+                                                        id={`member-${profile.id}`}
+                                                        checked={selectedMembers.includes(profile.id)}
+                                                        onCheckedChange={() => toggleMember(profile.id)}
+                                                        className="h-4 w-4 rounded-full"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </section>
+                                )}
+                            </TabsContent>
 
-                            <div className="flex-1 overflow-hidden border rounded-md p-2 flex flex-col">
-                                <Label className="mb-2 block px-2">Permissões de Acesso</Label>
-                                <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted px-2">
-                                    <div className="space-y-6">
-                                        {Object.entries(groupedPermissions).map(([module, perms]: [string, any]) => (
-                                            <div key={module}>
-                                                <h4 className="font-semibold text-sm mb-2 text-primary">{module}</h4>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                                    {perms.map((perm: any) => (
-                                                        <div key={perm.id} className="flex items-start space-x-2 border p-2 rounded hover:bg-muted/50">
-                                                            <Checkbox
-                                                                id={perm.id}
-                                                                checked={selectedPermissions.includes(perm.id)}
-                                                                onCheckedChange={() => togglePermission(perm.id)}
-                                                            />
-                                                            <div className="grid gap-0.5 leading-none">
-                                                                <Label
-                                                                    htmlFor={perm.id}
-                                                                    className="text-sm font-medium leading-none cursor-pointer"
-                                                                >
-                                                                    {perm.description || perm.code}
-                                                                </Label>
+                            <TabsContent value="interface" className="m-0 space-y-6 animate-in fade-in-50 duration-300">
+                                <div className="max-w-5xl">
+                                    <div className="mb-8">
+                                        <h3 className="text-lg font-bold text-slate-800 mb-1">Canais de Navegação e Atalhos</h3>
+                                        <p className="text-sm text-slate-500">
+                                            Defina onde cada funcionalidade deve aparecer para este perfil.
+                                        </p>
+                                    </div>
+
+                                    <div className="bg-white border rounded-2xl overflow-hidden shadow-sm">
+                                        <div className="grid grid-cols-12 bg-slate-50/80 border-b px-6 py-3 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                                            <div className="col-span-6">Módulo / Funcionalidade</div>
+                                            <div className="col-span-3 text-center">Menu Lateral</div>
+                                            <div className="col-span-3 text-center">Menu Superior</div>
+                                        </div>
+
+                                        <div className="divide-y divide-slate-100">
+                                            {interfaceModules.map((mod: any) => (
+                                                <div key={mod.key} className="grid grid-cols-12 items-center px-6 py-4 hover:bg-slate-50/50 transition-colors">
+                                                    <div className="col-span-6">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
+                                                                <LayoutGrid className="h-4 w-4" />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-bold text-slate-700">{mod.label}</p>
+                                                                <p className="text-[10px] font-mono text-slate-400 uppercase tracking-tight">{mod.key}</p>
                                                             </div>
                                                         </div>
+                                                    </div>
+
+                                                    <div className="col-span-3 flex justify-center">
+                                                        {mod.sidebar ? (
+                                                            <TooltipProvider delayDuration={0}>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <div className="flex flex-col items-center gap-1">
+                                                                            <Switch
+                                                                                checked={selectedPermissions.includes(mod.sidebar.id)}
+                                                                                onCheckedChange={() => togglePermission(mod.sidebar.id)}
+                                                                            />
+                                                                        </div>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent side="top">Exibir no Menu Lateral</TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        ) : <span className="text-[10px] text-slate-300 font-bold uppercase">N/A</span>}
+                                                    </div>
+
+                                                    <div className="col-span-3 flex justify-center">
+                                                        {mod.header ? (
+                                                            <TooltipProvider delayDuration={0}>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <div className="flex flex-col items-center gap-1">
+                                                                            <Switch
+                                                                                checked={selectedPermissions.includes(mod.header.id)}
+                                                                                onCheckedChange={() => togglePermission(mod.header.id)}
+                                                                            />
+                                                                        </div>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent side="top">Exibir no Menu Superior (Atalho)</TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        ) : <span className="text-[10px] text-slate-300 font-bold uppercase">N/A</span>}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </TabsContent>
+
+                            <TabsContent value="management" className="m-0 space-y-12 animate-in fade-in-50 duration-300">
+                                <div className="max-w-5xl">
+                                    <h3 className="text-lg font-bold text-slate-800 mb-2">Gestão de Módulos e Regras</h3>
+                                    <p className="text-sm text-slate-500 mb-8">
+                                        Defina as regras de negócio e o que cada colaborador pode gerenciar dentro dos módulos do sistema.
+                                    </p>
+
+                                    <div className="space-y-10">
+                                        {Object.entries(groupedManagement).map(([title, perms]: [string, any]) => (
+                                            <div key={title} className="bg-slate-50/50 rounded-2xl p-6 border border-slate-100">
+                                                <h4 className="text-sm font-bold text-primary flex items-center gap-2 mb-6 ml-1 uppercase tracking-wider">
+                                                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                                                    {title}
+                                                </h4>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                    {perms.map((perm: any) => (
+                                                        <PermissionItem key={perm.id} perm={perm} />
                                                     ))}
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
-                            </div>
-                        </TabsContent>
-
-                        <TabsContent value="members" className="flex-1 overflow-hidden mt-0">
-                            <div className="h-full border rounded-md p-4 overflow-y-auto flex flex-col">
-                                {membersLoading ? (
-                                    <div className="flex justify-center items-center h-full">
-                                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-4 text-sm text-amber-800 flex flex-col sm:flex-row gap-3 items-center justify-between">
-                                            <p>
-                                                A gestão de vincular usuários a este perfil é feita na aba <strong>Usuários</strong>.
-                                                Aqui você visualiza apenas quem já possui este acesso.
-                                            </p>
-                                            <Button variant="outline" size="sm" className="whitespace-nowrap bg-white" onClick={() => {
-                                                setOpen(false)
-                                                // Using window location here as we are client side and want a hard redirect to the tab
-                                                const slug = window.location.pathname.split('/')[2]
-                                                window.location.href = `/dashboard/${slug}/settings?tab=users`
-                                            }}>
-                                                Gerenciar Usuários
-                                            </Button>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            {profiles.filter(p => selectedMembers.includes(p.id)).length === 0 ? (
-                                                <p className="text-center text-muted-foreground py-8">Nenhum usuário com este perfil.</p>
-                                            ) : (
-                                                profiles
-                                                    .filter(p => selectedMembers.includes(p.id))
-                                                    .map(profile => (
-                                                        <div key={profile.id} className="flex items-center justify-between p-3 border rounded-md bg-muted/20">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                                                    <User className="h-4 w-4 text-primary" />
-                                                                </div>
-                                                                <div>
-                                                                    <p className="font-medium">{profile.full_name || profile.email}</p>
-                                                                    <p className="text-xs text-muted-foreground">{profile.email}</p>
-                                                                </div>
-                                                            </div>
-                                                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded flex items-center gap-1">
-                                                                <Check className="h-3 w-3" /> Membro
-                                                            </span>
-                                                        </div>
-                                                    ))
-                                            )}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        </TabsContent>
-
-                        <DialogFooter className="flex-none pt-4">
-                            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                            <Button type="submit" disabled={loading}>
-                                {loading ? "Salvando..." : "Salvar Alterações"}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </Tabs>
+                            </TabsContent>
+                        </div>
+                    </Tabs>
+                </div>
             </DialogContent>
         </Dialog>
     )

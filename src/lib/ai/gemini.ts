@@ -115,3 +115,58 @@ export async function generateStrategicAnalysis(metrics: any) {
         return "Erro ao processar inteligência estratégica. Verifique a configuração da API Key.";
     }
 }
+
+export async function analyzeConsultation(transcription: string) {
+    if (!apiKey) throw new Error("GEMINI_API_KEY is not defined");
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+
+    const prompt = `
+    ATUE COMO UMA FISIOTERAPEUTA PH.D., MESTRE E DOUTORA EM CIÊNCIAS DA REABILITAÇÃO, PROFESSORA UNIVERSITÁRIA DE CINESIOLOGIA E AVALIAÇÃO CLÍNICA, COM 25 ANOS DE PRÁTICA BASEADA EM EVIDÊNCIAS.
+
+    SUA TAREFA: 
+    Analisar a transcrição de uma consulta/conversa entre fisioterapeuta e paciente e EXTRAIR as informações para campos específicos do prontuário.
+
+    CAMPOS PARA EXTRAÇÃO (RETORNE APENAS JSON):
+    {
+      "qp": "Queixa Principal técnica",
+      "hma": "História completa da moléstia",
+      "physicalExam": { "observation": "Achados técnicos do exame" },
+      "history": { 
+          "hp": "História pregressa",
+          "medication": "Medicamentos",
+          "physicalActivity": "Atividade",
+          "goals": ["Objetivo 1", "Objetivo 2"] 
+      },
+      "plan": { "orientations": "Conduta e orientações técnicas" }
+    }
+
+    REGRAS DE OURO:
+    1. Se uma informação NÃO foi citada, retorne string vazia. Não invente.
+    2. Use LINGUAGEM TÉCNICA DE ALTO NÍVEL (Ex: use "paralisia" em vez de "não mexe", "claudicação" em vez de "manca").
+    3. Organize o raciocínio clínico de forma sistêmica.
+    4. O resultado deve ser ESTRITAMENTE um JSON válido.
+
+    TRANSCRIÇÃO DA CONSULTA:
+    "${transcription}"
+    `;
+
+    try {
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text().trim();
+
+        // Robust JSON extraction using regex
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            console.error("No JSON found in AI response:", text);
+            throw new Error("A IA não retornou um formato de dados válido.");
+        }
+
+        return JSON.parse(jsonMatch[0]);
+    } catch (error) {
+        console.error("AI Consultation Analysis Error:", error);
+        throw new Error("Falha ao analisar consulta com a IA especialista.");
+    }
+}

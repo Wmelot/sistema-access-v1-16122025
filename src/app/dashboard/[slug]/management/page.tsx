@@ -34,9 +34,13 @@ import { useGlobalLoader } from "@/components/providers/global-loader-provider";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
+import { usePermissionsContext } from "@/components/providers/permissions-provider";
+import { PermissionCode } from "@/lib/rbac";
+
 export default function ManagementHubPage({ params }: { params: { slug: string } }) {
     const { slug } = params;
     const { showLoading } = useGlobalLoader();
+    const { hasPermission } = usePermissionsContext();
     const dashboardPrefix = `/dashboard/${slug}`;
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -46,27 +50,30 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
             items: [
                 {
                     title: "Gestão de Profissionais",
-                    description: "Gerencie sua equipe, horários e comissões.",
+                    description: "Gerencie os membros da sua equipe, configure horários, permissões e regras de comissionamento.",
                     icon: Users,
                     href: `${dashboardPrefix}/professionals`,
                     color: "text-blue-600",
-                    bg: "bg-blue-50"
+                    bg: "bg-blue-50",
+                    permission: "settings.professionals.view" as PermissionCode
                 },
                 {
                     title: "Gestão de Locais",
-                    description: "Configure salas e consultórios da clínica.",
+                    description: "Configure salas e consultórios da sua clínica.",
                     icon: MapPin,
                     href: `${dashboardPrefix}/locations`,
                     color: "text-emerald-600",
-                    bg: "bg-emerald-50"
+                    bg: "bg-emerald-50",
+                    permission: "settings.locations.view" as PermissionCode
                 },
                 {
                     title: "Gestão de Serviços",
-                    description: "Configure os serviços e procedimentos oferecidos.",
+                    description: "Configure e gerencie os serviços e procedimentos oferecidos para seus pacientes.",
                     icon: Stethoscope,
                     href: `${dashboardPrefix}/services`,
                     color: "text-indigo-600",
-                    bg: "bg-indigo-50"
+                    bg: "bg-indigo-50",
+                    permission: "settings.services.view" as PermissionCode
                 }
             ]
         },
@@ -74,36 +81,40 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
             title: "Recursos e Catálogo",
             items: [
                 {
-                    title: "Gestão de Formulários",
-                    description: "Personalize seus prontuários e anamneses.",
+                    title: "Formulários de Avaliação",
+                    description: "Gerencie, avalie e personalize seus formulários de avaliação.",
                     icon: ClipboardList,
                     href: `${dashboardPrefix}/forms`,
                     color: "text-orange-600",
-                    bg: "bg-orange-50"
+                    bg: "bg-orange-50",
+                    permission: "settings.forms.view" as PermissionCode
                 },
                 {
-                    title: "Gestão de Questionários",
-                    description: "Gerencie questionários e escalas (PROMs).",
+                    title: "Questionários",
+                    description: "Gerencie e analise os questionários e escalas de classificação.",
                     icon: FileText,
                     href: `${dashboardPrefix}/questionnaires`,
                     color: "text-cyan-600",
-                    bg: "bg-cyan-50"
+                    bg: "bg-cyan-50",
+                    permission: "settings.questionnaires.view" as PermissionCode
                 },
                 {
                     title: "Tabela de Preços",
-                    description: "Gerencie valores de serviços e convênios.",
+                    description: "Gerencie tabelas persanalizadas de serviços.",
                     icon: Tag,
                     href: `${dashboardPrefix}/prices`,
                     color: "text-purple-600",
-                    bg: "bg-purple-50"
+                    bg: "bg-purple-50",
+                    permission: "settings.prices.view" as PermissionCode
                 },
                 {
-                    title: "DRE (Gerencial)",
-                    description: "Demonstrativo de Resultados da clínica.",
+                    title: "Demonstrativo de Resultado do Exercício (DRE)",
+                    description: "Gere relatórios e demonstrativos financeiros com os resultados da sua clínica.",
                     icon: TrendingUp,
                     href: `${dashboardPrefix}/financial?tab=dre`,
                     color: "text-emerald-700",
-                    bg: "bg-emerald-100"
+                    bg: "bg-emerald-100",
+                    permission: "settings.dre.view" as PermissionCode
                 }
             ]
         },
@@ -112,35 +123,39 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
             items: [
                 {
                     title: "Gestão de Estoque",
-                    description: "Controle de produtos e materiais de consumo.",
+                    description: "Controle o estoque de produtos e materiais de consumo da sua clínica.",
                     icon: Database,
                     href: `${dashboardPrefix}/products`,
                     color: "text-indigo-600",
-                    bg: "bg-indigo-50"
+                    bg: "bg-indigo-50",
+                    permission: "settings.products.view" as PermissionCode
                 },
                 {
                     title: "Loja de Recursos",
-                    description: "Adquira novas funcionalidades para o sistema.",
+                    description: "Analise e contrate novas funcionalidades para potencializar ainda mais o seu sistema.",
                     icon: ShoppingBag,
                     href: `${dashboardPrefix}/marketplace`,
                     color: "text-pink-600",
-                    bg: "bg-pink-50"
+                    bg: "bg-pink-50",
+                    permission: "settings.marketplace.view" as PermissionCode
                 },
                 {
                     title: "Configurações de Marketing",
-                    description: "Configure régua de relacionamento e automações.",
+                    description: "Configure e gerencie listas de transmissão campanhas e envio de mensagens em massa.",
                     icon: Briefcase,
                     href: `${dashboardPrefix}/marketing`,
                     color: "text-teal-600",
-                    bg: "bg-teal-50"
+                    bg: "bg-teal-50",
+                    permission: "settings.marketing.view" as PermissionCode
                 },
                 {
                     title: "Comunicação (WhatsApp)",
-                    description: "Configure as instâncias e mensagens do WhatsApp.",
+                    description: "Gerencie modelos de mensagem e configure automações do WhatsApp do seu negócio.",
                     icon: MessageSquare,
                     href: `${dashboardPrefix}/settings/communication`,
                     color: "text-green-600",
-                    bg: "bg-green-50"
+                    bg: "bg-green-50",
+                    permission: "settings.communication.view" as PermissionCode
                 }
             ]
         },
@@ -149,11 +164,12 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
             items: [
                 {
                     title: "Identidade da Clínica",
-                    description: "Dados básicos, logotipos e cores do sistema.",
+                    description: "Configure informações básicas, gerencie sua logo, personalize as cores e detalhes do seu sistema.",
                     icon: Settings,
                     href: `${dashboardPrefix}/settings?tab=general`,
                     color: "text-zinc-600",
-                    bg: "bg-zinc-100"
+                    bg: "bg-zinc-100",
+                    permission: "settings.identity.view" as PermissionCode
                 },
                 {
                     title: "Documentos e Atestados",
@@ -161,55 +177,62 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
                     icon: FileText,
                     href: `${dashboardPrefix}/settings?tab=reports`,
                     color: "text-blue-600",
-                    bg: "bg-blue-50"
+                    bg: "bg-blue-50",
+                    permission: "settings.documents.view" as PermissionCode
                 },
                 {
-                    title: "Inteligência & IA",
-                    description: "Configure protocolos PBE e comportamento da IA.",
+                    title: "Protocolos & IA",
+                    description: "Gerencie, analise e Configure protocolos de disfunções baseados em evidências e o comportamento do seu assistênte de IA.",
                     icon: Brain,
                     href: `${dashboardPrefix}/settings?tab=intelligence`,
                     color: "text-purple-600",
-                    bg: "bg-purple-50"
+                    bg: "bg-purple-50",
+                    permission: "settings.intelligence.view" as PermissionCode
                 },
                 {
                     title: "Controle de Usuários",
-                    description: "Gerencie perfis, senhas e acessos da equipe.",
+                    description: "Gerencie perfis de usuário, senhas e os acessos dos membros da sua equipe.",
                     icon: UserCog,
                     href: `${dashboardPrefix}/settings?tab=users`,
                     color: "text-orange-600",
-                    bg: "bg-orange-50"
+                    bg: "bg-orange-50",
+                    permission: "settings.users.view" as PermissionCode
                 },
                 {
                     title: "Perfis de Acesso",
-                    description: "Controle permissões por cargo ou função.",
+                    description: "Controle permissões de acordo com o cargo ou a função.",
                     icon: Shield,
                     href: `${dashboardPrefix}/settings?tab=roles`,
                     color: "text-red-600",
-                    bg: "bg-red-50"
+                    bg: "bg-red-50",
+                    permission: "settings.roles.view" as PermissionCode
                 },
                 {
-                    title: "Trilha de Auditoria (LGPD)",
-                    description: "Registro histórico de acessos e alterações.",
+                    title: "Auditoria (LGPD)",
+                    description: "Registro histórico de acessos e modificações realizadas no sistema.",
                     icon: Database,
                     href: `${dashboardPrefix}/settings/audit`,
                     color: "text-zinc-600",
-                    bg: "bg-zinc-100"
+                    bg: "bg-zinc-100",
+                    permission: "settings.audit.view" as PermissionCode
                 },
                 {
                     title: "Assistente de Migração",
-                    description: "Importe dados de outros sistemas.",
+                    description: "Importe dados de outros sistemas de prontuário eletrónico para o Axiom.",
                     icon: Download,
                     href: `${dashboardPrefix}/integrations`,
                     color: "text-slate-600",
-                    bg: "bg-slate-100"
+                    bg: "bg-slate-100",
+                    permission: "settings.migration.view" as PermissionCode
                 },
                 {
-                    title: "Saúde e Suporte (IA)",
-                    description: "Diagnóstico técnico e acesso para o suporte.",
+                    title: "Saúde e Suporte do Sistema",
+                    description: "Diagnóstico técnico e solicitações de ajuda para o suporte.",
                     icon: Cpu,
                     href: `${dashboardPrefix}/settings?tab=general`,
                     color: "text-indigo-600",
-                    bg: "bg-indigo-50"
+                    bg: "bg-indigo-50",
+                    permission: "settings.support.view" as PermissionCode
                 }
             ]
         },
@@ -222,7 +245,8 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
                     icon: CircleUser,
                     href: `${dashboardPrefix}/profile/me`,
                     color: "text-zinc-700",
-                    bg: "bg-zinc-50"
+                    bg: "bg-zinc-50",
+                    permission: "sidebar.home.view" as PermissionCode // Always visible if they have basic access
                 },
                 {
                     title: "Tutoriais e Suporte",
@@ -230,11 +254,15 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
                     icon: HelpCircle,
                     href: `${dashboardPrefix}/support`,
                     color: "text-orange-700",
-                    bg: "bg-orange-50"
+                    bg: "bg-orange-50",
+                    permission: "sidebar.home.view" as PermissionCode
                 }
             ]
         }
-    ];
+    ].map(category => ({
+        ...category,
+        items: category.items.filter(item => !item.permission || hasPermission(item.permission))
+    })).filter(category => category.items.length > 0);
 
     return (
         <div className="space-y-8 max-w-7xl mx-auto">
@@ -282,7 +310,16 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
                         {viewMode === 'grid' ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {category.items.map((item) => (
-                                    <Link key={item.title} href={item.href} className="group" onClick={() => showLoading(`Abrindo ${item.title}...`)}>
+                                    <Link
+                                        key={item.title}
+                                        href={item.href}
+                                        className="group"
+                                        onClick={() => showLoading(`Abrindo ${item.title}...`)}
+                                        id={item.title.toLowerCase().includes('locais') ? 'mgmt-locations' :
+                                            item.title.toLowerCase().includes('serviços') ? 'mgmt-services' :
+                                                item.title.toLowerCase().includes('profissionais') ? 'mgmt-professionals' :
+                                                    item.title.toLowerCase().includes('perfil') ? 'mgmt-profile' : undefined}
+                                    >
                                         <Card className="h-full transition-all duration-300 hover:shadow-lg hover:border-blue-200 group-active:scale-[0.98] border-slate-200/60 shadow-sm">
                                             <CardHeader className="flex flex-row items-center gap-4 pb-2">
                                                 <div className={`${item.bg} ${item.color} p-3 rounded-2xl transition-transform group-hover:scale-110 duration-500`}>
@@ -313,6 +350,10 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
                                         key={item.title}
                                         href={item.href}
                                         onClick={() => showLoading(`Abrindo ${item.title}...`)}
+                                        id={item.title.toLowerCase().includes('locais') ? 'mgmt-locations' :
+                                            item.title.toLowerCase().includes('serviços') ? 'mgmt-services' :
+                                                item.title.toLowerCase().includes('profissionais') ? 'mgmt-professionals' :
+                                                    item.title.toLowerCase().includes('perfil') ? 'mgmt-profile' : undefined}
                                         className={cn(
                                             "flex items-center justify-between p-4 transition-colors hover:bg-slate-50 group",
                                             idx !== category.items.length - 1 && "border-b"

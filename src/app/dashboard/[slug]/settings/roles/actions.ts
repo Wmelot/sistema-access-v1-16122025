@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { hasPermission } from "@/lib/rbac"
+import { hasPermission, PERMISSION_METADATA } from "@/lib/rbac"
 import { revalidatePath } from "next/cache"
 
 // --- HELPERS ---
@@ -57,8 +57,33 @@ export async function getRole(id: string) {
     return role
 }
 
+
 export async function getAllPermissions() {
     const supabase = await createAdminClient()
+
+    // [CLEAN SYNC] Ensure DB contains ONLY what is in rbac.ts metadata
+    const codes = PERMISSION_METADATA.map(m => m.code)
+
+    // 1. Delete outdated permissions
+    await supabase.from('permissions').delete().not('code', 'in', `(${codes.join(',')})`)
+
+    // 2. Upsert current metadata
+    const { error: upsertError } = await supabase
+        .from('permissions')
+        .upsert(
+            PERMISSION_METADATA.map(meta => ({
+                code: meta.code,
+                description: meta.description,
+                module: meta.module,
+                explanation: meta.explanation
+            })),
+            { onConflict: 'code' }
+        )
+
+    if (upsertError) {
+        console.error("Error upserting permissions:", upsertError)
+    }
+
     const { data: permissions, error } = await supabase
         .from('permissions')
         .select('*')

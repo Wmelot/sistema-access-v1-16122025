@@ -21,19 +21,21 @@ import { Badge } from "@/components/ui/badge"
 import { DeleteWithPassword } from "@/components/ui/delete-with-password"
 import { ProductHistoryDialog } from "./product-history-dialog"
 import { ProductToggle } from "./product-toggle"
+import { ManagementHeader } from "@/components/dashboard/management-header"
 
-export default async function ProductsPage() {
+export default async function ProductsPage({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params
     const products = await getProducts()
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-lg font-semibold md:text-2xl">Produtos e Estoque</h1>
-                    <p className="text-muted-foreground">Gerencie o inventário de venda.</p>
-                </div>
+            <ManagementHeader
+                slug={slug}
+                title="Produtos e Estoque"
+                description="Gerencie o inventário de venda."
+            >
                 <ProductsDialog />
-            </div>
+            </ManagementHeader>
 
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>

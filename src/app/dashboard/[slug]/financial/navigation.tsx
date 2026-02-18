@@ -7,6 +7,9 @@ import { QuantumLoader } from "@/components/ui/quantum-loader"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LayoutDashboard, Wallet, History, AlertCircle, Users, Handshake, Percent, FileText, TrendingUp } from "lucide-react"
 
+import { usePermissionsContext } from "@/components/providers/permissions-provider"
+import { PermissionCode } from "@/lib/rbac"
+
 interface FinancialNavigationProps {
     canViewClinic: boolean
     canViewTransparency: boolean
@@ -19,6 +22,7 @@ export function FinancialNavigation({ canViewClinic, canViewTransparency, defaul
     const searchParams = useSearchParams()
     const [isPending, startTransition] = useTransition()
     const [pendingTab, setPendingTab] = useState<string | null>(null)
+    const { hasPermission } = usePermissionsContext()
 
     const handleTabChange = (value: string) => {
         setPendingTab(value)
@@ -29,19 +33,19 @@ export function FinancialNavigation({ canViewClinic, canViewTransparency, defaul
         })
     }
 
-    const tabs = [
-        ...(canViewClinic ? [
-            { value: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
-            { value: 'dre', label: 'DRE (Gerencial)', icon: TrendingUp },
-            { value: 'payables', label: 'Contas a Pagar', icon: Wallet },
-            { value: 'transactions', label: 'Transações', icon: History },
-            { value: 'overdue', label: 'Inadimplência', icon: AlertCircle },
-            { value: 'payroll', label: 'Folha de Pagamento', icon: Users },
-            { value: 'reconciliation', label: 'Conciliação', icon: Handshake },
-            { value: 'fees', label: 'Taxas', icon: Percent },
-        ] : []),
-        { value: 'my_statement', label: 'Minha Produção', icon: FileText }
+    const availableTabs = [
+        { value: 'overview', label: 'Visão Geral', icon: LayoutDashboard, permission: 'financial.tabs.general_statement' as PermissionCode },
+        { value: 'dre', label: 'DRE (Gerencial)', icon: TrendingUp, permission: 'financial.tabs.dre' as PermissionCode },
+        { value: 'payables', label: 'Contas a Pagar', icon: Wallet, permission: 'financial.tabs.cash_flow' as PermissionCode },
+        { value: 'transactions', label: 'Transações', icon: History, permission: 'financial.tabs.cash_flow' as PermissionCode },
+        { value: 'overdue', label: 'Inadimplência', icon: AlertCircle, permission: 'financial.tabs.general_statement' as PermissionCode },
+        { value: 'payroll', label: 'Folha de Pagamento', icon: Users, permission: 'financial.tabs.general_statement' as PermissionCode },
+        { value: 'reconciliation', label: 'Conciliação', icon: Handshake, permission: 'financial.tabs.general_statement' as PermissionCode },
+        { value: 'fees', label: 'Taxas', icon: Percent, permission: 'financial.tabs.settings' as PermissionCode },
+        { value: 'my_statement', label: 'Minha Produção', icon: FileText, permission: 'financial.tabs.my_statement' as PermissionCode }
     ]
+
+    const tabs = availableTabs.filter(tab => hasPermission(tab.permission))
 
     const currentTabLabel = tabs.find(t => t.value === defaultTab)?.label || 'Selecionar Aba'
 

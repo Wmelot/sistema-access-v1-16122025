@@ -741,7 +741,7 @@ export function AttendanceClient({
                             <Mic className="w-4 h-4" />
                             Modo Voz & Foco
                         </Button>
-                        <Button onClick={handleFinish} className="bg-green-600 hover:bg-green-700 text-white shrink-0">
+                        <Button id="finish-attendance-btn" onClick={handleFinish} className="bg-green-600 hover:bg-green-700 text-white shrink-0">
                             {mode === 'assessment' ? 'Finalizar Avaliação' : 'Finalizar Atendimento'}
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="ml-2 shrink-0">
@@ -772,6 +772,7 @@ export function AttendanceClient({
                                 <Stopwatch startTime={currentRecord?.created_at || appointment.updated_at || appointment.start_time} />
                             </div>
                             <Button
+                                id="finish-attendance-btn-mobile"
                                 size="sm"
                                 onClick={handleFinish}
                                 className="h-7 px-3 bg-green-600 hover:bg-green-700 text-white rounded-full text-[10px] font-black uppercase tracking-tight"
@@ -816,6 +817,7 @@ export function AttendanceClient({
                                         </span>
                                         <Select value={selectedTemplateId || undefined} onValueChange={handleTemplateChange}>
                                             <SelectTrigger
+                                                id="attendance-template-select"
                                                 className="h-8 sm:h-9 py-1 px-3 w-full max-w-[200px] sm:max-w-[280px] bg-white border-slate-200 shadow-none rounded-lg text-xs sm:text-sm font-bold"
                                             >
                                                 <div className="flex items-center gap-2 overflow-hidden">

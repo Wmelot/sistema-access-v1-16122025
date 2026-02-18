@@ -19,7 +19,14 @@ import {
     Bell,
     ShoppingBag,
     Lock,
-    Microscope
+    Microscope,
+    Briefcase,
+    MapPin,
+    Stethoscope,
+    FileText,
+    Tag,
+    Megaphone,
+    Shield
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -41,6 +48,7 @@ interface SidebarProps {
     features?: Record<string, any>;
     slug?: string;
     trialEndsAt?: string;
+    currentUser?: any;
 }
 
 export function Sidebar(props: SidebarProps) {
@@ -55,6 +63,7 @@ export function Sidebar(props: SidebarProps) {
     return (
         <>
             <div
+                data-sidebar="true"
                 className={cn(
                     "hidden border-r bg-white md:block fixed left-0 top-0 h-full transition-all duration-300 ease-in-out shrink-0 print:hidden z-[100]",
                     isCollapsed ? "w-[60px]" : "w-[250px]"
@@ -68,6 +77,9 @@ export function Sidebar(props: SidebarProps) {
     );
 }
 
+import { usePermissionsContext } from "@/components/providers/permissions-provider";
+import { PermissionCode } from "@/lib/rbac";
+
 export function SidebarContent({
     logoUrl,
     clinicName,
@@ -80,10 +92,22 @@ export function SidebarContent({
     setIsCollapsed,
     onNavigate,
     isMobile,
-    showLoading
+    showLoading,
+    currentUser
 }: SidebarProps & { isCollapsed?: boolean, setIsCollapsed?: (v: boolean) => void, onNavigate?: () => void, showLoading?: () => void }) {
     const displayName = clinicName || "Minha Clínica";
     const dashboardPrefix = `/dashboard/${slug || ''}`;
+    const { hasPermission } = usePermissionsContext();
+
+    // Safety bypass for Master and Administrator
+    const userRole = currentUser?.role?.toLowerCase();
+    const isMaster = userRole === 'master';
+    const isAdmin = userRole === 'administrador' || userRole === 'admin';
+
+    const checkPermission = (code: PermissionCode) => {
+        if (isMaster || isAdmin) return true;
+        return hasPermission(code);
+    };
 
     const checkFeature = (key: string) => features[key] !== false;
 
@@ -117,7 +141,7 @@ export function SidebarContent({
                     <Button
                         variant="outline"
                         size="icon"
-                        className="h-6 w-6 rounded-full shadow-md bg-background"
+                        className="h-6 w-6 rounded-full shadow-md bg-background sidebar-toggle-btn z-[110]"
                         onClick={() => setIsCollapsed(!isCollapsed)}
                     >
                         {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
@@ -132,68 +156,117 @@ export function SidebarContent({
                     </div>
                 )}
                 <nav className={cn("grid items-start px-2 text-base font-medium", isCollapsed ? "justify-center" : "lg:px-4 py-4 gap-1")}>
-                    <NavItem href={dashboardPrefix} icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
+                    {checkPermission('sidebar.home.view') && (
+                        <NavItem href={dashboardPrefix} icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
+                    )}
 
-                    <NavItem
-                        href={`${dashboardPrefix}/schedule`}
-                        icon={CalendarIcon}
-                        label="Agenda"
-                        isCollapsed={isCollapsed}
-                        locked={!checkFeature('agenda_module')}
-                        onClick={onNavigate}
-                        showLoading={showLoading}
-                    />
-                    <NavItem
-                        href={`${dashboardPrefix}/patients`}
-                        icon={Users}
-                        label="Pacientes"
-                        isCollapsed={isCollapsed}
-                        locked={!checkFeature('records_module')}
-                        onClick={onNavigate}
-                        showLoading={showLoading}
-                    />
-                    <NavItem
-                        href={`${dashboardPrefix}/financial?tab=my_statement`}
-                        icon={DollarSign}
-                        label="Finanças"
-                        isCollapsed={isCollapsed}
-                        locked={!checkFeature('financial_module')}
-                        onClick={onNavigate}
-                        showLoading={showLoading}
-                    />
-                    <NavItem
-                        href={`${dashboardPrefix}/settings/communication`}
-                        icon={MessageCircle}
-                        label="WhatsApp"
-                        isCollapsed={isCollapsed}
-                        locked={!checkFeature('whatsapp_integration') && !checkFeature('zapi_messaging')}
-                        onClick={onNavigate}
-                        showLoading={showLoading}
-                    />
+                    {checkPermission('sidebar.schedule.view') && (
+                        <NavItem
+                            id="nav-agenda"
+                            href={`${dashboardPrefix}/schedule`}
+                            icon={CalendarIcon}
+                            label="Agenda"
+                            isCollapsed={isCollapsed}
+                            locked={!checkFeature('agenda_module')}
+                            onClick={onNavigate}
+                            showLoading={showLoading}
+                        />
+                    )}
 
-                    <NavItem
-                        href={`${dashboardPrefix}/auditor`}
-                        icon={Microscope}
-                        label="Auditor PBE"
-                        isCollapsed={isCollapsed}
-                        onClick={onNavigate}
-                        showLoading={showLoading}
-                        className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50/50"
-                    />
+                    {checkPermission('sidebar.patients.view') && (
+                        <NavItem
+                            href={`${dashboardPrefix}/patients`}
+                            icon={Users}
+                            label="Pacientes"
+                            isCollapsed={isCollapsed}
+                            locked={!checkFeature('records_module')}
+                            onClick={onNavigate}
+                            showLoading={showLoading}
+                        />
+                    )}
+
+                    {checkPermission('sidebar.financial.view') && (
+                        <NavItem
+                            href={`${dashboardPrefix}/financial?tab=my_statement`}
+                            icon={DollarSign}
+                            label="Finanças"
+                            isCollapsed={isCollapsed}
+                            locked={!checkFeature('financial_module')}
+                            onClick={onNavigate}
+                            showLoading={showLoading}
+                        />
+                    )}
+
+                    {checkPermission('sidebar.whatsapp.view') && (
+                        <NavItem
+                            href={`${dashboardPrefix}/settings/communication`}
+                            icon={MessageCircle}
+                            label="WhatsApp"
+                            isCollapsed={isCollapsed}
+                            locked={!checkFeature('whatsapp_integration') && !checkFeature('zapi_messaging')}
+                            onClick={onNavigate}
+                            showLoading={showLoading}
+                        />
+                    )}
+
+                    {checkPermission('sidebar.auditor.view') && (
+                        <NavItem
+                            href={`${dashboardPrefix}/auditor`}
+                            icon={Microscope}
+                            label="Auditor PBE"
+                            isCollapsed={isCollapsed}
+                            onClick={onNavigate}
+                            showLoading={showLoading}
+                            className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50/50"
+                        />
+                    )}
 
                     <div className="my-4 border-t border-zinc-100 mx-4" />
 
-                    <NavItem
-                        href={`${dashboardPrefix}/management`}
-                        icon={Settings}
-                        label="Configurações Gerais"
-                        isCollapsed={isCollapsed}
-                        className="bg-blue-50/50 text-blue-700 hover:bg-blue-100/50 font-bold"
-                        onClick={onNavigate}
-                        showLoading={showLoading}
-                    />
+                    {checkPermission('sidebar.management.view') && (
+                        <NavItem
+                            id="nav-management"
+                            href={`${dashboardPrefix}/management`}
+                            icon={Settings}
+                            label="Configurações Gerais"
+                            isCollapsed={isCollapsed}
+                            className="bg-blue-50/50 text-blue-700 hover:bg-blue-100/50 font-bold"
+                            onClick={onNavigate}
+                            showLoading={showLoading}
+                        />
+                    )}
 
-
+                    {/* DYNAMIC SIDEBAR SHORTCUTS */}
+                    {checkPermission('sidebar.professionals.view') && (
+                        <NavItem href={`${dashboardPrefix}/professionals`} icon={Users} label="Profissionais" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
+                    )}
+                    {checkPermission('sidebar.locations.view') && (
+                        <NavItem href={`${dashboardPrefix}/locations`} icon={MapPin} label="Locais" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
+                    )}
+                    {checkPermission('sidebar.services.view') && (
+                        <NavItem href={`${dashboardPrefix}/services`} icon={Stethoscope} label="Serviços" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
+                    )}
+                    {checkPermission('sidebar.forms.view') && (
+                        <NavItem href={`${dashboardPrefix}/forms`} icon={ClipboardList} label="Formulários" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
+                    )}
+                    {checkPermission('sidebar.questionnaires.view') && (
+                        <NavItem href={`${dashboardPrefix}/questionnaires`} icon={FileText} label="Questionários" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
+                    )}
+                    {checkPermission('sidebar.prices.view') && (
+                        <NavItem href={`${dashboardPrefix}/prices`} icon={Tag} label="Tabela de Preços" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
+                    )}
+                    {checkPermission('sidebar.products.view') && (
+                        <NavItem href={`${dashboardPrefix}/products`} icon={ShoppingBag} label="Estoque" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
+                    )}
+                    {checkPermission('sidebar.marketing.view') && (
+                        <NavItem href={`${dashboardPrefix}/marketing`} icon={Megaphone} label="Marketing" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
+                    )}
+                    {checkPermission('sidebar.users.view') && (
+                        <NavItem href={`${dashboardPrefix}/settings?tab=users`} icon={Users} label="Usuários" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
+                    )}
+                    {checkPermission('sidebar.roles.view') && (
+                        <NavItem href={`${dashboardPrefix}/settings?tab=roles`} icon={Shield} label="Perfis de Acesso" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
+                    )}
                 </nav>
 
                 {/* REMINDERS WIDGET (Sidebar) */}
@@ -206,7 +279,7 @@ export function SidebarContent({
     )
 }
 
-function NavItem({ href, icon: Icon, label, isCollapsed, locked = false, className, onClick, showLoading }: { href: string, icon: any, label: string, isCollapsed: boolean, locked?: boolean, className?: string, onClick?: () => void, showLoading?: (msg?: string) => void }) {
+function NavItem({ id, href, icon: Icon, label, isCollapsed, locked = false, className, onClick, showLoading }: { id?: string, href: string, icon: any, label: string, isCollapsed: boolean, locked?: boolean, className?: string, onClick?: () => void, showLoading?: (msg?: string) => void }) {
     const pathname = usePathname();
     if (locked) {
         return (
@@ -234,6 +307,7 @@ function NavItem({ href, icon: Icon, label, isCollapsed, locked = false, classNa
 
     return (
         <Link
+            id={id}
             href={href}
             onClick={(e) => {
                 // Check if the link goes to a different page to avoid stuck loaders

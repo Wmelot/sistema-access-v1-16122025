@@ -29,7 +29,12 @@ import {
     ChevronRight,
     ChevronLeft,
     Bell,
-    Shield
+    Shield,
+    PlayCircle, // Added PlayCircle
+    HelpCircle, // Added HelpCircle
+    LogOut, // Added LogOut
+    User, // Added User
+    Microscope
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -78,6 +83,16 @@ import { GlobalAttendanceRestorer } from "@/features/attendance/components/Globa
 import { Sidebar, SidebarContent } from "@/components/dashboard/Sidebar"
 import { useGlobalLoader } from "@/components/providers/global-loader-provider"
 import { WhatsappStatusAlert } from "@/components/dashboard/WhatsappStatusAlert"
+import { OnboardingProvider, useOnboarding } from "@/components/onboarding/OnboardingProvider" // Modified to import useOnboarding
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour"
+import { PermissionCode } from "@/lib/rbac"
+import { usePermissionsContext } from "@/components/providers/permissions-provider"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 // Desktop Mode Context
 const DesktopModeContext = createContext<{
@@ -100,7 +115,8 @@ interface DashboardLayoutClientProps {
         avatarUrl?: string | null,
         email?: string,
         name?: string,
-        organizationId?: string | null
+        organizationId?: string | null,
+        hasCompletedOnboarding?: boolean
     } | null
     features?: Record<string, any>
     trialEndsAt?: string
@@ -134,33 +150,48 @@ export default function DashboardLayoutClient(props: DashboardLayoutClientProps)
 
     return (
         <DesktopModeContext.Provider value={{ isDesktopMode, toggleDesktopMode }}>
-            <SidebarProvider>
-                <ActiveAttendanceProvider>
-                    <GlobalAttendanceRestorer />
-                    {isImpersonating && (
-                        <div className="sticky top-0 z-40 w-full">
-                            <ImpersonationBar
-                                clinicName={props.clinicName || (typeof viewedSlug === 'string' ? viewedSlug.toUpperCase() : 'DESCONHECIDA')}
-                                isOriginClinic={viewedSlug === userOriginSlug}
-                            />
-                        </div>
-                    )}
-                    <DashboardLayoutContent {...props} />
-                </ActiveAttendanceProvider>
-            </SidebarProvider>
+            <OnboardingProvider
+                userHasCompleted={!!currentUser?.hasCompletedOnboarding}
+                userId={currentUser?.id || ''}
+                slug={props.slug || ''}
+                userRole={currentUser?.role}
+            >
+                <SidebarProvider>
+                    <ActiveAttendanceProvider>
+                        <GlobalAttendanceRestorer />
+                        <OnboardingTourWrapper />
+                        {isImpersonating && (
+                            <div className="sticky top-0 z-40 w-full">
+                                <ImpersonationBar
+                                    clinicName={props.clinicName || (typeof viewedSlug === 'string' ? viewedSlug.toUpperCase() : 'DESCONHECIDA')}
+                                    isOriginClinic={viewedSlug === userOriginSlug}
+                                />
+                            </div>
+                        )}
+                        <DashboardLayoutContent {...props} />
+                    </ActiveAttendanceProvider>
+                </SidebarProvider>
+            </OnboardingProvider>
         </DesktopModeContext.Provider>
     )
 }
 
-function DashboardLayoutContent({
-    children,
-    logoUrl,
-    clinicName,
-    currentUser,
-    features,
-    trialEndsAt,
-    slug
-}: DashboardLayoutClientProps) {
+function OnboardingTourWrapper() {
+    return <OnboardingTour />
+}
+
+function DashboardLayoutContent(props: DashboardLayoutClientProps) { // Changed type to DashboardLayoutClientProps
+    const { startOnboarding } = useOnboarding() // Hook para usar a função de início
+    const {
+        children,
+        logoUrl,
+        clinicName,
+        currentUser,
+        features,
+        trialEndsAt,
+        slug,
+        userOriginSlug // Added userOriginSlug to destructuring
+    } = props;
     const [isLogOpen, setIsLogOpen] = useState(false)
     const isMasterRole = currentUser?.role === 'master' || currentUser?.role === 'Master'
 
@@ -181,6 +212,7 @@ function DashboardLayoutContent({
     const { activeAttendanceId, patientName, startTime, status } = useActiveAttendance()
     const [elapsed, setElapsed] = useState("00:00")
     const { showLoading } = useGlobalLoader()
+    const { hasPermission } = usePermissionsContext()
 
     useEffect(() => {
         if (!startTime || !activeAttendanceId) return
@@ -257,6 +289,7 @@ function DashboardLayoutContent({
                 features={features}
                 trialEndsAt={trialEndsAt}
                 slug={slug}
+                currentUser={currentUser}
             />
 
             <div className="flex flex-col min-h-screen flex-1 min-w-0 print:block print:w-full">
@@ -329,10 +362,39 @@ function DashboardLayoutContent({
 
                     {/* TOP MENUS - Right Side */}
                     <div className="flex items-center gap-2">
+                        {/* Dynamic Shortcut Menus based on permissions */}
+                        <div className="hidden lg:flex items-center gap-1 mr-2 border-r pr-2 border-slate-100">
+                            {[
+                                { icon: Home, label: "Início", href: dashboardPrefix, perm: "user_menu.home.view" },
+                                { icon: CalendarIcon, label: "Agenda", href: `${dashboardPrefix}/schedule`, perm: "user_menu.schedule.view" },
+                                { icon: Users, label: "Pacientes", href: `${dashboardPrefix}/patients`, perm: "user_menu.patients.view" },
+                                { icon: DollarSign, label: "Finanças", href: `${dashboardPrefix}/financial`, perm: "user_menu.financial.view" },
+                                { icon: Briefcase, label: "Equipe", href: `${dashboardPrefix}/professionals`, perm: "user_menu.professionals.view" },
+                                { icon: MapPin, label: "Locais", href: `${dashboardPrefix}/locations`, perm: "user_menu.locations.view" },
+                                { icon: Stethoscope, label: "Serviços", href: `${dashboardPrefix}/services`, perm: "user_menu.services.view" },
+                                { icon: ClipboardList, label: "Formulários", href: `${dashboardPrefix}/forms`, perm: "user_menu.forms.view" },
+                                { icon: FileText, label: "Questionários", href: `${dashboardPrefix}/questionnaires`, perm: "user_menu.questionnaires.view" },
+                                { icon: Tag, label: "Preços", href: `${dashboardPrefix}/prices`, perm: "user_menu.prices.view" },
+                                { icon: ShoppingCart, label: "Estoque", href: `${dashboardPrefix}/products`, perm: "user_menu.products.view" },
+                                { icon: Megaphone, label: "Marketing", href: `${dashboardPrefix}/marketing`, perm: "user_menu.marketing.view" },
+                                { icon: MessageSquare, label: "WhatsApp", href: `${dashboardPrefix}/settings/communication`, perm: "user_menu.whatsapp.view" },
+                                { icon: Microscope, label: "Auditor", href: `${dashboardPrefix}/auditor`, perm: "user_menu.auditor.view" },
+                                { icon: Users, label: "Usuários", href: `${dashboardPrefix}/settings?tab=users`, perm: "user_menu.users.view" },
+                                { icon: Shield, label: "Perfis", href: `${dashboardPrefix}/settings?tab=roles`, perm: "user_menu.roles.view" },
+                            ].map((item, idx) => (
+                                <HeaderShortcut
+                                    key={idx}
+                                    icon={item.icon}
+                                    label={item.label}
+                                    href={item.href}
+                                    perm={item.perm as any}
+                                />
+                            ))}
+                        </div>
+
                         <div className="hidden md:block">
                             <NotificationBell />
                         </div>
-                        {/* Removidos os dropdowns de Financeiro e Configurações - agora estão no menu do usuário */}
                     </div>
 
                     {/* LGPD Activity Log - Master/Admin only */}
@@ -350,7 +412,7 @@ function DashboardLayoutContent({
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="flex items-center gap-2 h-auto py-1.5 px-2">
+                            <Button id="user-menu-trigger" variant="ghost" className="flex items-center gap-2 h-auto py-1.5 px-2">
                                 <span className="hidden md:block text-sm font-medium">{currentUser?.name || 'Usuário'}</span>
                                 <Avatar className="h-8 w-8 rounded-md">
                                     <AvatarImage src={currentUser?.avatarUrl || undefined} alt={currentUser?.name || 'User'} />
@@ -365,59 +427,72 @@ function DashboardLayoutContent({
                                     <p className="text-xs leading-none text-muted-foreground">{currentUser?.email}</p>
                                 </div>
                             </DropdownMenuLabel>
+
                             <DropdownMenuSeparator />
 
-                            {/* FINANCEIRO GERAL */}
-                            {(currentUser?.role === 'Master' || currentUser?.role === 'Administrador') && (
-                                <Link href={`${dashboardPrefix}/financial`}>
-                                    <DropdownMenuItem
-                                        className="cursor-pointer gap-2 py-2.5"
-                                        onClick={() => {
-                                            const target = `${dashboardPrefix}/financial`;
-                                            if (pathname !== target) showLoading("Módulo financeiro");
-                                        }}
-                                    >
-                                        <DollarSign className="h-4 w-4 text-emerald-600" />
-                                        <span className="font-medium">Financeiro geral</span>
-                                    </DropdownMenuItem>
-                                </Link>
-                            )}
+                            {/* DYNAMIC USER MENU ITEMS (PHOTO DROP-DOWN) */}
+                            <div className="py-1">
+                                {[
+                                    { icon: Home, label: "Início", href: dashboardPrefix, perm: "user_menu.home.view" },
+                                    { icon: CalendarIcon, label: "Agenda", href: `${dashboardPrefix}/schedule`, perm: "user_menu.schedule.view" },
+                                    { icon: Users, label: "Pacientes", href: `${dashboardPrefix}/patients`, perm: "user_menu.patients.view" },
+                                    { icon: DollarSign, label: "Finanças", href: `${dashboardPrefix}/financial`, perm: "user_menu.financial.view" },
+                                    { icon: Briefcase, label: "Equipe", href: `${dashboardPrefix}/professionals`, perm: "user_menu.professionals.view" },
+                                    { icon: MapPin, label: "Locais", href: `${dashboardPrefix}/locations`, perm: "user_menu.locations.view" },
+                                    { icon: Stethoscope, label: "Serviços", href: `${dashboardPrefix}/services`, perm: "user_menu.services.view" },
+                                    { icon: ClipboardList, label: "Formulários", href: `${dashboardPrefix}/forms`, perm: "user_menu.forms.view" },
+                                    { icon: FileText, label: "Questionários", href: `${dashboardPrefix}/questionnaires`, perm: "user_menu.questionnaires.view" },
+                                    { icon: Tag, label: "Preços", href: `${dashboardPrefix}/prices`, perm: "user_menu.prices.view" },
+                                    { icon: ShoppingCart, label: "Estoque", href: `${dashboardPrefix}/products`, perm: "user_menu.products.view" },
+                                    { icon: Megaphone, label: "Marketing", href: `${dashboardPrefix}/marketing`, perm: "user_menu.marketing.view" },
+                                    { icon: MessageSquare, label: "WhatsApp", href: `${dashboardPrefix}/settings/communication`, perm: "user_menu.whatsapp.view" },
+                                    { icon: Microscope, label: "Auditor", href: `${dashboardPrefix}/auditor`, perm: "user_menu.auditor.view" },
+                                    { icon: Users, label: "Usuários", href: `${dashboardPrefix}/settings?tab=users`, perm: "user_menu.users.view" },
+                                    { icon: Shield, label: "Perfis", href: `${dashboardPrefix}/settings?tab=roles`, perm: "user_menu.roles.view" },
+                                ].filter(item => hasPermission(item.perm as any)).map((item, idx) => (
+                                    <Link key={idx} href={item.href}>
+                                        <DropdownMenuItem
+                                            className="cursor-pointer gap-3 py-2 text-slate-700 hover:text-primary"
+                                            onClick={() => {
+                                                if (pathname !== item.href.split('?')[0]) showLoading(item.label);
+                                            }}
+                                        >
+                                            <item.icon className="h-4 w-4 text-slate-400 group-hover:text-primary transition-colors" />
+                                            <span className="font-medium">{item.label}</span>
+                                        </DropdownMenuItem>
+                                    </Link>
+                                ))}
+                            </div>
 
-                            {/* CONFIGURAÇÕES GERAIS */}
-                            {(currentUser?.role === 'Master' || currentUser?.role === 'Administrador') && (
-                                <Link href={`${dashboardPrefix}/management`}>
-                                    <DropdownMenuItem
-                                        className="cursor-pointer gap-2 py-2.5"
-                                        onClick={() => {
-                                            const target = `${dashboardPrefix}/management`;
-                                            if (pathname !== target) showLoading("Configurações");
-                                        }}
-                                    >
-                                        <Settings className="h-4 w-4 text-blue-600" />
-                                        <span className="font-medium">Configurações gerais</span>
-                                    </DropdownMenuItem>
-                                </Link>
-                            )}
+                            <DropdownMenuSeparator className="my-1" />
 
-                            {/* CONFIGURAÇÕES DE PERFIL */}
+                            {/* SYSTEM DEFAULTS */}
                             <Link href={`${dashboardPrefix}/profile/me`}>
                                 <DropdownMenuItem
-                                    className="cursor-pointer gap-2 py-2.5"
+                                    id="user-profile-settings-link"
+                                    className="cursor-pointer gap-3 py-2"
                                     onClick={() => {
                                         const target = `${dashboardPrefix}/profile/me`;
                                         if (pathname !== target) showLoading("Meu Perfil");
                                     }}
                                 >
-                                    <CircleUser className="h-4 w-4 text-zinc-600" />
-                                    <span className="font-medium">Configurações de perfil</span>
+                                    <CircleUser className="h-4 w-4 text-slate-500" />
+                                    <span className="font-medium text-slate-600">Configurações de perfil</span>
                                 </DropdownMenuItem>
                             </Link>
 
-                            {/* PAINEL MASTER - Universal access for master users */}
+                            <DropdownMenuItem
+                                className="cursor-pointer gap-3 py-2 text-primary focus:text-primary font-bold bg-primary/5"
+                                onClick={() => startOnboarding()}
+                            >
+                                <PlayCircle className="h-4 w-4" />
+                                Iniciar Tutorial de Onboarding
+                            </DropdownMenuItem>
+
                             {isMasterRole && (
                                 <Link href="/admin">
                                     <DropdownMenuItem
-                                        className="cursor-pointer gap-2 py-2.5 text-indigo-700 font-bold bg-indigo-50/50"
+                                        className="cursor-pointer gap-3 py-2 text-indigo-700 font-bold bg-indigo-50/5"
                                         onClick={() => {
                                             if (pathname !== '/admin') showLoading("Painel Master");
                                         }}
@@ -428,25 +503,23 @@ function DashboardLayoutContent({
                                 </Link>
                             )}
 
-                            {/* SUPORTE */}
                             <Link href={`${dashboardPrefix}/support`}>
                                 <DropdownMenuItem
-                                    className="cursor-pointer gap-2 py-2.5"
+                                    className="cursor-pointer gap-3 py-2"
                                     onClick={() => {
                                         const target = `${dashboardPrefix}/support`;
                                         if (pathname !== target) showLoading("Suporte");
                                     }}
                                 >
-                                    <MessageSquare className="h-4 w-4 text-orange-600" />
-                                    <span className="font-medium">Suporte</span>
+                                    <MessageSquare className="h-4 w-4 text-slate-500" />
+                                    <span className="font-medium text-slate-600">Suporte</span>
                                 </DropdownMenuItem>
                             </Link>
 
-                            <DropdownMenuSeparator className="my-2" />
+                            <DropdownMenuSeparator className="my-1" />
 
-                            {/* SAIR */}
                             <DropdownMenuItem
-                                className="cursor-pointer gap-2 py-2.5 text-destructive focus:text-destructive font-bold"
+                                className="cursor-pointer gap-3 py-2 text-destructive focus:text-destructive font-bold"
                                 onClick={handleLogout}
                             >
                                 <RefreshCw className="h-4 w-4" />
@@ -456,7 +529,7 @@ function DashboardLayoutContent({
                     </DropdownMenu>
 
                 </header>
-                <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+                <main id="welcome-tour" className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
                     {slug && (
                         <WhatsappStatusAlert
                             slug={slug}
@@ -471,4 +544,38 @@ function DashboardLayoutContent({
 
         </div >
     )
+}
+
+function HeaderShortcut({ icon: Icon, label, href, perm }: { icon: any, label: string, href: string, perm: PermissionCode }) {
+    const { hasPermission } = usePermissionsContext();
+    const { showLoading } = useGlobalLoader();
+    const pathname = usePathname();
+
+    if (!hasPermission(perm)) return null;
+
+    return (
+        <TooltipProvider delayDuration={0}>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Link
+                        href={href}
+                        onClick={() => {
+                            if (pathname !== href.split('?')[0]) showLoading(label);
+                        }}
+                    >
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 text-slate-500 hover:text-primary hover:bg-primary/5 rounded-lg transition-all active:scale-95"
+                        >
+                            <Icon className="h-5 w-5" />
+                        </Button>
+                    </Link>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs font-bold">
+                    {label}
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
 }

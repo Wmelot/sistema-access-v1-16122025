@@ -7,6 +7,8 @@ import { getTemplates, getMessageLogs } from "./actions"
 import { TemplateDialog } from "./components/add-template-dialog"
 import { CommunicationNavigation } from "./navigation"
 import { CampaignsManager } from "./components/campaigns-manager"
+import { ManagementHeader } from "@/components/dashboard/management-header"
+
 export default async function CommunicationPage({
     params,
     searchParams
@@ -21,12 +23,11 @@ export default async function CommunicationPage({
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Comunicação e Automação</h1>
-                <p className="text-muted-foreground">
-                    Gerencie modelos de mensagem e configure automações do WhatsApp.
-                </p>
-            </div>
+            <ManagementHeader
+                slug={slug}
+                title="Comunicação e Automação"
+                description="Gerencie modelos de mensagem e configure automações do WhatsApp."
+            />
 
             <Tabs value={activeTab} className="space-y-4">
                 <CommunicationNavigation defaultTab={activeTab} />

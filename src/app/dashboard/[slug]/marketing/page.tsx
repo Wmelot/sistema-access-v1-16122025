@@ -6,28 +6,26 @@ import { ptBR } from "date-fns/locale"
 import { Megaphone, Plus, Send, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import { getCampaigns } from "./actions"
+import { ManagementHeader } from "@/components/dashboard/management-header"
 
-export default async function MarketingPage() {
+export default async function MarketingPage({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params
     const campaigns = await getCampaigns()
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Campanhas e Disparos</h1>
-                    <p className="text-muted-foreground">
-                        Gerencie listas de transmissão e envio de mensagens em massa.
-                    </p>
-                </div>
-                <div className="flex gap-3">
-                    <Button className="gap-2" asChild>
-                        <Link href="/dashboard/marketing/new">
-                            <Plus className="h-4 w-4" />
-                            Nova Campanha
-                        </Link>
-                    </Button>
-                </div>
-            </div>
+            <ManagementHeader
+                slug={slug}
+                title="Campanhas e Disparos"
+                description="Gerencie listas de transmissão e envio de mensagens em massa."
+            >
+                <Button className="gap-2" asChild>
+                    <Link href={`/dashboard/${slug}/marketing/new`}>
+                        <Plus className="h-4 w-4" />
+                        Nova Campanha
+                    </Link>
+                </Button>
+            </ManagementHeader>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {/* Stats Cards (Future) */}

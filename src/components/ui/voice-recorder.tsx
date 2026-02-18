@@ -7,10 +7,11 @@ import { toast } from "sonner"
 
 interface VoiceRecorderProps {
     onTranscriptionComplete: (text: string) => void
+    onRecordingStateChange?: (isRecording: boolean) => void
     className?: string
 }
 
-export function VoiceRecorder({ onTranscriptionComplete, className }: VoiceRecorderProps) {
+export function VoiceRecorder({ onTranscriptionComplete, onRecordingStateChange, className }: VoiceRecorderProps) {
     const [isRecording, setIsRecording] = useState(false)
     const [isProcessing, setIsProcessing] = useState(false)
     const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -39,6 +40,7 @@ export function VoiceRecorder({ onTranscriptionComplete, className }: VoiceRecor
 
             mediaRecorder.start()
             setIsRecording(true)
+            if (onRecordingStateChange) onRecordingStateChange(true)
         } catch (error) {
             console.error("Error accessing microphone:", error)
             toast.error("Erro ao acessar o microfone. Verifique as permissões.")
@@ -49,6 +51,7 @@ export function VoiceRecorder({ onTranscriptionComplete, className }: VoiceRecor
         if (mediaRecorderRef.current && isRecording) {
             mediaRecorderRef.current.stop()
             setIsRecording(false)
+            if (onRecordingStateChange) onRecordingStateChange(false)
             setIsProcessing(true)
         }
     }

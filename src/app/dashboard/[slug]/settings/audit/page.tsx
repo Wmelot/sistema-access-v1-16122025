@@ -16,6 +16,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { translateAction, translateTable, humanizeDetails } from "@/utils/log-formatter"
 import { cn } from "@/lib/utils"
+import { ManagementHeader } from "@/components/dashboard/management-header"
 
 export const dynamic = 'force-dynamic'
 
@@ -25,27 +26,18 @@ export default async function AuditPage(props: { params: Promise<{ slug: string 
 
     return (
         <div className="py-6 space-y-6 max-w-7xl mx-auto px-4 md:px-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="space-y-1">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Link href={`/dashboard/${slug}/management`} className="text-zinc-400 hover:text-zinc-600 transition-colors">
-                            <ArrowLeft className="h-4 w-4" />
-                        </Link>
-                        <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100 text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5">LGPD Compliance</Badge>
-                    </div>
-                    <h1 className="text-3xl font-black tracking-tight text-zinc-900 flex items-center gap-3">
-                        <ShieldCheck className="text-emerald-600 w-8 h-8" />
-                        Registro de Auditoria
-                    </h1>
-                    <p className="text-zinc-500 font-medium">Histórico completo de modificações e acessos para fins de fiscalização e conformidade.</p>
-                </div>
-
+            <ManagementHeader
+                slug={slug}
+                title="Registro de Auditoria"
+                description="Histórico completo de modificações e acessos para fins de fiscalização e conformidade."
+            >
                 <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="hidden md:flex bg-emerald-50 text-emerald-600 border-emerald-100 text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5">LGPD Compliance</Badge>
                     <Button variant="outline" className="h-10 px-4 font-bold border-zinc-200">
                         Exportar CSV
                     </Button>
                 </div>
-            </div>
+            </ManagementHeader>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card className="bg-white border-zinc-200 shadow-sm">

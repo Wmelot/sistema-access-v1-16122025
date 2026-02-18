@@ -15,6 +15,8 @@ import { createLocation, updateLocation } from "@/app/dashboard/[slug]/locations
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 
+import Swal from 'sweetalert2'
+
 interface LocationsDialogProps {
     initialData?: {
         id: string
@@ -26,9 +28,10 @@ interface LocationsDialogProps {
     open?: boolean
     onOpenChange?: (open: boolean) => void
     trigger?: React.ReactNode
+    existingNames?: string[]
 }
 
-export function LocationsDialog({ initialData, open: controlledOpen, onOpenChange: setControlledOpen, trigger }: LocationsDialogProps) {
+export function LocationsDialog({ initialData, open: controlledOpen, onOpenChange: setControlledOpen, trigger, existingNames = [] }: LocationsDialogProps) {
     const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
     const [selectedColor, setSelectedColor] = useState(initialData?.color || "#3b82f6")
 
@@ -45,6 +48,28 @@ export function LocationsDialog({ initialData, open: controlledOpen, onOpenChang
     }, [initialData])
 
     async function handleSubmit(formData: FormData) {
+        const name = formData.get('name') as string
+
+        // Verificação de duplicidade (ignora o próprio nome se estiver editando)
+        const isDuplicate = existingNames.some(existingName =>
+            existingName.toLowerCase() === name.toLowerCase() &&
+            existingName.toLowerCase() !== initialData?.name?.toLowerCase()
+        )
+
+        if (isDuplicate) {
+            const confirm = await Swal.fire({
+                title: 'Nome Duplicado',
+                text: `Já existe um local chamado "${name}". Deseja salvar mesmo assim?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sim, salvar',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true
+            })
+
+            if (!confirm.isConfirmed) return
+        }
+
         try {
             formData.set('color', selectedColor)
 
@@ -75,7 +100,7 @@ export function LocationsDialog({ initialData, open: controlledOpen, onOpenChang
         <Dialog open={isOpen} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 {trigger || (
-                    <Button className="w-full sm:w-auto gap-2 bg-slate-800 hover:bg-zinc-900 shadow-sm active:scale-95 transition-all">
+                    <Button id="add-location-btn" className="w-full sm:w-auto gap-2 bg-slate-800 hover:bg-zinc-900 shadow-sm active:scale-95 transition-all">
                         <Plus className="h-4 w-4" />
                         Novo Local
                     </Button>
@@ -130,7 +155,7 @@ export function LocationsDialog({ initialData, open: controlledOpen, onOpenChang
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button type="submit" className="w-full sm:w-auto">{isEditing ? "Salvar Alterações" : "Salvar Local"}</Button>
+                        <Button id="save-location-btn" type="submit" className="w-full sm:w-auto">{isEditing ? "Salvar Alterações" : "Salvar Local"}</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

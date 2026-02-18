@@ -496,7 +496,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                 />
                             )}
                             <Button type="button" variant="outline" onClick={() => router.back()}>Cancelar</Button>
-                            <Button type="submit" disabled={loading}>
+                            <Button id="save-professional-btn" type="submit" disabled={loading}>
                                 {loading ? "Salvando..." : (professional ? "Salvar Alterações" : "Cadastrar Profissional")}
                             </Button>
                         </div>
@@ -510,7 +510,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                     <Button type="button" variant="outline" className="flex-1 h-12 rounded-xl font-bold border-slate-200 text-slate-600" onClick={() => router.back()}>
                         Cancelar
                     </Button>
-                    <Button type="submit" disabled={loading} className="flex-[2] h-12 rounded-xl font-bold bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
+                    <Button id="save-professional-btn-mobile" type="submit" disabled={loading} className="flex-[2] h-12 rounded-xl font-bold bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
                         {loading ? "Salvando..." : (professional ? "Salvar" : "Cadastrar")}
                     </Button>
                 </div>
@@ -540,7 +540,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                 </div>
 
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-4">
-                    <TabsList className="hidden md:inline-flex h-10 bg-slate-100/80 dark:bg-slate-900/50 backdrop-blur-md p-0.5 rounded-lg gap-0.5 border border-slate-200/50 dark:border-white/5 shadow-sm overflow-x-auto scrollbar-hide shrink-0">
+                    <TabsList id="professional-tabs" className="hidden md:inline-flex h-10 bg-slate-100/80 dark:bg-slate-900/50 backdrop-blur-md p-0.5 rounded-lg gap-0.5 border border-slate-200/50 dark:border-white/5 shadow-sm overflow-x-auto scrollbar-hide shrink-0">
                         <TabsTrigger
                             value="personal"
                             className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
@@ -573,6 +573,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                         </TabsTrigger>
                         {professional?.id && (
                             <TabsTrigger
+                                id="tab-availability"
                                 value="availability"
                                 className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
                                          data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 

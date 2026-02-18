@@ -1101,6 +1101,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                     <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
                                         <PopoverTrigger asChild>
                                             <Button
+                                                id="appointment-patient-select"
                                                 variant="outline"
                                                 role="combobox"
                                                 aria-expanded={openCombobox}
@@ -1117,6 +1118,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                         >
                                             <Command shouldFilter={false} className="flex flex-col">
                                                 <CommandInput
+                                                    id="appointment-patient-search"
                                                     placeholder="Buscar paciente..."
                                                     onValueChange={setPatientSearch}
                                                     className="border-none focus:ring-0 focus:ring-offset-0 focus:outline-none outline-none ring-0 shadow-none h-12"
@@ -1213,7 +1215,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                     <div className="grid gap-2">
                                         <Label htmlFor="service_id">Serviço <span className="text-red-500">*</span></Label>
                                         <Select name="service_id" required onValueChange={(val) => setSelectedServiceId(val === 'all_clear' ? '' : val)} value={selectedServiceId}>
-                                            <SelectTrigger>
+                                            <SelectTrigger id="appointment-service-select">
                                                 <SelectValue placeholder="Selecione..." />
                                             </SelectTrigger>
                                             <SelectContent position="popper" side="bottom" sideOffset={4}>
@@ -1860,7 +1862,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                 </Button>
                                             )}
 
-                                            <Button type="submit" className="w-full sm:w-auto min-w-[120px]" disabled={isSaving}>
+                                            <Button id="save-appointment-btn" type="submit" className="w-full sm:w-auto min-w-[120px]" disabled={isSaving}>
                                                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : (isEditMode ? "Salvar Alterações" : "Confirmar Agendamento")}
                                             </Button>
                                         </>

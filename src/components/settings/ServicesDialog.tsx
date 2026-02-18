@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select"
 import { Globe, ShieldCheck } from "lucide-react"
 import { CurrencyInput } from "@/components/ui/currency-input"
+import Swal from 'sweetalert2'
 
 interface ServiceDialogProps {
     service?: {
@@ -37,9 +38,10 @@ interface ServiceDialogProps {
         show_online?: boolean
         type?: string
     }
+    existingNames?: string[]
 }
 
-export function ServicesDialog({ service }: ServiceDialogProps) {
+export function ServicesDialog({ service, existingNames = [] }: ServiceDialogProps) {
     const [open, setOpen] = useState(false)
     const [price, setPrice] = useState(service?.price || 0)
     const [showOnline, setShowOnline] = useState(service?.show_online ?? true)
@@ -49,6 +51,29 @@ export function ServicesDialog({ service }: ServiceDialogProps) {
 
     async function handleSubmit(formData: FormData) {
         if (isSubmitting) return
+
+        const name = formData.get('name') as string
+
+        // Verificação de duplicidade (ignora o próprio nome se estiver editando)
+        const isDuplicate = existingNames.some(existingName =>
+            existingName.toLowerCase() === name.toLowerCase() &&
+            existingName.toLowerCase() !== service?.name?.toLowerCase()
+        )
+
+        if (isDuplicate) {
+            const confirm = await Swal.fire({
+                title: 'Nome Duplicado',
+                text: `Já existe um serviço chamado "${name}". Deseja salvar mesmo assim?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sim, salvar',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true
+            })
+
+            if (!confirm.isConfirmed) return
+        }
+
         setIsSubmitting(true)
         try {
             const action = service ? updateService.bind(null, service.id) : createService
@@ -76,7 +101,7 @@ export function ServicesDialog({ service }: ServiceDialogProps) {
                         <Edit className="h-4 w-4" />
                     </Button>
                 ) : (
-                    <Button size="sm" className="gap-1">
+                    <Button id="add-service-btn" size="sm" className="gap-1">
                         <Plus className="h-3.5 w-3.5" />
                         Novo Serviço
                     </Button>
@@ -185,8 +210,8 @@ export function ServicesDialog({ service }: ServiceDialogProps) {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? 'Salvando...' : 'Salvar Serviço'}
+                        <Button id="save-service-btn" type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? 'Salvando...' : (service ? 'Salvar Alterações' : 'Salvar Serviço')}
                         </Button>
                     </DialogFooter>
                 </form>

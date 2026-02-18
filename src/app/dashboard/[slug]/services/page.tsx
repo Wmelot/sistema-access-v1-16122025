@@ -35,7 +35,7 @@ export default async function ServicesPage({ params }: { params: Promise<{ slug:
                 title="Serviços e Procedimentos"
                 description="Padronize os nomes, preços e duração dos atendimentos."
             >
-                <ServicesDialog />
+                <ServicesDialog existingNames={services?.map(s => s.name)} />
             </ManagementHeader>
             <Card>
                 <CardHeader>
@@ -92,7 +92,7 @@ export default async function ServicesPage({ params }: { params: Promise<{ slug:
                                         </TableCell>
                                         <TableCell className="text-right flex items-center justify-end gap-2">
                                             <ToggleServiceStatus serviceId={service.id} isActive={service.active} />
-                                            <ServicesDialog service={service} />
+                                            <ServicesDialog service={service} existingNames={services?.map((s: any) => s.name)} />
                                             <DeleteServiceButton serviceId={service.id} />
                                         </TableCell>
                                     </TableRow>
@@ -137,7 +137,7 @@ export default async function ServicesPage({ params }: { params: Promise<{ slug:
 
                                     <div className="flex items-center gap-1">
                                         <ToggleServiceStatus serviceId={service.id} isActive={service.active} />
-                                        <ServicesDialog service={service} />
+                                        <ServicesDialog service={service} existingNames={services?.map((s: any) => s.name)} />
                                         <DeleteServiceButton serviceId={service.id} />
                                     </div>
                                 </div>

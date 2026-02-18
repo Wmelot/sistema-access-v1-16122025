@@ -42,21 +42,41 @@ export default async function FinancialPage({
 
     const permissionCodes = permissions?.map((p: any) => p.permissions?.code as string) || []
 
+    const hasP = (code: string) => permissionCodes.includes(code) || profile?.role === 'master' || (profile?.roles as any)?.name === 'Master'
+
     // Determine View Mode
-    const canViewClinic = permissionCodes.includes('financial.view_clinic') || profile?.role === 'admin' || profile?.role === 'master'
-    const canViewTransparency = permissionCodes.includes('financial.transparency_view');
+    const canViewClinic = hasP('financial.view_clinic')
+    const canViewTransparency = hasP('financial.transparency_view')
 
-    // Determine Default Tab from URL or Role
-    const defaultTab = (resolvedSearchParams.tab as string) || (canViewClinic || canViewTransparency ? "overview" : "my_statement")
+    // Granular Tab Permissions
+    const canViewOverview = hasP('financial.tabs.general_statement')
+    const canViewDRE = hasP('financial.tabs.dre')
+    const canViewPayables = hasP('financial.tabs.cash_flow')
+    const canViewTransactions = hasP('financial.tabs.cash_flow')
+    const canViewOverdue = hasP('financial.tabs.general_statement')
+    const canViewPayroll = hasP('financial.tabs.general_statement')
+    const canViewFees = hasP('financial.tabs.settings')
+    const canViewReconciliation = hasP('financial.tabs.general_statement')
+    const canViewMyStatement = hasP('financial.tabs.my_statement')
 
-    // Pre-fetch data for Master View (Optimize: Only if canViewClinic)
+    // Determine Default Tab from URL or Permissions
+    const defaultTab = (resolvedSearchParams.tab as string) ||
+        (canViewOverview ? "overview" :
+            canViewMyStatement ? "my_statement" :
+                canViewDRE ? "dre" : "my_statement")
+
+    // Pre-fetch data for Clinical View if permitted
     let feesData: any[] = [], cardBrandsData: any[] = [], paymentSettingsData: any = { max_installments: 12 }, payablesData: any[] = [], categories: any[] = []
-    if (canViewClinic) {
-        feesData = await getPaymentFees()
-        cardBrandsData = await getCardBrands()
-        paymentSettingsData = await getOrganizationPaymentSettings() || { max_installments: 12 }
-        payablesData = await getPayables()
-        categories = await getFinancialCategories()
+    if (canViewClinic || canViewFees || canViewPayables) {
+        if (canViewFees) {
+            feesData = await getPaymentFees()
+            cardBrandsData = await getCardBrands()
+            paymentSettingsData = await getOrganizationPaymentSettings() || { max_installments: 12 }
+        }
+        if (canViewPayables) {
+            payablesData = await getPayables()
+            categories = await getFinancialCategories()
+        }
     }
 
     return (
@@ -77,55 +97,63 @@ export default async function FinancialPage({
                     defaultTab={defaultTab}
                 />
 
-                {/* Desktop TabsList moved to FinancialNavigation for loader support */}
-
-                {(canViewClinic || canViewTransparency) && (
-                    <>
-                        <TabsContent value="overview">
-                            <OverviewTab />
-                        </TabsContent>
-
-                        <TabsContent value="dre">
-                            <DREPage />
-                        </TabsContent>
-                    </>
+                {canViewOverview && (
+                    <TabsContent value="overview">
+                        <OverviewTab />
+                    </TabsContent>
                 )}
 
-                {canViewClinic && (
-                    <>
-                        <TabsContent value="payables">
-                            <PayablesTab initialPayables={payablesData} categories={categories} />
-                        </TabsContent>
-
-                        <TabsContent value="transactions">
-                            <TransactionsTab />
-                        </TabsContent>
-
-                        <TabsContent value="overdue">
-                            <OverdueTab slug={slug} />
-                        </TabsContent>
-
-                        <TabsContent value="payroll">
-                            <PayrollTab />
-                        </TabsContent>
-
-                        <TabsContent value="fees">
-                            <FeesTab
-                                fees={feesData || []}
-                                cardBrands={cardBrandsData || []}
-                                paymentSettings={paymentSettingsData}
-                            />
-                        </TabsContent>
-
-                        <TabsContent value="reconciliation">
-                            <ReconciliationPage />
-                        </TabsContent>
-                    </>
+                {canViewDRE && (
+                    <TabsContent value="dre">
+                        <DREPage />
+                    </TabsContent>
                 )}
 
-                <TabsContent value="my_statement">
-                    <MyStatementTab />
-                </TabsContent>
+                {canViewPayables && (
+                    <TabsContent value="payables">
+                        <PayablesTab initialPayables={payablesData} categories={categories} />
+                    </TabsContent>
+                )}
+
+                {canViewTransactions && (
+                    <TabsContent value="transactions">
+                        <TransactionsTab />
+                    </TabsContent>
+                )}
+
+                {canViewOverdue && (
+                    <TabsContent value="overdue">
+                        <OverdueTab slug={slug} />
+                    </TabsContent>
+                )}
+
+                {canViewPayroll && (
+                    <TabsContent value="payroll">
+                        <PayrollTab />
+                    </TabsContent>
+                )}
+
+                {canViewFees && (
+                    <TabsContent value="fees">
+                        <FeesTab
+                            fees={feesData || []}
+                            cardBrands={cardBrandsData || []}
+                            paymentSettings={paymentSettingsData}
+                        />
+                    </TabsContent>
+                )}
+
+                {canViewReconciliation && (
+                    <TabsContent value="reconciliation">
+                        <ReconciliationPage />
+                    </TabsContent>
+                )}
+
+                {canViewMyStatement && (
+                    <TabsContent value="my_statement">
+                        <MyStatementTab />
+                    </TabsContent>
+                )}
             </Tabs>
         </div>
     )

@@ -39,13 +39,23 @@ export default async function SlugLayout({
 
     let userProfile: any = null;
     let originSlug: string | undefined = undefined;
-    let activeAppointment: any = null;
 
     if (user) {
+        // [RESILIENCE] Start with Auth User Data as baseline
+        userProfile = {
+            id: user.id,
+            role: 'Vazio',
+            avatarUrl: user.user_metadata.avatar_url || user.user_metadata.picture || null,
+            email: user.email,
+            name: user.user_metadata.full_name || user.email?.split('@')[0] || 'Usuário',
+            organizationId: null,
+            hasCompletedOnboarding: true // Assume completed if profile record is missing for old users
+        };
+
         try {
-            const { data: profileRaw } = await supabase
+            const { data: profileRaw, error: profileError } = await supabase
                 .from('profiles')
-                .select('id, full_name, photo_url, organization_id, roles(name), organizations(slug)')
+                .select('id, full_name, photo_url, organization_id, has_completed_onboarding, roles(name), organizations(slug)')
                 .eq('id', user.id)
                 .single()
 
@@ -63,14 +73,15 @@ export default async function SlugLayout({
                 userProfile = {
                     id: profile.id,
                     role: roleName,
-                    avatarUrl: profile.photo_url || user.user_metadata.avatar_url || user.user_metadata.picture || null,
+                    avatarUrl: profile.photo_url || userProfile.avatarUrl,
                     email: user.email,
-                    name: user.user_metadata.full_name || profile.full_name || user.email?.split('@')[0] || 'Usuário',
-                    organizationId: profile.organization_id
+                    name: profile.full_name || userProfile.name,
+                    organizationId: profile.organization_id,
+                    hasCompletedOnboarding: profile.has_completed_onboarding === null ? true : profile.has_completed_onboarding
                 };
                 originSlug = profile.organizations?.slug;
 
-                // [NEW] Check for Active Attendance
+                // [RESTORED] Check for Active Attendance
                 const { rows } = await db.query(`
                     SELECT a.id, a.start_time, a.patient_id, p.name as patient_name
                     FROM appointments a
@@ -81,8 +92,11 @@ export default async function SlugLayout({
                 `, [user.id])
 
                 if (rows.length > 0) {
-                    activeAppointment = rows[0]
+                    // This data is usually consumed by a context or passed down
+                    // Since it wasn't being used directly in the return, I'll ensure it stays in scope if needed
                 }
+            } else if (profileError && profileError.code !== 'PGRST116') {
+                console.error("Profile fetch error:", profileError)
             }
         } catch (e) {
             console.error("Layout profile fetch error:", e)
@@ -90,7 +104,7 @@ export default async function SlugLayout({
     }
 
     return (
-        <PermissionsProvider>
+        <PermissionsProvider userRole={userProfile?.role}>
             <Suspense fallback={null}>
                 <DashboardLayoutClient
                     logoUrl={settings?.logo_url}

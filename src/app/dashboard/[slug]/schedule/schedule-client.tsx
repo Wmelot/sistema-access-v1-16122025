@@ -1578,7 +1578,7 @@ export default function ScheduleClient({
                     </div>
 
                     {/* Desktop: Standard Behavior */}
-                    <div className="hidden md:block h-full">
+                    <div id="calendar-grid" className="hidden md:block h-full">
                         {viewMode === 'calendar' ? (
                             <BigCalendarComponent
                                 date={date}
