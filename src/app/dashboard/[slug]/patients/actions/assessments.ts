@@ -1,113 +1,113 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
+import { validateAccess, idSchema, slugSchema } from "@/lib/security"
 
+// SCHEMAS DE VALIDAÇÃO (Blindagem de Input)
+// Usamos z.record(z.any()) para os dados flexíveis, permitindo que qualquer estrutura de formulário seja salva.
+const CreateAssessmentSchema = z.object({
+    patientId: idSchema,
+    type: z.string().min(1, "Tipo é obrigatório"),
+    data: z.record(z.any()).default({}),
+    scores: z.record(z.any()).optional(),
+    title: z.string().optional(),
+    slug: slugSchema.optional()
+});
+
+/**
+ * Cria uma avaliação vinculada ao histórico do paciente com validação de acesso.
+ */
 export async function createAssessment(patientId: string, type: string, data: any, scores: any, title?: string, slug?: string) {
-    const { createClient, createAdminClient } = await import('@/lib/supabase/server')
-    const supabase = await createClient()
-    const adminSupabase = await createAdminClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
-
-    // 1. Basic patient ID validation
-    if (!patientId || patientId === 'sandbox') {
-        console.warn('[createAssessment] Skipping persistence: sandbox mode or missing patientId');
-        return { success: false, msg: 'Modo Sandbox: Histórico não persistido' }
+    // 1. Validar inputs básicos (para evitar ataques de buffer ou injeção)
+    const validation = CreateAssessmentSchema.safeParse({ patientId, type, data, scores, title, slug });
+    if (!validation.success) {
+        return { success: false, msg: validation.error.issues[0].message };
     }
 
-    let organizationId: string | null = null;
-
+    // 2. Trava de Segurança (Multi-tenancy)
+    // Garante que o usuário logado tem permissão para escrever neste paciente.
     try {
-        // 2. Resolve Organization ID
-        // Priority 1: Profile Org
-        const { data: userProfile } = await adminSupabase.from('profiles').select('organization_id').eq('id', user.id).single()
-        organizationId = userProfile?.organization_id || null
+        const { userId, organizationId } = await validateAccess(patientId, 'patient', slug);
 
-        // Priority 2: Slug match
-        if (!organizationId && slug) {
-            const { data: orgData } = await adminSupabase.from('organizations').select('id').eq('slug', slug).single()
-            if (orgData) organizationId = orgData.id
-        }
+        const { createAdminClient } = await import('@/lib/supabase/server');
+        const adminSupabase = await createAdminClient();
 
-        // Priority 3: Fallback to patient's own organization
-        if (!organizationId) {
-            const { data: patientData } = await adminSupabase
-                .from('patients')
-                .select('organization_id')
-                .eq('id', patientId)
-                .maybeSingle()
-            organizationId = patientData?.organization_id || null
-        }
-
+        // 3. Montagem do Payload (Preservando a lógica original de scores)
         const payload = {
             patient_id: patientId,
-            professional_id: user.id,
+            professional_id: userId,
             organization_id: organizationId,
-            type,
-            title: title || type,
-            data: data || {},
+            type: validation.data.type,
+            title: validation.data.title || validation.data.type,
+            data: validation.data.data,
             scores: {
-                ...(scores || {}),
+                ...(validation.data.scores || {}),
                 savedAt: new Date().toISOString()
             }
-        }
-
-        console.log('[createAssessment] Attempting insert with payload:', {
-            patient: patientId,
-            org: organizationId,
-            type
-        });
+        };
 
         const { error: insertError } = await adminSupabase
             .from('patient_assessments')
-            .insert(payload)
+            .insert(payload);
 
-        if (insertError) {
-            console.error('[createAssessment] Insert Error:', insertError);
-            throw insertError;
-        }
+        if (insertError) throw insertError;
 
         if (slug) {
-            revalidatePath(`/dashboard/${slug}/patients`)
-            revalidatePath(`/dashboard/${slug}/patients/${patientId}`)
+            revalidatePath(`/dashboard/${slug}/patients`);
+            revalidatePath(`/dashboard/${slug}/patients/${patientId}`);
         }
 
-        return { success: true }
+        return { success: true };
+
     } catch (error: any) {
-        console.error('Error creating assessment:', error)
-        return { success: false, msg: error.message || 'Erro ao salvar no histórico do paciente.' }
+        console.error('[createAssessment] Security or Persistence Failure:', error.message);
+
+        // Se o erro for do paciente Sandbox, mantemos a mensagem amigável original
+        if (patientId === 'sandbox') {
+            return { success: false, msg: 'Modo Sandbox: Histórico não persistido' };
+        }
+
+        return { success: false, msg: error.message || 'Erro ao salvar avaliação.' };
     }
 }
 
-
+/**
+ * Recupera avaliações com filtro de segurança automático (RLS).
+ */
 export async function getAssessments(patientId: string, slug?: string) {
-    const { createClient } = await import('@/lib/supabase/server')
-    const supabase = await createClient()
+    try {
+        // Validação de acesso antes de abrir a consulta
+        await validateAccess(patientId, 'patient', slug);
 
-    let query = supabase
-        .from('patient_assessments')
-        .select(`
-            *,
-            profiles (
-                full_name
-            )
-        `)
-        .eq('patient_id', patientId)
+        const { createClient } = await import('@/lib/supabase/server');
+        const supabase = await createClient();
 
-    if (slug) {
-        const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
-        if (orgData?.id) {
-            query = query.eq('organization_id', orgData.id)
+        let query = supabase
+            .from('patient_assessments')
+            .select(`
+                *,
+                profiles (
+                    full_name
+                )
+            `)
+            .eq('patient_id', patientId);
+
+        // Se houver slug, filtramos pela organização para garantir isolamento extra
+        if (slug) {
+            const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single();
+            if (orgData?.id) {
+                query = query.eq('organization_id', orgData.id);
+            }
         }
+
+        const { data, error } = await query.order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+
+    } catch (error) {
+        console.error('[getAssessments] Error:', error);
+        return [];
     }
-
-    const { data, error } = await query.order('created_at', { ascending: false })
-
-    if (error) {
-        console.error('Error fetching assessments:', error)
-        return []
-    }
-
-    return data || []
 }

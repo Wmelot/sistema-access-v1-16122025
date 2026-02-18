@@ -388,7 +388,7 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                     fileD: fileD || "UExhY2Vob2xkZXI="
                 },
                 { nome: patientName, email: patientEmail },
-                { id: professional?.id || 'FISIO', nome: professional?.full_name || 'Fisioterapeuta' }
+                { id: professional?.email || professional?.id || 'wmelot@gmail.com', nome: professional?.full_name || 'Fisioterapeuta', address: professional?.address || 'Axion' }
             )
 
             setPropulsaoStatus(propulsaoRes)
