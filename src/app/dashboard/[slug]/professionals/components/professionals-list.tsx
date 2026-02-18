@@ -12,6 +12,7 @@ import { useViewMode } from "@/hooks/use-view-mode"
 import { cn } from "@/lib/utils"
 
 import { Info, Loader2 } from "lucide-react"
+import { useRouter } from 'next/navigation'
 import { QuantumLoader } from '@/components/ui/quantum-loader'
 import { useGlobalLoader } from '@/components/providers/global-loader-provider'
 import { ManagementHeader } from "@/components/dashboard/management-header"
