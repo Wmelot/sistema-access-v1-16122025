@@ -87,19 +87,16 @@ export const GlobalLoaderProvider = ({ children }: { children: React.ReactNode }
             </Suspense>
             {children}
             {isLoading && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/20 backdrop-blur-[6px] transition-all animate-in fade-in duration-500">
-                    <div className="flex flex-col items-center gap-7 p-12 rounded-[40px] bg-white/10 border border-white/20 shadow-[0_32px_64px_rgba(0,0,0,0.2)] backdrop-blur-2xl">
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/20 backdrop-blur-[8px] transition-all animate-in fade-in duration-500">
+                    <div className="flex flex-col items-center gap-8 p-14 rounded-[50px] bg-slate-900/40 border border-white/10 shadow-[0_32px_64px_rgba(0,0,0,0.4)] backdrop-blur-3xl">
                         <div className="relative">
-                            <QuantumLoader />
-                            <div className="absolute inset-0 bg-indigo-500/10 blur-2xl rounded-full -z-10" />
-                        </div>
-                        <div className="flex flex-col items-center gap-2">
-                            <p className="text-[11px] font-black text-white/30 uppercase tracking-[0.4em] mb-1">
-                                Inteligência Clínica
-                            </p>
-                            <p className="text-sm font-bold text-white uppercase tracking-widest animate-pulse">
-                                {loadingMessage}
-                            </p>
+                            <QuantumLoader
+                                color="white"
+                                size="55"
+                                speed="1.5"
+                                title={loadingMessage || "Inteligência Clínica"}
+                            />
+                            <div className="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full -z-10 animate-pulse" />
                         </div>
                     </div>
                 </div>

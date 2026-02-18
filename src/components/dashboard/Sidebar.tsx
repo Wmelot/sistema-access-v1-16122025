@@ -241,7 +241,7 @@ function NavItem({ href, icon: Icon, label, isCollapsed, locked = false, classNa
 
                 if (!href.startsWith('#') && !isCurrentPath) {
                     if (showLoading) {
-                        showLoading(`Abrindo ${label}...`);
+                        showLoading(`Abrindo ${label}`);
                         // No need for local setTimeout here as GlobalLoaderProvider has a safety one
                     } else {
                         toast.loading(`Abrindo ${label}...`, { id: `nav-${href}` });

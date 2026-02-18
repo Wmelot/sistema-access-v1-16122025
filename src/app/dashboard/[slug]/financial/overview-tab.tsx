@@ -148,8 +148,29 @@ export function OverviewTab() {
                         </p>
                     </CardContent>
                 </Card>
-
             </div>
+
+            {/* Brand Breakdown */}
+            {data?.brandBreakdown && Object.keys(data.brandBreakdown).length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-sm font-medium">Lucro Líquido por Bandeira (Mês Atual)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {Object.entries(data.brandBreakdown).map(([brand, value]: [string, any]) => (
+                                <div key={brand} className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-3 w-3 rounded-full bg-blue-500" />
+                                        <span className="text-sm font-medium text-gray-700">{brand}</span>
+                                    </div>
+                                    <span className="text-sm font-bold">{formatCurrency(value)}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     )
 }

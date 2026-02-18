@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AdminSidebar } from "./components/admin-sidebar";
+import { isMasterUser } from "@/lib/auth-master";
 
 export default async function AdminLayout({
     children,
@@ -14,19 +15,17 @@ export default async function AdminLayout({
         redirect("/login");
     }
 
-    // Security Check: Is this user the Super Admin (Axiom Central)?
-    // Master Org ID: 00000000-0000-0000-0000-000000000001
     const { data: profile } = await supabase
         .from('profiles')
         .select('organization_id, full_name, photo_url')
         .eq('id', user.id)
         .single();
 
-    // Allow Master Org OR specific Developer/Owner emails
-    const allowedEmails = ['wmelot@gmail.com', 'accessfisio@gmail.com', 'admin@axiom.com'];
+    // Security Check: Is this user the Super Admin (Axiom Central)?
+    const isMaster = await isMasterUser(user.id);
     const isMasterOrg = profile?.organization_id === '00000000-0000-0000-0000-000000000001';
 
-    if (!isMasterOrg && !allowedEmails.includes(user.email || '')) {
+    if (!isMaster && !isMasterOrg) {
         // Not a Master User -> Kick to Clinic Dashboard
         redirect("/dashboard");
     }

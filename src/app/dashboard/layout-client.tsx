@@ -162,6 +162,7 @@ function DashboardLayoutContent({
     slug
 }: DashboardLayoutClientProps) {
     const [isLogOpen, setIsLogOpen] = useState(false)
+    const isMasterRole = currentUser?.role === 'master' || currentUser?.role === 'Master'
 
     // Listen for custom event to open logs from other components
     useEffect(() => {
@@ -236,7 +237,7 @@ function DashboardLayoutContent({
         })
 
         if (result.isConfirmed) {
-            showLoading("ENCERRANDO SESSÃO...")
+            showLoading("Saindo do sistema")
             window.location.href = '/auth/signout'
         }
     }
@@ -373,7 +374,7 @@ function DashboardLayoutContent({
                                         className="cursor-pointer gap-2 py-2.5"
                                         onClick={() => {
                                             const target = `${dashboardPrefix}/financial`;
-                                            if (pathname !== target) showLoading("ABRINDO FINANCEIRO...");
+                                            if (pathname !== target) showLoading("Módulo financeiro");
                                         }}
                                     >
                                         <DollarSign className="h-4 w-4 text-emerald-600" />
@@ -389,7 +390,7 @@ function DashboardLayoutContent({
                                         className="cursor-pointer gap-2 py-2.5"
                                         onClick={() => {
                                             const target = `${dashboardPrefix}/management`;
-                                            if (pathname !== target) showLoading("ABRINDO CONFIGURAÇÕES...");
+                                            if (pathname !== target) showLoading("Configurações");
                                         }}
                                     >
                                         <Settings className="h-4 w-4 text-blue-600" />
@@ -404,7 +405,7 @@ function DashboardLayoutContent({
                                     className="cursor-pointer gap-2 py-2.5"
                                     onClick={() => {
                                         const target = `${dashboardPrefix}/profile/me`;
-                                        if (pathname !== target) showLoading("ABRINDO PERFIL...");
+                                        if (pathname !== target) showLoading("Meu Perfil");
                                     }}
                                 >
                                     <CircleUser className="h-4 w-4 text-zinc-600" />
@@ -412,13 +413,13 @@ function DashboardLayoutContent({
                                 </DropdownMenuItem>
                             </Link>
 
-                            {/* PAINEL MASTER - Somente wmelot@gmail.com */}
-                            {currentUser?.email === 'wmelot@gmail.com' && (
+                            {/* PAINEL MASTER - Universal access for master users */}
+                            {isMasterRole && (
                                 <Link href="/admin">
                                     <DropdownMenuItem
                                         className="cursor-pointer gap-2 py-2.5 text-indigo-700 font-bold bg-indigo-50/50"
                                         onClick={() => {
-                                            if (pathname !== '/admin') showLoading("ACESSANDO PAINEL MASTER...");
+                                            if (pathname !== '/admin') showLoading("Painel Master");
                                         }}
                                     >
                                         <Shield className="h-4 w-4" />
@@ -433,7 +434,7 @@ function DashboardLayoutContent({
                                     className="cursor-pointer gap-2 py-2.5"
                                     onClick={() => {
                                         const target = `${dashboardPrefix}/support`;
-                                        if (pathname !== target) showLoading("ABRINDO SUPORTE...");
+                                        if (pathname !== target) showLoading("Suporte");
                                     }}
                                 >
                                     <MessageSquare className="h-4 w-4 text-orange-600" />

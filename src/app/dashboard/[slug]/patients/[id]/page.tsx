@@ -10,6 +10,7 @@ import { getAssessments } from "@/app/dashboard/[slug]/patients/actions/assessme
 import { getPatientRecords } from "@/app/dashboard/[slug]/patients/actions/records"
 import { createClient } from "@/lib/supabase/server"
 import { logAction, logAccess } from "@/lib/logger"
+import { getPaymentFees, getCardBrands } from "@/app/dashboard/[slug]/financial/actions"
 import { BackButton } from "@/components/ui/back-button"
 import { AttendanceSyncer } from "@/features/attendance/components/AttendanceSyncer"
 import { getPatientDocuments } from "@/actions/documents"
@@ -75,7 +76,9 @@ export default async function PatientDetailPage({
         insoleFollowUps,
         documents,
         { data: activeAppt },
-        { data: allAppointments }
+        { data: allAppointments },
+        fees,
+        cardBrands
     ] = await Promise.all([
         getUnbilledAppointments(id),
         getInvoices(id),
@@ -85,7 +88,9 @@ export default async function PatientDetailPage({
         getInsoleFollowUps(id, slug),
         getPatientDocuments(id),
         supabase.from('appointments').select('id, status, start_time').eq('patient_id', id).eq('status', 'in_progress').order('start_time', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('appointments').select('*, profiles:professional_id(full_name)').eq('patient_id', id).neq('status', 'cancelled').order('start_time', { ascending: false }).limit(20)
+        supabase.from('appointments').select('*, profiles:professional_id(full_name)').eq('patient_id', id).neq('status', 'cancelled').order('start_time', { ascending: false }).limit(20),
+        getPaymentFees(),
+        getCardBrands()
     ])
     console.timeEnd(`[PatientDetails] Fetching: ${id}`)
 
@@ -512,7 +517,8 @@ export default async function PatientDetailPage({
                             patientId={id}
                             unbilledAppointments={unbilledAppointments}
                             invoices={invoices}
-                            fees={[]}
+                            fees={fees || []}
+                            cardBrands={cardBrands || []}
                         />
                     </TabsContent>
 

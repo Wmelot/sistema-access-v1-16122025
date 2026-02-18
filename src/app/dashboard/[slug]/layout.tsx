@@ -55,7 +55,7 @@ export default async function SlugLayout({
                 let roleName = profile?.roles?.name || 'Vazio';
 
                 // Case B: User is a MASTER (Universal Access)
-                const isMaster = await isMasterUser(user.id, user.email)
+                const isMaster = await isMasterUser(user.id)
                 if (isMaster) {
                     roleName = 'Master';
                 }

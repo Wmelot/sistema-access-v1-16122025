@@ -53,18 +53,19 @@ interface Invoice {
     payment_date: string
     created_at: string
 }
-
 interface FinancialTabProps {
     patientId: string
-    unbilledAppointments: any[] // Relaxing strictness here to avoid excessive casting issues
+    unbilledAppointments: any[]
     invoices: any[]
-    fees: any[] // Dynamic fees from DB
+    fees: any[]
+    cardBrands: any[]
 }
 
-export function FinancialTab({ patientId, unbilledAppointments, invoices, fees }: FinancialTabProps) {
+export function FinancialTab({ patientId, unbilledAppointments, invoices, fees, cardBrands }: FinancialTabProps) {
     const [selectedApps, setSelectedApps] = useState<string[]>([])
     const [paymentMethod, setPaymentMethod] = useState("pix")
     const [installments, setInstallments] = useState("1")
+    const [cardBrandId, setCardBrandId] = useState<string>("")
     const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0])
     const [loading, setLoading] = useState(false)
 
@@ -93,12 +94,16 @@ export function FinancialTab({ patientId, unbilledAppointments, invoices, fees }
             return fee?.fee_percent || 0
         }
         if (paymentMethod === 'debit_card') {
-            const fee = fees.find(f => f.method === 'debit_card')
+            const fee = fees.find(f => f.method === 'debit_card' && (!cardBrandId || f.card_brand_id === cardBrandId))
             return fee?.fee_percent || 0
         }
         if (paymentMethod === 'credit_card') {
             const inst = parseInt(installments)
-            const fee = fees.find(f => f.method === 'credit_card' && f.installments === inst)
+            const fee = fees.find(f =>
+                f.method === 'credit_card' &&
+                f.installments === inst &&
+                (!cardBrandId || f.card_brand_id === cardBrandId)
+            )
             return fee?.fee_percent || 0
         }
         return 0
@@ -135,13 +140,14 @@ export function FinancialTab({ patientId, unbilledAppointments, invoices, fees }
             patientId,
             selectedApps,
             totalSelected,
-            paymentMethod, // Pass the key (credit_card, pix, etc)
+            paymentMethod,
             paymentDate,
-            Number(installments),
+            parseInt(installments),
             activeFeeRate,
-            [], // extraItems default
-            'paid', // status default
-            slug
+            [],
+            'paid',
+            slug,
+            cardBrandId || null
         )
 
         if (result?.error) {
@@ -246,6 +252,22 @@ export function FinancialTab({ patientId, unbilledAppointments, invoices, fees }
                                                     <SelectContent>
                                                         {Array.from({ length: 12 }, (_, i) => i + 1).map(num => (
                                                             <SelectItem key={num} value={num.toString()}>{num}x</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        )}
+
+                                        {(paymentMethod === 'credit_card' || paymentMethod === 'debit_card') && (
+                                            <div className="space-y-2 w-full md:w-[180px]">
+                                                <Label>Bandeira</Label>
+                                                <Select value={cardBrandId} onValueChange={setCardBrandId}>
+                                                    <SelectTrigger className="w-full">
+                                                        <SelectValue placeholder="Selecione..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {cardBrands.map(brand => (
+                                                            <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
                                                         ))}
                                                     </SelectContent>
                                                 </Select>

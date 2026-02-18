@@ -43,7 +43,7 @@ export async function hasPermission(permission: PermissionCode): Promise<boolean
     }
 
     // Master Bypass
-    if (await checkIsMaster(user.id, user.email)) return true
+    if (await checkIsMaster(user.id)) return true
 
     // 1. Get User's Role ID from profiles
     const { data: profile } = await supabase
@@ -103,5 +103,5 @@ export async function getCurrentUserPermissions(): Promise<PermissionCode[]> {
 export async function isMasterUser(): Promise<boolean> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    return checkIsMaster(user?.id, user?.email)
+    return checkIsMaster(user?.id)
 }

@@ -25,13 +25,14 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
         const PUBLIC_KEY_PEM_RAW = process.env.PROPULSAO_PUBLIC_KEY || "";
         const publicKeyPem = getStrictPublicKey(PUBLIC_KEY_PEM_RAW);
         const dataMs = Date.now();
+        const profEmail = (professionalData?.email || professionalData?.id || "contato@axiom.com").toLowerCase();
 
-        // 1. Dados Sensíveis (Padrão AXION)
+        // 1. Dados Sensíveis (Padrão AXIOM)
         const sensitiveData = {
             timestamp: Math.floor(dataMs / 1000),
-            Email_paciente: (patientData.email || "wmelot@gmail.com").toLowerCase(),
-            IdFisio: "wmelot@gmail.com",
-            LocalPedido: "AXION",
+            Email_paciente: (patientData.email || "contato@axiom.com").toLowerCase(),
+            IdFisio: [profEmail],
+            LocalPedido: "AXIOM",
             Nome_Paciente: (patientData.nome || "PACIENTE TESTE").toUpperCase()
         };
 
@@ -44,21 +45,45 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
         });
         const base64Payload = forge.util.encode64(encrypted);
 
-        // 3. Info
+        // Map helpers
+        const mapArco = (a: string) => a.includes("Baixo") ? "Baixo" : a.includes("Alto") ? "Alto" : "Medio";
+        const mapFlex = (f: string) => f.includes("Rígido") ? "Rigido" : "Flexivel";
+
+        // 3. Info (Completo conforme INTEGRACAO_PEDIDOS_EXTERNOS.md)
         const info = {
-            Cobertura: orderData.general.cobertura.includes("Azul") ? "EVAazul" : "EVApreto",
+            Cobertura: orderData.general.cobertura || "EVA Azul (Padrão)",
             Numeracao: Math.round(Number(orderData.general.tamanho) || 37),
             ladoPedido: "DireitoEsquerdo",
-            PrecoPedido: Math.round(Number(orderData.totalPrice)) || 150,
-            Produto: "Slim",
+            PrecoPedido: Math.round(Number(orderData.totalPrice)) || 190,
+            Produto: orderData.general.produto || "Biomecânica",
             dataStamp: dataMs,
-            LocalPedido: "Propulsão",
-            Nome_indicacao: professionalData.nome || "AXION",
-            fileE: "UExhY2Vob2xkZXI=",
-            fileD: "UExhY2Vob2xkZXI="
+            LocalPedido: "AXIOM",
+            Nome_indicacao: professionalData.nome || "Axiom Fisioterapia",
+            observacoesCompra: orderData.reportText || "",
+
+            // Especificações Técnicas (Obrigatórias para evitar 500)
+            Absorcao_dir: orderData.rightFoot.absorcao || "0",
+            Absorcao_esq: orderData.leftFoot.absorcao || "0",
+            Antepe_Dir: orderData.rightFoot.antepe || "0",
+            Antepe_Esq: orderData.leftFoot.antepe || "0",
+            Retrope_Dir: orderData.rightFoot.retrope || "0",
+            Retrope_Esq: orderData.leftFoot.retrope || "0",
+            Elevacao_Dir: orderData.rightFoot.elevacao || "0",
+            Elevacao_Esq: orderData.leftFoot.elevacao || "0",
+
+            Arco_Dir: mapArco(orderData.rightFoot.arco),
+            Arco_Esq: mapArco(orderData.leftFoot.arco),
+            SuporteArco_dir: mapFlex(orderData.rightFoot.flexibilidade),
+            SuporteArco_esq: mapFlex(orderData.leftFoot.flexibilidade),
+
+            Barra_Dir: orderData.rightFoot.pads?.['Barra'] ? "Sim" : "0",
+            Barra_Esq: orderData.leftFoot.pads?.['Barra'] ? "Sim" : "0",
+
+            fileE: orderData.fileE || "UExhY2Vob2xkZXI=",
+            fileD: orderData.fileD || "UExhY2Vob2xkZXI="
         };
 
-        // 4. Envio ( Diego confirmou: pedidos_axion )
+        // 4. Envio
         const response = await fetch("https://us-central1-dev-propulsao.cloudfunctions.net/pedidos_axion", {
             method: "POST",
             headers: {
@@ -70,18 +95,22 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
         });
 
         const resText = await response.text();
+        let orderNumber = undefined;
+        try {
+            const resJson = JSON.parse(resText);
+            orderNumber = resJson.order || resJson.orderNumber;
+        } catch (e) { }
 
         if (response.ok) {
-            console.log("✅ AGORA FOI!", resText);
-            return { success: true, message: "Pedido enviado com sucesso!" };
+            console.log("✅ SUCESSO!", resText);
+            return { success: true, message: "Pedido enviado com sucesso!", orderNumber };
         }
 
-        console.error("❌ ERRO NO pedidos_axion:", response.status, resText);
-        // Se der 403, pode ser o Token vencido ou incorreto no .env
-        return { success: false, error: `Erro ${response.status}: Acesso negado. Verifique o Token.` };
+        console.error("❌ ERRO API:", response.status, resText);
+        return { success: false, error: `Erro ${response.status}: ${resText || 'Falha no processamento'}` };
 
     } catch (error: any) {
-        console.error("🔥 FALHA:", error.message);
-        return { success: false, error: "Falha na comunicação." };
+        console.error("🔥 EXCEÇÃO:", error.message);
+        return { success: false, error: "Falha interna ao processar o pedido." };
     }
 }

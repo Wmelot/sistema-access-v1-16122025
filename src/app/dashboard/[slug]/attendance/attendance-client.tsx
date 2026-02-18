@@ -310,7 +310,7 @@ export function AttendanceClient({
         if (!currentRecord?.content?.voice_transcript) return
 
         setIsSavingTranscription(true)
-        showLoading("Salvando Transcrição...")
+        showLoading("Processando áudio")
         try {
             const transcript = currentRecord.content.voice_transcript
             const newContent = { ...currentRecord.content }
@@ -1217,7 +1217,7 @@ export function AttendanceClient({
                 paymentMethods={paymentMethods}
                 professionals={professionals}
                 onConfirm={async () => {
-                    showLoading("Finalizando Atendimento...")
+                    showLoading("Finalizando Atendimento")
                     try {
                         // 1. Ensure the current record is saved before finishing attendance
                         await saveAttendanceRecord({
@@ -1245,13 +1245,16 @@ export function AttendanceClient({
                         const res = await finishAttendance(appointment.id, finalData)
 
                         if (res?.success) {
-                            toast.success("Atendimento encerrado com sucesso!")
-                            // Use window.location for a hard-reset to avoid stale state in complex layouts
-                            window.location.href = `/dashboard/${slug}/schedule`
+                            toast.success("Atendimento encerrado com sucesso! 🎉")
+                            // Give a small delay for the toast to be seen before hard-reload
+                            setTimeout(() => {
+                                window.location.href = `/dashboard/${slug}/schedule`
+                            }, 500)
                         } else {
                             toast.error("Erro ao encerrar atendimento no servidor.")
                         }
                     } catch (e) {
+                        console.error("Finish Attendance Error:", e)
                         toast.error("Ocorreu um erro ao finalizar.")
                     } finally {
                         hideLoading()

@@ -6,15 +6,19 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
-import { Send, CheckCircle, CheckCircle2, Loader2, Calculator, Footprints, AlertCircle } from "lucide-react"
+import {
+    Send, CheckCircle, CheckCircle2, Loader2, Calculator,
+    Footprints, AlertCircle, Calendar as CalendarIcon,
+    Upload, FileCheck, X, Info, CalendarClock
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { checkNavicularStatus } from "@/utils/clinical-references"
 import { createAssessment } from "@/app/dashboard/[slug]/patients/actions/assessments"
 import { registerInsoleDelivery } from "@/app/dashboard/[slug]/patients/actions/insoles"
 import { useParams } from "next/navigation"
-import { Calendar as CalendarIcon, Upload, FileCheck, X, Info } from "lucide-react"
 import { sendOrderToPropulsao } from "@/app/dashboard/[slug]/patients/actions/propulsao-actions"
+import { Badge } from "@/components/ui/badge"
 
 // --- CONSTANTS ---
 const COLOR_LEFT_FOOT = '#14b8a6' // Teal-500
@@ -101,6 +105,10 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
 
     // Report Text
     const [reportText, setReportText] = useState('')
+
+    // Delivery & Automation States
+    const [deliveryDate, setDeliveryDate] = useState('')
+    const [isRegisteringDelivery, setIsRegisteringDelivery] = useState(false)
 
     // Update Helper
     const updateFoot = (side: 'left' | 'right', field: keyof FootConfig, value: any) => {
@@ -341,7 +349,14 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
         setIsRegisteringDelivery(true)
         try {
             const date = deliveryDate ? new Date(deliveryDate) : new Date()
-            const res = await registerInsoleDelivery(patientId, date, slug)
+            // Fix: registerInsoleDelivery expects a single object
+            const res = await registerInsoleDelivery({
+                patientId,
+                deliveryDate: date,
+                slug,
+                note: `Entrega de palmilha registrada via formulário PBE. Modelo: ${produto}.`
+            })
+
             if (res.success) {
                 toast.success("Entrega registrada! Acompanhamentos de 40 dias e 1 ano agendados automaticamente.")
                 if (form) {
@@ -388,7 +403,7 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                     fileD: fileD || "UExhY2Vob2xkZXI="
                 },
                 { nome: patientName, email: patientEmail },
-                { id: professional?.email || professional?.id || 'wmelot@gmail.com', nome: professional?.full_name || 'Fisioterapeuta', address: professional?.address || 'Axion' }
+                { id: professional?.email || professional?.id || 'contato@axiom.com', nome: professional?.full_name || 'Fisioterapeuta', address: professional?.address || 'Axiom' }
             )
 
             setPropulsaoStatus(propulsaoRes)
@@ -638,6 +653,48 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                         />
                         <div className="absolute top-6 right-6">
                             <span className="text-[10px] bg-blue-200 text-blue-800 px-2 py-1 rounded-full font-bold">Gerado por IA</span>
+                        </div>
+                    </div>
+
+                    {/* 5. ENTREGA E AUTOMAÇÃO (NEW) */}
+                    <div className="bg-emerald-50 p-6 rounded-xl border border-emerald-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                                <CalendarClock className="w-5 h-5 text-emerald-600" />
+                                <Label className="text-base font-black text-emerald-900 uppercase tracking-tight">
+                                    Registro de Entrega & Automação
+                                </Label>
+                            </div>
+                            <Badge className="bg-emerald-600 text-white border-none uppercase text-[10px] tracking-widest px-2 py-0.5">Automático</Badge>
+                        </div>
+
+                        <p className="text-xs text-emerald-800 mb-6 leading-relaxed">
+                            Ao registrar a entrega, o sistema criará automaticamente as evoluções no prontuário e
+                            agendará os questionários de acompanhamento de <strong>40 dias</strong> e <strong>1 ano</strong>.
+                        </p>
+
+                        <div className="flex flex-col md:flex-row items-end gap-4 max-w-xl">
+                            <div className="flex-1 w-full">
+                                <Label className="text-[10px] font-black text-emerald-800 uppercase tracking-widest mb-1.5 block">Data da Entrega</Label>
+                                <input
+                                    type="date"
+                                    value={deliveryDate}
+                                    onChange={(e) => setDeliveryDate(e.target.value)}
+                                    className="h-10 w-full px-3 bg-white border border-emerald-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition-all shadow-sm"
+                                />
+                            </div>
+                            <Button
+                                onClick={handleRegisterDelivery}
+                                disabled={isRegisteringDelivery || !deliveryDate}
+                                className="h-10 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 shadow-lg shadow-emerald-100 transition-all active:scale-95"
+                            >
+                                {isRegisteringDelivery ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <CheckCircle2 className="w-4 h-4" />
+                                )}
+                                REGISTRAR ENTREGA
+                            </Button>
                         </div>
                     </div>
                 </div>

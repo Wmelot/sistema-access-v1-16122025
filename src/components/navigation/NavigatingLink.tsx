@@ -17,7 +17,7 @@ export function NavigatingLink({ href, children, className, message }: Navigatin
 
     const handleClick = (e: React.MouseEvent) => {
         e.preventDefault()
-        showLoading(message || "Abrindo...")
+        showLoading(message || "Abrindo")
         router.push(href)
     }
 

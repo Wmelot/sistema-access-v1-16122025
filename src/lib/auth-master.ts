@@ -7,21 +7,7 @@ import { createAdminClient } from "@/lib/supabase/server"
  * IMPORTANT: This should be used for UI visibility and secondary checks. 
  * Critical security MUST be enforced via RLS in Postgres using the is_master_user() function.
  */
-export async function isMasterUser(userId?: string, userEmail?: string): Promise<boolean> {
-    if (!userId && !userEmail) return false
-
-    // 1. Hardcoded critical fallback (Safety net)
-    const masterEmails = [
-        'wmelot@gmail.com',
-        'warley@gmail.com',
-        'accessfisio@gmail.com',
-        'wmelot@icloud.com'
-    ]
-
-    if (userEmail && masterEmails.includes(userEmail)) {
-        return true
-    }
-
+export async function isMasterUser(userId?: string): Promise<boolean> {
     if (!userId) return false
 
     // 2. Database Role Check

@@ -545,16 +545,16 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                     if (retryRes.error) {
                         toast.error(retryRes.error)
                     } else {
-                        toast.success("Retorno agendado com sucesso!")
+                        // Success - Parent will show the final toast
                         router.refresh()
-                        onConfirm()
+                        await onConfirm()
                         onOpenChange(false)
                     }
                 }
             } else {
-                toast.success("Retorno agendado!")
+                // Success - Parent will show the final toast
                 router.refresh()
-                onConfirm() // Finalize everything
+                await onConfirm() // Finalize everything
                 onOpenChange(false)
             }
         } catch (e) {
@@ -564,8 +564,8 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
         }
     }
 
-    const handleSkipSchedule = () => {
-        onConfirm()
+    const handleSkipSchedule = async () => {
+        await onConfirm()
         onOpenChange(false)
     }
 
@@ -1101,10 +1101,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                                 <Button
                                                     variant="outline"
                                                     className="w-full border-slate-200 text-slate-500 hover:bg-slate-50 font-bold h-11"
-                                                    onClick={() => {
-                                                        toast.success("Atendimento finalizado com sucesso! 🎉")
-                                                        onConfirm()
-                                                    }}
+                                                    onClick={handleSkipSchedule}
                                                 >
                                                     Finalizar sem Agendar
                                                 </Button>

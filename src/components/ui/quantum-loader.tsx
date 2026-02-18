@@ -8,9 +8,10 @@ interface QuantumLoaderProps {
     speed?: string;
     color?: string;
     className?: string;
-    text?: string;
+    title?: string;
     messages?: string[];
     interval?: number;
+    textColor?: string;
 }
 
 export const QuantumLoader = ({
@@ -18,15 +19,18 @@ export const QuantumLoader = ({
     speed = "1.75",
     color = "black",
     className,
-    text,
+    title,
     messages = [
-        "Carregando informações...",
-        "Sincronizando dados...",
-        "Preparando ambiente...",
-        "Quase pronto...",
-        "Finalizando processamento..."
+        "Iniciando conexão segura...",
+        "Validando acesso ao banco...",
+        "Buscando dados da clínica...",
+        "Sincronizando protocolos...",
+        "Otimizando interface clínica...",
+        "Preparando prontuários...",
+        "Finalizando ambiente..."
     ],
-    interval = 3000
+    interval = 2500,
+    textColor
 }: QuantumLoaderProps) => {
     const [isMounted, setIsMounted] = useState(false);
     const [currentMsgIdx, setCurrentMsgIdx] = useState(0);
@@ -56,25 +60,31 @@ export const QuantumLoader = ({
 
     if (!isMounted) return null;
 
-    const isUsingDefaultMessages = JSON.stringify(messages) === JSON.stringify([
-        "Carregando informações...",
-        "Sincronizando dados...",
-        "Preparando ambiente...",
-        "Quase pronto...",
-        "Finalizando processamento..."
-    ]);
-
-    const displayMessage = (text && isUsingDefaultMessages) ? text : (messages && messages.length > 0 ? messages[currentMsgIdx] : text);
+    const displayMessage = messages && messages.length > 0 ? messages[currentMsgIdx] : null;
 
     return (
-        <div className={cn("flex flex-col items-center justify-center gap-4", className)}>
+        <div className={cn("flex flex-col items-center justify-center gap-6", className)}>
             {/* @ts-ignore */}
             <l-quantum size={size} speed={speed} color={color}></l-quantum>
-            {displayMessage && (
-                <p className="text-sm font-bold text-slate-600 animate-pulse text-center max-w-[250px] leading-relaxed">
-                    {displayMessage}
-                </p>
-            )}
+
+            <div className="flex flex-col items-center gap-1.5 min-h-[40px]">
+                {title && (
+                    <p
+                        className={cn("text-[10px] font-black uppercase tracking-[0.3em] mb-1 text-center", !textColor && color === 'white' ? "text-white/40" : "text-slate-400")}
+                        style={textColor ? { color: textColor } : {}}
+                    >
+                        {title}
+                    </p>
+                )}
+                {displayMessage && (
+                    <p
+                        className={cn("text-xs font-semibold italic opacity-80 transition-all duration-500 text-center max-w-[280px]", !textColor && color === 'white' ? "text-white" : "text-slate-600")}
+                        style={textColor ? { color: textColor } : {}}
+                    >
+                        {displayMessage}
+                    </p>
+                )}
+            </div>
         </div>
     );
 };
