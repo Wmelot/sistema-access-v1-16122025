@@ -11,7 +11,10 @@ import { ViewModeToggle } from "@/components/ui/view-mode-toggle"
 import { useViewMode } from "@/hooks/use-view-mode"
 import { cn } from "@/lib/utils"
 
-import { Info } from "lucide-react"
+import { Info, Loader2 } from "lucide-react"
+import { QuantumLoader } from '@/components/ui/quantum-loader'
+import { useGlobalLoader } from '@/components/providers/global-loader-provider'
+import { ManagementHeader } from "@/components/dashboard/management-header"
 import {
     Dialog,
     DialogContent,
@@ -28,20 +31,33 @@ interface ProfessionalsListProps {
 export function ProfessionalsList({ professionals, slug }: ProfessionalsListProps) {
     const { viewMode, setViewMode, isLoaded } = useViewMode('professionals-view-mode', 'grid')
     const [infoPro, setInfoPro] = useState<any>(null)
+    const [loadingId, setLoadingId] = useState<string | null>(null)
+    const router = useRouter()
+    const { showLoading } = useGlobalLoader()
+
+    const handleEdit = (proId: string, name: string) => {
+        setLoadingId(proId)
+        showLoading(`Abrindo perfil de ${name.split(' ')[0]}`)
+        router.push(`${dashboardPrefix}/professionals/${proId}`)
+    }
 
     if (!isLoaded) {
-        return <div className="animate-pulse">Carregando...</div>
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+                <QuantumLoader size="40" title="Carregando Equipe" />
+            </div>
+        )
     }
 
     const dashboardPrefix = `/dashboard/${slug}`
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Gestão de Equipe</h2>
-                    <p className="text-muted-foreground">Gerencie a equipe, horários e níveis de acesso.</p>
-                </div>
+            <ManagementHeader
+                slug={slug}
+                title="Gestão de Equipe"
+                description="Gerencie a equipe, horários e níveis de acesso."
+            >
                 <div className="flex items-center gap-3">
                     <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
                     <Link href={`${dashboardPrefix}/professionals/new`}>
@@ -51,7 +67,7 @@ export function ProfessionalsList({ professionals, slug }: ProfessionalsListProp
                         </Button>
                     </Link>
                 </div>
-            </div>
+            </ManagementHeader>
 
             {viewMode === 'grid' ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -97,10 +113,21 @@ export function ProfessionalsList({ professionals, slug }: ProfessionalsListProp
                                 )}
                             </CardContent>
                             <CardFooter className="p-4 pt-0 flex justify-end">
-                                <Link href={`${dashboardPrefix}/professionals/${pro.id}`}>
-                                    <Button variant="ghost" size="sm">Editar</Button>
-                                </Link>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEdit(pro.id, pro.full_name)}
+                                    disabled={loadingId === pro.id}
+                                >
+                                    Editar
+                                </Button>
                             </CardFooter>
+
+                            {loadingId === pro.id && (
+                                <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur-[2px] transition-all animate-in fade-in duration-300">
+                                    <QuantumLoader size="35" color="#6366f1" />
+                                </div>
+                            )}
                         </Card>
                     ))}
                 </div>
@@ -157,10 +184,24 @@ export function ProfessionalsList({ professionals, slug }: ProfessionalsListProp
                                         )}
                                     </div>
                                 </div>
-                                <Link href={`${dashboardPrefix}/professionals/${pro.id}`}>
-                                    <Button variant="outline" size="sm">Editar</Button>
-                                </Link>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleEdit(pro.id, pro.full_name)}
+                                    disabled={loadingId === pro.id}
+                                    className="relative overflow-hidden"
+                                >
+                                    {loadingId === pro.id ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : 'Editar'}
+                                </Button>
                             </div>
+
+                            {loadingId === pro.id && (
+                                <div className="absolute inset-x-0 bottom-0 h-1 bg-blue-500/20">
+                                    <div className="h-full bg-blue-600 animate-progress origin-left w-full" />
+                                </div>
+                            )}
                         </Card>
                     ))}
                 </div>

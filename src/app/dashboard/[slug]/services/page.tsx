@@ -14,23 +14,29 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { Plus, Edit, Trash2, Clock } from "lucide-react"
+import { Plus, Edit, Trash2, Clock, Globe } from "lucide-react"
 import { ServicesDialog } from "@/components/settings/ServicesDialog"
 import { Badge } from "@/components/ui/badge"
 import { ToggleServiceStatus } from "./toggle-service-status"
 import { DeleteServiceButton } from "./delete-service-button"
 import { createClient } from "@/lib/supabase/server"
+import { ManagementHeader } from "@/components/dashboard/management-header"
+import { cn } from "@/lib/utils"
 
-export default async function ServicesPage() {
+export default async function ServicesPage({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params
     const supabase = await createClient()
     const { data: services } = await supabase.from('services').select('*').order('name')
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-                <h1 className="text-lg font-semibold md:text-2xl">Serviços e Procedimentos</h1>
+            <ManagementHeader
+                slug={slug}
+                title="Serviços e Procedimentos"
+                description="Padronize os nomes, preços e duração dos atendimentos."
+            >
                 <ServicesDialog />
-            </div>
+            </ManagementHeader>
             <Card>
                 <CardHeader>
                     <CardTitle>Catálogo de Serviços</CardTitle>
@@ -47,6 +53,7 @@ export default async function ServicesPage() {
                                     <TableHead>Nome</TableHead>
                                     <TableHead>Duração</TableHead>
                                     <TableHead>Preço Padrão</TableHead>
+                                    <TableHead>Agendamento</TableHead>
                                     <TableHead>Status</TableHead>
                                     <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
@@ -71,6 +78,12 @@ export default async function ServicesPage() {
                                         </TableCell>
                                         <TableCell>
                                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={service.show_online ? "outline" : "secondary"} className={service.show_online ? "text-emerald-700 bg-emerald-50 border-emerald-200" : "text-slate-400 opacity-50"}>
+                                                <Globe className="h-3 w-3 mr-1" />
+                                                {service.show_online ? 'Visível Online' : 'Interno'}
+                                            </Badge>
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant={service.active ? "default" : "secondary"}>
@@ -100,9 +113,15 @@ export default async function ServicesPage() {
                                         />
                                         <span className="font-bold text-slate-800">{service.name}</span>
                                     </div>
-                                    <Badge variant={service.active ? "default" : "secondary"} className="text-[10px] h-5 px-1.5 font-bold uppercase tracking-tight">
-                                        {service.active ? 'Ativo' : 'Inativo'}
-                                    </Badge>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant={service.show_online ? "outline" : "secondary"} className={cn("text-[9px] h-5 px-1.5 font-bold uppercase tracking-tight", service.show_online ? "text-emerald-700 bg-emerald-50 border-emerald-200" : "text-slate-400 opacity-50")}>
+                                            <Globe className="h-2.5 w-2.5 mr-1" />
+                                            {service.show_online ? 'Online' : 'Interno'}
+                                        </Badge>
+                                        <Badge variant={service.active ? "default" : "secondary"} className="text-[10px] h-5 px-1.5 font-bold uppercase tracking-tight">
+                                            {service.active ? 'Ativo' : 'Inativo'}
+                                        </Badge>
+                                    </div>
                                 </div>
 
                                 <div className="flex items-center justify-between text-sm">

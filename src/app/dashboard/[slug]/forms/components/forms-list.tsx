@@ -8,6 +8,7 @@ import { Plus, Pencil, FileText, Settings, Activity, Dumbbell, Brain } from 'luc
 import Link from 'next/link'
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle"
 import { useViewMode } from "@/hooks/use-view-mode"
+import { ManagementHeader } from "@/components/dashboard/management-header"
 import { FormCardActions } from './form-card-actions'
 import {
     Dialog,
@@ -40,14 +41,11 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Formulários Personalizados</h1>
-                    <p className="text-muted-foreground">
-                        Crie seus próprios formulários e avaliações usando o editor Drag-and-Drop.
-                    </p>
-                </div>
-
+            <ManagementHeader
+                slug={slug!}
+                title="Formulários Personalizados"
+                description="Crie seus próprios formulários e avaliações usando o editor Drag-and-Drop."
+            >
                 <div className="hidden md:flex items-center gap-3">
                     <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
                     <Dialog>
@@ -104,7 +102,7 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
                         </DialogContent>
                     </Dialog>
                 </div>
-            </div>
+            </ManagementHeader>
 
             {viewMode === 'grid' ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

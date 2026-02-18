@@ -8,6 +8,7 @@ import { ArrowRight, Trash2 } from "lucide-react"
 import { revalidatePath } from "next/cache"
 
 import { PriceTableCard } from "./components/price-table-card"
+import { ManagementHeader } from "@/components/dashboard/management-header"
 
 interface PageProps {
     params: Promise<{ slug: string }>
@@ -19,15 +20,13 @@ export default async function PriceTablesPage({ params }: PageProps) {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Tabelas de Preços</h1>
-                    <p className="text-muted-foreground">
-                        Gerencie preços diferenciados por convênio ou categoria de paciente.
-                    </p>
-                </div>
+            <ManagementHeader
+                slug={slug}
+                title="Tabelas de Preços"
+                description="Gerencie preços diferenciados por convênio ou categoria de paciente."
+            >
                 <PriceTableDialog />
-            </div>
+            </ManagementHeader>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {tables.length === 0 ? (

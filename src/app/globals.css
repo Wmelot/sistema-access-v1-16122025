@@ -254,3 +254,16 @@ select {
   min-height: 100%;
   padding: 0 !important;
 }
+
+@keyframes progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-progress {
+  animation: progress 1s infinite linear;
+}

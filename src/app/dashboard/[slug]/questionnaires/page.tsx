@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { FormCardActions } from '../forms/components/form-card-actions';
 import { createClient } from '@/lib/supabase/server';
 import { QuestionnaireBrowser } from './components/questionnaire-browser';
+import { ManagementHeader } from "@/components/dashboard/management-header";
 
 export const dynamic = 'force-dynamic';
 
@@ -24,12 +25,11 @@ export default async function QuestionnairesPage({ params }: { params: Promise<{
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Biblioteca de Questionários</h1>
-                <p className="text-muted-foreground">
-                    Visualize os modelos de questionários padronizados e escalas globais.
-                </p>
-            </div>
+            <ManagementHeader
+                slug={slug}
+                title="Biblioteca de Questionários"
+                description="Visualize os modelos de questionários padronizados e escalas globais."
+            />
             {/* Creation button moved to Custom Forms page */}
 
             <QuestionnaireBrowser questionnaires={questionnaires} followups={followups} user={user} slug={slug} />

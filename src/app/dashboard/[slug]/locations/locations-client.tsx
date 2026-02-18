@@ -22,17 +22,22 @@ import { useState } from "react"
 import { deleteLocation, toggleLocationStatus } from "./actions"
 import { toast } from "sonner"
 import { DeleteWithPassword } from "@/components/ui/delete-with-password"
+import { ManagementHeader } from "@/components/dashboard/management-header"
 
-export function LocationsClient({ locations }: { locations: any[] }) {
+export function LocationsClient({ locations, slug }: { locations: any[], slug: string }) {
     const [editingLocation, setEditingLocation] = useState<any>(null)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
+    const dashboardPrefix = `/dashboard/${slug}`
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <h1 className="text-xl font-bold tracking-tight md:text-2xl">Locais de Atendimento</h1>
+            <ManagementHeader
+                slug={slug}
+                title="Locais de Atendimento"
+                description="Gerencie onde os atendimentos podem ocorrer e a capacidade de cada local."
+            >
                 <LocationsDialog />
-            </div>
+            </ManagementHeader>
             <Card className="border-none shadow-none bg-transparent sm:border sm:shadow-sm sm:bg-white">
                 <CardHeader className="hidden sm:block">
                     <CardTitle>Salas e Espaços</CardTitle>

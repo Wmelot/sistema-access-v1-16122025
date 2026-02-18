@@ -7,16 +7,16 @@ import { getReportTemplates } from './reports/actions';
 import { createClient } from '@/lib/supabase/server';
 import { isMasterUser } from '@/lib/auth-master';
 
-export default async function SettingsPage({ params }: { params: { slug: string } }) {
+import { ManagementHeader } from "@/components/dashboard/management-header";
+
+export default async function SettingsPage({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params;
     // 1. Fetch Basic Settings (Always visible)
-    const settings = await getClinicSettings(params.slug);
+    const settings = await getClinicSettings(slug);
     const hasGoogleIntegration = !!process.env.GOOGLE_CLIENT_ID;
 
-    // Fetch Report Templates 
+    // ... existing fetches ...
     const reportTemplates = await getReportTemplates() || [];
-
-    // 2. Fetch Roles Data (Permission Guarded)
-    // TEMPORARY FIX: Force true to allow recovery
     const canManageRoles = true;
     let roles: any[] = [];
     let allPermissions: any[] = [];
@@ -26,7 +26,6 @@ export default async function SettingsPage({ params }: { params: { slug: string 
         allPermissions = await getAllPermissions() || [];
     }
 
-    // 3. Fetch API Data (Permission Guarded)
     const canManageApis = await hasPermission('system.manage_apis');
     let integrations: any[] = [];
 
@@ -34,20 +33,17 @@ export default async function SettingsPage({ params }: { params: { slug: string 
         integrations = await getIntegrations() || [];
     }
 
-    // 4. Check Master (Hardcoded for critical locks)
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-
     const isMaster = await isMasterUser(user?.id, user?.email);
 
     return (
-        <div className="container mx-auto py-10 max-w-6xl">
-            <div className="mb-10">
-                <h1 className="text-3xl font-bold">Configurações do Sistema</h1>
-                <p className="text-muted-foreground">
-                    Central de controle da sua clínica.
-                </p>
-            </div>
+        <div className="container mx-auto py-6 max-w-6xl">
+            <ManagementHeader
+                slug={slug}
+                title="Configurações do Sistema"
+                description="Central de controle da sua clínica."
+            />
 
             <SettingsView
                 initialSettings={settings}
@@ -64,8 +60,9 @@ export default async function SettingsPage({ params }: { params: { slug: string 
                 reportTemplates={reportTemplates}
                 auditData={{}}
                 isMaster={isMaster}
-                slug={params.slug}
+                slug={slug}
             />
+
         </div>
     );
 }
