@@ -81,10 +81,21 @@ export async function registerInsoleDelivery(rawInput: any) {
         }
 
         if (slug) revalidatePath(`/dashboard/${slug}/patients/${patientId}`);
+
+        const { logAction } = await import("@/lib/logger");
+        await logAction("REGISTER_INSOLE_DELIVERY_SUCCESS", { patientId, isAdjustment }, 'patient', patientId, organizationId);
+
         return { success: true, message: 'Entrega registrada com sucesso.' };
 
     } catch (error: any) {
         console.error("Critical Security Failure in Insoles:", error.message);
+
+        // [AUDIT] Log unauthorized or failed attempt
+        try {
+            const { logAction } = await import("@/lib/logger");
+            await logAction("SECURITY_VIOLATION_INSOLE", { error: error.message, patientId }, 'security', patientId);
+        } catch (e) { }
+
         return { success: false, message: error.message || 'Erro de segurança.' };
     }
 }
