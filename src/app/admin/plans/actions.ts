@@ -109,3 +109,22 @@ export async function deletePlan(id: string) {
     revalidatePath('/admin/settings')
     return { success: true }
 }
+
+export async function getGlobalContentForPlans() {
+    const supabase = await createClient()
+
+    // Forms
+    const { data: forms } = await supabase.from('form_templates').select('id, title, is_locked, type').is('organization_id', null).order('title')
+
+    // Protocols
+    const { data: protocols } = await supabase.from('clinical_protocols').select('id, title').is('organization_id', null).order('title')
+
+    // Messages
+    const { data: messages } = await supabase.from('message_templates').select('id, title, trigger_type, channel').is('organization_id', null).order('title')
+
+    return {
+        forms: forms || [],
+        protocols: protocols || [],
+        messages: messages || []
+    }
+}

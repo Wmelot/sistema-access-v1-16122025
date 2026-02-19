@@ -12,6 +12,7 @@ import { Edit2, Plus, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
+import { PlanGranularAccessManager } from "./components/plan-granular-access-manager"
 
 const MySwal = withReactContent(Swal);
 
@@ -47,7 +48,13 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
         max_patients: (plan as any)?.max_patients || 100,
         price_monthly: (plan as any)?.price_monthly || 0,
         price_yearly: (plan as any)?.price_yearly || 0,
-        features: { ...(DEFAULT_FEATURES as any), ...(plan?.features || {}) },
+        features: {
+            ...(DEFAULT_FEATURES as any),
+            ...((plan as any)?.features || {}),
+            allowed_forms: Array.isArray((plan as any)?.features?.allowed_forms) ? (plan as any).features.allowed_forms : [],
+            allowed_protocols: Array.isArray((plan as any)?.features?.allowed_protocols) ? (plan as any).features.allowed_protocols : [],
+            allowed_messages: Array.isArray((plan as any)?.features?.allowed_messages) ? (plan as any).features.allowed_messages : []
+        },
         is_active: plan?.is_active ?? true
     })
 
@@ -123,8 +130,8 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-                <DialogHeader>
+            <DialogContent className="w-[calc(100vw-2rem)] md:max-w-[calc(100vw-350px)] h-[calc(100vh-4rem)] flex flex-col p-4 md:p-6 overflow-hidden">
+                <DialogHeader className="shrink-0 mb-4">
                     <DialogTitle>{mode === 'create' ? 'Criar Novo Plano' : `Editar ${plan?.name}`}</DialogTitle>
                     <DialogDescription>
                         Configure quais módulos e recursos este plano terá acesso.
@@ -132,7 +139,7 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-6 overflow-y-auto max-h-[70vh] pr-4 py-2 custom-scrollbar">
+                <form onSubmit={handleSubmit} className="flex-1 p-1 space-y-6 overflow-y-auto custom-scrollbar">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Nome do Plano</Label>
@@ -274,6 +281,23 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
                                 onCheckedChange={c => handleFeatureChange('form_management', c)}
                             />
                         </div>
+                    </div>
+
+                    <div className="mt-8 border rounded-lg p-0 bg-zinc-50/50 overflow-hidden">
+                        <PlanGranularAccessManager
+                            allowedForms={formData.features.allowed_forms}
+                            allowedProtocols={formData.features.allowed_protocols}
+                            allowedMessages={formData.features.allowed_messages}
+                            onChange={(type, newValues) => {
+                                setFormData(prev => ({
+                                    ...prev,
+                                    features: {
+                                        ...prev.features,
+                                        [`allowed_${type === 'forms' ? 'forms' : type === 'protocols' ? 'protocols' : 'messages'}`]: newValues
+                                    }
+                                }))
+                            }}
+                        />
                     </div>
 
                     <div className="flex justify-end gap-2 sticky -bottom-2 bg-white pt-4 pb-4 border-t mt-6 -mx-2 px-2 z-10">

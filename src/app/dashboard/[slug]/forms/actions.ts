@@ -34,7 +34,16 @@ export async function getFormTemplates() {
         .select('form_template_id')
         .eq('organization_id', orgId);
 
-    const allowedSystemIds = (allowedAccess || []).map(a => a.form_template_id);
+    const { data: orgData } = await adminSupabase
+        .from('organizations')
+        .select(`plan_config_id, plan_configs ( features )`)
+        .eq('id', orgId)
+        .single();
+
+    // Extract both pointwise access and plan-level access
+    const planForms = Array.isArray((orgData as any)?.plan_configs?.features?.allowed_forms) ? (orgData as any).plan_configs.features.allowed_forms : [];
+    const pointwiseForms = (allowedAccess || []).map(a => a.form_template_id);
+    const allowedSystemIds = Array.from(new Set([...planForms, ...pointwiseForms]));
 
     // 2. Fetch all potentially relevant templates
     const { data, error } = await adminSupabase

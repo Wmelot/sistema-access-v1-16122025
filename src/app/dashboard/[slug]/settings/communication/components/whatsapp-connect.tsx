@@ -143,7 +143,8 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
         try {
             const configToSave = {
                 provider: 'zapi',
-                testMode
+                testMode,
+                zapi: zapiConfig
             }
 
             const res = await saveWhatsappConfig(configToSave as any, slug)
@@ -230,6 +231,47 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
                     <Button variant="outline" onClick={() => setIsConfiguring(false)}>Voltar</Button>
                 </div>
 
+                {/* Z-API CREDENTIALS CARD */}
+                <Card className="mb-6">
+                    <CardHeader className="pb-3 border-b bg-slate-50">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="text-base flex items-center gap-2">
+                                <Key className="h-5 w-5 text-slate-600" />
+                                Credenciais Z-API
+                            </CardTitle>
+                        </div>
+                        <CardDescription>
+                            Insira suas credenciais da <a href="https://www.z-api.io/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">Z-API.io</a> para ativar as automações do WhatsApp. Elas possuem 7 dias de teste grátis criados na hora.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4 pt-4">
+                        <div className="space-y-2">
+                            <Label>ID da Instância (Instance ID)</Label>
+                            <Input
+                                placeholder="Ex: 3B2D..."
+                                value={zapiConfig.instanceId}
+                                onChange={e => setZapiConfig({ ...zapiConfig, instanceId: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Token da Instância (Token)</Label>
+                            <Input
+                                placeholder="Ex: 23F2..."
+                                value={zapiConfig.token}
+                                onChange={e => setZapiConfig({ ...zapiConfig, token: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Token do Cliente (Client Token) - Opcional</Label>
+                            <Input
+                                placeholder="Ex: eyJhbGciOiJIUzI1..."
+                                value={zapiConfig.clientToken}
+                                onChange={e => setZapiConfig({ ...zapiConfig, clientToken: e.target.value })}
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* SAFETY MODE CARD */}
                 <Card className={`border-l-4 ${testMode.isActive ? "border-l-slate-800 bg-slate-50" : "border-l-slate-300"}`}>
                     <CardHeader className="pb-3">
@@ -300,10 +342,24 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
             {/* Connection Status Card */}
             <Card className="w-full border shadow-sm overflow-hidden">
                 {!zapiConfig.instanceId ? (
-                    <div className="p-8 text-center bg-slate-50">
-                        <AlertCircle className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-                        <h3 className="text-slate-900 font-medium mb-1">Aguardando Liberação</h3>
-                        <p className="text-slate-500 text-sm mb-4">A conexão técnica está sendo preparada pela equipe Axiom.</p>
+                    <div className="p-8 text-center bg-slate-50 flex flex-col items-center">
+                        <div className="h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                            <Server className="h-8 w-8 text-blue-600" />
+                        </div>
+                        <h3 className="text-slate-900 font-bold text-lg mb-2">Conecte sua Instância WhatsApp</h3>
+                        <p className="text-slate-500 text-sm mb-6 max-w-sm">
+                            Para usar as automações exclusivas de faltas e alertas médicos, você precisa fornecer as credenciais do motor de disparo Z-API.
+                        </p>
+                        <div className="flex flex-col gap-3 w-full max-w-xs">
+                            <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => setIsConfiguring(true)}>
+                                Configurar Credenciais Agora
+                            </Button>
+                            <a href="https://www.z-api.io/" target="_blank" rel="noopener noreferrer">
+                                <Button variant="outline" className="w-full">
+                                    Pegar meus 14 dias Grátis
+                                </Button>
+                            </a>
+                        </div>
                     </div>
                 ) : (
                     <>

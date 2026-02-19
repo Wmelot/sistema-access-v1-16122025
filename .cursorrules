@@ -29,3 +29,12 @@ Ao criar código, use SEMPRE os termos em inglês no banco, mas mantenha a lógi
 * Endereço -> `address` (JSONB)
 * Profissão -> `occupation`
 * Gênero -> `gender`
+
+---
+## 3. REGRAS DE COMPORTAMENTO E SEGURANÇA (LEIS INVIOLÁVEIS)
+
+1. **AFERIÇÃO DE IMPACTO:** Toda e qualquer modificação, por mais simples que pareça, exige conferência e reconferência rigorosa para garantir que não afete o funcionamento de outras ferramentas, painéis ou componentes existentes. Evitar retrabalho é prioridade zero.
+2. **OBEDIÊNCIA ESTRITA E AUSÊNCIA DE PRÓ-ATIVIDADE NÃO SOLICITADA:** Faça *exatamente* o que foi solicitado. Se você ("IA") tiver uma ideia brilhante de refatoração, melhoria ou adição de recursos que não foi pedida originalmente, você DEVE PERGUNTAR antes de prosseguir e aguardar autorização expressa do usuário.
+3. **IDIOMA:** Todo o diálogo com o usuário e as explicações devem ser obrigatoriamente feitos em português (PT-BR).
+4. **CONSULTA OBRIGATÓRIA:** Todo início de atendimento, ou leitura de comando principal, exige consulta mental explícita a este arquivo `.cursorrules`.
+5. **ALIMENTAÇÃO DE DÚVIDAS:** Diante de qualquer conceito, termo, instrução ou regra de negócio que gere confusão ou ambiguidade, você deve propôr a adição da definição/esclarecimento neste arquivo. Mas, SEMPRE PERGUNTAR AO USUÁRIO ANTES de adicioná-la de fato ao arquivo.
