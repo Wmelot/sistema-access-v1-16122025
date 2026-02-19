@@ -117,7 +117,7 @@ export async function getGlobalContentForPlans() {
     const { data: forms } = await supabase.from('form_templates').select('id, title, is_locked, type').is('organization_id', null).order('title')
 
     // Protocols
-    const { data: protocols } = await supabase.from('clinical_protocols').select('id, title').is('organization_id', null).order('title')
+    const { data: protocols } = await supabase.from('clinical_protocols').select('id, title').is('user_id', null).order('title')
 
     // Messages
     const { data: messages } = await supabase.from('message_templates').select('id, title, trigger_type, channel').is('organization_id', null).order('title')

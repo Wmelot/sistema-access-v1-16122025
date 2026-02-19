@@ -80,7 +80,18 @@ export function PlanGranularAccessManager({ allowedForms, allowedProtocols, allo
     const allowedQuestionnairesCount = questionnaireList.filter(q => allowedForms.includes(q.id)).length
     const allowedCustomFormsCount = customFormList.filter(cf => allowedForms.includes(cf.id)).length
 
-    const handleSelectAll = (uiType: 'forms' | 'questionnaires' | 'protocols' | 'messages', checked: boolean) => {
+    const isAllSelected = (uiType: 'forms' | 'questionnaires' | 'protocols' | 'messages') => {
+        if (uiType === 'forms') return filteredForms.length > 0 && filteredForms.every(f => allowedForms.includes(f.id));
+        if (uiType === 'questionnaires') return filteredQuestionnaires.length > 0 && filteredQuestionnaires.every(f => allowedForms.includes(f.id));
+        if (uiType === 'protocols') return filteredProtocols.length > 0 && filteredProtocols.every(f => allowedProtocols.includes(f.id));
+        if (uiType === 'messages') return filteredMessages.length > 0 && filteredMessages.every(f => allowedMessages.includes(f.id));
+        return false;
+    }
+
+    const handleSelectAll = (uiType: 'forms' | 'questionnaires' | 'protocols' | 'messages') => {
+        const currentlyAllSelected = isAllSelected(uiType);
+        const checked = !currentlyAllSelected;
+
         if (uiType === 'forms') {
             let newArray = checked
                 ? [...new Set([...allowedForms, ...filteredForms.map(f => f.id)])]
@@ -148,11 +159,11 @@ export function PlanGranularAccessManager({ allowedForms, allowedProtocols, allo
                             </div>
                             <Button
                                 variant="outline" type="button" size="sm"
-                                onClick={() => handleSelectAll('forms', true)}
+                                onClick={() => handleSelectAll('forms')}
                                 disabled={filteredForms.length === 0}
                                 className="shrink-0"
                             >
-                                <CheckSquare className="mr-2 h-4 w-4" /> Selecionar Todos
+                                <CheckSquare className="mr-2 h-4 w-4" /> {isAllSelected('forms') ? 'Desmarcar Todos' : 'Selecionar Todos'}
                             </Button>
                         </div>
                         <ScrollArea className="h-[250px] border rounded-md p-2">
@@ -187,11 +198,11 @@ export function PlanGranularAccessManager({ allowedForms, allowedProtocols, allo
                             </div>
                             <Button
                                 variant="outline" type="button" size="sm"
-                                onClick={() => handleSelectAll('questionnaires', true)}
+                                onClick={() => handleSelectAll('questionnaires')}
                                 disabled={filteredQuestionnaires.length === 0}
                                 className="shrink-0"
                             >
-                                <CheckSquare className="mr-2 h-4 w-4" /> Selecionar Todos
+                                <CheckSquare className="mr-2 h-4 w-4" /> {isAllSelected('questionnaires') ? 'Desmarcar Todos' : 'Selecionar Todos'}
                             </Button>
                         </div>
                         <ScrollArea className="h-[250px] border rounded-md p-2">
@@ -226,11 +237,11 @@ export function PlanGranularAccessManager({ allowedForms, allowedProtocols, allo
                             </div>
                             <Button
                                 variant="outline" type="button" size="sm"
-                                onClick={() => handleSelectAll('protocols', true)}
+                                onClick={() => handleSelectAll('protocols')}
                                 disabled={filteredProtocols.length === 0}
                                 className="shrink-0"
                             >
-                                <CheckSquare className="mr-2 h-4 w-4" /> Selecionar Todos
+                                <CheckSquare className="mr-2 h-4 w-4" /> {isAllSelected('protocols') ? 'Desmarcar Todos' : 'Selecionar Todos'}
                             </Button>
                         </div>
                         <ScrollArea className="h-[250px] border rounded-md p-2">
@@ -265,11 +276,11 @@ export function PlanGranularAccessManager({ allowedForms, allowedProtocols, allo
                             </div>
                             <Button
                                 variant="outline" type="button" size="sm"
-                                onClick={() => handleSelectAll('messages', true)}
+                                onClick={() => handleSelectAll('messages')}
                                 disabled={filteredMessages.length === 0}
                                 className="shrink-0"
                             >
-                                <CheckSquare className="mr-2 h-4 w-4" /> Selecionar Todos
+                                <CheckSquare className="mr-2 h-4 w-4" /> {isAllSelected('messages') ? 'Desmarcar Todos' : 'Selecionar Todos'}
                             </Button>
                         </div>
                         <ScrollArea className="h-[250px] border rounded-md p-2">
