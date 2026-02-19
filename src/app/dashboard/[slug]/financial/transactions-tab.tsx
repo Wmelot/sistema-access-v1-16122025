@@ -10,10 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { CurrencyInput } from "@/components/ui/currency-input"
 import { DateInput } from "@/components/ui/date-input"
-import { Plus, Trash2, Search, ArrowUpCircle, ArrowDownCircle, ArrowUpDown, ArrowUp, ArrowDown, Loader2 } from "lucide-react"
+import { Plus, Trash2, Search, ArrowUpCircle, ArrowDownCircle, ArrowUpDown, ArrowUp, ArrowDown, Loader2, Pencil, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
-import { getTransactions, createTransaction, deleteTransaction, getFinancialCategories } from "./actions"
+import { getTransactions, createTransaction, deleteTransaction, getFinancialCategories, updateTransaction } from "./actions"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import Link from "next/link"
 
@@ -32,8 +32,10 @@ export function TransactionsTab() {
         amount: '',
         category: '',
         date: new Date().toISOString().split('T')[0],
-        status: 'paid'
+        status: 'paid',
+        password: ''
     })
+    const [editingId, setEditingId] = useState<string | null>(null)
 
     const [deleteId, setDeleteId] = useState<string | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
@@ -53,7 +55,7 @@ export function TransactionsTab() {
         setLoading(false)
     }
 
-    const handleCreate = async () => {
+    const handleCreateOrUpdate = async () => {
         if (!newTransaction.description || !newTransaction.amount || !newTransaction.category) {
             toast.error("Preencha todos os campos obrigatórios.")
             return
@@ -67,25 +69,63 @@ export function TransactionsTab() {
         formData.append('category', newTransaction.category)
         formData.append('date', newTransaction.date)
         formData.append('status', newTransaction.status)
+        if (newTransaction.password) formData.append('password', newTransaction.password)
 
-        const res = await createTransaction(formData)
-        setCreating(false)
+        let res;
+        if (editingId) {
+            res = await updateTransaction(editingId, formData)
+        } else {
+            res = await createTransaction(formData)
+        }
 
+        setCreating(true) // Keep loading until done (wait, should be setCreating(false) later)
         if (res?.error) {
             toast.error(res.error)
+            setCreating(false)
         } else {
-            toast.success("Transação criada!")
+            toast.success(editingId ? "Transação atualizada!" : "Transação criada!")
             setIsCreateOpen(false)
+            setEditingId(null)
             setNewTransaction({
                 type: 'expense',
                 description: '',
                 amount: '',
                 category: '',
                 date: new Date().toISOString().split('T')[0],
-                status: 'paid'
+                status: 'paid',
+                password: ''
             })
             fetchData()
+            setCreating(false)
         }
+    }
+
+    const handleEdit = (t: any) => {
+        setEditingId(t.id)
+        setNewTransaction({
+            type: t.type,
+            description: t.description,
+            amount: String(t.amount).replace('.', ','),
+            category: t.category,
+            date: t.date,
+            status: t.status,
+            password: ''
+        })
+        setIsCreateOpen(true)
+    }
+
+    const resetForm = () => {
+        setIsCreateOpen(false)
+        setEditingId(null)
+        setNewTransaction({
+            type: 'expense',
+            description: '',
+            amount: '',
+            category: '',
+            date: new Date().toISOString().split('T')[0],
+            status: 'paid',
+            password: ''
+        })
     }
 
     const confirmDelete = async () => {
@@ -101,10 +141,41 @@ export function TransactionsTab() {
         }
     }
 
-    const filteredTransactions = transactions.filter(t =>
-        t.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.category?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({ key: 'date', direction: 'desc' })
+
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc'
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc'
+        }
+        setSortConfig({ key, direction })
+    }
+
+    const filteredTransactions = transactions
+        .filter(t =>
+            t.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            t.category?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .sort((a, b) => {
+            const { key, direction } = sortConfig
+            let valA = a[key]
+            let valB = b[key]
+
+            if (key === 'amount') {
+                valA = Number(valA)
+                valB = Number(valB)
+            } else if (key === 'date') {
+                valA = new Date(valA).getTime()
+                valB = new Date(valB).getTime()
+            } else if (typeof valA === 'string') {
+                valA = valA.toLowerCase()
+                valB = (valB || '').toLowerCase()
+            }
+
+            if (valA < valB) return direction === 'asc' ? -1 : 1
+            if (valA > valB) return direction === 'asc' ? 1 : -1
+            return 0
+        })
 
     return (
         <div className="space-y-4">
@@ -133,8 +204,8 @@ export function TransactionsTab() {
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
-                                <DialogTitle>Nova Transação</DialogTitle>
-                                <DialogDescription>Registre uma movimentação financeira manual.</DialogDescription>
+                                <DialogTitle>{editingId ? "Editar Transação" : "Nova Transação"}</DialogTitle>
+                                <DialogDescription>{editingId ? "Altere os dados da movimentação." : "Registre uma movimentação financeira manual."}</DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-4 py-4">
                                 <div className="grid grid-cols-2 gap-4">
@@ -159,6 +230,9 @@ export function TransactionsTab() {
                                             value={newTransaction.date}
                                             onChange={(v) => setNewTransaction({ ...newTransaction, date: v })}
                                         />
+                                        <p className="text-[10px] text-muted-foreground leading-tight italic">
+                                            Referente ao mês de consumo/competência.
+                                        </p>
                                     </div>
                                 </div>
                                 <div className="space-y-2">
@@ -190,10 +264,27 @@ export function TransactionsTab() {
                                         </datalist>
                                     </div>
                                 </div>
+                                {editingId && (newTransaction as any).status === 'paid' && (
+                                    <div className="space-y-2 p-3 bg-yellow-50 rounded-md border border-yellow-100">
+                                        <Label className="text-yellow-800 text-xs font-bold flex items-center gap-1">
+                                            <AlertCircle className="h-3 w-3" /> CONFIRMAÇÃO NECESSÁRIA
+                                        </Label>
+                                        <p className="text-[10px] text-yellow-700 leading-tight mb-2">
+                                            Esta transação já foi liquidada. Para editá-la, digite sua senha de login.
+                                        </p>
+                                        <Input
+                                            type="password"
+                                            placeholder="Sua senha para confirmar..."
+                                            className="bg-white"
+                                            value={newTransaction.password}
+                                            onChange={(e) => setNewTransaction({ ...newTransaction, password: e.target.value })}
+                                        />
+                                    </div>
+                                )}
                             </div>
                             <DialogFooter>
-                                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
-                                <Button onClick={handleCreate} disabled={creating}>
+                                <Button variant="outline" onClick={resetForm}>Cancelar</Button>
+                                <Button onClick={handleCreateOrUpdate} disabled={creating}>
                                     {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
                                 </Button>
                             </DialogFooter>
@@ -217,11 +308,31 @@ export function TransactionsTab() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Data</TableHead>
-                                    <TableHead>Descrição</TableHead>
-                                    <TableHead>Categoria</TableHead>
-                                    <TableHead>Tipo</TableHead>
-                                    <TableHead className="text-right">Valor</TableHead>
+                                    <TableHead className="cursor-pointer hover:bg-slate-50 transition-colors select-none" onClick={() => handleSort('date')}>
+                                        <div className="flex items-center gap-1">
+                                            Data {sortConfig.key === 'date' ? (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 text-blue-600" /> : <ArrowDown className="h-4 w-4 text-blue-600" />) : <ArrowUpDown className="h-4 w-4 opacity-20" />}
+                                        </div>
+                                    </TableHead>
+                                    <TableHead className="cursor-pointer hover:bg-slate-50 transition-colors select-none" onClick={() => handleSort('description')}>
+                                        <div className="flex items-center gap-1">
+                                            Descrição {sortConfig.key === 'description' ? (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 text-blue-600" /> : <ArrowDown className="h-4 w-4 text-blue-600" />) : <ArrowUpDown className="h-4 w-4 opacity-20" />}
+                                        </div>
+                                    </TableHead>
+                                    <TableHead className="cursor-pointer hover:bg-slate-50 transition-colors select-none" onClick={() => handleSort('category')}>
+                                        <div className="flex items-center gap-1">
+                                            Categoria {sortConfig.key === 'category' ? (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 text-blue-600" /> : <ArrowDown className="h-4 w-4 text-blue-600" />) : <ArrowUpDown className="h-4 w-4 opacity-20" />}
+                                        </div>
+                                    </TableHead>
+                                    <TableHead className="cursor-pointer hover:bg-slate-50 transition-colors select-none" onClick={() => handleSort('type')}>
+                                        <div className="flex items-center gap-1">
+                                            Tipo {sortConfig.key === 'type' ? (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 text-blue-600" /> : <ArrowDown className="h-4 w-4 text-blue-600" />) : <ArrowUpDown className="h-4 w-4 opacity-20" />}
+                                        </div>
+                                    </TableHead>
+                                    <TableHead className="text-right cursor-pointer hover:bg-slate-50 transition-colors select-none" onClick={() => handleSort('amount')}>
+                                        <div className="flex items-center justify-end gap-1">
+                                            Valor {sortConfig.key === 'amount' ? (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 text-blue-600" /> : <ArrowDown className="h-4 w-4 text-blue-600" />) : <ArrowUpDown className="h-4 w-4 opacity-20" />}
+                                        </div>
+                                    </TableHead>
                                     <TableHead className="w-[50px]"></TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -263,13 +374,22 @@ export function TransactionsTab() {
                                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.amount)}
                                             </TableCell>
                                             <TableCell>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => setDeleteId(t.id)}
-                                                >
-                                                    <Trash2 className="h-4 w-4 text-muted-foreground hover:text-red-600" />
-                                                </Button>
+                                                <div className="flex items-center gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleEdit(t)}
+                                                    >
+                                                        <Pencil className="h-4 w-4 text-muted-foreground hover:text-blue-600" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => setDeleteId(t.id)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4 text-muted-foreground hover:text-red-600" />
+                                                    </Button>
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     ))

@@ -420,21 +420,6 @@ export default async function PatientDetailPage({
                                     />
                                 </CardContent>
                             </Card>
-
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Gerador de Laudos e Documentos</CardTitle>
-                                    <CardDescription>Crie documentos técnicos baseados nas evoluções acima</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <PatientReportsTab
-                                        patientId={id}
-                                        patientName={patient.name}
-                                        records={evolutionRecords}
-                                        slug={slug}
-                                    />
-                                </CardContent>
-                            </Card>
                         </div>
                     </TabsContent>
 
@@ -524,18 +509,17 @@ export default async function PatientDetailPage({
 
                     <TabsContent value="reports" className="mt-6">
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                                <div>
-                                    <CardTitle className="text-sm font-bold flex items-center gap-2">
-                                        <FileText className="h-4 w-4 text-primary" />
-                                        Documentos e Anexos
-                                    </CardTitle>
-                                    <CardDescription className="text-xs">Gerencie exames, termos e arquivos em geral</CardDescription>
-                                </div>
-                                <DocumentUploadDialog patientId={id} />
+                            <CardHeader>
+                                <CardTitle>Gerador de Laudos e Documentos</CardTitle>
+                                <CardDescription>Crie documentos técnicos baseados nas evoluções do paciente</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-8">
-                                <PatientDocumentsList documents={documents} />
+                            <CardContent>
+                                <PatientReportsTab
+                                    patientId={id}
+                                    patientName={patient.name}
+                                    records={evolutionRecords}
+                                    slug={slug}
+                                />
                             </CardContent>
                         </Card>
                     </TabsContent>
@@ -556,8 +540,8 @@ export default async function PatientDetailPage({
                             </CardContent>
                         </Card>
                     </TabsContent>
-                </PatientTabsClient>
-            </div>
-        </div>
+                </PatientTabsClient >
+            </div >
+        </div >
     )
 }

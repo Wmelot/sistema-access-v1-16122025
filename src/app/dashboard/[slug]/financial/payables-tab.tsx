@@ -36,7 +36,8 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
         due_date: new Date().toISOString().split('T')[0],
         installments: '1',
         is_recurring: false,
-        is_variable_value: false
+        is_variable_value: false,
+        password: ''
     })
 
     // Payment Confirmation State
@@ -96,7 +97,8 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
             due_date: bill.due_date,
             installments: '1', // Editing existing single record usually treats it as 1x item even if part of series originally? Yes for now.
             is_recurring: bill.is_recurring,
-            is_variable_value: bill.is_variable_value || false
+            is_variable_value: bill.is_variable_value || false,
+            password: ''
         })
         setIsCreateOpen(true)
     }
@@ -112,7 +114,8 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
             due_date: new Date().toISOString().split('T')[0],
             installments: '1',
             is_recurring: false,
-            is_variable_value: false
+            is_variable_value: false,
+            password: ''
         })
     }
 
@@ -143,6 +146,7 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
         formData.append('installments', newBill.installments)
         formData.append('is_recurring', String(newBill.is_recurring))
         formData.append('is_variable_value', String(newBill.is_variable_value))
+        if (newBill.password) formData.append('password', newBill.password)
 
         if (user) {
             formData.append('professional_id', user.id)
@@ -353,6 +357,9 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
                                                 value={newBill.date}
                                                 onChange={(v) => setNewBill({ ...newBill, date: v })}
                                             />
+                                            <p className="text-[10px] text-muted-foreground leading-tight italic">
+                                                Ex: Para Luz que vence em Março, use a data de Fevereiro (referência do consumo).
+                                            </p>
                                         </div>
                                         <div className="space-y-2">
                                             <Label className="text-red-600 font-semibold">Vencimento</Label>
@@ -406,6 +413,25 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
                                             )}
                                         </div>
                                     </div>
+
+                                    {/* Password field for Paid items */}
+                                    {editingId && payables.find(p => p.id === editingId)?.status === 'paid' && (
+                                        <div className="space-y-2 p-3 bg-yellow-50 rounded-md border border-yellow-100">
+                                            <Label className="text-yellow-800 text-xs font-bold flex items-center gap-1">
+                                                <AlertCircle className="h-3 w-3" /> CONFIRMAÇÃO NECESSÁRIA
+                                            </Label>
+                                            <p className="text-[10px] text-yellow-700 leading-tight mb-2">
+                                                Esta transação já foi liquidada. Para editá-la, digite sua senha de login.
+                                            </p>
+                                            <Input
+                                                type="password"
+                                                placeholder="Sua senha para confirmar..."
+                                                className="bg-white"
+                                                value={newBill.password}
+                                                onChange={(e) => setNewBill({ ...newBill, password: e.target.value })}
+                                            />
+                                        </div>
+                                    )}
 
                                 </div>
                                 <DialogFooter>

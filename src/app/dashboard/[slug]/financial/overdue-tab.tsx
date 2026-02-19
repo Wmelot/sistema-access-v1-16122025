@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Loader2, MessageSquare, AlertTriangle, ExternalLink } from "lucide-react"
+import { Search, Loader2, MessageSquare, AlertTriangle, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { getOverdueInvoices } from "./actions"
 import { format } from "date-fns"
 import Link from "next/link"
@@ -27,9 +27,39 @@ export function OverdueTab({ slug }: { slug: string }) {
         setLoading(false)
     }
 
-    const filtered = overdue.filter(item =>
-        item.patient?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({ key: 'date', direction: 'desc' })
+
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc'
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc'
+        }
+        setSortConfig({ key, direction })
+    }
+
+    const filtered = overdue
+        .filter(item =>
+            item.patient?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .sort((a, b) => {
+            const { key, direction } = sortConfig
+            let valA: any, valB: any
+
+            if (key === 'patient') {
+                valA = a.patient?.name?.toLowerCase() || ''
+                valB = b.patient?.name?.toLowerCase() || ''
+            } else if (key === 'date') {
+                valA = new Date(a.payment_date || a.appointment?.start_time || a.created_at).getTime()
+                valB = new Date(b.payment_date || b.appointment?.start_time || b.created_at).getTime()
+            } else if (key === 'amount') {
+                valA = Number(a.total || 0)
+                valB = Number(b.total || 0)
+            }
+
+            if (valA < valB) return direction === 'asc' ? -1 : 1
+            if (valA > valB) return direction === 'asc' ? 1 : -1
+            return 0
+        })
 
     const totalDebt = filtered.reduce((acc, curr) => acc + Number(curr.total || 0), 0)
 
@@ -78,9 +108,21 @@ export function OverdueTab({ slug }: { slug: string }) {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Paciente</TableHead>
-                                    <TableHead>Vencimento / Data</TableHead>
-                                    <TableHead className="text-right">Valor</TableHead>
+                                    <TableHead className="cursor-pointer hover:bg-slate-50 transition-colors select-none" onClick={() => handleSort('patient')}>
+                                        <div className="flex items-center gap-1">
+                                            Paciente {sortConfig.key === 'patient' ? (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 text-blue-600" /> : <ArrowDown className="h-4 w-4 text-blue-600" />) : <ArrowUpDown className="h-4 w-4 opacity-20" />}
+                                        </div>
+                                    </TableHead>
+                                    <TableHead className="cursor-pointer hover:bg-slate-50 transition-colors select-none" onClick={() => handleSort('date')}>
+                                        <div className="flex items-center gap-1">
+                                            Vencimento / Data {sortConfig.key === 'date' ? (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 text-blue-600" /> : <ArrowDown className="h-4 w-4 text-blue-600" />) : <ArrowUpDown className="h-4 w-4 opacity-20" />}
+                                        </div>
+                                    </TableHead>
+                                    <TableHead className="text-right cursor-pointer hover:bg-slate-50 transition-colors select-none" onClick={() => handleSort('amount')}>
+                                        <div className="flex items-center justify-end gap-1">
+                                            Valor {sortConfig.key === 'amount' ? (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 text-blue-600" /> : <ArrowDown className="h-4 w-4 text-blue-600" />) : <ArrowUpDown className="h-4 w-4 opacity-20" />}
+                                        </div>
+                                    </TableHead>
                                     <TableHead className="text-center">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>

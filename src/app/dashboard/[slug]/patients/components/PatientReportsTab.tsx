@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Send, FileText, CheckCircle, Smartphone, Sparkles, Bot } from 'lucide-react'
+import { Send, FileText, CheckCircle, Smartphone, Sparkles, Bot, Save } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { ptBR } from 'date-fns/locale'
 import { sendReportViaWhatsapp } from '../actions/reports'
+import { uploadPatientDocument } from '@/actions/documents'
 import { generateGenericReport } from '@/app/dashboard/[slug]/reports/ai-actions'
 import { format } from 'date-fns'
 import { pdf } from '@react-pdf/renderer'
@@ -520,6 +521,68 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
         }
     }
 
+    const handleSaveToAttachments = async () => {
+        const hasVisuals = radarData.length > 0 || dfiData.length > 0
+        if (!content.trim() && !hasVisuals) {
+            toast.error("O relatório precisa de conteúdo ou gráficos.")
+            return
+        }
+
+        setLoading(true)
+        try {
+            const professionalNameFixed = professionalProfile?.full_name || professionalName;
+            const variableMap: Record<string, string> = {
+                'patient_name': patientName,
+                'data_atual': new Date().toLocaleDateString('pt-BR'),
+                'profissional_nome': professionalNameFixed,
+                'profissional_registro': professionalProfile?.registry || '',
+                'profissional_especialidade': professionalProfile?.specialty || 'Fisioterapeuta',
+            }
+
+            const blob = await pdf(
+                <ReportPdf
+                    title={selectedTemplate ? (REPORT_TEMPLATES.find(t => t.id === selectedTemplate)?.title || reportTemplates.find(t => t.id === selectedTemplate)?.title || 'Relatório') : 'Relatório Personalizado'}
+                    content={content}
+                    patientName={patientName}
+                    professionalName={professionalNameFixed}
+                    professionalSpecialty={professionalProfile?.specialty}
+                    professionalRegistry={professionalProfile?.registry}
+                    date={format(new Date(), "dd/MM/yyyy HH:mm")}
+                    variableMap={variableMap}
+                    radarData={radarData}
+                    dfiData={dfiData}
+                    mainComplaint={extraData.mainComplaint}
+                    painLevel={extraData.painLevel}
+                    painDuration={extraData.painDuration}
+                    painMapData={extraData.painMapData}
+                    shoeInfo={extraData.shoeInfo}
+                    examImages={extraData.examImages}
+                />
+            ).toBlob()
+
+            const fileName = `Relatorio_${patientName.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`
+            const file = new File([blob], fileName, { type: 'application/pdf' })
+
+            const formData = new FormData()
+            formData.append('patient_id', patientId)
+            formData.append('title', selectedTemplate ? (REPORT_TEMPLATES.find(t => t.id === selectedTemplate)?.title || reportTemplates.find(t => t.id === selectedTemplate)?.title || 'Relatório') : 'Relatório Gerado')
+            formData.append('file', file)
+
+            const result = await uploadPatientDocument(formData)
+
+            if (result.success) {
+                toast.success("Relatório salvo nos Anexos com sucesso!")
+            } else {
+                toast.error(result.error || "Erro ao salvar relatório.")
+            }
+        } catch (error) {
+            console.error(error)
+            toast.error("Erro ao salvar nos anexos.")
+        } finally {
+            setLoading(false)
+        }
+    }
+
     return (
         <div className="grid gap-6 md:grid-cols-3">
             <div className="md:col-span-1 space-y-6">
@@ -650,6 +713,16 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
                         >
                             <FileText className="h-4 w-4" />
                             Gerar PDF
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            className="w-full gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                            disabled={loading || (!content && radarData.length === 0 && dfiData.length === 0)}
+                            onClick={handleSaveToAttachments}
+                        >
+                            <Save className="h-4 w-4" />
+                            Salvar nos Anexos
                         </Button>
 
                         {/* [NEW] Smart Report V2 Button */}

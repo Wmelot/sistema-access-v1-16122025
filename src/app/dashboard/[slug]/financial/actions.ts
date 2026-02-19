@@ -252,6 +252,24 @@ export async function updateTransaction(id: string, formData: FormData) {
     const date = formData.get('date') as string
     const dueDateInput = formData.get('due_date') as string
     const isRecurring = formData.get('is_recurring') === 'true'
+    const password = formData.get('password') as string // [NEW]
+
+    // [STEP 2] Password Protection for Paid Transactions
+    if (t && t.status === 'paid') {
+        if (!password) {
+            return { error: 'PASSWORD_REQUIRED', message: 'Esta transação já foi liquidada. Digite sua senha para confirmar a alteração.' }
+        }
+
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: user.email!,
+            password: password
+        })
+
+        if (signInError) {
+            const isValidAdmin = await verifyAdminPassword(password)
+            if (!isValidAdmin) return { error: 'Senha incorreta. Use sua senha de login ou o PIN Master.' }
+        }
+    }
 
     // Handle Category Creation
     if (categoryName) {

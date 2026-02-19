@@ -2,7 +2,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
-import { LayoutDashboard, CalendarDays, Footprints, FileText, Activity, ClipboardList, DollarSign, Paperclip } from "lucide-react"
+import { LayoutDashboard, CalendarDays, Footprints, FileText, Activity, ClipboardList, DollarSign, Paperclip, Zap } from "lucide-react"
 import { MobileTabSelect } from "../components/MobileTabSelect"
 import { useState, useTransition } from "react"
 import { QuantumLoader } from "@/components/ui/quantum-loader"
@@ -39,7 +39,7 @@ export function PatientTabsClient({ activeTab, slug, patientId, children }: Pati
         { value: "evolutions", label: "Evoluções", icon: FileText },
         { value: "assessments", label: "Avaliações", icon: Activity },
         { value: "questionnaires", label: "Questionários", icon: ClipboardList },
-        { value: "reports", label: "Documentos", icon: FileText },
+        { value: "reports", label: "Gerador de Laudos", icon: Zap },
         { value: "financial", label: "Financeiro", icon: DollarSign },
         { value: "attachments", label: "Anexos", icon: Paperclip },
     ]

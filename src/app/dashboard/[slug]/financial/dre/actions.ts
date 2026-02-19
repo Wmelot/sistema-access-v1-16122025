@@ -18,105 +18,78 @@ export interface DREData {
 
 export async function getDREData(startDate: string, endDate: string, viewType: 'managerial' | 'fiscal') {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const orgId = profile?.organization_id
 
-    // 1. Revenue (Receita Bruta)
-    let revenueQuery = supabase
-        .from('appointments' as any)
-        .select('price, start_time, invoice_issued')
-        .in('status', ['completed', 'confirmed']) // Assuming confirmed are revenue too for accrual? Or just completed? Usually completed.
-        .gte('start_time', startDate)
-        .lte('start_time', endDate)
-
-    if (viewType === 'fiscal') {
-        revenueQuery = revenueQuery.eq('invoice_issued', true)
-    }
-
-    const { data: appointments, error: revenueError } = await revenueQuery
-    if (revenueError) throw new Error(revenueError.message)
-
-    const grossRevenue = (appointments as any[] || []).reduce((sum, appt) => sum + (Number(appt.price) || 0), 0)
-
-    // 2. Expenses (Despesas)
-    // Payables use due_date (YYYY-MM-DD string).
-    // startDate/endDate are likely Strings (YYYY-MM-DD).
-    // Comparisons work fine as strings.
-    // However, if checks rely on Date objects, we should use getBrazilDate.
-    // In this file, it's just a query. The query uses strings. That's safe.
-    // The only calculation is loop.
-
-    // Check if there are other Date usages. none found in visible chunk.
-
-    // Leaving this comment as placeholder or just confirm.
-    // Actually, let's just complete the import.
-    const { data: payables, error: expensesError } = await supabase
-        .from('financial_payables' as any)
+    const { data: transactions, error: tError } = await supabase
+        .from('transactions')
         .select('*')
-        .eq('status', 'paid')
-        .gte('due_date', startDate) // Using due_date as competence? Or paid_at? Competence usually due_date.
-        .lte('due_date', endDate)
+        .eq('organization_id', orgId)
+        .gte('date', startDate)
+        .lte('date', endDate)
 
-    if (expensesError) throw new Error(expensesError.message)
+    if (tError) throw new Error(tError.message)
 
-    // Categorize
+    let grossRevenue = 0
     let taxes = 0
     let staffCosts = 0
     let marketing = 0
     let admin = 0
+    let equipment = 0
+    let services = 0
+    let utilities = 0
     let other = 0
 
-        ; (payables as any[] || []).forEach(p => {
-            const val = Number(p.amount)
-            switch (p.category) {
-                case 'simples':
-                case 'gps':
-                    taxes += val
-                    break
-                case 'salary':
-                    staffCosts += val
-                    break
-                case 'marketing':
-                    marketing += val
-                    break
-                case 'general':
-                    admin += val
-                    break
-                case 'partner_distribution':
-                    // Distribution is Profit Sharing, happens AFTER Operating Profit.
-                    // Should it appear in DRE? Usually below the line.
-                    break
-                default:
-                    other += val
-            }
-        })
+    transactions?.forEach(t => {
+        const val = Number(t.amount) || 0
+        if (t.type === 'income') {
+            grossRevenue += val
+        } else {
+            const cat = (t.category || '').toLowerCase()
+            if (cat === 'impostos' || cat === 'taxas') taxes += val
+            else if (cat === 'pessoal' || cat === 'comissões' || cat === 'folha') staffCosts += val
+            else if (cat === 'marketing') marketing += val
+            else if (cat === 'administrativo' || cat === 'geral' || cat === 'aluguel') admin += val
+            else if (cat === 'equipamento' || cat === 'laser') equipment += val
+            else if (cat === 'serviços' || cat === 'contabilidade' || cat === 'limpeza') services += val
+            else if (cat === 'utilidades' || cat === 'cemig' || cat === 'internet' || cat === 'sistema') utilities += val
+            else other += val
+        }
+    })
 
-    // Prepare Line Items
+    const totalExpenses = taxes + staffCosts + marketing + admin + equipment + services + utilities + other
+
     const items: DRELineItem[] = [
         { label: "Receita Operacional Bruta", value: grossRevenue, type: 'credit', isBold: true },
         {
-            label: "(-) Impostos sobre Vendas",
+            label: "(-) Impostos e Taxas",
             value: taxes,
             type: 'debit',
             children: [
-                { label: "Simples Nacional / GPS", value: taxes, type: 'debit' }
+                { label: "Impostos Federais/Municipais", value: taxes, type: 'debit' }
             ]
         },
         { label: "(=) Receita Líquida", value: grossRevenue - taxes, type: 'total', isBold: true },
 
         {
-            label: "(-) Custos e Despesas",
-            value: staffCosts + marketing + admin + other,
+            label: "(-) Custos e Despesas Operacionais",
+            value: totalExpenses - taxes,
             type: 'debit',
             children: [
-                { label: "Pessoal / Comissões", value: staffCosts, type: 'debit' },
+                { label: "Pessoal e Comissões", value: staffCosts, type: 'debit' },
+                { label: "Serviços Terceiros", value: services, type: 'debit' },
+                { label: "Utilidades / Sistema / Aluguel", value: utilities + admin, type: 'debit' },
+                { label: "Equipamentos e Materiais", value: equipment, type: 'debit' },
                 { label: "Marketing", value: marketing, type: 'debit' },
-                { label: "Administrativo / Geral", value: admin, type: 'debit' },
                 { label: "Outros", value: other, type: 'debit' },
             ]
         },
 
         {
-            label: "(=) Resultado Operacional (EBITDA)",
-            value: (grossRevenue - taxes) - (staffCosts + marketing + admin + other),
+            label: "(=) Resultado Operacional (Lucro/Prejuízo)",
+            value: grossRevenue - totalExpenses,
             type: 'total',
             isBold: true
         }
