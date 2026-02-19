@@ -28,6 +28,15 @@ export async function getFormTemplates() {
     // Bypass RLS to ensure we see System (NULL or Fixed ID) templates
     const adminSupabase = await createAdminClient();
 
+    // 1. Get Allowed System Form IDs for this organization
+    const { data: allowedAccess } = await adminSupabase
+        .from('organization_form_access')
+        .select('form_template_id')
+        .eq('organization_id', orgId);
+
+    const allowedSystemIds = (allowedAccess || []).map(a => a.form_template_id);
+
+    // 2. Fetch all potentially relevant templates
     const { data, error } = await adminSupabase
         .from('form_templates')
         .select('*')
@@ -40,7 +49,22 @@ export async function getFormTemplates() {
         return [];
     }
 
-    return data;
+    // 3. Filter: Always show own forms. Show system forms only if in allowedAccess.
+    const filteredTemplates = (data || []).filter(t => {
+        const isOwn = t.organization_id === orgId;
+        if (isOwn) return true;
+
+        const isSystem = !t.organization_id || t.organization_id === '00000000-0000-0000-0000-000000000001';
+        if (isSystem) {
+            // [FIX] Master Admin always sees all standardized content (bypass granular access)
+            const isMaster = user.email && ['wmelot@gmail.com', 'accessfisio@gmail.com', 'warley@gmail.com'].includes(user.email);
+            return isMaster || allowedSystemIds.includes(t.id);
+        }
+
+        return false;
+    });
+
+    return filteredTemplates;
 }
 
 export async function getFormTemplate(id: string) {
@@ -266,14 +290,19 @@ export async function updateFormTemplateTitle(templateId: string, newTitle: stri
     return { success: true, message: 'Modelo renomeado.' };
 }
 
-export async function updateFormSettings(templateId: string, settings: { is_active: boolean; allowed_roles: string[] }) {
+export async function updateFormSettings(templateId: string, settings: {
+    is_active: boolean;
+    allowed_roles: string[];
+    access_config?: any; // [NEW] Granular Access (Layer 3)
+}) {
     const supabase = await createClient();
 
     const { error } = await supabase
         .from('form_templates')
         .update({
             is_active: settings.is_active,
-            allowed_roles: settings.allowed_roles
+            allowed_roles: settings.allowed_roles,
+            access_config: settings.access_config // Save the granular matrix
         })
         .eq('id', templateId);
 

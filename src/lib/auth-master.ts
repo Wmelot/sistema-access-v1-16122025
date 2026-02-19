@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 /**
  * Centrally determines if a user has "Master" (Platform Admin) privileges.
@@ -21,10 +21,11 @@ export async function isMasterUser(userId?: string): Promise<boolean> {
 
         const profileData = profile as any
         // Check both roles.name and role_id.name as Supabase mapping can vary by config
-        const roleName = profileData?.roles?.name || profileData?.role_id?.name || profileData?.role
+        const roleName = (profileData?.roles?.name || profileData?.role_id?.name || profileData?.role || '').toLowerCase()
 
         // Also allow hard override for owner email
-        return roleName === 'Master' || profileData?.email === 'wmelot@gmail.com'
+        const adminEmails = ['wmelot@gmail.com', 'accessfisio@gmail.com', 'warley@gmail.com'];
+        return roleName === 'master' || adminEmails.includes(profileData?.email || '');
     } catch (error) {
         console.error("[AuthMaster] Failed to check master role:", error)
         return false

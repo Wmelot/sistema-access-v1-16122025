@@ -1,12 +1,11 @@
-import { getFormTemplates, createFormTemplate } from '../forms/actions';
+import { getFormTemplates, getOrganizationProfessionals } from '../forms/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, ClipboardList, Pencil, Activity, HeartHandshake, Eye } from 'lucide-react';
-import Link from 'next/link';
-import { FormCardActions } from '../forms/components/form-card-actions';
 import { createClient } from '@/lib/supabase/server';
 import { QuestionnaireBrowser } from './components/questionnaire-browser';
 import { ManagementHeader } from "@/components/dashboard/management-header";
+import { canAccessAsset } from '@/lib/rbac';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,10 +17,29 @@ export default async function QuestionnairesPage({ params }: { params: Promise<{
     // Fetch all templates
     const allTemplates = await getFormTemplates();
 
-    // Filter by type
+    // Layer 3 Filter: Can the user VIEW these assets?
+    const templatesWithViewAccess = await Promise.all(
+        allTemplates.map(async (t: any) => {
+            const canView = await canAccessAsset(t, 'view');
+            return canView ? t : null;
+        })
+    );
+    const visibleTemplates = templatesWithViewAccess.filter(Boolean);
+
     // Filter by type - ONLY LOCKED (STANDARD)
-    const questionnaires = allTemplates.filter((t: any) => t.is_locked && (t.type === 'questionnaire' || t.type === 'assessment' || !t.type));
-    const followups = allTemplates.filter((t: any) => t.is_locked && t.type === 'followup');
+    const questionnaires = visibleTemplates.filter((t: any) => {
+        const title = t.title.toLowerCase();
+        const isFollowup = title.includes('acompanhamento') || title.includes('manutenção') || t.type === 'followup';
+        return t.is_locked && !isFollowup && (t.type === 'questionnaire' || t.type === 'assessment' || !t.type);
+    });
+    const followups = visibleTemplates.filter((t: any) => {
+        const title = t.title.toLowerCase();
+        const isFollowup = title.includes('acompanhamento') || title.includes('manutenção') || t.type === 'followup';
+        return t.is_locked && isFollowup;
+    });
+
+    // Fetch professionals for access settings
+    const professionals = await getOrganizationProfessionals(slug);
 
     return (
         <div className="space-y-6">
@@ -32,7 +50,13 @@ export default async function QuestionnairesPage({ params }: { params: Promise<{
             />
             {/* Creation button moved to Custom Forms page */}
 
-            <QuestionnaireBrowser questionnaires={questionnaires} followups={followups} user={user} slug={slug} />
+            <QuestionnaireBrowser
+                questionnaires={questionnaires}
+                followups={followups}
+                user={user}
+                slug={slug}
+                professionals={professionals}
+            />
         </div>
     );
 }

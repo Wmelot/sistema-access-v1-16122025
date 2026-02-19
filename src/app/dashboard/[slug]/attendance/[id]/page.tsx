@@ -2,6 +2,7 @@ import { getAttendanceData, startAttendance } from "@/actions/attendance"
 import { notFound } from "next/navigation"
 import { AttendanceClient } from "../attendance-client"
 import { createClient } from "@/lib/supabase/server"
+import { canAccessAsset } from "@/lib/rbac"
 import Link from "next/link"
 
 export default async function AttendancePage({ params }: { params: Promise<{ id: string, slug: string }> }) {
@@ -15,23 +16,15 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
         const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId!).single()
         const userRole = profile?.role
 
-        // Filter templates based on visibility rules
-        const filteredTemplates = (data.templates || []).filter((t: any) => {
-            if (!t) return false
-            // 1. Check if active (undefined is considered true for legacy)
-            if (t.is_active === false) return false
-
-            // 2. Check restricted roles
-            if (t.allowed_roles && Array.isArray(t.allowed_roles) && t.allowed_roles.length > 0) {
-                // If roles are defined, user MUST be in the list by ID OR by Role Name
-                const isAllowedById = userId && t.allowed_roles.includes(userId)
-                const isAllowedByRole = userRole && t.allowed_roles.includes(userRole)
-
-                if (!isAllowedById && !isAllowedByRole) return false
-            }
-
-            return true
-        })
+        // Filter templates based on Layer 3 visibility rules (Fill Permission)
+        const templatesWithAccess = await Promise.all(
+            (data.templates || []).map(async (t: any) => {
+                if (!t || t.is_active === false) return null;
+                const canFill = await canAccessAsset(t, 'fill');
+                return canFill ? t : null;
+            })
+        );
+        const filteredTemplates = templatesWithAccess.filter(Boolean);
 
         return (
             <AttendanceClient

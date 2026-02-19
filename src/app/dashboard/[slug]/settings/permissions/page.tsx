@@ -52,17 +52,16 @@ export default async function PermissionsMatrixPage({ params }: { params: { slug
         .select('*')
         .order('module', { ascending: true })
 
-    // Flat permissions structure for the matrix
-    const rolesWithFlatPerms = roles?.map(role => ({
-        ...role,
-        permissions: role.permissions?.map((rp: any) => rp.code?.code) || []
-    })) || []
+    // 3. Get all role permissions for the matrix mapping
+    const { data: allRolePerms } = await supabase
+        .from('role_permissions')
+        .select('role_id, permission_id')
 
     return (
         <div className="container mx-auto py-10 max-w-7xl">
             <div className="mb-8 flex items-center justify-between">
                 <div className="space-y-1">
-                    <Link href={`/dashboard/${slug}/settings/roles`}>
+                    <Link href={`/dashboard/${slug}/settings?tab=roles`}>
                         <Button variant="ghost" size="sm" className="gap-2 -ml-2 text-slate-500">
                             <ArrowLeft className="h-4 w-4" />
                             Voltar para Perfis
@@ -76,9 +75,9 @@ export default async function PermissionsMatrixPage({ params }: { params: { slug
             </div>
 
             <PermissionsMatrix
-                roles={rolesWithFlatPerms}
+                roles={roles || []}
                 permissions={permissions || []}
-                initialRolePerms={[]}
+                initialRolePerms={allRolePerms || []}
             />
         </div>
     )

@@ -297,12 +297,18 @@ export async function getAvailablePlans() {
     return data || [];
 }
 
+export async function getGlobalMessageTemplates() {
+    const supabase = createAdminClient();
+    const { data } = await supabase.from('message_templates').select('id, title, trigger_type, channel').is('organization_id', null).order('title');
+    return data || [];
+}
+
 // --- GRANULAR ACCESS CONTROLS ---
 
 export async function getTenantFormAccess(tenantId: string) {
     const supabase = createAdminClient();
     const { data: allowed } = await supabase.from('organization_form_access').select('form_template_id').eq('organization_id', tenantId);
-    const { data: all } = await supabase.from('form_templates').select('id, title').order('title');
+    const { data: all } = await supabase.from('form_templates').select('id, title, is_locked, type').order('title');
     return {
         all: all || [],
         allowedIds: (allowed || []).map(a => a.form_template_id)
@@ -343,6 +349,35 @@ export async function toggleProtocolAccess(tenantId: string, protocolId: string,
     revalidatePath(`/admin/tenants/${tenantId}`);
     return { success: true };
 }
+
+export async function toggleMessageTemplateAccess(tenantId: string, templateId: string, allowed: boolean) {
+    const supabase = createAdminClient();
+
+    // Fetch current features to ensure we don't overwrite everything blindly
+    const { data: org } = await supabase.from('organizations').select('features').eq('id', tenantId).single();
+    if (!org) return { error: "Organização não encontrada." };
+
+    let features = org.features || {};
+    let allowedTemplates = Array.isArray(features.allowed_message_templates) ? [...features.allowed_message_templates] : [];
+
+    if (allowed) {
+        if (!allowedTemplates.includes(templateId)) {
+            allowedTemplates.push(templateId);
+        }
+    } else {
+        allowedTemplates = allowedTemplates.filter((id: string) => id !== templateId);
+    }
+
+    features.allowed_message_templates = allowedTemplates;
+
+    const { error } = await supabase.from('organizations').update({ features: features } as any).eq('id', tenantId);
+
+    if (error) return { error: `Erro ao atualizar acesso de mensagem: ${error.message}` };
+
+    revalidatePath(`/admin/tenants/${tenantId}`);
+    return { success: true };
+}
+
 // --- Z-API CONFIGURATION ---
 
 export async function getTenantZapiConfig(tenantId: string) {

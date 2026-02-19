@@ -35,7 +35,16 @@ export default async function SettingsPage({ params }: { params: Promise<{ slug:
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    const isMaster = await isMasterUser(user?.id, user?.email);
+    const isMaster = await isMasterUser(user?.id);
+
+    if (!settings) {
+        return (
+            <div className="container mx-auto py-10 text-center">
+                <h2 className="text-xl font-semibold">Configurações não encontradas</h2>
+                <p className="text-muted-foreground">Não foi possível carregar os dados desta clínica.</p>
+            </div>
+        )
+    }
 
     return (
         <div className="container mx-auto py-6 max-w-6xl">

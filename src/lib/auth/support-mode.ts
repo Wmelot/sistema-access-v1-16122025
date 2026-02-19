@@ -5,7 +5,14 @@ import { cookies } from 'next/headers'
 
 // Master Admin Constants
 const MASTER_ORG_ID = '00000000-0000-0000-0000-000000000001'
-const MASTER_EMAIL = 'accessfisio@gmail.com'
+const MASTER_EMAILS = ['accessfisio@gmail.com', 'wmelot@gmail.com', 'warley@gmail.com']
+
+// Known Home Clinic IDs for the Master
+const HOME_CLINIC_IDS = [
+    MASTER_ORG_ID,
+    '9571532e-fdf8-4aaa-b236-416fd6459566', // access-fisioterapia
+    'd58907d2-12b1-4c7c-8999-15528a798fb2'  // access-fisioterapia-1
+]
 
 export async function isMasterSupportMode(): Promise<boolean> {
     const supabase = await createClient()
@@ -13,8 +20,8 @@ export async function isMasterSupportMode(): Promise<boolean> {
 
     if (!user) return false
 
-    // Check if the logged-in user is the Master Admin
-    if (user.email !== MASTER_EMAIL) return false
+    // Check if the logged-in user is one of the Master Admins
+    if (!MASTER_EMAILS.includes(user.email || '')) return false
 
     // Check if they are accessing a DIFFERENT organization (Impersonation/Support)
     const { data: profile } = await supabase
@@ -23,8 +30,8 @@ export async function isMasterSupportMode(): Promise<boolean> {
         .eq('id', user.id)
         .single()
 
-    // If Profile Org ID is NOT the Master Org ID, it means they have been moved/switched to another org context.
-    if (profile?.organization_id && profile.organization_id !== MASTER_ORG_ID) {
+    // If Profile Org ID is NOT in the Home Clinic list, it means they are in support mode (intruder)
+    if (profile?.organization_id && !HOME_CLINIC_IDS.includes(profile.organization_id)) {
         // Check for Explicit Unmask Toggle via Cookie
         const cookieStore = await cookies()
         const unmaskCookie = cookieStore.get("axiom_support_unmask")

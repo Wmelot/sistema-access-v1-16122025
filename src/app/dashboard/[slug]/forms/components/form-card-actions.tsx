@@ -39,6 +39,7 @@ interface FormCardActionsProps {
     templateTitle?: string;
     isActive: boolean;
     allowedRoles: string[];
+    accessConfig?: any; // [NEW] 
     professionals: any[];
     userId?: string | null;
     currentUserId?: string;
@@ -61,6 +62,7 @@ export function FormCardActions({
     templateTitle,
     isActive,
     allowedRoles,
+    accessConfig,
     professionals,
     userId,
     currentUserId,
@@ -144,7 +146,8 @@ export function FormCardActions({
         setLoading(true);
         const res = await updateFormSettings(templateId, {
             is_active: !isActive,
-            allowed_roles: allowedRoles || []
+            allowed_roles: allowedRoles || [],
+            access_config: accessConfig // Preserve granular settings on toggle
         });
         setLoading(false);
 
@@ -247,6 +250,7 @@ export function FormCardActions({
                 templateId={templateId}
                 initialActive={isActive}
                 initialAllowedRoles={allowedRoles}
+                initialAccessConfig={accessConfig}
                 professionals={professionals}
             />
 

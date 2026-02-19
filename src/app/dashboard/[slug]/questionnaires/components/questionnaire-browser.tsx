@@ -15,6 +15,7 @@ interface QuestionnaireBrowserProps {
     followups: any[];
     user: any;
     slug: string;
+    professionals: any[];
 }
 
 const CATEGORIES = [
@@ -50,7 +51,7 @@ const CATEGORIES = [
     }
 ];
 
-export function QuestionnaireBrowser({ questionnaires, followups, user, slug }: QuestionnaireBrowserProps) {
+export function QuestionnaireBrowser({ questionnaires, followups, user, slug, professionals }: QuestionnaireBrowserProps) {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
     // Categorization Logic
@@ -162,7 +163,7 @@ export function QuestionnaireBrowser({ questionnaires, followups, user, slug }: 
                                             </div>
                                         </AccordionTrigger>
                                         <AccordionContent className="px-6 pb-6 pt-2">
-                                            <ViewContainer viewMode={viewMode} items={items} user={user} icon={ClipboardList} color="blue" slug={slug} />
+                                            <ViewContainer viewMode={viewMode} items={items} user={user} icon={ClipboardList} color="blue" slug={slug} professionals={professionals} />
                                         </AccordionContent>
                                     </AccordionItem>
                                 </Accordion>
@@ -175,7 +176,7 @@ export function QuestionnaireBrowser({ questionnaires, followups, user, slug }: 
 
                     {/* TAB 2: FOLLOW-UP (LISTA SIMPLES) */}
                     <TabsContent value="followup" className="mt-0">
-                        <ViewContainer viewMode={viewMode} items={followups} user={user} icon={HeartHandshake} color="purple" slug={slug} />
+                        <ViewContainer viewMode={viewMode} items={followups} user={user} icon={HeartHandshake} color="purple" slug={slug} professionals={professionals} />
                     </TabsContent>
                 </Tabs>
             </div>
@@ -183,14 +184,14 @@ export function QuestionnaireBrowser({ questionnaires, followups, user, slug }: 
     );
 }
 
-function ViewContainer({ viewMode, items, user, icon, color, slug }: any) {
+function ViewContainer({ viewMode, items, user, icon, color, slug, professionals }: any) {
     if (items.length === 0) return <div className="text-sm text-muted-foreground italic">Nenhum item nesta categoria.</div>;
 
     if (viewMode === 'list') {
         return (
             <div className="space-y-2">
                 {items.map((template: any) => (
-                    <TemplateListItem key={template.id} template={template} user={user} icon={icon} color={color} slug={slug} />
+                    <TemplateListItem key={template.id} template={template} user={user} icon={icon} color={color} slug={slug} professionals={professionals} />
                 ))}
             </div>
         );
@@ -199,13 +200,13 @@ function ViewContainer({ viewMode, items, user, icon, color, slug }: any) {
     return (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {items.map((template: any) => (
-                <TemplateCard key={template.id} template={template} user={user} icon={icon} color={color} slug={slug} />
+                <TemplateCard key={template.id} template={template} user={user} icon={icon} color={color} slug={slug} professionals={professionals} />
             ))}
         </div>
     );
 }
 
-function TemplateCard({ template, user, icon: Icon, color, slug }: any) {
+function TemplateCard({ template, user, icon: Icon, color, slug, professionals }: any) {
     const colorClasses = {
         blue: "bg-blue-50 text-blue-700 border-blue-200",
         purple: "bg-purple-50 text-purple-700 border-purple-200"
@@ -223,7 +224,8 @@ function TemplateCard({ template, user, icon: Icon, color, slug }: any) {
                             templateId={template.id}
                             isActive={!!template.is_active}
                             allowedRoles={template.allowed_roles || []}
-                            professionals={[]}
+                            accessConfig={template.access_config}
+                            professionals={professionals}
                             userId={template.user_id}
                             currentUserId={user?.id}
                         />
@@ -262,7 +264,7 @@ function TemplateCard({ template, user, icon: Icon, color, slug }: any) {
     )
 }
 
-function TemplateListItem({ template, user, icon: Icon, color, slug }: any) {
+function TemplateListItem({ template, user, icon: Icon, color, slug, professionals }: any) {
     const colorClasses = {
         blue: "bg-blue-50 text-blue-700 border-blue-200",
         purple: "bg-purple-50 text-purple-700 border-purple-200"
@@ -300,7 +302,8 @@ function TemplateListItem({ template, user, icon: Icon, color, slug }: any) {
                     templateId={template.id}
                     isActive={!!template.is_active}
                     allowedRoles={template.allowed_roles || []}
-                    professionals={[]}
+                    accessConfig={template.access_config}
+                    professionals={professionals}
                     userId={template.user_id}
                     currentUserId={user?.id}
                 />

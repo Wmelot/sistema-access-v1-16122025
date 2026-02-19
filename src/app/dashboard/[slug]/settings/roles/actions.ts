@@ -59,16 +59,16 @@ export async function getRole(id: string) {
 
 
 export async function getAllPermissions() {
-    const supabase = await createAdminClient()
+    const adminSupabase = await createAdminClient()
 
     // [CLEAN SYNC] Ensure DB contains ONLY what is in rbac.ts metadata
     const codes = PERMISSION_METADATA.map(m => m.code)
 
-    // 1. Delete outdated permissions
-    await supabase.from('permissions').delete().not('code', 'in', `(${codes.join(',')})`)
+    // 1. Delete outdated permissions (cleanup DB if code was removed from RBAC.ts)
+    await adminSupabase.from('permissions').delete().not('code', 'in', codes)
 
-    // 2. Upsert current metadata
-    const { error: upsertError } = await supabase
+    // 2. Upsert current metadata (Restores if deleted)
+    const { data: upsertData, error: upsertError } = await adminSupabase
         .from('permissions')
         .upsert(
             PERMISSION_METADATA.map(meta => ({
@@ -78,16 +78,47 @@ export async function getAllPermissions() {
             })),
             { onConflict: 'code' }
         )
+        .select()
 
     if (upsertError) {
         console.error("Error upserting permissions:", upsertError)
     }
 
-    const { data: permissions, error } = await supabase
+    // 3. Layer 1 Filtering: Filter based on Org Features
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+
+    const { data: profile } = await adminSupabase
+        .from('profiles')
+        .select('organization_id, organizations(features)')
+        .eq('id', user.id)
+        .single()
+
+    const { isMasterUser: checkIsMaster } = require("@/lib/auth-master")
+    const orgFeatures = (profile?.organizations as any)?.features
+    const isMaster = await checkIsMaster(user.id)
+
+    let query = adminSupabase
         .from('permissions')
         .select('*')
         .order('module', { ascending: true })
         .order('code', { ascending: true })
+
+    if (!isMaster) {
+        // Only include pins that belong to enabled features
+        const allowedCodes = PERMISSION_METADATA
+            .filter(meta =>
+                !meta.featureGate ||
+                (orgFeatures === null || orgFeatures === undefined) ||
+                !!orgFeatures[meta.featureGate]
+            )
+            .map(m => m.code)
+
+        query = query.in('code', allowedCodes)
+    }
+
+    const { data: permissions, error } = await query
 
     if (error) throw new Error(error.message)
     return permissions

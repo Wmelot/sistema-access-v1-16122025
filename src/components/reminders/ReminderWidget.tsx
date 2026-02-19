@@ -159,13 +159,13 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                 <div className={cn("px-2 lg:px-4", className)}>
                     <button
                         className={cn(
-                            "flex items-center gap-3 rounded-lg py-2 text-gray-500 transition-all hover:text-primary w-full",
+                            "flex items-center gap-3 rounded-lg py-2 text-zinc-600 transition-all hover:text-zinc-900 hover:bg-zinc-50 active:scale-95 active:brightness-90 w-full font-medium",
                             isCollapsed ? "justify-center px-0" : "px-3"
                         )}
                         title={isCollapsed ? "Lembretes" : undefined}
                     >
                         <div className="relative">
-                            <Bell className={cn(iconClassName)} />
+                            <Bell className={cn(iconClassName)} strokeWidth={2} />
                             {pendingCount > 0 && (
                                 <span className={cn(
                                     "absolute flex h-2 w-2 rounded-full bg-red-500",
@@ -175,7 +175,7 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                         </div>
                         {!isCollapsed && (
                             <div className="flex flex-1 items-center justify-between">
-                                <span>Lembretes</span>
+                                <span className="text-sm">Lembretes</span>
                                 {pendingCount > 0 && (
                                     <span className="text-xs font-bold text-red-500 bg-red-50 px-1.5 rounded-full">{pendingCount}</span>
                                 )}

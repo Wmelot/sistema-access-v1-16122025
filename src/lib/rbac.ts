@@ -1,4 +1,5 @@
-import { createClient, createAdminClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { isMasterUser as checkIsMaster } from "@/lib/auth-master"
 
 // Define Permission Codes type for safety
@@ -81,95 +82,118 @@ export type PermissionCode =
     | 'settings.audit.view'
     | 'settings.migration.view'
     | 'settings.support.view'
-    | 'settings.dre.view';
+    | 'settings.dre.view'
+    // SETTINGS TABS
+    | 'settings.tabs.general'
+    | 'settings.tabs.integrations'
+    | 'settings.tabs.reports'
+    | 'settings.tabs.intelligence'
+    | 'settings.tabs.users'
+    | 'settings.tabs.roles';
 
-export const PERMISSION_METADATA: { code: PermissionCode; description: string; module: string; explanation?: string }[] = [
-    // GERAL / CORE
-    { code: 'dashboard.view', description: 'Visualizar Painel', module: 'Menu Superior', explanation: 'Permite que o usuário veja o resumo de estatísticas na tela inicial.' },
-    { code: 'patients.view', description: 'Pacientes: Visualizar Listagem', module: 'Gestão (Módulos)', explanation: 'Dá acesso à lista de pacientes e à busca global.' },
-    { code: 'patients.edit', description: 'Pacientes: Criar e Editar', module: 'Gestão (Módulos)', explanation: 'Permite alterar dados cadastrais e clínicos.' },
-    { code: 'patients.delete', description: 'Pacientes: Excluir Registro', module: 'Gestão (Módulos)', explanation: 'Permite apagar registros de pacientes.' },
-    { code: 'schedule.view_all', description: 'Agenda: Ver Tudo', module: 'Gestão (Módulos)', explanation: 'Visualiza as agendas de todos os profissionais.' },
-    { code: 'schedule.manage_all', description: 'Agenda: Gerenciar Tudo', module: 'Gestão (Módulos)', explanation: 'Pode marcar e editar horários de qualquer colega.' },
-    { code: 'schedule.view_own', description: 'Agenda: Ver Somente Própria', module: 'Gestão (Módulos)', explanation: 'Restringe a visão apenas aos seus próprios atendimentos.' },
-    { code: 'schedule.manage_own', description: 'Agenda: Gerenciar Somente Própria', module: 'Gestão (Módulos)', explanation: 'Dá autonomia apenas para seus próprios horários.' },
+export const PERMISSION_METADATA: {
+    code: PermissionCode;
+    description: string;
+    module: string;
+    explanation?: string;
+    featureGate?: string; // Links to organization.features key
+}[] = [
+        // GERAL / CORE
+        { code: 'dashboard.view', description: 'Visualizar Painel', module: 'Menu Superior', explanation: 'Permite que o usuário veja o resumo de estatísticas na tela inicial.' },
+        { code: 'patients.view', description: 'Pacientes: Visualizar Listagem', module: 'Gestão (Módulos)', explanation: 'Dá acesso à lista de pacientes e à busca global.', featureGate: 'records_module' },
+        { code: 'patients.edit', description: 'Pacientes: Criar e Editar', module: 'Gestão (Módulos)', explanation: 'Permite alterar dados cadastrais e clínicos.', featureGate: 'records_module' },
+        { code: 'patients.delete', description: 'Pacientes: Excluir Registro', module: 'Gestão (Módulos)', explanation: 'Permite apagar registros de pacientes.', featureGate: 'records_module' },
+        { code: 'schedule.view_all', description: 'Agenda: Ver Tudo', module: 'Gestão (Módulos)', explanation: 'Visualiza as agendas de todos os profissionais.', featureGate: 'agenda_module' },
+        { code: 'schedule.manage_all', description: 'Agenda: Gerenciar Tudo', module: 'Gestão (Módulos)', explanation: 'Pode marcar e editar horários de qualquer colega.', featureGate: 'agenda_module' },
+        { code: 'schedule.view_own', description: 'Agenda: Ver Somente Própria', module: 'Gestão (Módulos)', explanation: 'Restringe a visão apenas aos seus próprios atendimentos.', featureGate: 'agenda_module' },
+        { code: 'schedule.manage_own', description: 'Agenda: Gerenciar Somente Própria', module: 'Gestão (Módulos)', explanation: 'Dá autonomia apenas para seus próprios horários.', featureGate: 'agenda_module' },
 
-    // FINANCEIRO CORE
-    { code: 'financial.view', description: 'Financeiro: Ver Extratos', module: 'Gestão (Módulos)', explanation: 'Acesso básico ao financeiro.' },
-    { code: 'financial.manage', description: 'Financeiro: Lançamentos', module: 'Gestão (Módulos)', explanation: 'Permite realizar baixas e editar lançamentos.' },
-    { code: 'financial.view_clinic', description: 'Financeiro: Visão Geral Clínica', module: 'Gestão (Módulos)', explanation: 'Acesso total ao faturamento de todos.' },
-    { code: 'financial.view_own', description: 'Financeiro: Visão Própria Produção', module: 'Gestão (Módulos)', explanation: 'Mostra apenas lucro individual.' },
+        // FINANCEIRO CORE
+        { code: 'financial.view', description: 'Financeiro: Ver Extratos', module: 'Gestão (Módulos)', explanation: 'Acesso básico ao financeiro.', featureGate: 'financial_module' },
+        { code: 'financial.manage', description: 'Financeiro: Lançamentos', module: 'Gestão (Módulos)', explanation: 'Permite realizar baixas e editar lançamentos.', featureGate: 'financial_module' },
+        { code: 'financial.view_clinic', description: 'Financeiro: Visão Geral Clínica', module: 'Gestão (Módulos)', explanation: 'Acesso total ao faturamento de todos.', featureGate: 'financial_module' },
+        { code: 'financial.view_own', description: 'Financeiro: Visão Própria Produção', module: 'Gestão (Módulos)', explanation: 'Mostra apenas lucro individual.', featureGate: 'financial_module' },
 
-    // SISTEMA CORE
-    { code: 'settings.view', description: 'Configurações: Acesso Básico', module: 'Gestão (Módulos)', explanation: 'Acesso à central de configurações.' },
-    { code: 'settings.edit', description: 'Configurações: Editar Dados Clínica', module: 'Gestão (Módulos)', explanation: 'Altera nome, logo e regras da clínica.' },
-    { code: 'roles.manage', description: 'Segurança: Gerenciar Perfis/Acesso', module: 'Gestão (Módulos)', explanation: 'Cria e edita o que cada um pode ver.' },
+        // SISTEMA CORE
+        { code: 'settings.view', description: 'Configurações: Acesso Básico', module: 'Gestão (Módulos)', explanation: 'Acesso à central de configurações.' },
+        { code: 'settings.edit', description: 'Configurações: Editar Dados Clínica', module: 'Gestão (Módulos)', explanation: 'Altera nome, logo e regras da clínica.' },
+        { code: 'roles.manage', description: 'Segurança: Gerenciar Perfis/Acesso', module: 'Gestão (Módulos)', explanation: 'Cria e edita o que cada um pode ver.' },
 
-    // MENU LATERAL (SIDEBAR)
-    { code: 'sidebar.home.view', description: 'Sidebar: Tela Inicial', module: 'Menu Lateral', explanation: 'Fixa o link de início na barra lateral.' },
-    { code: 'sidebar.schedule.view', description: 'Sidebar: Agenda', module: 'Menu Lateral', explanation: 'Fixa a agenda na barra lateral.' },
-    { code: 'sidebar.patients.view', description: 'Sidebar: Pacientes', module: 'Menu Lateral', explanation: 'Fixa pacientes na barra lateral.' },
-    { code: 'sidebar.financial.view', description: 'Sidebar: Finanças', module: 'Menu Lateral', explanation: 'Fixa o financeiro na barra lateral.' },
-    { code: 'sidebar.whatsapp.view', description: 'Sidebar: WhatsApp', module: 'Menu Lateral', explanation: 'Fixa o WhatsApp na barra lateral.' },
-    { code: 'sidebar.auditor.view', description: 'Sidebar: Auditor PBE', module: 'Menu Lateral', explanation: 'Fixa o auditor clínico na barra lateral.' },
-    { code: 'sidebar.management.view', description: 'Sidebar: Configurações Gerais', module: 'Menu Lateral', explanation: 'Fixa o ícone de engrenagem na barra lateral.' },
-    { code: 'sidebar.professionals.view', description: 'Sidebar: Atalho Equipe', module: 'Menu Lateral', explanation: 'Atalho direto para equipe na barra lateral.' },
-    { code: 'sidebar.locations.view', description: 'Sidebar: Atalho Locais', module: 'Menu Lateral', explanation: 'Atalho direto para locais na barra lateral.' },
-    { code: 'sidebar.services.view', description: 'Sidebar: Atalho Serviços', module: 'Menu Lateral', explanation: 'Atalho direto para serviços na barra lateral.' },
-    { code: 'sidebar.forms.view', description: 'Sidebar: Atalho Formulários', module: 'Menu Lateral', explanation: 'Atalho direto para formulários na barra lateral.' },
-    { code: 'sidebar.questionnaires.view', description: 'Sidebar: Atalho Questionários', module: 'Menu Lateral', explanation: 'Atalho direto para questionários na barra lateral.' },
-    { code: 'sidebar.prices.view', description: 'Sidebar: Atalho Preços', module: 'Menu Lateral', explanation: 'Atalho direto para preços na barra lateral.' },
-    { code: 'sidebar.products.view', description: 'Sidebar: Atalho Estoque', module: 'Menu Lateral', explanation: 'Atalho direto para estoque na barra lateral.' },
-    { code: 'sidebar.marketing.view', description: 'Sidebar: Atalho Marketing', module: 'Menu Lateral', explanation: 'Atalho direto para marketing na barra lateral.' },
-    { code: 'sidebar.users.view', description: 'Sidebar: Atalho Usuários', module: 'Menu Lateral', explanation: 'Atalho direto para usuários na barra lateral.' },
-    { code: 'sidebar.roles.view', description: 'Sidebar: Atalho Perfis', module: 'Menu Lateral', explanation: 'Atalho direto para perfis na barra lateral.' },
+        // MENU LATERAL (SIDEBAR)
+        { code: 'sidebar.home.view', description: 'Sidebar: Tela Inicial', module: 'Menu Lateral', explanation: 'Fixa o link de início na barra lateral.' },
+        { code: 'sidebar.schedule.view', description: 'Sidebar: Agenda', module: 'Menu Lateral', explanation: 'Fixa a agenda na barra lateral.', featureGate: 'agenda_module' },
+        { code: 'sidebar.patients.view', description: 'Sidebar: Pacientes', module: 'Menu Lateral', explanation: 'Fixa pacientes na barra lateral.', featureGate: 'records_module' },
+        { code: 'sidebar.financial.view', description: 'Sidebar: Finanças', module: 'Menu Lateral', explanation: 'Fixa o financeiro na barra lateral.', featureGate: 'financial_module' },
+        { code: 'sidebar.whatsapp.view', description: 'Sidebar: WhatsApp', module: 'Menu Lateral', explanation: 'Fixa o WhatsApp na barra lateral.', featureGate: 'whatsapp_integration' },
+        { code: 'sidebar.auditor.view', description: 'Sidebar: Auditor PBE', module: 'Menu Lateral', explanation: 'Fixa o auditor clínico na barra lateral.', featureGate: 'ai_assistant' },
+        { code: 'sidebar.management.view', description: 'Sidebar: Configurações Gerais', module: 'Menu Lateral', explanation: 'Fixa o ícone de engrenagem na barra lateral.' },
+        { code: 'sidebar.professionals.view', description: 'Sidebar: Atalho Equipe', module: 'Menu Lateral', explanation: 'Atalho direto para equipe na barra lateral.' },
+        { code: 'sidebar.locations.view', description: 'Sidebar: Atalho Locais', module: 'Menu Lateral', explanation: 'Atalho direto para locais na barra lateral.' },
+        { code: 'sidebar.services.view', description: 'Sidebar: Atalho Serviços', module: 'Menu Lateral', explanation: 'Atalho direto para serviços na barra lateral.' },
+        { code: 'sidebar.forms.view', description: 'Sidebar: Atalho Formulários', module: 'Menu Lateral', explanation: 'Atalho direto para formulários na barra lateral.', featureGate: 'form_management' },
+        { code: 'sidebar.questionnaires.view', description: 'Sidebar: Atalho Questionários', module: 'Menu Lateral', explanation: 'Atalho direto para questionários na barra lateral.', featureGate: 'form_management' },
+        { code: 'sidebar.prices.view', description: 'Sidebar: Atalho Preços', module: 'Menu Lateral', explanation: 'Atalho direto para preços na barra lateral.', featureGate: 'financial_module' },
+        { code: 'sidebar.products.view', description: 'Sidebar: Atalho Estoque', module: 'Menu Lateral', explanation: 'Atalho direto para estoque na barra lateral.' },
+        { code: 'sidebar.marketing.view', description: 'Sidebar: Atalho Marketing', module: 'Menu Lateral', explanation: 'Atalho direto para marketing na barra lateral.', featureGate: 'marketing_module' },
+        { code: 'sidebar.users.view', description: 'Sidebar: Atalho Usuários', module: 'Menu Lateral', explanation: 'Atalho direto para usuários na barra lateral.' },
+        { code: 'sidebar.roles.view', description: 'Sidebar: Atalho Perfis', module: 'Menu Lateral', explanation: 'Atalho direto para perfis na barra lateral.' },
 
-    // MENU SUPERIOR / USUÁRIO (HEADER/PHOTO DROP-DOWN)
-    { code: 'user_menu.home.view', description: 'Menu Usuário: Início', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
-    { code: 'user_menu.schedule.view', description: 'Menu Usuário: Agenda', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
-    { code: 'user_menu.patients.view', description: 'Menu Usuário: Pacientes', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
-    { code: 'user_menu.financial.view', description: 'Menu Usuário: Finanças', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
-    { code: 'user_menu.professionals.view', description: 'Menu Usuário: Equipe', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
-    { code: 'user_menu.locations.view', description: 'Menu Usuário: Locais', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
-    { code: 'user_menu.services.view', description: 'Menu Usuário: Serviços', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
-    { code: 'user_menu.forms.view', description: 'Menu Usuário: Formulários', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
-    { code: 'user_menu.questionnaires.view', description: 'Menu Usuário: Questionários', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
-    { code: 'user_menu.prices.view', description: 'Menu Usuário: Preços', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
-    { code: 'user_menu.products.view', description: 'Menu Usuário: Estoque', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
-    { code: 'user_menu.marketing.view', description: 'Menu Usuário: Marketing', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
-    { code: 'user_menu.users.view', description: 'Menu Usuário: Usuários', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
-    { code: 'user_menu.roles.view', description: 'Menu Usuário: Perfis', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
-    { code: 'user_menu.whatsapp.view', description: 'Menu Usuário: WhatsApp', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
-    { code: 'user_menu.auditor.view', description: 'Menu Usuário: Auditor PBE', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
+        // MENU SUPERIOR / USUÁRIO (HEADER/PHOTO DROP-DOWN)
+        { code: 'user_menu.home.view', description: 'Menu Usuário: Início', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
+        { code: 'user_menu.schedule.view', description: 'Menu Usuário: Agenda', module: 'Menu Superior', explanation: 'Atalho no menu da foto.', featureGate: 'agenda_module' },
+        {
+            code: 'user_menu.patients.view', description: 'Menu Usuário: Pacientes', module: 'Menu Superior', explanation: 'Atalho no menu da foto.', featureGate: 'records_module'
+        },
+        { code: 'user_menu.financial.view', description: 'Menu Usuário: Finanças', module: 'Menu Superior', explanation: 'Atalho no menu da foto.', featureGate: 'financial_module' },
+        { code: 'user_menu.professionals.view', description: 'Menu Usuário: Equipe', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
+        { code: 'user_menu.locations.view', description: 'Menu Usuário: Locais', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
+        { code: 'user_menu.services.view', description: 'Menu Usuário: Serviços', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
+        { code: 'user_menu.forms.view', description: 'Menu Usuário: Formulários', module: 'Menu Superior', explanation: 'Atalho no menu da foto.', featureGate: 'form_management' },
+        { code: 'user_menu.questionnaires.view', description: 'Menu Usuário: Questionários', module: 'Menu Superior', explanation: 'Atalho no menu da foto.', featureGate: 'form_management' },
+        { code: 'user_menu.prices.view', description: 'Menu Usuário: Preços', module: 'Menu Superior', explanation: 'Atalho no menu da foto.', featureGate: 'financial_module' },
+        { code: 'user_menu.products.view', description: 'Menu Usuário: Estoque', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
+        { code: 'user_menu.marketing.view', description: 'Menu Usuário: Marketing', module: 'Menu Superior', explanation: 'Atalho no menu da foto.', featureGate: 'marketing_module' },
+        { code: 'user_menu.users.view', description: 'Menu Usuário: Usuários', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
+        { code: 'user_menu.roles.view', description: 'Menu Usuário: Perfis', module: 'Menu Superior', explanation: 'Atalho no menu da foto.' },
+        { code: 'user_menu.whatsapp.view', description: 'Menu Usuário: WhatsApp', module: 'Menu Superior', explanation: 'Atalho no menu da foto.', featureGate: 'whatsapp_integration' },
+        { code: 'user_menu.auditor.view', description: 'Menu Usuário: Auditor PBE', module: 'Menu Superior', explanation: 'Atalho no menu da foto.', featureGate: 'ai_assistant' },
 
-    // ABAS DO FINANCEIRO
-    { code: 'financial.tabs.my_statement', description: 'Aba: Meu Extrato', module: 'Gestão (Módulos)', explanation: 'Produção individual.' },
-    { code: 'financial.tabs.general_statement', description: 'Aba: Extrato Geral', module: 'Gestão (Módulos)', explanation: 'Todas movimentações.' },
-    { code: 'financial.tabs.cash_flow', description: 'Aba: Fluxo de Caixa', module: 'Gestão (Módulos)', explanation: 'Visão futura/saldo.' },
-    { code: 'financial.tabs.dre', description: 'Aba: DRE Financeiro', module: 'Gestão (Módulos)', explanation: 'Saúde financeira.' },
-    { code: 'financial.tabs.settings', description: 'Aba: Config Financeiras', module: 'Gestão (Módulos)', explanation: 'Centros de custo.' },
+        // ABAS DO FINANCEIRO
+        { code: 'financial.tabs.my_statement', description: 'Aba: Meu Extrato', module: 'Gestão (Módulos)', explanation: 'Produção individual.', featureGate: 'financial_module' },
+        { code: 'financial.tabs.general_statement', description: 'Aba: Extrato Geral', module: 'Gestão (Módulos)', explanation: 'Todas movimentações.', featureGate: 'financial_module' },
+        { code: 'financial.tabs.cash_flow', description: 'Aba: Fluxo de Caixa', module: 'Gestão (Módulos)', explanation: 'Visão futura/saldo.', featureGate: 'financial_module' },
+        { code: 'financial.tabs.dre', description: 'Aba: DRE Financeiro', module: 'Gestão (Módulos)', explanation: 'Saúde financeira.', featureGate: 'financial_module' },
+        { code: 'financial.tabs.settings', description: 'Aba: Config Financeiras', module: 'Gestão (Módulos)', explanation: 'Centros de custo.', featureGate: 'financial_module' },
 
-    // GESTÃO HUB
-    { code: 'settings.professionals.view', description: 'Gestão: Profissionais', module: 'Configurações', explanation: 'Acesso à lista de profissionais.' },
-    { code: 'settings.locations.view', description: 'Gestão: Locais', module: 'Configurações', explanation: 'Acesso à lista de locais.' },
-    { code: 'settings.services.view', description: 'Gestão: Serviços', module: 'Configurações', explanation: 'Acesso à lista de serviços.' },
-    { code: 'settings.forms.view', description: 'Gestão: Formulários', module: 'Configurações', explanation: 'Acesso à lista de formulários.' },
-    { code: 'settings.questionnaires.view', description: 'Gestão: Questionários', module: 'Configurações', explanation: 'Acesso à lista de questionários.' },
-    { code: 'settings.prices.view', description: 'Gestão: Preços', module: 'Configurações', explanation: 'Acesso à tabela de preços.' },
-    { code: 'settings.products.view', description: 'Gestão: Estoque', module: 'Configurações', explanation: 'Acesso à gestão de estoque.' },
-    { code: 'settings.marketplace.view', description: 'Gestão: Marketplace', module: 'Configurações', explanation: 'Acesso à loja de recursos.' },
-    { code: 'settings.marketing.view', description: 'Gestão: Marketing', module: 'Configurações', explanation: 'Acesso às configs de marketing.' },
-    { code: 'settings.communication.view', description: 'Gestão: WhatsApp/Comunicação', module: 'Configurações', explanation: 'Acesso às comunicações.' },
-    { code: 'settings.identity.view', description: 'Gestão: Identidade Visual', module: 'Configurações', explanation: 'Acesso às configs visuais.' },
-    { code: 'settings.documents.view', description: 'Gestão: Modelos de Docs', module: 'Configurações', explanation: 'Acesso a modelos de atestados.' },
-    { code: 'settings.intelligence.view', description: 'Gestão: IA e Protocolos', module: 'Configurações', explanation: 'Acesso a configs de IA.' },
-    { code: 'settings.users.view', description: 'Gestão: Usuários', module: 'Configurações', explanation: 'Acesso à gestão de usuários.' },
-    { code: 'settings.roles.view', description: 'Gestão: Perfis de Acesso', module: 'Configurações', explanation: 'Acesso à gestão de permissões.' },
-    { code: 'settings.audit.view', description: 'Gestão: Auditoria LGPD', module: 'Configurações', explanation: 'Acesso aos logs do sistema.' },
-    { code: 'settings.migration.view', description: 'Gestão: Migração de Dados', module: 'Configurações', explanation: 'Acesso ao assistente de migração.' },
-    { code: 'settings.support.view', description: 'Gestão: Suporte Técnico', module: 'Configurações', explanation: 'Acesso ao diagnóstico de saúde.' },
-    { code: 'settings.dre.view', description: 'Gestão: Atalho DRE', module: 'Configurações', explanation: 'Atalho para relatórios financeiros.' },
-];
+        // GESTÃO HUB
+        { code: 'settings.professionals.view', description: 'Gestão: Profissionais', module: 'Configurações', explanation: 'Acesso à lista de profissionais.' },
+        { code: 'settings.locations.view', description: 'Gestão: Locais', module: 'Configurações', explanation: 'Acesso à lista de locais.' },
+        { code: 'settings.services.view', description: 'Gestão: Serviços', module: 'Configurações', explanation: 'Acesso à lista de serviços.' },
+        { code: 'settings.forms.view', description: 'Gestão: Formulários', module: 'Configurações', explanation: 'Acesso à lista de formulários.', featureGate: 'form_management' },
+        { code: 'settings.questionnaires.view', description: 'Gestão: Questionários', module: 'Configurações', explanation: 'Acesso à lista de questionários.', featureGate: 'form_management' },
+        { code: 'settings.prices.view', description: 'Gestão: Preços', module: 'Configurações', explanation: 'Acesso à tabela de preços.', featureGate: 'financial_module' },
+        { code: 'settings.products.view', description: 'Gestão: Estoque', module: 'Configurações', explanation: 'Acesso à gestão de estoque.' },
+        { code: 'settings.marketplace.view', description: 'Gestão: Marketplace', module: 'Configurações', explanation: 'Acesso à loja de recursos.' },
+        { code: 'settings.marketing.view', description: 'Gestão: Marketing', module: 'Configurações', explanation: 'Acesso às configs de marketing.', featureGate: 'marketing_module' },
+        { code: 'settings.communication.view', description: 'Gestão: WhatsApp/Comunicação', module: 'Configurações', explanation: 'Acesso às comunicações.', featureGate: 'whatsapp_integration' },
+        { code: 'settings.identity.view', description: 'Gestão: Identidade Visual', module: 'Configurações', explanation: 'Acesso às configs visuais.' },
+        { code: 'settings.documents.view', description: 'Gestão: Modelos de Docs', module: 'Configurações', explanation: 'Acesso a modelos de atestados.', featureGate: 'advanced_reports' },
+        { code: 'settings.intelligence.view', description: 'Gestão: IA e Protocolos', module: 'Configurações', explanation: 'Acesso a configs de IA.', featureGate: 'ai_assistant' },
+        { code: 'settings.users.view', description: 'Gestão: Usuários', module: 'Configurações', explanation: 'Acesso à gestão de usuários.' },
+        { code: 'settings.roles.view', description: 'Gestão: Perfis de Acesso', module: 'Configurações', explanation: 'Acesso à gestão de permissões.' },
+        { code: 'settings.audit.view', description: 'Gestão: Auditoria LGPD', module: 'Configurações', explanation: 'Acesso aos logs do sistema.' },
+        { code: 'settings.migration.view', description: 'Gestão: Migração de Dados', module: 'Configurações', explanation: 'Acesso ao assistente de migração.' },
+        { code: 'settings.support.view', description: 'Gestão: Suporte Técnico', module: 'Configurações', explanation: 'Acesso ao diagnóstico de saúde.' },
+        { code: 'settings.dre.view', description: 'Gestão: Atalho DRE', module: 'Configurações', explanation: 'Atalho para relatórios financeiros.', featureGate: 'financial_module' },
+
+        // ABAS DE CONFIGURAÇÃO (LAYER 2)
+        { code: 'settings.tabs.general', description: 'Config Aba: Geral', module: 'Configurações', explanation: 'Acesso à aba de dados da clínica.' },
+        { code: 'settings.tabs.integrations', description: 'Config Aba: Integrações', module: 'Configurações', explanation: 'Acesso às integrações de terceiros.' },
+        { code: 'settings.tabs.reports', description: 'Config Aba: Documentos', module: 'Configurações', explanation: 'Acesso aos modelos de documentos.' },
+        { code: 'settings.tabs.intelligence', description: 'Config Aba: Inteligência', module: 'Configurações', explanation: 'Acesso às configurações de IA.' },
+        { code: 'settings.tabs.users', description: 'Config Aba: Usuários', module: 'Configurações', explanation: 'Acesso à gestão de usuários.' },
+        { code: 'settings.tabs.roles', description: 'Config Aba: Perfis', module: 'Configurações', explanation: 'Acesso aos perfis de acesso.' },
+    ];
 
 /**
  * Checks if the current user has a specific permission.
@@ -196,34 +220,42 @@ export async function hasPermission(permission: PermissionCode): Promise<boolean
         permission === 'sidebar.management.view'
     )) return true
 
-    // 1. Get User's Role ID from profiles
-    const { data: profile } = await supabase
+    // 1. Get User's Profile and Organization Features
+    const adminSupabase = await createAdminClient()
+    const { data: profile } = await adminSupabase
         .from('profiles')
-        .select('role_id, roles(name)')
+        .select(`
+            role_id, 
+            organization_id, 
+            organizations (
+                features
+            )
+        `)
         .eq('id', user.id)
         .single()
 
-    if (!profile?.role_id) return false
+    if (!profile?.role_id || !profile?.organization_id) return false
 
-    // 2. Resolve Permission Logic
-    // For Master users, we differentiate between Visibility (Menus) and Functional Access
-    if (isMaster) {
-        if (permission.startsWith('sidebar.') || permission.startsWith('user_menu.')) {
-            // Visibility: Respect the database configuration
-            const adminSupabase = await createAdminClient()
-            const { count } = await adminSupabase
-                .from('role_permissions')
-                .select('permissions!inner(code)', { count: 'exact', head: true })
-                .eq('role_id', profile.role_id)
-                .eq('permissions.code', permission)
-            return (count || 0) > 0
+    // Layer 1 Check: Organization-Level Feature Gating
+    const meta = PERMISSION_METADATA.find(p => p.code === permission)
+    if (meta?.featureGate) {
+        const orgFeatures = (profile.organizations as any)?.features
+        const isFeatureEnabled = (orgFeatures === null || orgFeatures === undefined)
+            ? true
+            : !!orgFeatures[meta.featureGate]
+
+        // If feature is disabled and user is NOT a master, block access
+        if (!isFeatureEnabled && !isMaster) {
+            console.log(`[RBAC] Access blocked: Feature "${meta.featureGate}" is disabled for organization ${profile.organization_id}`);
+            return false
         }
-        // Functional Access: Master always has access
-        return true
     }
 
+    // 2. Resolve Permission Logic (Role-Based)
+    // For Master users, we grant absolute access to everything (Visibility and Functional)
+    if (isMaster) return true;
+
     // For other users, everything is strictly per database
-    const adminSupabase = await createAdminClient()
     const { count } = await adminSupabase
         .from('role_permissions')
         .select('permissions!inner(code)', { count: 'exact', head: true })
@@ -243,19 +275,26 @@ export async function getCurrentUserPermissions(): Promise<PermissionCode[]> {
 
     if (!user) return []
 
-    // 1. Get User's Role ID
-    const { data: profile } = await supabase
+    // 1. Get User's Role, Organization and Features
+    const adminSupabase = await createAdminClient()
+    const { data: profile } = await adminSupabase
         .from('profiles')
-        .select('role_id, roles(name)')
+        .select(`
+            role_id, 
+            organization_id,
+            organizations (
+                features
+            )
+        `)
         .eq('id', user.id)
         .single()
 
     const isMaster = await checkIsMaster(user.id)
     let targetRoleId = profile?.role_id
+    const orgFeatures = (profile?.organizations as any)?.features || {}
 
     if (!targetRoleId && isMaster) {
         // [RESILIENCE] Fallback: Look for a role named 'Master' if user has no role_id assigned
-        const adminSupabase = await createAdminClient()
         const { data: masterRole } = await adminSupabase.from('roles').select('id').eq('name', 'Master').limit(1).single()
         if (masterRole) {
             targetRoleId = masterRole.id
@@ -263,36 +302,103 @@ export async function getCurrentUserPermissions(): Promise<PermissionCode[]> {
         }
     }
 
-    if (!targetRoleId) {
-        // Master without any role fallback still gets core access
-        if (isMaster) return [
-            'dashboard.view',
-            'settings.view',
-            'roles.manage',
-            'sidebar.management.view'
-        ] as PermissionCode[]
+    // 2. Resolve Base Permissions (Layer 1)
+    if (isMaster) {
+        // Master gets ALL permissions defined in the system for complete oversight
+        return PERMISSION_METADATA.map(m => m.code) as PermissionCode[]
+    }
+
+    let rolePerms: any[] = []
+    if (targetRoleId) {
+        // Fetch specific role permissions
+        const { data } = await adminSupabase
+            .from('role_permissions')
+            .select('permissions!inner(code)')
+            .eq('role_id', targetRoleId)
+        rolePerms = data || []
+    } else {
+        // If no targetRoleId and not a master, return no permissions
         return []
     }
 
-    // Use admin client to ensure visibility of joining permissions table
-    const adminSupabase = await createAdminClient()
-    const { data: rolePerms } = await adminSupabase
-        .from('role_permissions')
-        .select('permissions(code)')
-        .eq('role_id', targetRoleId)
+    // Layer 1 Filter + Flattening
 
-    if (!rolePerms) return []
-
-    // Flatten the result
+    // Layer 1 Filter + Flattening
     return rolePerms
-        .map((rp: any) => rp.permissions?.code as PermissionCode)
-        .filter(Boolean)
+        .map((rp: any) => {
+            const code = rp.permissions?.code as PermissionCode
+            const meta = PERMISSION_METADATA.find(p => p.code === code)
+
+            if (meta?.featureGate) {
+                const isFeatureEnabled = (orgFeatures === null || orgFeatures === undefined)
+                    ? true
+                    : !!orgFeatures[meta.featureGate]
+                // Master Bypasses Layer 1 Filter for complete oversight
+                if (!isFeatureEnabled && !isMaster) return null
+            }
+            return code
+        })
+        .filter(Boolean) as PermissionCode[]
 }
 
 /**
- * Checks if current user is a "Master" (or Admin).
- * Useful for super-admin bypasses if hardcoded, OR simply check for a high-level permission.
+ * Layer 3 Check: Asset-Specific Permissions
+ * Checks if a user can perform an action (view, fill, edit) on a specific asset (form/template).
  */
+export async function canAccessAsset(asset: any, action: 'view' | 'fill' | 'edit'): Promise<boolean> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return false
+
+    const id = user.id
+    const isMaster = await checkIsMaster(id)
+
+    // 1. Master Bypass: Full control over everything
+    if (isMaster) return true
+
+    // 2. Get User Profile for Role ID (Using cached admin client here would be better but keeping it simple for now)
+    const adminSupabase = await createAdminClient()
+    const { data: profile } = await adminSupabase
+        .from('profiles')
+        .select('role_id')
+        .eq('id', id)
+        .single()
+
+    const roleId = profile?.role_id
+    const config = asset.access_config || {}
+
+    // 3. Individual User Permissions (Highest priority)
+    const userPerms = config.users?.[id] || []
+    if (userPerms.includes(action)) return true
+
+    // 4. Role-Based Permissions
+    if (roleId) {
+        const rolePerms = config.roles?.[roleId] || []
+        if (rolePerms.includes(action)) return true
+    }
+
+    // 5. Fallback to Legacy 'allowed_roles' (Layer 2.5)
+    // If no access_config is defined, we use the old whitelist for 'view' and 'fill'.
+    // 'edit' always requires explicit config or Ownership or Master.
+    const hasConfig = (config.roles && Object.values(config.roles).some((v: any) => v.length > 0)) ||
+        (config.users && Object.values(config.users).some((v: any) => v.length > 0))
+
+    if (!hasConfig) {
+        // If it's a legacy form, we only check against 'view' and 'fill'
+        if (action === 'edit') {
+            // Only the creator can edit legacy forms if no config exists
+            return asset.user_id === id
+        }
+
+        const allowed = asset.allowed_roles || []
+        // Empty allowed_roles = public for the organization
+        if (allowed.length === 0) return true
+        return allowed.includes(id) || (roleId && allowed.includes(roleId))
+    }
+
+    return false
+}
+
 export async function isMasterUser(): Promise<boolean> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

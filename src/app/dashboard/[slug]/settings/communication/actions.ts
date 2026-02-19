@@ -400,14 +400,23 @@ export async function getTemplates(slug?: string) {
     const supabase = await createAdminClient()
 
     if (slug) {
-        const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        const { data: org } = await supabase.from('organizations').select('id, features').eq('slug', slug).single()
         if (org) {
             await ensureDefaultTemplates(org.id)
+
+            const allowedIds = Array.isArray(org.features?.allowed_message_templates)
+                ? org.features.allowed_message_templates
+                : []
+
+            let queryMatchStr = `organization_id.eq.${org.id}`
+            if (allowedIds.length > 0) {
+                queryMatchStr += `,and(organization_id.is.null,id.in.(${allowedIds.map((id: string) => `"${id}"`).join(',')}))`
+            }
 
             const { data, error } = await supabase
                 .from('message_templates')
                 .select('*')
-                .or(`organization_id.eq.${org.id},organization_id.is.null`)
+                .or(queryMatchStr)
                 .order('organization_id', { ascending: false, nullsFirst: false })
                 .order('created_at', { ascending: false })
 
@@ -421,7 +430,9 @@ export async function getTemplates(slug?: string) {
             const seenTriggers = new Set()
 
             data?.forEach(t => {
-                if (!seenTriggers.has(t.trigger_type)) {
+                if (t.trigger_type === 'manual') {
+                    uniqueTemplates.push(t)
+                } else if (!seenTriggers.has(t.trigger_type)) {
                     uniqueTemplates.push(t)
                     seenTriggers.add(t.trigger_type)
                 }
@@ -521,13 +532,49 @@ export async function updateTemplate(id: string, formData: FormData, slug?: stri
     }
 
     const supabase = await createClient()
-    const { error } = await supabase
-        .from('message_templates')
-        .update(result.data)
-        .eq('id', id)
 
-    if (error) {
-        return { success: false, error: error.message }
+    // Check if the template is a global template
+    const { data: existing } = await supabase.from('message_templates').select('organization_id').eq('id', id).single()
+
+    if (existing && existing.organization_id === null) {
+        // It's a global template. We must create a local copy instead of updating the global one.
+        let organizationId: string | undefined
+        if (slug) {
+            const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+            if (org) organizationId = org.id
+        }
+        if (!organizationId) {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+                organizationId = profile?.organization_id
+            }
+        }
+
+        if (!organizationId) {
+            return { success: false, error: "Organização não encontrada para criar cópia local." }
+        }
+
+        const { error: insertError } = await supabase
+            .from('message_templates')
+            .insert({
+                ...result.data,
+                organization_id: organizationId
+            })
+
+        if (insertError) {
+            return { success: false, error: insertError.message }
+        }
+    } else {
+        // Normal update for local templates
+        const { error } = await supabase
+            .from('message_templates')
+            .update(result.data)
+            .eq('id', id)
+
+        if (error) {
+            return { success: false, error: error.message }
+        }
     }
 
     if (slug) revalidatePath(`/dashboard/${slug}/settings/communication`)
@@ -538,6 +585,14 @@ export async function updateTemplate(id: string, formData: FormData, slug?: stri
 
 export async function deleteTemplate(id: string, slug?: string) {
     const supabase = await createClient()
+
+    // Check if the template is a global template
+    const { data: existing } = await supabase.from('message_templates').select('organization_id').eq('id', id).single()
+
+    if (existing && existing.organization_id === null && slug) {
+        return { success: false, error: "Modelos padrão do sistema não podem ser excluídos, apenas desativados ou editados." }
+    }
+
     const { error } = await supabase.from('message_templates').delete().eq('id', id)
 
     if (error) return { success: false, error: error.message }

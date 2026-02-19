@@ -13,18 +13,19 @@ import { TenantResponsibleManager } from "./components/tenant-responsible-manage
 import { TenantFeaturesManager } from "./components/tenant-features-manager";
 import { TenantPlanManager } from "./components/tenant-plan-manager";
 import { TenantGranularAccessManager } from "./components/tenant-granular-access-manager";
-import { getAvailablePlans, getTenantFormAccess, getTenantProtocolAccess, getTenantZapiConfig } from "./actions";
+import { getAvailablePlans, getTenantFormAccess, getTenantProtocolAccess, getTenantZapiConfig, getGlobalMessageTemplates } from "./actions";
 import { TenantZapiConfig } from "./components/tenant-zapi-config";
 
 export default async function TenantDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
-    const [data, availablePlans, formAccess, protocolAccess, zapiConfig] = await Promise.all([
+    const [data, availablePlans, formAccess, protocolAccess, zapiConfig, globalTemplates] = await Promise.all([
         getTenantDetails(id),
         getAvailablePlans(),
         getTenantFormAccess(id),
         getTenantProtocolAccess(id),
-        getTenantZapiConfig(id)
-    ]) as [any, any[], any, any, any];
+        getTenantZapiConfig(id),
+        getGlobalMessageTemplates()
+    ]) as [any, any[], any, any, any, any[]];
 
     if (data.error) {
         // If specific error, throw it so Error Boundary catches it instead of 404
@@ -167,6 +168,10 @@ export default async function TenantDetailsPage({ params }: { params: Promise<{ 
                             tenantId={id}
                             forms={formAccess}
                             protocols={protocolAccess}
+                            messageTemplates={{
+                                all: globalTemplates,
+                                allowedIds: org.features?.allowed_message_templates || []
+                            }}
                         />
                     </div>
 

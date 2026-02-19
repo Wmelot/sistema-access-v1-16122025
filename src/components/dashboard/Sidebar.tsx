@@ -155,121 +155,54 @@ export function SidebarContent({
                     </div>
                 )}
                 <nav className={cn("grid items-start px-2 text-base font-medium", isCollapsed ? "justify-center" : "lg:px-4 py-4 gap-1")}>
-                    {checkPermission('sidebar.home.view') && (
-                        <NavItem href={dashboardPrefix} icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
-                    )}
+                    {[
+                        { href: dashboardPrefix, icon: Home, label: "Tela Inicial", perm: 'sidebar.home.view' },
+                        { href: `${dashboardPrefix}/schedule`, icon: CalendarIcon, label: "Agenda", perm: 'sidebar.schedule.view', feature: 'agenda_module', id: 'nav-agenda' },
+                        { href: `${dashboardPrefix}/auditor`, icon: Microscope, label: "Auditor PBE", perm: 'sidebar.auditor.view', className: "text-indigo-600" },
+                        { href: `${dashboardPrefix}/management`, icon: Settings, label: "Configurações Gerais", perm: 'sidebar.management.view', id: 'nav-management' },
+                        { href: `${dashboardPrefix}/products`, icon: ShoppingBag, label: "Estoque", perm: 'sidebar.products.view', feature: 'products_module' },
+                        { href: `${dashboardPrefix}/financial?tab=my_statement`, icon: DollarSign, label: "Finanças", perm: 'sidebar.financial.view', feature: 'financial_module' },
+                        { href: `${dashboardPrefix}/forms`, icon: ClipboardList, label: "Formulários", perm: 'sidebar.forms.view' },
+                        { href: `${dashboardPrefix}/locations`, icon: MapPin, label: "Locais", perm: 'sidebar.locations.view' },
+                        { href: `${dashboardPrefix}/marketing`, icon: Megaphone, label: "Marketing", perm: 'sidebar.marketing.view' },
+                        { href: `${dashboardPrefix}/patients`, icon: Users, label: "Pacientes", perm: 'sidebar.patients.view', feature: 'records_module' },
+                        { href: `${dashboardPrefix}/settings?tab=roles`, icon: Shield, label: "Perfis de Acesso", perm: 'sidebar.roles.view' },
+                        { href: `${dashboardPrefix}/professionals`, icon: Users, label: "Profissionais", perm: 'sidebar.professionals.view' },
+                        { href: `${dashboardPrefix}/questionnaires`, icon: FileText, label: "Questionários", perm: 'sidebar.questionnaires.view' },
+                        { href: `${dashboardPrefix}/services`, icon: Stethoscope, label: "Serviços", perm: 'sidebar.services.view' },
+                        { href: `${dashboardPrefix}/prices`, icon: Tag, label: "Tabela de Preços", perm: 'sidebar.prices.view' },
+                        { href: `${dashboardPrefix}/settings?tab=users`, icon: Users, label: "Usuários", perm: 'sidebar.users.view' },
+                        { href: `${dashboardPrefix}/settings/communication`, icon: MessageCircle, label: "WhatsApp", perm: 'sidebar.whatsapp.view', feature: 'whatsapp_integration' },
+                        { type: 'widget', label: "Lembretes", component: ReminderWidget }
+                    ]
+                        .sort((a, b) => {
+                            if (a.label === "Tela Inicial") return -1;
+                            if (b.label === "Tela Inicial") return 1;
+                            return a.label.localeCompare(b.label);
+                        })
+                        .map((item: any) => {
+                            if (item.type === 'widget') {
+                                return <item.component key="widget-reminders" />;
+                            }
 
-                    {checkPermission('sidebar.schedule.view') && (
-                        <NavItem
-                            id="nav-agenda"
-                            href={`${dashboardPrefix}/schedule`}
-                            icon={CalendarIcon}
-                            label="Agenda"
-                            isCollapsed={isCollapsed}
-                            locked={!checkFeature('agenda_module')}
-                            onClick={onNavigate}
-                            showLoading={showLoading}
-                        />
-                    )}
+                            if (!checkPermission(item.perm)) return null;
 
-                    {checkPermission('sidebar.patients.view') && (
-                        <NavItem
-                            href={`${dashboardPrefix}/patients`}
-                            icon={Users}
-                            label="Pacientes"
-                            isCollapsed={isCollapsed}
-                            locked={!checkFeature('records_module')}
-                            onClick={onNavigate}
-                            showLoading={showLoading}
-                        />
-                    )}
-
-                    {checkPermission('sidebar.financial.view') && (
-                        <NavItem
-                            href={`${dashboardPrefix}/financial?tab=my_statement`}
-                            icon={DollarSign}
-                            label="Finanças"
-                            isCollapsed={isCollapsed}
-                            locked={!checkFeature('financial_module')}
-                            onClick={onNavigate}
-                            showLoading={showLoading}
-                        />
-                    )}
-
-                    {checkPermission('sidebar.whatsapp.view') && (
-                        <NavItem
-                            href={`${dashboardPrefix}/settings/communication`}
-                            icon={MessageCircle}
-                            label="WhatsApp"
-                            isCollapsed={isCollapsed}
-                            locked={!checkFeature('whatsapp_integration') && !checkFeature('zapi_messaging')}
-                            onClick={onNavigate}
-                            showLoading={showLoading}
-                        />
-                    )}
-
-                    {checkPermission('sidebar.auditor.view') && (
-                        <NavItem
-                            href={`${dashboardPrefix}/auditor`}
-                            icon={Microscope}
-                            label="Auditor PBE"
-                            isCollapsed={isCollapsed}
-                            onClick={onNavigate}
-                            showLoading={showLoading}
-                            className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50/50"
-                        />
-                    )}
-
-                    <div className="my-4 border-t border-zinc-100 mx-4" />
-
-                    {checkPermission('sidebar.management.view') && (
-                        <NavItem
-                            id="nav-management"
-                            href={`${dashboardPrefix}/management`}
-                            icon={Settings}
-                            label="Configurações Gerais"
-                            isCollapsed={isCollapsed}
-                            className="bg-blue-50/50 text-blue-700 hover:bg-blue-100/50 font-bold"
-                            onClick={onNavigate}
-                            showLoading={showLoading}
-                        />
-                    )}
-
-                    {/* DYNAMIC SIDEBAR SHORTCUTS */}
-                    {checkPermission('sidebar.professionals.view') && (
-                        <NavItem href={`${dashboardPrefix}/professionals`} icon={Users} label="Profissionais" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
-                    )}
-                    {checkPermission('sidebar.locations.view') && (
-                        <NavItem href={`${dashboardPrefix}/locations`} icon={MapPin} label="Locais" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
-                    )}
-                    {checkPermission('sidebar.services.view') && (
-                        <NavItem href={`${dashboardPrefix}/services`} icon={Stethoscope} label="Serviços" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
-                    )}
-                    {checkPermission('sidebar.forms.view') && (
-                        <NavItem href={`${dashboardPrefix}/forms`} icon={ClipboardList} label="Formulários" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
-                    )}
-                    {checkPermission('sidebar.questionnaires.view') && (
-                        <NavItem href={`${dashboardPrefix}/questionnaires`} icon={FileText} label="Questionários" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
-                    )}
-                    {checkPermission('sidebar.prices.view') && (
-                        <NavItem href={`${dashboardPrefix}/prices`} icon={Tag} label="Tabela de Preços" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
-                    )}
-                    {checkPermission('sidebar.products.view') && (
-                        <NavItem href={`${dashboardPrefix}/products`} icon={ShoppingBag} label="Estoque" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
-                    )}
-                    {checkPermission('sidebar.marketing.view') && (
-                        <NavItem href={`${dashboardPrefix}/marketing`} icon={Megaphone} label="Marketing" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
-                    )}
-                    {checkPermission('sidebar.users.view') && (
-                        <NavItem href={`${dashboardPrefix}/settings?tab=users`} icon={Users} label="Usuários" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
-                    )}
-                    {checkPermission('sidebar.roles.view') && (
-                        <NavItem href={`${dashboardPrefix}/settings?tab=roles`} icon={Shield} label="Perfis de Acesso" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
-                    )}
+                            return (
+                                <NavItem
+                                    key={item.href}
+                                    id={item.id}
+                                    href={item.href}
+                                    icon={item.icon}
+                                    label={item.label}
+                                    isCollapsed={isCollapsed}
+                                    locked={item.feature ? !checkFeature(item.feature) : false}
+                                    onClick={onNavigate}
+                                    showLoading={showLoading}
+                                    className={item.className}
+                                />
+                            );
+                        })}
                 </nav>
-
-                {/* REMINDERS WIDGET (Sidebar) */}
-                <ReminderWidget />
 
                 {/* Trial Display */}
                 {!isCollapsed && <TrialDisplay trialEndsAt={trialEndsAt} />}

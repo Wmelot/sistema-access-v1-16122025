@@ -4,6 +4,7 @@ import { useState, useEffect, useTransition } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ClinicalIntelligenceSettings } from "./intelligence/clinical-intelligence-settings"
 import { Settings, Users, Shield, FileText, Table2, Brain } from "lucide-react"
+import { PermissionCode } from "@/lib/rbac"
 import { QuantumLoader } from "@/components/ui/quantum-loader"
 import { SettingsForm } from "./settings-form"
 import { RolesList } from "./roles/roles-list"
@@ -18,6 +19,9 @@ import Link from "next/link"
 import { SystemIntegrationsCard } from "./system/system-integrations-card"
 import { AsaasConfigCard } from "./asaas-config-card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { usePermissionsContext } from "@/components/providers/permissions-provider"
+import { toast } from "sonner"
+import { Switch } from "@/components/ui/switch"
 
 interface SettingsViewProps {
     initialSettings: any
@@ -41,6 +45,8 @@ interface SettingsViewProps {
 
 export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData, apiData, reportTemplates = [], isMaster = false, slug }: SettingsViewProps) {
     const searchParams = useSearchParams()
+    const { hasPermission } = usePermissionsContext()
+
     // Default to 'general' or first available tab
     const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "general")
     const [pendingTab, setPendingTab] = useState<string | null>(null)
@@ -66,16 +72,17 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
         setActiveTab(value)
     }
 
-    const menuItems = [
-        { value: "general", label: "Geral", icon: Settings },
-        { value: "integrations", label: "Integrações", icon: Table2 },
-        { value: "reports", label: "Documentos e Atestados", icon: FileText },
-        { value: "intelligence", label: "Inteligência", icon: Brain },
-        ...(rolesData.canManage ? [
-            { value: "users", label: "Usuários", icon: Users },
-            { value: "roles", label: "Perfis de Acesso", icon: Shield }
-        ] : [])
+    const allMenuItems = [
+        { value: "general", label: "Geral", icon: Settings, permission: 'settings.tabs.general' as PermissionCode },
+        { value: "integrations", label: "Integrações", icon: Table2, permission: 'settings.tabs.integrations' as PermissionCode },
+        { value: "reports", label: "Documentos e Atestados", icon: FileText, permission: 'settings.tabs.reports' as PermissionCode },
+        { value: "intelligence", label: "Inteligência", icon: Brain, permission: 'settings.tabs.intelligence' as PermissionCode },
+        { value: "users", label: "Usuários", icon: Users, permission: 'settings.tabs.users' as PermissionCode },
+        { value: "roles", label: "Perfis de Acesso", icon: Shield, permission: 'settings.tabs.roles' as PermissionCode }
     ]
+
+    // Filter menu items by permission
+    const menuItems = allMenuItems.filter(item => hasPermission(item.permission))
 
     return (
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
@@ -208,6 +215,7 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                     <RolesList roles={rolesData.roles} allPermissions={rolesData.permissions} />
                 </TabsContent>
             )}
+
         </Tabs>
     )
 }

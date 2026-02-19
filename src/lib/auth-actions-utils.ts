@@ -38,16 +38,15 @@ export async function getActiveOrgId(slug: string): Promise<{ orgId: string, isS
     }
 
     // Case B: User is a MASTER (Universal Access)
-    const isMaster = await isMasterUser(user.id, user.email)
+    const isMaster = await isMasterUser(user.id)
 
     if (isMaster) {
-        const supportActive = org.support_access_active
-        const until = org.support_access_until ? new Date(org.support_access_until) : null
+        // [FIX] 'access-fisioterapia' is a HOME clinic for the Master, not support mode
+        const isHomeClinic = slug === 'access-fisioterapia' || slug === 'access-fisioterapia-1';
 
-        console.log(`[Support Mode] Master user ${user.email} accessing org ${slug}. Support Active: ${supportActive}`)
         return {
             orgId: org.id,
-            isSupportMode: true // It's support mode because they are not members
+            isSupportMode: !isHomeClinic // Only support mode if it's NOT a home clinic
         }
     }
 
