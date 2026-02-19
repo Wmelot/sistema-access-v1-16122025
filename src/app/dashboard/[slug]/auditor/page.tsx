@@ -259,9 +259,9 @@ export default function AuditorPage() {
                                 <div>
                                     <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                                         <BrainCircuit className="text-indigo-600 w-8 h-8" />
-                                        Evidence Auditor <span className="text-indigo-600 text-sm bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-widest font-black">Beta v2.1</span>
+                                        Auditor de Evidências <span className="text-indigo-600 text-sm bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-widest font-black">Versão 2.1</span>
                                     </h1>
-                                    <p className="text-slate-500 font-medium">Análise de viés e rigor científico em tempo real (Powered by Axiom Intelligence)</p>
+                                    <p className="text-slate-500 font-medium">Análise de viés e qualidade metodológica.</p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Badge variant="outline" className="bg-white border-slate-200 text-slate-500 font-bold px-3 py-1">
@@ -285,11 +285,11 @@ export default function AuditorPage() {
                                                 <UploadCloud size={40} />
                                             </div>
                                             <h3 className="mb-1 text-xl font-bold text-slate-800">
-                                                {file ? file.name : 'Suba o PDF do Artigo Científico'}
+                                                {file ? file.name : 'Faça upload do PDF do Artigo Científico'}
                                             </h3>
                                             <p className="text-sm text-slate-500">
                                                 Arraste ou clique para selecionar seu arquivo. <br />
-                                                <span className="font-bold text-indigo-600">A IA irá revisar o rigor metodológico.</span>
+                                                <span className="font-bold text-indigo-600">O artigo será revisado utilizando critérios específicos com auxilio da IA.</span>
                                             </p>
                                         </div>
                                     </label>

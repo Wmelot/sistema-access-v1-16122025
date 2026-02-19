@@ -423,103 +423,74 @@ function DashboardLayoutContent(props: DashboardLayoutClientProps) { // Changed 
                         <DropdownMenuContent align="end" className="w-64 p-2">
                             <DropdownMenuLabel className="mb-2">
                                 <div className="flex flex-col space-y-1">
-                                    <p className="text-sm font-bold leading-none">{currentUser?.name}</p>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm font-bold leading-none">{currentUser?.name}</p>
+                                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                                            {currentUser?.role}
+                                        </span>
+                                    </div>
                                     <p className="text-xs leading-none text-muted-foreground">{currentUser?.email}</p>
                                 </div>
                             </DropdownMenuLabel>
 
                             <DropdownMenuSeparator />
 
-                            {/* DYNAMIC USER MENU ITEMS (PHOTO DROP-DOWN) */}
-                            <div className="py-1">
-                                {[
-                                    { icon: Home, label: "Início", href: dashboardPrefix, perm: "user_menu.home.view" },
-                                    { icon: CalendarIcon, label: "Agenda", href: `${dashboardPrefix}/schedule`, perm: "user_menu.schedule.view" },
-                                    { icon: Users, label: "Pacientes", href: `${dashboardPrefix}/patients`, perm: "user_menu.patients.view" },
-                                    { icon: DollarSign, label: "Finanças", href: `${dashboardPrefix}/financial`, perm: "user_menu.financial.view" },
-                                    { icon: Briefcase, label: "Equipe", href: `${dashboardPrefix}/professionals`, perm: "user_menu.professionals.view" },
-                                    { icon: MapPin, label: "Locais", href: `${dashboardPrefix}/locations`, perm: "user_menu.locations.view" },
-                                    { icon: Stethoscope, label: "Serviços", href: `${dashboardPrefix}/services`, perm: "user_menu.services.view" },
-                                    { icon: ClipboardList, label: "Formulários", href: `${dashboardPrefix}/forms`, perm: "user_menu.forms.view" },
-                                    { icon: FileText, label: "Questionários", href: `${dashboardPrefix}/questionnaires`, perm: "user_menu.questionnaires.view" },
-                                    { icon: Tag, label: "Preços", href: `${dashboardPrefix}/prices`, perm: "user_menu.prices.view" },
-                                    { icon: ShoppingCart, label: "Estoque", href: `${dashboardPrefix}/products`, perm: "user_menu.products.view" },
-                                    { icon: Megaphone, label: "Marketing", href: `${dashboardPrefix}/marketing`, perm: "user_menu.marketing.view" },
-                                    { icon: MessageSquare, label: "WhatsApp", href: `${dashboardPrefix}/settings/communication`, perm: "user_menu.whatsapp.view" },
-                                    { icon: Microscope, label: "Auditor", href: `${dashboardPrefix}/auditor`, perm: "user_menu.auditor.view" },
-                                    { icon: Users, label: "Usuários", href: `${dashboardPrefix}/settings?tab=users`, perm: "user_menu.users.view" },
-                                    { icon: Shield, label: "Perfis", href: `${dashboardPrefix}/settings?tab=roles`, perm: "user_menu.roles.view" },
-                                ].filter(item => hasPermission(item.perm as any)).map((item, idx) => (
-                                    <Link key={idx} href={item.href}>
-                                        <DropdownMenuItem
-                                            className="cursor-pointer gap-3 py-2 text-slate-700 hover:text-primary"
-                                            onClick={() => {
-                                                if (pathname !== item.href.split('?')[0]) showLoading(item.label);
-                                            }}
-                                        >
-                                            <item.icon className="h-4 w-4 text-slate-400 group-hover:text-primary transition-colors" />
-                                            <span className="font-medium">{item.label}</span>
-                                        </DropdownMenuItem>
-                                    </Link>
-                                ))}
-                            </div>
+                            {/* 1. Financeiro Geral */}
+                            <DropdownMenuItem className="p-0 select-none cursor-pointer">
+                                <Link href={`${dashboardPrefix}/financial`} className="flex w-full items-center gap-3 py-2 px-3 text-slate-700 hover:bg-slate-50 transition-colors">
+                                    <DollarSign className="h-4 w-4 text-emerald-500" />
+                                    <span className="font-medium">Financeiro geral</span>
+                                </Link>
+                            </DropdownMenuItem>
 
-                            <DropdownMenuSeparator className="my-1" />
+                            {/* 2. Configurações Gerais */}
+                            <DropdownMenuItem className="p-0 select-none cursor-pointer">
+                                <Link href={`${dashboardPrefix}/management`} className="flex w-full items-center gap-3 py-2 px-3 text-slate-700 hover:bg-slate-50 transition-colors">
+                                    <Settings className="h-4 w-4 text-indigo-500" />
+                                    <span className="font-medium">Configurações gerais</span>
+                                </Link>
+                            </DropdownMenuItem>
 
-                            {/* SYSTEM DEFAULTS */}
-                            <Link href={`${dashboardPrefix}/profile/me`}>
-                                <DropdownMenuItem
-                                    id="user-profile-settings-link"
-                                    className="cursor-pointer gap-3 py-2"
-                                    onClick={() => {
-                                        const target = `${dashboardPrefix}/profile/me`;
-                                        if (pathname !== target) showLoading("Meu Perfil");
-                                    }}
-                                >
+                            {/* 3. Configurações de Perfil */}
+                            <DropdownMenuItem className="p-0 select-none cursor-pointer">
+                                <Link href={`${dashboardPrefix}/profile/me`} className="flex w-full items-center gap-3 py-2 px-3 text-slate-700 hover:bg-slate-50 transition-colors">
                                     <CircleUser className="h-4 w-4 text-slate-500" />
-                                    <span className="font-medium text-slate-600">Configurações de perfil</span>
-                                </DropdownMenuItem>
-                            </Link>
+                                    <span className="font-medium">Configurações de perfil</span>
+                                </Link>
+                            </DropdownMenuItem>
 
+                            {/* 4. Painel Master (Only for Master) */}
+                            {isMasterRole && (
+                                <DropdownMenuItem className="p-0 select-none cursor-pointer">
+                                    <Link href="/admin" className="flex w-full items-center gap-3 py-2 px-3 text-indigo-700 font-bold bg-indigo-50/10 hover:bg-indigo-50/20 transition-colors">
+                                        <Shield className="h-4 w-4 mr-1" />
+                                        <span>Painel Master</span>
+                                    </Link>
+                                </DropdownMenuItem>
+                            )}
+
+                            {/* 5. Suporte */}
+                            <DropdownMenuItem className="p-0 select-none cursor-pointer">
+                                <Link href={`${dashboardPrefix}/support`} className="flex w-full items-center gap-3 py-2 px-3 text-slate-700 hover:bg-slate-50 transition-colors">
+                                    <HelpCircle className="h-4 w-4 text-orange-500" />
+                                    <span className="font-medium">Suporte</span>
+                                </Link>
+                            </DropdownMenuItem>
+
+                            {/* [RESTORED] 6. Onboarding */}
                             <DropdownMenuItem
-                                className="cursor-pointer gap-3 py-2 text-primary focus:text-primary font-bold bg-primary/5"
+                                className="cursor-pointer gap-3 py-2 px-3 text-primary focus:text-primary font-bold bg-primary/5 mt-1"
                                 onClick={() => startOnboarding()}
                             >
                                 <PlayCircle className="h-4 w-4" />
-                                Iniciar Tutorial de Onboarding
+                                Iniciar Onboarding
                             </DropdownMenuItem>
-
-                            {isMasterRole && (
-                                <Link href="/admin">
-                                    <DropdownMenuItem
-                                        className="cursor-pointer gap-3 py-2 text-indigo-700 font-bold bg-indigo-50/5"
-                                        onClick={() => {
-                                            if (pathname !== '/admin') showLoading("Painel Master");
-                                        }}
-                                    >
-                                        <Shield className="h-4 w-4" />
-                                        Painel Master
-                                    </DropdownMenuItem>
-                                </Link>
-                            )}
-
-                            <Link href={`${dashboardPrefix}/support`}>
-                                <DropdownMenuItem
-                                    className="cursor-pointer gap-3 py-2"
-                                    onClick={() => {
-                                        const target = `${dashboardPrefix}/support`;
-                                        if (pathname !== target) showLoading("Suporte");
-                                    }}
-                                >
-                                    <MessageSquare className="h-4 w-4 text-slate-500" />
-                                    <span className="font-medium text-slate-600">Suporte</span>
-                                </DropdownMenuItem>
-                            </Link>
 
                             <DropdownMenuSeparator className="my-1" />
 
+                            {/* 7. Sair */}
                             <DropdownMenuItem
-                                className="cursor-pointer gap-3 py-2 text-destructive focus:text-destructive font-bold"
+                                className="cursor-pointer gap-3 py-2 px-3 text-destructive focus:text-destructive font-bold transition-colors"
                                 onClick={handleLogout}
                             >
                                 <RefreshCw className="h-4 w-4" />
@@ -540,9 +511,8 @@ function DashboardLayoutContent(props: DashboardLayoutClientProps) { // Changed 
                 </main>
 
                 <LogViewer open={isLogOpen} onOpenChange={setIsLogOpen} />
-            </div >
-
-        </div >
+            </div>
+        </div>
     )
 }
 

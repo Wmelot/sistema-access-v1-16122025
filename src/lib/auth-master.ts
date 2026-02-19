@@ -15,14 +15,16 @@ export async function isMasterUser(userId?: string): Promise<boolean> {
         const adminClient = await createAdminClient()
         const { data: profile } = await adminClient
             .from('profiles')
-            .select('role, role_id(name)')
+            .select('role, email, roles(name), role_id(name)')
             .eq('id', userId)
             .single()
 
         const profileData = profile as any
-        const roleName = profileData?.role_id?.name || profileData?.role
+        // Check both roles.name and role_id.name as Supabase mapping can vary by config
+        const roleName = profileData?.roles?.name || profileData?.role_id?.name || profileData?.role
 
-        return roleName === 'Master'
+        // Also allow hard override for owner email
+        return roleName === 'Master' || profileData?.email === 'wmelot@gmail.com'
     } catch (error) {
         console.error("[AuthMaster] Failed to check master role:", error)
         return false

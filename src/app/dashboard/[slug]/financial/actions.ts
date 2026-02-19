@@ -29,8 +29,10 @@ export async function getTransactions(startDate?: string, endDate?: string) {
             paid_at,
             is_recurring,
             production_cost,
+            attachment_url,
             patient:patients(name),
-            product:products(name)
+            product:products(name),
+            creator:profiles!created_by(full_name)
         `)
         .eq('organization_id', userOrgId as string) // FIX: Cast to string
         .order('date', { ascending: false })
@@ -57,7 +59,10 @@ export async function getPayables(filters?: { startDate?: string, endDate?: stri
 
     let query = supabase
         .from('transactions')
-        .select('*')
+        .select(`
+            *,
+            creator:profiles!created_by(full_name)
+        `)
         .eq('type', 'expense')
         .eq('organization_id', userOrgId as string) // FIX: Cast to string
         .order('due_date', { ascending: true })
@@ -133,6 +138,26 @@ export async function createTransaction(formData: FormData) {
     const production_cost = Number(formData.get('production_cost')) || 0
     const quantity = Number(formData.get('quantity')) || 1
 
+    // 2. Handle Attachment
+    const file = formData.get('attachment') as File
+    let attachmentUrl = null
+
+    if (file && file.size > 0) {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+        const filePath = `${organizationId}/${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+            .from('financial')
+            .upload(filePath, file)
+
+        if (!uploadError) {
+            attachmentUrl = filePath
+        } else {
+            console.error('Upload error:', uploadError)
+        }
+    }
+
     // Installments
     const installments = Number(formData.get('installments')) || 1
 
@@ -207,7 +232,9 @@ export async function createTransaction(formData: FormData) {
             product_id,
             professional_id,
             production_cost: (i === 0) ? production_cost : 0,
-            quantity: (i === 0) ? quantity : 0
+            quantity: (i === 0) ? quantity : 0,
+            created_by: user.id,
+            attachment_url: (i === 0) ? attachmentUrl : null // Only attach to first installment if multiple? Usually makes sense.
         })
     }
 
@@ -790,17 +817,16 @@ export async function getFinancialSummary(date: string) {
         return { error: 'Erro ao buscar faturas' }
     }
 
-    // 2. Get Expenses up to date
-    const { data: expenses, error: expError } = await supabase
+    // 2. Get All Transactions up to date
+    const { data: transactions, error: transError } = await supabase
         .from('transactions')
         .select('amount, type, date')
-        .eq('type', 'expense')
         .eq('organization_id', userOrgId as string)
         .lte('date', date)
 
-    if (expError) {
-        console.error('Error fetching expenses:', expError)
-        return { error: 'Erro ao buscar despesas' }
+    if (transError) {
+        console.error('Error fetching transactions:', transError)
+        return { error: 'Erro ao buscar transações' }
     }
 
     // 3. Process Data
@@ -853,10 +879,15 @@ export async function getFinancialSummary(date: string) {
         }
     })
 
-    expenses?.forEach(exp => {
-        const val = exp.amount || 0
-        totalExpense += val
-        accounts.bank -= val
+    transactions?.forEach(t => {
+        const val = Number(t.amount) || 0
+        if (t.type === 'income') {
+            totalIncome += val
+            accounts.bank += val
+        } else {
+            totalExpense += val
+            accounts.bank -= val
+        }
     })
 
     return {
@@ -870,32 +901,17 @@ export async function getFinancialSummary(date: string) {
 
 // --- Shared Expenses Actions (Sócio) ---
 
-export async function getClinicSharedExpenses(month: number, year: number) {
+export async function getClinicSharedExpenses(isoStartDate: string, isoEndDate: string) {
     const supabase = await createClient()
 
-    // 1. Calculate Period
-    const startDate = getBrazilStartOfMonth(year, month)
-    const endDate = getBrazilEndOfMonth(year, month)
-
     // 2. Fetch Total Clinic Expenses (type=expense)
-    // We assume ALL expenses are shared? Or exclude personal expenses?
-    // "Despesas Gerais da Clínica" implies general.
-    // If we have 'professional_id' linked expenses, maybe those are PERSONAL expenses and shouldn't be shared?
-    // User said: "o profissional sócio deve conseguir ver as despesas gerias da clínica... esse valor será abatido... O total dividido pelo numero de sócios".
-    // This implies: (Total Clinic Expenses) / 3.
-    // Question: Does 'Total Clinic Expenses' include expenses linked to other professionals? 
-    // Usually "General" means expenses NOT linked to specific professional, OR all expenses.
-    // Let's assume General = Expenses where professional_id IS NULL.
-    // If an expense is linked to a pro, it's likely their personal cost or commission.
-
-    // Let's filter for expenses where professional_id is NULL (Common expenses).
     const { data: expenses, error } = await supabase
         .from('transactions')
         .select('amount')
         .eq('type', 'expense')
         .is('professional_id', null)
-        .gte('date', startDate)
-        .lte('date', endDate)
+        .gte('date', isoStartDate)
+        .lte('date', isoEndDate)
 
     if (error) {
         console.error("Error fetching shared expenses:", error)
@@ -910,11 +926,11 @@ export async function getClinicSharedExpenses(month: number, year: number) {
 
 // --- Payroll / Commissions Actions ---
 
-export async function getCommissionsOverview(month: number, year: number) {
+export async function getCommissionsOverview(isoStartDate: string, isoEndDate: string) {
     const supabase = await createClient()
 
-    const startDate = getBrazilStartOfMonth(year, month)
-    const endDate = getBrazilEndOfMonth(year, month) // End of month
+    const start = `${isoStartDate}T00:00:00.000Z`
+    const end = `${isoEndDate}T23:59:59.999Z`
 
     // Fetch Commissions
     const { data: commissions, error } = await supabase
@@ -924,8 +940,8 @@ export async function getCommissionsOverview(month: number, year: number) {
             status,
             professional:profiles(id, full_name, photo_url)
         `)
-        .gte('created_at', startDate)
-        .lte('created_at', endDate)
+        .gte('created_at', start)
+        .lte('created_at', end)
 
     if (error) {
         console.error("Error fetching commissions:", error)
@@ -958,17 +974,15 @@ export async function getCommissionsOverview(month: number, year: number) {
     return Object.values(grouped)
 }
 
-export async function getMonthlyExpenses(month: number, year: number) {
+export async function getMonthlyExpenses(isoStartDate: string, isoEndDate: string) {
     const supabase = await createClient()
-    const startDate = getBrazilStartOfMonth(year, month)
-    const endDate = getBrazilEndOfMonth(year, month)
 
     const { data, error } = await supabase
         .from('transactions')
         .select('amount')
         .eq('type', 'expense')
-        .gte('date', startDate)
-        .lte('date', endDate)
+        .gte('date', isoStartDate)
+        .lte('date', isoEndDate)
 
     if (error) {
         console.error("Error fetching monthly expenses:", error)
@@ -981,7 +995,7 @@ export async function getMonthlyExpenses(month: number, year: number) {
     return total
 }
 
-export async function getProfessionalStatement(professionalId: string, month?: number, year?: number) {
+export async function getProfessionalStatement(professionalId: string, isoStartDate?: string, isoEndDate?: string) {
     const supabase = await createClient()
 
     let query = supabase
@@ -1007,10 +1021,10 @@ export async function getProfessionalStatement(professionalId: string, month?: n
         .eq('professional_id', professionalId)
         .order('created_at', { ascending: false })
 
-    if (month && year) {
-        const startDate = getBrazilStartOfMonth(year, month)
-        const endDate = getBrazilEndOfMonth(year, month)
-        query = query.gte('created_at', startDate).lte('created_at', endDate)
+    if (isoStartDate && isoEndDate) {
+        const start = `${isoStartDate}T00:00:00.000Z`
+        const end = `${isoEndDate}T23:59:59.999Z`
+        query = query.gte('created_at', start).lte('created_at', end)
     }
 
     const { data: rawCommissions, error } = await query
@@ -1126,35 +1140,16 @@ export async function markCommissionsAsPaid(commissionIds: string[]) {
     return { success: true }
 }
 
-export async function getProfessionalPayments(userId: string, month: number, year: number) {
+export async function getProfessionalPayments(userId: string, isoStartDate: string, isoEndDate: string) {
     const supabase = await createClient()
-
-    // Date Range
-    // Date Range
-    const startDate = getBrazilStartOfMonth(year, month).split('T')[0] // Only Date part needed for Payables? 
-    // Wait, getProfessionalPayments compares 'due_date'. dueDate is just DATE or TIMESTAMP?
-    // It's usually DATE column so comparisons with string 'YYYY-MM-DD' work.
-    // getBrazilStartOfMonth returns '...T00:00:00-03:00'.
-    // We can slice it. 
-
-    // Actually, let's look at the original: `${year}-${month...}-01`. That is a simple string.
-    // original endDate: new Date(y, m, 0).toISOString().split('T')[0]
-    // If we use getBrazilEndOfMonth().split('T')[0], we get the correct last day string.
-
-    // So let's replace both to be safe.
-
-    // But startDate was explicitly constructed as YYYY-MM-DD string roughly.
-    // Let's keep strict logic.
-    const startStr = getBrazilStartOfMonth(year, month).split('T')[0]
-    const endStr = getBrazilEndOfMonth(year, month).split('T')[0]
 
     const { data, error } = await supabase
         .from('financial_payables')
         .select('amount, date:due_date, description')
         .eq('linked_professional_id', userId)
         .eq('status', 'paid')
-        .gte('due_date', startStr)
-        .lte('due_date', endStr)
+        .gte('due_date', isoStartDate)
+        .lte('due_date', isoEndDate)
 
     if (error) {
         console.error("Error fetching pro payments:", error)

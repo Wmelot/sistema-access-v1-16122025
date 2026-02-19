@@ -123,7 +123,7 @@ export function CampaignsManager({ slug }: CampaignsManagerProps) {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Filter className="h-5 w-5" />
-                        Filtros de Público
+                        Filtros
                     </CardTitle>
                     <CardDescription>Selecione quem receberá a mensagem</CardDescription>
                 </CardHeader>
@@ -256,7 +256,7 @@ export function CampaignsManager({ slug }: CampaignsManagerProps) {
                             DISPARAR PARA {selectedPatients.length} PACIENTES
                         </Button>
                         <p className="text-[10px] text-center text-slate-400 italic font-medium uppercase tracking-widest">
-                            <Zap className="inline-block h-3 w-3 mr-1" /> Envio processado via Z-API
+                        
                         </p>
                     </CardContent>
                 </Card>

@@ -35,8 +35,8 @@ export function FinancialNavigation({ canViewClinic, canViewTransparency, defaul
 
     const availableTabs = [
         { value: 'overview', label: 'Visão Geral', icon: LayoutDashboard, permission: 'financial.tabs.general_statement' as PermissionCode },
-        { value: 'dre', label: 'DRE (Gerencial)', icon: TrendingUp, permission: 'financial.tabs.dre' as PermissionCode },
-        { value: 'payables', label: 'Contas a Pagar', icon: Wallet, permission: 'financial.tabs.cash_flow' as PermissionCode },
+        { value: 'dre', label: 'DRE', icon: TrendingUp, permission: 'financial.tabs.dre' as PermissionCode },
+        { value: 'payables', label: 'Despesas', icon: Wallet, permission: 'financial.tabs.cash_flow' as PermissionCode },
         { value: 'transactions', label: 'Transações', icon: History, permission: 'financial.tabs.cash_flow' as PermissionCode },
         { value: 'overdue', label: 'Inadimplência', icon: AlertCircle, permission: 'financial.tabs.general_statement' as PermissionCode },
         { value: 'payroll', label: 'Folha de Pagamento', icon: Users, permission: 'financial.tabs.general_statement' as PermissionCode },

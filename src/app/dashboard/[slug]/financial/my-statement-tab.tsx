@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client"
 import { getClinicSharedExpenses, getProfessionalPayments, getPaymentFees } from "./actions"
 import { updateAppointmentStatus } from "./appointment-actions" // [NEW]
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { DateInput } from "@/components/ui/date-input"
 import {
     Table,
     TableBody,
@@ -29,10 +31,13 @@ import { BillingDialog } from "./billing-dialog"
 import { ReceivePaymentDialog } from "@/components/financial/receive-payment-dialog"
 import { useParams } from "next/navigation"
 
+import { startOfMonth, endOfMonth } from "date-fns"
+
 export function MyStatementTab() {
     const [appointments, setAppointments] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
-    const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7)) // YYYY-MM
+    const [startDate, setStartDate] = useState<string>(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
+    const [endDate, setEndDate] = useState<string>(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
     const [billingOpen, setBillingOpen] = useState(false)
     const [receiveOpen, setReceiveOpen] = useState(false)
     const [selectedAppointment, setSelectedAppointment] = useState<any>(null)
@@ -71,27 +76,20 @@ export function MyStatementTab() {
 
     useEffect(() => {
         fetchData()
-    }, [selectedMonth, permissions])
+    }, [startDate, endDate, permissions])
 
     const fetchData = async () => {
         setLoading(true)
         try {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) {
-                // If user is not logged in, we should not proceed with fetching data.
-                // The component's main render will handle displaying a login message.
-                // For this function, we just stop execution.
                 setLoading(false);
                 return;
             }
 
-            // Parse Month
-            const [year, month] = selectedMonth.split('-')
-
             // Fetch Appointments
-            const startStr = `${selectedMonth}-01T00:00:00`
-            const nextMonth = new Date(parseInt(year), parseInt(month), 1).toISOString().slice(0, 7)
-            const endStr = `${nextMonth}-01T00:00:00`
+            const startStr = `${startDate}T00:00:00Z`
+            const endStr = `${endDate}T23:59:59Z`
 
             const { data, error } = await supabase
                 .from('appointments')
@@ -121,7 +119,7 @@ export function MyStatementTab() {
                 `)
                 .eq('professional_id', user.id)
                 .gte('start_time', startStr)
-                .lt('start_time', endStr)
+                .lte('start_time', endStr)
                 .in('status', ['attended', 'billed', 'paid'])
                 .order('start_time', { ascending: false })
 
@@ -177,12 +175,12 @@ export function MyStatementTab() {
             // Fetch Shared Expenses if Partner
             let shared = 0
             if (permissions.includes('financial.share_expenses')) {
-                const expenses = await getClinicSharedExpenses(parseInt(month), parseInt(year))
+                const expenses = await getClinicSharedExpenses(startDate, endDate)
                 shared = expenses || 0
             }
 
             // Fetch Received Payments
-            const payments = await getProfessionalPayments(user.id as string, parseInt(month), parseInt(year))
+            const payments = await getProfessionalPayments(user.id as string, startDate, endDate)
             const receivedTotal = payments?.reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0) || 0
 
             calculateTotals(enrichedData, shared, receivedTotal)
@@ -216,16 +214,6 @@ export function MyStatementTab() {
 
     const formatCurrency = (val: number) => {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
-    }
-
-    // Generate Month Options (Last 12 months)
-    const monthOptions = []
-    for (let i = 0; i < 12; i++) {
-        const d = new Date()
-        d.setMonth(d.getMonth() - i)
-        const val = d.toISOString().slice(0, 7)
-        const label = format(d, 'MMMM yyyy', { locale: ptBR })
-        monthOptions.push({ value: val, label: label.charAt(0).toUpperCase() + label.slice(1) })
     }
 
     // Sorting Logic
@@ -288,18 +276,16 @@ export function MyStatementTab() {
         <div className="space-y-4">
             {/* Header / Filter */}
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-2 w-full md:w-auto">
-                    <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                        <SelectTrigger className="flex-1 md:w-[180px]">
-                            <SelectValue placeholder="Selecione o Mês" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {monthOptions.map(m => (
-                                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Button variant="outline" size="icon" onClick={() => fetchData()}>
+                <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+                    <div className="w-full sm:w-auto">
+                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Data Inicial</Label>
+                        <DateInput value={startDate} onChange={setStartDate} className="bg-white" />
+                    </div>
+                    <div className="w-full sm:w-auto">
+                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Data Final</Label>
+                        <DateInput value={endDate} onChange={setEndDate} className="bg-white" />
+                    </div>
+                    <Button variant="outline" size="icon" onClick={() => fetchData()} className="mt-5 hidden sm:flex">
                         <CalendarIcon className="h-4 w-4" />
                     </Button>
                 </div>

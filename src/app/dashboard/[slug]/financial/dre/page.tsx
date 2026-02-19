@@ -2,31 +2,28 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // Assuming these exist, check Task
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+import { DateInput } from "@/components/ui/date-input"
 import { useState, useEffect } from "react"
 import { getDREData, DRELineItem } from "./actions"
 import { Loader2, Download } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
+import { startOfMonth, endOfMonth, format } from "date-fns"
+
 export default function DREPage() {
-    const [year, setYear] = useState(new Date().getFullYear().toString())
-    const [month, setMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'))
+    const [startDate, setStartDate] = useState<string>(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
+    const [endDate, setEndDate] = useState<string>(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
     const [viewType, setViewType] = useState<'managerial' | 'fiscal'>('managerial')
     const [loading, setLoading] = useState(false)
     const [data, setData] = useState<DRELineItem[]>([])
 
-    // Years gen
-    const years = [2024, 2025, 2026]
-
     async function fetchData() {
         setLoading(true)
         try {
-            // Calculate start/end of month
-            const firstDay = `${year}-${month}-01`
-            const lastDay = new Date(Number(year), Number(month), 0).toISOString().split('T')[0] // Last day of month
-
-            const result = await getDREData(firstDay, lastDay, viewType)
+            const result = await getDREData(startDate, endDate, viewType)
             setData(result)
         } catch (e: any) {
             toast.error("Erro ao carregar DRE: " + e.message)
@@ -37,7 +34,7 @@ export default function DREPage() {
 
     useEffect(() => {
         fetchData()
-    }, [year, month, viewType])
+    }, [startDate, endDate, viewType])
 
     // Helper to format currency
     const fmt = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
@@ -62,38 +59,18 @@ export default function DREPage() {
                         </SelectContent>
                     </Select>
 
-                    <Select value={month} onValueChange={setMonth}>
-                        <SelectTrigger className="w-[140px]">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="01">Janeiro</SelectItem>
-                            <SelectItem value="02">Fevereiro</SelectItem>
-                            <SelectItem value="03">Março</SelectItem>
-                            <SelectItem value="04">Abril</SelectItem>
-                            <SelectItem value="05">Maio</SelectItem>
-                            <SelectItem value="06">Junho</SelectItem>
-                            <SelectItem value="07">Julho</SelectItem>
-                            <SelectItem value="08">Agosto</SelectItem>
-                            <SelectItem value="09">Setembro</SelectItem>
-                            <SelectItem value="10">Outubro</SelectItem>
-                            <SelectItem value="11">Novembro</SelectItem>
-                            <SelectItem value="12">Dezembro</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div className="flex flex-col sm:flex-row items-center gap-2">
+                        <div className="w-full sm:w-auto">
+                            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Vencimento Início</Label>
+                            <DateInput value={startDate} onChange={setStartDate} className="bg-white h-10" />
+                        </div>
+                        <div className="w-full sm:w-auto">
+                            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Vencimento Fim</Label>
+                            <DateInput value={endDate} onChange={setEndDate} className="bg-white h-10" />
+                        </div>
+                    </div>
 
-                    <Select value={year} onValueChange={setYear}>
-                        <SelectTrigger className="w-[100px]">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {years.map(y => (
-                                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-
-                    <Button variant="outline" size="icon" title="Exportar">
+                    <Button variant="outline" size="icon" title="Exportar" className="self-end mb-1">
                         <Download className="h-4 w-4" />
                     </Button>
                 </div>
@@ -103,7 +80,7 @@ export default function DREPage() {
                 <CardHeader className="bg-muted/10 pb-4">
                     <CardTitle>Resultado do Período</CardTitle>
                     <CardDescription>
-                        Visualização {viewType === 'managerial' ? 'Gerencial' : 'Fiscal'} de {month}/{year}
+                        Visualização {viewType === 'managerial' ? 'Gerencial' : 'Fiscal'} de {format(new Date(startDate), 'dd/MM/yyyy')} até {format(new Date(endDate), 'dd/MM/yyyy')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">

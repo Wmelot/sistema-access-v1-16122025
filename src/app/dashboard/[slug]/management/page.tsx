@@ -26,6 +26,7 @@ import {
     CircleUser,
     HelpCircle,
     Cpu,
+    Loader2,
     Search
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,9 +41,22 @@ import { PermissionCode } from "@/lib/rbac";
 export default function ManagementHubPage({ params }: { params: { slug: string } }) {
     const { slug } = params;
     const { showLoading } = useGlobalLoader();
-    const { hasPermission } = usePermissionsContext();
+    const { hasPermission, loading } = usePermissionsContext();
     const dashboardPrefix = `/dashboard/${slug}`;
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+    console.log(`[ManagementHub] Render. loading: ${loading} | hasPermission('settings.view'): ${hasPermission('settings.view')}`);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                    <p className="text-muted-foreground animate-pulse font-medium">Carregando central de gestão...</p>
+                </div>
+            </div>
+        )
+    }
 
     const categories = [
         {

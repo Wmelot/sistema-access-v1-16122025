@@ -16,20 +16,26 @@ export async function login(formData: FormData) {
     const password = formData.get('password') as string
 
     // Standard Supabase Auth
-    const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-    })
+    try {
+        const { error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        })
 
-    if (error) {
-        console.error('Login Failed:', error.message)
-        redirect(`/login?error=${encodeURIComponent(error.message)}`)
+        if (error) {
+            console.error('Login Failed:', error.message)
+            return redirect(`/login?error=${encodeURIComponent(error.message)}`)
+        }
+
+        revalidatePath('/', 'layout')
+
+        // Redirect to dashboard (DashboardRedirect will handle clinic slug)
+        return redirect('/dashboard')
+    } catch (err: any) {
+        if (err.digest?.includes('NEXT_REDIRECT')) throw err;
+        console.error('Critical Login Error:', err)
+        return redirect(`/login?error=${encodeURIComponent(err.message || 'Erro interno no servidor')}`)
     }
-
-    revalidatePath('/', 'layout')
-
-    // Redirect to dashboard (DashboardRedirect will handle clinic slug)
-    redirect('/dashboard')
 }
 
 import { z } from 'zod'

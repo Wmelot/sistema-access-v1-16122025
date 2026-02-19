@@ -5,12 +5,13 @@ import { createClient } from "@/lib/supabase/server"
 import { getBrazilStartOfMonth, getBrazilEndOfMonth, getBrazilDate } from "@/lib/date-utils"
 
 // Generates a CSV string for accounting
-export async function generateAccountingReport(month: number, year: number) {
+export async function generateAccountingReport(isoStartDate: string, isoEndDate: string) {
     const supabase = await createClient()
 
     // 1. Fetch Completed Appointments (Services)
-    const startDate = getBrazilStartOfMonth(year, month)
-    const endDate = getBrazilEndOfMonth(year, month) // End of month
+    // Ensure we cover the full day on the end date
+    const start = `${isoStartDate}T00:00:00.000Z`
+    const end = `${isoEndDate}T23:59:59.999Z`
 
     const { data: appointments, error } = await supabase
         .from('appointments')
@@ -22,8 +23,8 @@ export async function generateAccountingReport(month: number, year: number) {
             title
         `)
         .eq('status', 'completed')
-        .gte('start_time', startDate)
-        .lte('start_time', endDate)
+        .gte('start_time', start)
+        .lte('start_time', end)
         .order('start_time', { ascending: true })
 
     if (error) {
@@ -83,5 +84,6 @@ export async function generateAccountingReport(month: number, year: number) {
     })
 
     const csvContent = rows.join("\n")
-    return { data: csvContent, filename: `relatorio_contabil_${month}_${year}.csv` }
+    const filename = `relatorio_contabil_${isoStartDate.replace(/-/g, '')}_${isoEndDate.replace(/-/g, '')}.csv`
+    return { data: csvContent, filename }
 }

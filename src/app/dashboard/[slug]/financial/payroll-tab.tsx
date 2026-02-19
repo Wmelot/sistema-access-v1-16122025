@@ -23,11 +23,14 @@ import { getProfessionals } from "../professionals/actions"
 
 import { useParams } from "next/navigation"
 
+import { startOfMonth, endOfMonth, format, parseISO } from "date-fns"
+import { DateInput } from "@/components/ui/date-input"
+
 export function PayrollTab() {
     const params = useParams()
     const slug = params.slug as string
-    const [month, setMonth] = useState<number>(new Date().getMonth() + 1)
-    const [year, setYear] = useState<number>(new Date().getFullYear())
+    const [startDate, setStartDate] = useState<string>(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
+    const [endDate, setEndDate] = useState<string>(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
     const [overview, setOverview] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [allProfessionals, setAllProfessionals] = useState<any[]>([])
@@ -47,15 +50,19 @@ export function PayrollTab() {
 
     useEffect(() => {
         loadData()
-    }, [month, year])
+    }, [startDate, endDate])
 
     const loadData = async () => {
         setLoading(true)
+        const dateObj = parseISO(startDate)
+        const month = dateObj.getMonth() + 1
+        const year = dateObj.getFullYear()
+
         const { getCommissionsOverview, getMonthlyExpenses } = await import("./actions") // Lazy import to avoid cycle if any
         const [overviewData, prosData, expensesTotal, configs] = await Promise.all([
-            getCommissionsOverview(month, year),
+            getCommissionsOverview(startDate, endDate),
             getProfessionals(slug),
-            getMonthlyExpenses(month, year), // [NEW]
+            getMonthlyExpenses(startDate, endDate), // [NEW]
             getMonthlyConfigs(month, year)
         ])
         setOverview(overviewData || [])
@@ -75,6 +82,10 @@ export function PayrollTab() {
 
     const handleSaveGlobalConfigs = async () => {
         setSavingConfigs(true)
+        const dateObj = parseISO(startDate)
+        const month = dateObj.getMonth() + 1
+        const year = dateObj.getFullYear()
+
         const res = await saveMonthlyConfigs(month, year, { tax_rate: taxRate, other_deductions: otherDeductions })
         setSavingConfigs(false)
         if (res.error) toast.error(res.error)
@@ -93,7 +104,7 @@ export function PayrollTab() {
         setSelectedPro(proItem)
         setIsDialogOpen(true)
         setLoadingDetails(true)
-        const data = await getProfessionalStatement(proItem.professional.id, month, year)
+        const data = await getProfessionalStatement(proItem.professional.id, startDate, endDate)
         setStatement(data || [])
         setLoadingDetails(false)
     }
@@ -129,7 +140,7 @@ export function PayrollTab() {
         } else {
             toast.success("Pagamento registrado!")
             // Refresh
-            const updatedStatement = await getProfessionalStatement(selectedPro.professional.id, month, year)
+            const updatedStatement = await getProfessionalStatement(selectedPro.professional.id, startDate, endDate)
             setStatement(updatedStatement || [])
             loadData()
         }
@@ -207,25 +218,14 @@ export function PayrollTab() {
     return (
         <div className="space-y-6">
             {/* Filters */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                 <div className="space-y-2">
-                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Mês</Label>
-                    <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
-                        <SelectTrigger className="bg-white">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent side="bottom" position="popper">
-                            {Array.from({ length: 12 }, (_, i) => (
-                                <SelectItem key={i + 1} value={String(i + 1)}>
-                                    {new Date(0, i).toLocaleString('pt-BR', { month: 'long' })}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Data Inicial</Label>
+                    <DateInput value={startDate} onChange={setStartDate} className="bg-white" />
                 </div>
                 <div className="space-y-2">
-                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Ano</Label>
-                    <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="bg-white" />
+                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Data Final</Label>
+                    <DateInput value={endDate} onChange={setEndDate} className="bg-white" />
                 </div>
                 <div className="space-y-2 sm:col-span-2 lg:col-span-1">
                     <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Filtrar Profissional</Label>
@@ -243,7 +243,7 @@ export function PayrollTab() {
                         </Select>
                         <Button variant="outline" size="icon" title="Ver Histórico Global" onClick={() => MySwal.fire({
                             title: 'Histórico de Pagamentos',
-                            text: 'As comissões marcadas como "Pago" ficam registradas permanentemente no banco de dados e podem ser consultadas filtrando o mês/ano desejado ou através do relatório contábil.',
+                            text: 'As comissões marcadas como "Pago" ficam registradas permanentemente no banco de dados e podem ser consultadas filtrando o período desejado ou através do relatório contábil.',
                             icon: 'info'
                         })}>
                             <History className="h-4 w-4" />
@@ -256,19 +256,19 @@ export function PayrollTab() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card>
                     <CardHeader className="py-4">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Pendente (Mês)</CardTitle>
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Pendente (Período)</CardTitle>
                         <div className="text-2xl font-bold text-yellow-600">{formatCurrency(totalPending)}</div>
                     </CardHeader>
                 </Card>
                 <Card>
                     <CardHeader className="py-4">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Pago (Mês)</CardTitle>
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Pago (Período)</CardTitle>
                         <div className="text-2xl font-bold text-green-600">{formatCurrency(totalPaid)}</div>
                     </CardHeader>
                 </Card>
                 <Card className="bg-slate-50 border-slate-200">
                     <CardHeader className="py-4">
-                        <CardTitle className="text-sm font-medium text-slate-500">Despesas (Por Sócio / 3)</CardTitle>
+                        <CardTitle className="text-sm font-medium text-slate-500">Despesas (Por Sócio)</CardTitle>
                         <div className="text-2xl font-bold text-slate-700" title={`Total: ${formatCurrency(monthlyExpenses)}`}>
                             {formatCurrency(monthlyExpenses / 3)}
                         </div>
@@ -277,7 +277,7 @@ export function PayrollTab() {
                 </Card>
                 <Card className="bg-slate-50 border-slate-200 shadow-sm">
                     <CardHeader className="py-4 flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-500">Imposto Mensal (%)</CardTitle>
+                        <CardTitle className="text-sm font-medium text-slate-500">Aliquita Imposto Mensal (%)</CardTitle>
                         <Calculator className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent className="py-2 space-y-3">
@@ -296,7 +296,7 @@ export function PayrollTab() {
                             {savingConfigs ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
                             Salvar p/ este Mês
                         </Button>
-                        <p className="text-[10px] text-muted-foreground">Este valor será sugerido no extrato de todos os profissionais para o mês de {month}/{year}.</p>
+                        <p className="text-[10px] text-muted-foreground">Este valor será sugerido no extrato de todos os profissionais para o período selecionado.</p>
                     </CardContent>
                 </Card>
             </div>
@@ -360,7 +360,7 @@ export function PayrollTab() {
                     <DialogHeader>
                         <DialogTitle>Extrato: {selectedPro?.professional.full_name}</DialogTitle>
                         <DialogDescription>
-                            Período: {month}/{year}
+                            Período: {format(parseISO(startDate), 'dd/MM/yyyy')} até {format(parseISO(endDate), 'dd/MM/yyyy')}
                         </DialogDescription>
                     </DialogHeader>
 

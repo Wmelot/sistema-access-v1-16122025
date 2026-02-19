@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { CurrencyInput } from "@/components/ui/currency-input" // [NEW]
 import { createTransaction, deleteTransaction, markTransactionAsPaid, getPayables, getFinancialCategories, updatePayableValue, updateTransaction } from "./actions"
-import { Loader2, Plus, Trash2, Search, CheckCircle2, AlertCircle, CalendarClock, ArrowUpDown, ArrowUp, ArrowDown, Pencil } from "lucide-react"
+import { Loader2, Plus, Trash2, Search, CheckCircle2, AlertCircle, CalendarClock, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Paperclip, User, Eye } from "lucide-react"
 import { toast } from "sonner"
 import { format, isBefore, startOfDay } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -39,6 +39,7 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
         is_variable_value: false,
         password: ''
     })
+    const [attachment, setAttachment] = useState<File | null>(null)
 
     // Payment Confirmation State
     const [paymentConfirmOpen, setPaymentConfirmOpen] = useState(false)
@@ -106,6 +107,7 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
     const resetForm = () => {
         setIsCreateOpen(false)
         setEditingId(null)
+        setAttachment(null)
         setNewBill({
             description: '',
             amount: '',
@@ -146,6 +148,7 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
         formData.append('installments', newBill.installments)
         formData.append('is_recurring', String(newBill.is_recurring))
         formData.append('is_variable_value', String(newBill.is_variable_value))
+        if (attachment) formData.append('attachment', attachment)
         if (newBill.password) formData.append('password', newBill.password)
 
         if (user) {
@@ -303,14 +306,14 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                        <CardTitle>Contas a Pagar</CardTitle>
+                        <CardTitle>Lançamento de Despesas</CardTitle>
                         <CardDescription>Gerencie suas despesas pendentes e fluxo de caixa futuro.</CardDescription>
                     </div>
                     <div className="flex gap-2">
                         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                             <DialogTrigger asChild>
                                 <Button className="gap-2 bg-red-600 hover:bg-red-700 text-white">
-                                    <Plus className="h-4 w-4" /> Nova Conta
+                                    <Plus className="h-4 w-4" /> Nova Despesa
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-[500px]">
@@ -410,6 +413,25 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
                                                     />
                                                     <Label htmlFor="variable-val" className="cursor-pointer text-xs">Valor Variável (Conta de Consumo)</Label>
                                                 </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="flex items-center gap-2">
+                                            <Paperclip className="h-4 w-4" /> Anexo (Foto da Nota / PDF)
+                                        </Label>
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                type="file"
+                                                accept="image/*,application/pdf"
+                                                onChange={(e) => setAttachment(e.target.files?.[0] || null)}
+                                                className="cursor-pointer"
+                                            />
+                                            {attachment && (
+                                                <Button variant="ghost" size="sm" onClick={() => setAttachment(null)} className="text-red-500 h-10">
+                                                    Remover
+                                                </Button>
                                             )}
                                         </div>
                                     </div>
@@ -524,18 +546,23 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
                                             {sortConfig?.key !== 'amount' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
                                         </div>
                                     </TableHead>
+                                    <TableHead>
+                                        <div className="flex items-center gap-1">
+                                            <User className="h-3 w-3" /> Autor
+                                        </div>
+                                    </TableHead>
                                     <TableHead className="w-[100px]">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto" /></TableCell>
+                                        <TableCell colSpan={6} className="h-24 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto" /></TableCell>
                                     </TableRow>
                                 ) : filtered.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                                            Nenhuma conta pendente.
+                                        <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                            Nenhuma despesa pendente.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -573,7 +600,23 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
                                                     }
                                                 </TableCell>
                                                 <TableCell>
+                                                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                                        <span>{bill.creator?.full_name?.split(' ')[0] || '-'}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
                                                     <div className="flex items-center gap-1">
+                                                        {bill.attachment_url && (
+                                                            <a
+                                                                href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/financial/${bill.attachment_url}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                            >
+                                                                <Button variant="ghost" size="icon" title="Ver Anexo">
+                                                                    <Eye className="h-4 w-4 text-blue-500 hover:text-blue-700" />
+                                                                </Button>
+                                                            </a>
+                                                        )}
                                                         <Button variant="ghost" size="icon" title="Editar" onClick={() => handleEdit(bill)}>
                                                             <Pencil className="h-4 w-4 text-slate-400 hover:text-blue-500" />
                                                         </Button>

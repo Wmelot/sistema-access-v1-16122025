@@ -43,15 +43,11 @@ export default async function CommunicationPage({
 
                     <div className="grid grid-cols-1 gap-6">
                         <div className="space-y-6">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Modelos de Mensagem</CardTitle>
-                                    <CardDescription>Crie mensagens para envio automático (WhatsApp/Email)</CardDescription>
-                                </CardHeader>
+                        
                                 <CardContent>
                                     <TemplatesList templates={templates as any[]} slug={slug} />
                                 </CardContent>
-                            </Card>
+                        
                         </div>
                     </div>
                 </TabsContent>
@@ -59,7 +55,7 @@ export default async function CommunicationPage({
                 <TabsContent value="campaigns" className="space-y-4">
                     <div className="flex justify-between items-center">
                         <div className="space-y-1">
-                            <h2 className="text-xl font-semibold">Campanhas de Reengajamento</h2>
+                            <h2 className="text-xl font-semibold">Campanhas de Acompanhamento</h2>
                             <p className="text-sm text-muted-foreground">Filtre pacientes e envie mensagens em massa para aumentar suas vendas</p>
                         </div>
                     </div>

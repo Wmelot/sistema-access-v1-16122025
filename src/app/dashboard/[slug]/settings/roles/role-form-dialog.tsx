@@ -27,7 +27,21 @@ import {
     Info,
     LayoutGrid,
     Settings2,
-    ChevronRight
+    ChevronRight,
+    Home,
+    Calendar as CalendarIcon,
+    Users,
+    DollarSign,
+    Briefcase,
+    MapPin,
+    Stethoscope,
+    ClipboardList,
+    FileText,
+    Tag,
+    ShoppingBag,
+    Megaphone,
+    MessageCircle,
+    Microscope
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useSidebar } from "@/hooks/use-sidebar"
@@ -38,6 +52,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { usePermissionsContext } from "@/components/providers/permissions-provider"
 
 interface RoleFormDialogProps {
     role?: any // If present, edit mode
@@ -87,6 +102,20 @@ export function RoleFormDialog({ role, allPermissions, trigger }: RoleFormDialog
         }
     }
 
+    const { hasPermission: contextHasPermission, setPreviewPermissions, refreshPermissions } = usePermissionsContext()
+
+    // Real-time Preview logic
+    useEffect(() => {
+        if (open) {
+            const previewCodes = allPermissions
+                .filter(p => selectedPermissions.includes(p.id))
+                .map(p => p.code)
+            setPreviewPermissions(previewCodes)
+        } else {
+            setPreviewPermissions(null)
+        }
+    }, [selectedPermissions, open, allPermissions, setPreviewPermissions])
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
@@ -117,6 +146,9 @@ export function RoleFormDialog({ role, allPermissions, trigger }: RoleFormDialog
             } else {
                 toast.success("Perfil criado com sucesso!")
             }
+
+            // [SYNC] Refresh actual permissions from server after save
+            await refreshPermissions()
 
             setOpen(false)
             if (!role) {
@@ -193,10 +225,32 @@ export function RoleFormDialog({ role, allPermissions, trigger }: RoleFormDialog
     const interfaceGroups = allPermissions.reduce((acc: any, p: any) => {
         if (p.code.startsWith('sidebar.') || p.code.startsWith('user_menu.')) {
             const key = p.code.split('.')[1]
-            if (!acc[key]) acc[key] = { key, label: '', icon: null, sidebar: null, header: null }
+            if (!acc[key]) acc[key] = { key, label: '', icon: LayoutGrid, sidebar: null, header: null }
 
             if (p.code.startsWith('sidebar.')) acc[key].sidebar = p
             if (p.code.startsWith('user_menu.')) acc[key].header = p
+
+            // Map Icons based on key
+            const iconMap: Record<string, any> = {
+                home: Home,
+                schedule: CalendarIcon,
+                patients: Users,
+                financial: DollarSign,
+                professionals: Briefcase,
+                locations: MapPin,
+                services: Stethoscope,
+                forms: ClipboardList,
+                questionnaires: FileText,
+                prices: Tag,
+                products: ShoppingBag,
+                marketing: Megaphone,
+                whatsapp: MessageCircle,
+                auditor: Microscope,
+                users: Users,
+                roles: Shield,
+                management: Settings2
+            }
+            if (iconMap[key]) acc[key].icon = iconMap[key]
 
             // Normalize label: Remove prefixes like "Sidebar: " or "Menu Usuário: "
             if (!acc[key].label) {
@@ -406,7 +460,7 @@ export function RoleFormDialog({ role, allPermissions, trigger }: RoleFormDialog
                                                     <div className="col-span-6">
                                                         <div className="flex items-center gap-3">
                                                             <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
-                                                                <LayoutGrid className="h-4 w-4" />
+                                                                <mod.icon className="h-4 w-4" />
                                                             </div>
                                                             <div>
                                                                 <p className="text-sm font-bold text-slate-700">{mod.label}</p>

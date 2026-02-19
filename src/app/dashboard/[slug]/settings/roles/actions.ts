@@ -74,8 +74,7 @@ export async function getAllPermissions() {
             PERMISSION_METADATA.map(meta => ({
                 code: meta.code,
                 description: meta.description,
-                module: meta.module,
-                explanation: meta.explanation
+                module: meta.module
             })),
             { onConflict: 'code' }
         )

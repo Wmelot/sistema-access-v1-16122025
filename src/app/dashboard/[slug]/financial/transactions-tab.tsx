@@ -10,18 +10,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { CurrencyInput } from "@/components/ui/currency-input"
 import { DateInput } from "@/components/ui/date-input"
-import { Plus, Trash2, Search, ArrowUpCircle, ArrowDownCircle, ArrowUpDown, ArrowUp, ArrowDown, Loader2, Pencil, AlertCircle } from "lucide-react"
+import { Plus, Trash2, Search, ArrowUpCircle, ArrowDownCircle, ArrowUpDown, ArrowUp, ArrowDown, Loader2, Pencil, AlertCircle, Eye, User, Paperclip } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { getTransactions, createTransaction, deleteTransaction, getFinancialCategories, updateTransaction } from "./actions"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import Link from "next/link"
 
+import { startOfMonth, endOfMonth } from "date-fns"
+
 export function TransactionsTab() {
     const [transactions, setTransactions] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState("")
     const [categories, setCategories] = useState<any[]>([])
+
+    const [startDate, setStartDate] = useState<string>(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
+    const [endDate, setEndDate] = useState<string>(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
 
     // Create State
     const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -35,6 +40,7 @@ export function TransactionsTab() {
         status: 'paid',
         password: ''
     })
+    const [attachment, setAttachment] = useState<File | null>(null)
     const [editingId, setEditingId] = useState<string | null>(null)
 
     const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -42,12 +48,12 @@ export function TransactionsTab() {
 
     useEffect(() => {
         fetchData()
-    }, [])
+    }, [startDate, endDate])
 
     const fetchData = async () => {
         setLoading(true)
         const [transData, catData] = await Promise.all([
-            getTransactions(),
+            getTransactions(startDate, endDate),
             getFinancialCategories()
         ])
         setTransactions(transData || [])
@@ -69,6 +75,7 @@ export function TransactionsTab() {
         formData.append('category', newTransaction.category)
         formData.append('date', newTransaction.date)
         formData.append('status', newTransaction.status)
+        if (attachment) formData.append('attachment', attachment)
         if (newTransaction.password) formData.append('password', newTransaction.password)
 
         let res;
@@ -95,6 +102,7 @@ export function TransactionsTab() {
                 status: 'paid',
                 password: ''
             })
+            setAttachment(null)
             fetchData()
             setCreating(false)
         }
@@ -126,18 +134,63 @@ export function TransactionsTab() {
             status: 'paid',
             password: ''
         })
+        setAttachment(null)
     }
 
     const confirmDelete = async () => {
         if (!deleteId) return
-        setIsDeleting(true)
-        try {
-            await deleteTransaction(deleteId)
-            toast.success("Transação excluída")
-            fetchData()
-        } finally {
-            setIsDeleting(false)
-            setDeleteId(null)
+
+        const transaction = transactions.find(t => t.id === deleteId)
+        const isPaid = transaction?.status === 'paid'
+
+        const performDelete = async (password?: string) => {
+            setIsDeleting(true)
+            try {
+                const res = await deleteTransaction(deleteId, password, "Duplicidade / Erro de lançamento")
+                if (res?.error === 'PASSWORD_REQUIRED') {
+                    // This case is handled by the prompt, so we just return
+                    return false
+                }
+                if (res?.error) {
+                    toast.error(res.error)
+                    return false
+                }
+                toast.success("Transação excluída")
+                fetchData()
+                return true
+            } catch (e) {
+                toast.error("Erro técnico ao excluir")
+                return false
+            } finally {
+                setIsDeleting(false)
+                setDeleteId(null)
+            }
+        }
+
+        if (isPaid) {
+            const { value: password } = await ((window as any).Swal).fire({
+                title: 'Confirmação Necessária',
+                text: 'Esta transação já foi liquidada. Digite sua senha para confirmar a exclusão.',
+                input: 'password',
+                inputPlaceholder: 'Sua senha...',
+                showCancelButton: true,
+                confirmButtonText: 'Confirmar Exclusão',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#d33',
+                inputAttributes: {
+                    autocapitalize: 'off',
+                    autocorrect: 'off'
+                }
+            })
+
+            if (password) {
+                await performDelete(password)
+            } else {
+                setDeleteId(null)
+            }
+        } else {
+            // Simple confirmation for non-paid transactions
+            await performDelete()
         }
     }
 
@@ -281,6 +334,25 @@ export function TransactionsTab() {
                                         />
                                     </div>
                                 )}
+
+                                <div className="space-y-2">
+                                    <Label className="flex items-center gap-2">
+                                        <Paperclip className="h-4 w-4" /> Anexo (Foto da Nota / PDF)
+                                    </Label>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            type="file"
+                                            accept="image/*,application/pdf"
+                                            onChange={(e) => setAttachment(e.target.files?.[0] || null)}
+                                            className="cursor-pointer"
+                                        />
+                                        {attachment && (
+                                            <Button variant="ghost" size="sm" onClick={() => setAttachment(null)} className="text-red-500 h-10">
+                                                Remover
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                             <DialogFooter>
                                 <Button variant="outline" onClick={resetForm}>Cancelar</Button>
@@ -292,15 +364,26 @@ export function TransactionsTab() {
                     </Dialog>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center gap-4 mb-6">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Buscar transações..."
-                                className="pl-9"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end mb-6">
+                        <div className="relative col-span-1 sm:col-span-2">
+                            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Buscar transações</Label>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Descrição ou categoria..."
+                                    className="pl-9"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Data Inicial</Label>
+                            <DateInput value={startDate} onChange={setStartDate} className="bg-white" />
+                        </div>
+                        <div>
+                            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Data Final</Label>
+                            <DateInput value={endDate} onChange={setEndDate} className="bg-white" />
                         </div>
                     </div>
 
@@ -333,19 +416,24 @@ export function TransactionsTab() {
                                             Valor {sortConfig.key === 'amount' ? (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 text-blue-600" /> : <ArrowDown className="h-4 w-4 text-blue-600" />) : <ArrowUpDown className="h-4 w-4 opacity-20" />}
                                         </div>
                                     </TableHead>
+                                    <TableHead>
+                                        <div className="flex items-center gap-1 text-xs">
+                                            <User className="h-3 w-3" /> Autor
+                                        </div>
+                                    </TableHead>
                                     <TableHead className="w-[50px]"></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="h-24 text-center">
+                                        <TableCell colSpan={7} className="h-24 text-center">
                                             <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                                         </TableCell>
                                     </TableRow>
                                 ) : filteredTransactions.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                        <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                                             Nenhuma transação encontrada.
                                         </TableCell>
                                     </TableRow>
@@ -374,7 +462,23 @@ export function TransactionsTab() {
                                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.amount)}
                                             </TableCell>
                                             <TableCell>
+                                                <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                                    <span>{t.creator?.full_name?.split(' ')[0] || '-'}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
                                                 <div className="flex items-center gap-1">
+                                                    {t.attachment_url && (
+                                                        <a
+                                                            href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/financial/${t.attachment_url}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                        >
+                                                            <Button variant="ghost" size="icon" title="Ver Anexo">
+                                                                <Eye className="h-4 w-4 text-blue-500 hover:text-blue-700" />
+                                                            </Button>
+                                                        </a>
+                                                    )}
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
@@ -399,6 +503,6 @@ export function TransactionsTab() {
                     </div>
                 </CardContent>
             </Card>
-        </div>
+        </div >
     )
 }

@@ -105,7 +105,6 @@ export function SidebarContent({
     const isAdmin = userRole === 'administrador' || userRole === 'admin';
 
     const checkPermission = (code: PermissionCode) => {
-        if (isMaster || isAdmin) return true;
         return hasPermission(code);
     };
 

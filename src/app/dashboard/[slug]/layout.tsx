@@ -4,7 +4,7 @@ import DashboardLayoutClient from "../layout-client"
 import { getClinicSettings } from "./settings/actions"
 import { AutoLogoutProvider } from "@/components/providers/auto-logout-provider"
 import { PermissionsProvider } from "@/components/providers/permissions-provider"
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { db } from "@/lib/db"
 import { isMasterUser } from "@/lib/auth-master"
 
@@ -53,55 +53,73 @@ export default async function SlugLayout({
         };
 
         try {
-            const { data: profileRaw, error: profileError } = await supabase
+            // 1. Try with regular client (respects RLS)
+            let { data: profile, error: profileError } = await supabase
                 .from('profiles')
-                .select('id, full_name, photo_url, organization_id, has_completed_onboarding, roles(name), organizations(slug)')
+                .select('*')
                 .eq('id', user.id)
                 .single()
 
-            const profile = profileRaw as any
+            // 2. Fallback to Admin Client (service role) if failed
+            if (!profile || profileError) {
+                console.warn(`[Layout] Profile fetch failed for ${user.id}. Error: ${profileError?.message || 'No data'}. Trying admin client...`);
+                const adminClient = await createAdminClient();
+                const { data: adminProfile, error: adminError } = await adminClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+
+                if (adminProfile) {
+                    profile = adminProfile;
+                } else {
+                    console.error(`[Layout] Admin fallback also failed for ${user.id}:`, adminError?.message);
+                }
+            }
 
             if (profile) {
-                let roleName = profile?.roles?.name || 'Vazio';
-
-                // Case B: User is a MASTER (Universal Access)
+                console.log(`[Layout] Profile found for ${user.email}. ID: ${profile.id}`);
                 const isMaster = await isMasterUser(user.id)
+                let roleName = 'Vazio';
+
                 if (isMaster) {
                     roleName = 'Master';
+                } else if (profile.role_id) {
+                    // Fetch role name separately to be safe from mapping issues
+                    const adminClient = await createAdminClient();
+                    const { data: roleData } = await adminClient.from('roles').select('name').eq('id', profile.role_id).single();
+                    roleName = roleData?.name || 'Vazio';
                 }
 
                 userProfile = {
                     id: profile.id,
                     role: roleName,
-                    avatarUrl: profile.photo_url || userProfile.avatarUrl,
-                    email: user.email,
+                    avatarUrl: profile.photo_url || null,
+                    email: user.email || '',
                     name: profile.full_name || userProfile.name,
                     organizationId: profile.organization_id,
-                    hasCompletedOnboarding: profile.has_completed_onboarding === null ? true : profile.has_completed_onboarding
+                    hasCompletedOnboarding: profile.has_completed_onboarding ?? true
                 };
-                originSlug = profile.organizations?.slug;
 
-                // [RESTORED] Check for Active Attendance
-                const { rows } = await db.query(`
-                    SELECT a.id, a.start_time, a.patient_id, p.name as patient_name
-                    FROM appointments a
-                    JOIN patients p ON a.patient_id = p.id
-                    WHERE a.status = 'in_progress' 
-                    AND a.professional_id = $1
-                    LIMIT 1
-                `, [user.id])
-
-                if (rows.length > 0) {
-                    // This data is usually consumed by a context or passed down
-                    // Since it wasn't being used directly in the return, I'll ensure it stays in scope if needed
+                if (profile.organization_id) {
+                    const adminClient = await createAdminClient();
+                    const { data: orgData } = await adminClient.from('organizations').select('slug').eq('id', profile.organization_id).single();
+                    originSlug = orgData?.slug;
                 }
-            } else if (profileError && profileError.code !== 'PGRST116') {
-                console.error("Profile fetch error:", profileError)
+            } else {
+                const isMasterFallback = await isMasterUser(user.id);
+                console.warn(`[Layout] Profile NOT FOUND for ${user.id}. isMasterFallback: ${isMasterFallback}`);
+                if (isMasterFallback) {
+                    userProfile.role = 'Master';
+                }
+                userProfile.email = user.email || '';
             }
         } catch (e) {
             console.error("Layout profile fetch error:", e)
         }
     }
+
+    console.log(`[Layout] Final UserProfile Role: ${userProfile?.role} | Name: ${userProfile?.name}`);
 
     return (
         <PermissionsProvider userRole={userProfile?.role}>

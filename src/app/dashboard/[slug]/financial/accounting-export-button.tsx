@@ -16,21 +16,27 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DateInput } from "@/components/ui/date-input"
+import { startOfMonth, endOfMonth, format } from "date-fns"
 
 export function AccountingExportButton() {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [month, setMonth] = useState(String(new Date().getMonth() + 1))
-    const [year, setYear] = useState(String(new Date().getFullYear()))
+    const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
+    const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
 
     const [missingPatients, setMissingPatients] = useState<any[]>([])
 
     const handleExport = async () => {
+        if (!startDate || !endDate) {
+            toast.error("Selecione o período.")
+            return
+        }
+
         setLoading(true)
         setMissingPatients([]) // Reset
         try {
-            const res = await generateAccountingReport(Number(month), Number(year))
+            const res = await generateAccountingReport(startDate, endDate)
 
             if (res.missingData) {
                 setMissingPatients(res.missingData)
@@ -112,31 +118,12 @@ export function AccountingExportButton() {
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Mês</Label>
-                                <Select value={month} onValueChange={setMonth}>
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                                            <SelectItem key={m} value={String(m)}>
-                                                {new Date(0, m - 1).toLocaleString('pt-BR', { month: 'long' })}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Label>Data Inicial</Label>
+                                <DateInput value={startDate} onChange={setStartDate} />
                             </div>
                             <div className="space-y-2">
-                                <Label>Ano</Label>
-                                <Select value={year} onValueChange={setYear}>
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="2024">2024</SelectItem>
-                                        <SelectItem value="2025">2025</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <Label>Data Final</Label>
+                                <DateInput value={endDate} onChange={setEndDate} />
                             </div>
                         </div>
                     </div>
