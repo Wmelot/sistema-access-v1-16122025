@@ -47,38 +47,82 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
 
         // Map helpers
         const mapArco = (a: string) => a.includes("Baixo") ? "Baixo" : a.includes("Alto") ? "Alto" : "Medio";
-        const mapFlex = (f: string) => f.includes("Rígido") ? "Rigido" : "Flexivel";
 
-        // 3. Info (Completo conforme INTEGRACAO_PEDIDOS_EXTERNOS.md)
+        const mapFlex = (f: string) => {
+            if (f.includes("Rígido")) return "Rigido";
+            if (f.includes("Semirrígido") || f.includes("Semi")) return "Semi-Flexível";
+            return "Flexível";
+        };
+
+        const extractDegree = (s: string) => {
+            if (!s || s.includes("Sem correção") || s === "0") return "0";
+            // Extracts the number from strings like "P (+) positivo | 6 graus" or "M (-) negativo | -9 graus"
+            const match = s.match(/\| (.*) graus/);
+            if (match) {
+                const val = match[1].replace(/[^0-9-]/g, "");
+                return val.replace("-", ""); // Factory seems to use positive numbers and knows direction by context or signs are stripped
+            }
+            return "0";
+        };
+
+        const mapBarra = (pads: any) => {
+            if (pads?.['Gota']) return "Gota";
+            if (pads?.['Barra']) return "Sim";
+            return "Não";
+        };
+
+        const mapAbsorcao = (a: string) => {
+            if (a === "Absorção") return "Sim";
+            if (a === "Absorção inteira") return "Inteira";
+            return "0";
+        };
+
+        // 3. Info (Completo conforme mapeamento real do Firestore)
         const info = {
-            Cobertura: orderData.general?.cobertura ? orderData.general.cobertura.toUpperCase() : "EVA AZUL",
+            Cobertura: orderData.general?.cobertura ? orderData.general.cobertura.split('(')[0].trim() : "EVA AZUL",
             Numeracao: Math.round(Number(orderData.general?.tamanho) || 40),
             ladoPedido: "DireitoEsquerdo",
             PrecoPedido: Number(orderData.totalPrice) || 190.00,
-            Produto: orderData.general?.produto || "Palmilha 3D",
+            Produto: orderData.general?.produto || "Slim",
             observacoesCompra: orderData.reportText || "Pedido via Axiom",
             PontosGerados: 0,
 
             // Dados do Profissional
             Nome_indicacao: professionalData?.nome || "Fisio",
-            Contato_indicacao: "Endereço Externo",
+            Contato_indicacao: professionalData?.address || "Endereço Externo",
 
-            // Especificações Técnicas (Obrigatórias)
-            Absorcao_dir: orderData.rightFoot?.absorcao || "0",
-            Absorcao_esq: orderData.leftFoot?.absorcao || "0",
-            Antepe_Dir: orderData.rightFoot?.antepe || "0",
-            Antepe_Esq: orderData.leftFoot?.antepe || "0",
-            Retrope_Dir: orderData.rightFoot?.retrope || "0",
-            Retrope_Esq: orderData.leftFoot?.retrope || "0",
-            Barra_Dir: orderData.rightFoot?.pads?.['Barra'] ? "Sim" : "0",
-            Barra_Esq: orderData.leftFoot?.pads?.['Barra'] ? "Sim" : "0",
-            Elevacao_Dir: orderData.rightFoot?.elevacao || "0",
-            Elevacao_Esq: orderData.leftFoot?.elevacao || "0",
+            // Especificações Técnicas (Mapeadas para o formato da fábrica)
+            Absorcao_dir: mapAbsorcao(orderData.rightFoot?.absorcao || ""),
+            Absorcao_esq: mapAbsorcao(orderData.leftFoot?.absorcao || ""),
+
+            Antepe_Dir: extractDegree(orderData.rightFoot?.antepe || ""),
+            Antepe_Esq: extractDegree(orderData.leftFoot?.antepe || ""),
+            Retrope_Dir: extractDegree(orderData.rightFoot?.retrope || ""),
+            Retrope_Esq: extractDegree(orderData.leftFoot?.retrope || ""),
+
+            Barra_Dir: mapBarra(orderData.rightFoot?.pads),
+            Barra_Esq: mapBarra(orderData.leftFoot?.pads),
+
+            Elevacao_Dir: orderData.rightFoot?.elevacao === "Nenhuma" ? "0" : (orderData.rightFoot?.elevacao || "0"),
+            Elevacao_Esq: orderData.leftFoot?.elevacao === "Nenhuma" ? "0" : (orderData.leftFoot?.elevacao || "0"),
 
             Arco_Dir: mapArco(orderData.rightFoot?.arco || ""),
             Arco_Esq: mapArco(orderData.leftFoot?.arco || ""),
+
             SuporteArco_dir: mapFlex(orderData.rightFoot?.flexibilidade || ""),
             SuporteArco_esq: mapFlex(orderData.leftFoot?.flexibilidade || ""),
+
+            // Alívios (Campos específicos do Firestore)
+            Alivio1_dir: orderData.rightFoot?.pads?.['Alívio 1º Metatarso'] ? "Sim" : "",
+            Alivio1_esq: orderData.leftFoot?.pads?.['Alívio 1º Metatarso'] ? "Sim" : "",
+            Alivio23_dir: orderData.rightFoot?.pads?.['Alívio 2/3º Metatarso'] ? "Sim" : "",
+            Alivio23_esq: orderData.leftFoot?.pads?.['Alívio 2/3º Metatarso'] ? "Sim" : "",
+            Alivio45_dir: orderData.rightFoot?.pads?.['Alívio 4/5º Metatarso'] ? "Sim" : "",
+            Alivio45_esq: orderData.leftFoot?.pads?.['Alívio 4/5º Metatarso'] ? "Sim" : "",
+
+            // Borda
+            Borda_Dir: orderData.rightFoot?.borda || "Sem Borda",
+            Borda_Esq: orderData.leftFoot?.borda || "Sem Borda",
 
             fileE: orderData.fileE || "UExhY2Vob2xkZXI=",
             fileD: orderData.fileD || "UExhY2Vob2xkZXI="
@@ -89,7 +133,7 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "x-axion-token": AXION_TOKEN
+                "Authorization": `Bearer ${AXION_TOKEN}`
             },
             body: JSON.stringify({ payload: base64Payload, info: info }),
             cache: 'no-store'

@@ -78,14 +78,16 @@ export async function GET(request: Request) {
 
             if (!patient?.phone) continue
 
-            // Check logs
+            // [COOLDOWN CHECK] Ensure we don't spam feedback requests.
+            // Minimum 6 months (180 days) between feedback requests.
+            const sixMonthsAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000)
             const { data: existingLog } = await supabase
                 .from('message_logs')
                 .select('id')
                 .eq('template_id', template.id)
                 .eq('phone', patient.phone.replace(/\D/g, ''))
-                .gte('created_at', yesterday.toISOString())
-                .single()
+                .gte('created_at', sixMonthsAgo.toISOString())
+                .maybeSingle()
 
             if (existingLog) {
                 skippedCount++

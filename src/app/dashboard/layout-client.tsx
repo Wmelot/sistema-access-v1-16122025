@@ -401,7 +401,7 @@ function DashboardLayoutContent(props: DashboardLayoutClientProps) { // Changed 
                     </div>
 
                     {/* LGPD Activity Log - Master/Admin only */}
-                    {(currentUser?.role === 'Master' || currentUser?.role === 'Administrador') && (
+                    {(currentUser?.role?.toLowerCase() === 'master' || currentUser?.role?.toLowerCase() === 'administrador') && (
                         <Button
                             variant="ghost"
                             size="icon"
@@ -439,20 +439,24 @@ function DashboardLayoutContent(props: DashboardLayoutClientProps) { // Changed 
                             <DropdownMenuSeparator />
 
                             {/* 1. Financeiro Geral */}
-                            <DropdownMenuItem className="p-0 select-none cursor-pointer">
-                                <Link href={`${dashboardPrefix}/financial`} className="flex w-full items-center gap-3 py-2 px-3 text-slate-700 hover:bg-slate-50 transition-colors">
-                                    <DollarSign className="h-4 w-4 text-emerald-500" />
-                                    <span className="font-medium">Financeiro geral</span>
-                                </Link>
-                            </DropdownMenuItem>
+                            {hasPermission('financial.view') && (
+                                <DropdownMenuItem className="p-0 select-none cursor-pointer">
+                                    <Link href={`${dashboardPrefix}/financial`} className="flex w-full items-center gap-3 py-2 px-3 text-slate-700 hover:bg-slate-50 transition-colors">
+                                        <DollarSign className="h-4 w-4 text-emerald-500" />
+                                        <span className="font-medium">Financeiro geral</span>
+                                    </Link>
+                                </DropdownMenuItem>
+                            )}
 
                             {/* 2. Configurações Gerais */}
-                            <DropdownMenuItem className="p-0 select-none cursor-pointer">
-                                <Link href={`${dashboardPrefix}/management`} className="flex w-full items-center gap-3 py-2 px-3 text-slate-700 hover:bg-slate-50 transition-colors">
-                                    <Settings className="h-4 w-4 text-indigo-500" />
-                                    <span className="font-medium">Configurações gerais</span>
-                                </Link>
-                            </DropdownMenuItem>
+                            {hasPermission('settings.view') && (
+                                <DropdownMenuItem className="p-0 select-none cursor-pointer">
+                                    <Link href={`${dashboardPrefix}/management`} className="flex w-full items-center gap-3 py-2 px-3 text-slate-700 hover:bg-slate-50 transition-colors">
+                                        <Settings className="h-4 w-4 text-indigo-500" />
+                                        <span className="font-medium">Configurações gerais</span>
+                                    </Link>
+                                </DropdownMenuItem>
+                            )}
 
                             {/* 3. Configurações de Perfil */}
                             <DropdownMenuItem className="p-0 select-none cursor-pointer">

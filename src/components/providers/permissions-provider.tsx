@@ -53,7 +53,7 @@ export function PermissionsProvider({ children, userRole }: { children: ReactNod
         if (isMaster) {
             // Visibility: Respect the configuration (Sidebar and Top Menu)
             if (code.startsWith('sidebar.') || code.startsWith('user_menu.')) {
-                const list = previewPermissions || permissions
+                const list = previewPermissions !== null ? previewPermissions : permissions
                 return list.includes(code)
             }
             // Functional Access: Master always sees cards and has total access

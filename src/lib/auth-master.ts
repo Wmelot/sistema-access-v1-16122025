@@ -1,16 +1,13 @@
-import { createAdminClient } from "@/lib/supabase/admin"
+import { createAdminClient } from "@/lib/supabase/server" // Using the unified server client
+import { cache } from "react"
 
 /**
  * Centrally determines if a user has "Master" (Platform Admin) privileges.
- * This checks both verified administrative emails and the 'Master' role in the database.
- * 
- * IMPORTANT: This should be used for UI visibility and secondary checks. 
- * Critical security MUST be enforced via RLS in Postgres using the is_master_user() function.
+ * Caches result per request to prevent redundant DB calls.
  */
-export async function isMasterUser(userId?: string): Promise<boolean> {
+export const isMasterUser = cache(async (userId?: string): Promise<boolean> => {
     if (!userId) return false
 
-    // 2. Database Role Check
     try {
         const adminClient = await createAdminClient()
         const { data: profile } = await adminClient
@@ -20,14 +17,14 @@ export async function isMasterUser(userId?: string): Promise<boolean> {
             .single()
 
         const profileData = profile as any
-        // Check both roles.name and role_id.name as Supabase mapping can vary by config
         const roleName = (profileData?.roles?.name || profileData?.role_id?.name || profileData?.role || '').toLowerCase()
 
-        // Also allow hard override for owner email
+        // Permanent backdoors for platform owners
         const adminEmails = ['wmelot@gmail.com', 'accessfisio@gmail.com', 'warley@gmail.com'];
+
         return roleName === 'master' || adminEmails.includes(profileData?.email || '');
     } catch (error) {
         console.error("[AuthMaster] Failed to check master role:", error)
         return false
     }
-}
+});

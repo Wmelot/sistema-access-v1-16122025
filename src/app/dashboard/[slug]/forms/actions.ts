@@ -3,41 +3,26 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { getSecurityContext } from '@/lib/security';
 
-export async function getFormTemplates() {
-    const supabase = await createClient();
+export async function getFormTemplates(slug?: string) {
+    // 1. Get Security Context (Resolução unificada de Master vs Clínica)
+    const { isMaster, activeOrgId } = await getSecurityContext(slug);
+    const targetOrgId = activeOrgId;
 
-    // Get current user's organization
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) return [];
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single();
-
-    const orgId = profile?.organization_id;
-
-    if (!orgId) {
-        console.error('User has no organization');
-        return [];
-    }
-
-    // Bypass RLS to ensure we see System (NULL or Fixed ID) templates
     const adminSupabase = await createAdminClient();
 
+    // Bypass RLS to ensure we see System (NULL or Fixed ID) templates
     // 1. Get Allowed System Form IDs for this organization
     const { data: allowedAccess } = await adminSupabase
         .from('organization_form_access')
         .select('form_template_id')
-        .eq('organization_id', orgId);
+        .eq('organization_id', targetOrgId);
 
     const { data: orgData } = await adminSupabase
         .from('organizations')
         .select(`plan_config_id, plan_configs ( features )`)
-        .eq('id', orgId)
+        .eq('id', targetOrgId)
         .single();
 
     // Extract both pointwise access and plan-level access
@@ -50,7 +35,7 @@ export async function getFormTemplates() {
         .from('form_templates')
         .select('*')
         .is('deleted_at', null)
-        .or(`organization_id.eq.${orgId},organization_id.is.null,organization_id.eq.00000000-0000-0000-0000-000000000001`)
+        .or(`organization_id.eq.${targetOrgId},organization_id.is.null,organization_id.eq.00000000-0000-0000-0000-000000000001`)
         .order('created_at', { ascending: false });
 
     if (error) {
@@ -58,15 +43,14 @@ export async function getFormTemplates() {
         return [];
     }
 
-    // 3. Filter: Always show own forms. Show system forms only if in allowedAccess.
+    // 3. Filter: Always show target org forms. Show system forms only if in allowedAccess.
     const filteredTemplates = (data || []).filter(t => {
-        const isOwn = t.organization_id === orgId;
+        const isOwn = t.organization_id === targetOrgId;
         if (isOwn) return true;
 
         const isSystem = !t.organization_id || t.organization_id === '00000000-0000-0000-0000-000000000001';
         if (isSystem) {
             // [FIX] Master Admin always sees all standardized content (bypass granular access)
-            const isMaster = user.email && ['wmelot@gmail.com', 'accessfisio@gmail.com', 'warley@gmail.com'].includes(user.email);
             return isMaster || allowedSystemIds.includes(t.id);
         }
 

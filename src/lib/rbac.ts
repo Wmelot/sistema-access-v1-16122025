@@ -303,10 +303,9 @@ export async function getCurrentUserPermissions(): Promise<PermissionCode[]> {
     }
 
     // 2. Resolve Base Permissions (Layer 1)
-    if (isMaster) {
-        // Master gets ALL permissions defined in the system for complete oversight
-        return PERMISSION_METADATA.map(m => m.code) as PermissionCode[]
-    }
+    // Note: We removed the hardcoded "isMaster" bypass here so Master users can 
+    // customize their sidebar/UI by unchecking permissions in their profile.
+    // Safety is still guaranteed by the latches in hasPermission().
 
     let rolePerms: any[] = []
     if (targetRoleId) {

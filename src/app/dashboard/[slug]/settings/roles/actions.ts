@@ -15,28 +15,14 @@ async function getOrgId() {
 }
 
 export async function getRoles() {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return []
-
-    // Fetch user's organization
-    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-    const orgId = profile?.organization_id
-
-    // Use admin client to ensure we get all relevant roles even if policies are restrictive
+    const orgId = await getOrgId()
     const adminSupabase = await createAdminClient()
 
-    let query = adminSupabase.from('roles').select('*')
-
-    if (orgId) {
-        // Show system roles OR roles belonging to this org
-        query = query.or(`organization_id.eq.${orgId},organization_id.is.null`)
-    } else {
-        // No org? Only show system roles
-        query = query.filter('organization_id', 'is', null)
-    }
-
-    const { data: roles, error } = await query.order('name', { ascending: true })
+    const { data: roles, error } = await adminSupabase
+        .from('roles')
+        .select('*, permissions:role_permissions(permission_id)')
+        .or(orgId ? `organization_id.eq.${orgId},organization_id.is.null` : `organization_id.is.null`)
+        .order('name', { ascending: true })
 
     if (error) throw new Error(error.message)
     return roles
@@ -159,7 +145,8 @@ export async function createRole(formData: FormData) {
         if (permError) return { error: "Perfil criado, mas erro ao atribuir permissões." }
     }
 
-    revalidatePath('/dashboard/settings/roles')
+    revalidatePath(`/dashboard/[slug]/settings`, 'layout')
+    revalidatePath(`/dashboard/[slug]/management`, 'layout')
     return { success: true }
 }
 
@@ -171,10 +158,10 @@ export async function updateRole(roleId: string, formData: FormData) {
     const description = formData.get('description') as string
     const permissionIds = formData.get('permissions')?.toString().split(',') || []
 
-    const supabase = await createClient()
+    const adminSupabase = await createAdminClient()
 
     // 1. Update Role Info
-    const { error } = await supabase
+    const { error } = await adminSupabase
         .from('roles')
         .update({ name, description })
         .eq('id', roleId)
@@ -182,18 +169,18 @@ export async function updateRole(roleId: string, formData: FormData) {
     if (error) return { error: "Erro ao atualizar perfil." }
 
     // 2. Update Permissions (Delete all + Re-insert) 
-    // Transaction-like behavior not fully trivial in simple client, but sequential ok for now
-    await supabase.from('role_permissions').delete().eq('role_id', roleId)
+    await adminSupabase.from('role_permissions').delete().eq('role_id', roleId)
 
     if (permissionIds.length > 0 && permissionIds[0] !== "") {
         const inserts = permissionIds.map(pid => ({
             role_id: roleId,
             permission_id: pid
         }))
-        await supabase.from('role_permissions').insert(inserts)
+        await adminSupabase.from('role_permissions').insert(inserts)
     }
 
-    revalidatePath('/dashboard/settings/roles')
+    revalidatePath(`/dashboard/[slug]/settings`, 'layout')
+    revalidatePath(`/dashboard/[slug]/management`, 'layout')
     return { success: true }
 }
 
@@ -231,7 +218,8 @@ export async function deleteRole(roleId: string, password?: string) {
     const { error } = await supabase.from('roles').delete().eq('id', roleId)
     if (error) return { error: "Erro ao excluir perfil. Pode haver usuários vinculados." }
 
-    revalidatePath('/dashboard/settings/roles')
+    revalidatePath(`/dashboard/[slug]/settings`, 'layout')
+    revalidatePath(`/dashboard/[slug]/management`, 'layout')
     return { success: true }
 }
 
@@ -239,18 +227,18 @@ export async function toggleRolePermission(roleId: string, permissionId: string,
     const canManage = await hasPermission('roles.manage')
     if (!canManage) return { error: "Sem permissão." }
 
-    const supabase = await createClient()
+    const adminSupabase = await createAdminClient()
 
     if (grant) {
         // Grant: Insert if not exists
-        const { error } = await supabase
+        const { error } = await adminSupabase
             .from('role_permissions')
             .upsert({ role_id: roleId, permission_id: permissionId }, { onConflict: 'role_id,permission_id' })
 
         if (error) return { error: "Erro ao adicionar permissão." }
     } else {
         // Revoke: Delete
-        const { error } = await supabase
+        const { error } = await adminSupabase
             .from('role_permissions')
             .delete()
             .match({ role_id: roleId, permission_id: permissionId })
@@ -258,8 +246,8 @@ export async function toggleRolePermission(roleId: string, permissionId: string,
         if (error) return { error: "Erro ao remover permissão." }
     }
 
-    revalidatePath('/dashboard/settings/permissions') // Update matrix page
-    // revalidatePath('/dashboard/settings/roles') // Update roles page too if needed
+    revalidatePath(`/dashboard/[slug]/settings`, 'layout')
+    revalidatePath(`/dashboard/[slug]/management`, 'layout')
     return { success: true }
 }
 
@@ -347,6 +335,7 @@ export async function updateRoleMembers(roleId: string, memberIds: string[]) {
         if (removeError) return { error: "Erro ao remover membros." }
     }
 
-    revalidatePath('/dashboard/settings/roles')
+    revalidatePath(`/dashboard/[slug]/settings`, 'layout')
+    revalidatePath(`/dashboard/[slug]/management`, 'layout')
     return { success: true }
 }

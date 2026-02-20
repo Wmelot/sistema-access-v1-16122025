@@ -590,18 +590,32 @@ export async function updateTemplate(id: string, formData: FormData, slug?: stri
 }
 
 export async function deleteTemplate(id: string, slug?: string) {
-    const supabase = await createClient()
+    const supabase = await createAdminClient()
 
     // Check if the template is a global template
     const { data: existing } = await supabase.from('message_templates').select('organization_id').eq('id', id).single()
 
-    if (existing && existing.organization_id === null && slug) {
-        return { success: false, error: "Modelos padrão do sistema não podem ser excluídos, apenas desativados ou editados." }
+    if (!existing) {
+        return { success: false, error: "Modelo não encontrado." }
+    }
+
+    if (existing.organization_id === null && slug) {
+        return { success: false, error: "Modelos padrão do sistema não podem ser excluídos, apenas desativados." }
     }
 
     const { error } = await supabase.from('message_templates').delete().eq('id', id)
 
-    if (error) return { success: false, error: error.message }
+    if (error) {
+        console.error("Delete Template Error:", error)
+        // Check for Foreign Key constraint (Postgres error 23503)
+        if (error.code === '23503') {
+            return {
+                success: false,
+                error: "Este modelo já foi utilizado em mensagens enviadas e possui histórico. Para segurança dos seus dados, ele não pode ser excluído, mas você pode desativá-lo para que não seja mais usado."
+            }
+        }
+        return { success: false, error: error.message }
+    }
 
     if (slug) revalidatePath(`/dashboard/${slug}/settings/communication`)
     else revalidatePath('/dashboard/settings/communication')

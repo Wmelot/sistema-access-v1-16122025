@@ -6,46 +6,22 @@ import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
 import { hasPermission } from "@/lib/rbac"
+import { getSecurityContext } from "@/lib/security"
 
 // --- Professional Management (Profiles) ---
 
 export async function getProfessionals(slug?: string) {
     const supabase = await createAdminClient()
 
-    const supabaseSide = await createClient()
-    const { data: { user } } = await supabaseSide.auth.getUser()
-
-    if (!user) return []
-
-    const { data: myProfile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single()
-
-    let organizationId = myProfile?.organization_id
-
-    if (slug) {
-        const { data: orgData } = await supabase
-            .from('organizations')
-            .select('id')
-            .eq('slug', slug)
-            .single()
-
-        if (orgData) {
-            organizationId = orgData.id
-        }
-    }
-
-    if (!organizationId) return []
-
-    const isMaster = user.email === 'wmelot@gmail.com'
-    const isAccessOrg = slug === 'access-fisioterapia' || organizationId === '9571532e-fdf8-4aaa-b236-416fd6459566'
+    // 1. Resolve Contexto (Master vs Clínica)
+    const context = await getSecurityContext(slug);
+    const { isMaster, activeOrgId } = context;
+    const isAccessOrg = slug === 'access-fisioterapia' || activeOrgId === '9571532e-fdf8-4aaa-b236-416fd6459566';
 
     const { data, error } = await supabase
         .from('profiles')
         .select('*, role:roles(name)')
-        .eq('organization_id', organizationId)
+        .eq('organization_id', activeOrgId)
         .order('full_name')
 
     if (error) {
@@ -53,8 +29,9 @@ export async function getProfessionals(slug?: string) {
         return []
     }
 
-    if (isMaster && isAccessOrg && !data.find((p: any) => p.email === 'wmelot@gmail.com')) {
-        const { data: masterProf } = await supabase.from('profiles').select('*, role:roles(name)').eq('email', 'wmelot@gmail.com').single()
+    // [BACKDOOR] Master User always visible in his "Home" clinic if requested
+    if (isMaster && isAccessOrg && !data.find((p: any) => p.email === context.userEmail)) {
+        const { data: masterProf } = await supabase.from('profiles').select('*, role:roles(name)').eq('email', context.userEmail).single()
         if (masterProf) data.push(masterProf)
     }
 
@@ -76,22 +53,9 @@ export async function createProfessional(formData: FormData) {
         const full_name = formData.get('full_name') as string
         const cpf = formData.get('cpf') as string
 
-        const sidebarSupabase = await createClient()
-        const { data: { user: currentUser } } = await sidebarSupabase.auth.getUser()
-
-        let organizationId = null
-        if (currentUser) {
-            const { data: adminProfile } = await sidebarSupabase
-                .from('profiles')
-                .select('organization_id')
-                .eq('id', currentUser.id)
-                .single()
-            organizationId = adminProfile?.organization_id
-        }
-
-        if (!organizationId) {
-            organizationId = '00000000-0000-0000-0000-000000000001'
-        }
+        const context = await getSecurityContext()
+        const organizationId = context.activeOrgId;
+        const currentUserId = context.userId;
 
         const { rows: orgRows } = await db.query(
             `SELECT o.id, pc.max_professionals, pc.name as plan_name FROM organizations o LEFT JOIN plan_configs pc ON o.plan_config_id = pc.id WHERE o.id = $1`,
@@ -123,13 +87,13 @@ export async function createProfessional(formData: FormData) {
 
         if (userError) return { error: `Erro ao criar login: ${userError.message}` }
 
-        const userId = userData.user.id
+        const newUserId = userData.user.id
         const photoFile = formData.get('photo') as File
         let photoUrl = null
 
         if (photoFile && photoFile.size > 0 && photoFile.name !== 'undefined') {
             const fileExt = photoFile.name.split('.').pop()
-            const fileName = `${userId}-${Math.random().toString(36).substring(7)}.${fileExt}`
+            const fileName = `${newUserId}-${Math.random().toString(36).substring(7)}.${fileExt}`
             const { error: uploadError } = await supabaseAdmin.storage.from('avatars').upload(fileName, photoFile, { contentType: photoFile.type, upsert: true })
             if (!uploadError) {
                 const { data: { publicUrl } } = supabaseAdmin.storage.from('avatars').getPublicUrl(fileName)
@@ -172,12 +136,12 @@ export async function createProfessional(formData: FormData) {
             if (canManageRoles) profileData.role_id = roleId
         }
 
-        const { error: profileError } = await supabaseAdmin.from('profiles').upsert({ id: userId, ...profileData })
+        const { error: profileError } = await supabaseAdmin.from('profiles').upsert({ id: newUserId, ...profileData })
 
         if (profileError) return { error: `Erro ao criar perfil: ${profileError.message}` }
 
         const serviceIds = formData.getAll('services') as string[]
-        if (serviceIds.length > 0) await updateProfessionalServices(userId, serviceIds)
+        if (serviceIds.length > 0) await updateProfessionalServices(newUserId, serviceIds)
 
         await logAction("CREATE_PROFESSIONAL", { name: full_name, email })
         revalidatePath('/dashboard/professionals')
@@ -202,12 +166,11 @@ export async function updateProfessional(id: string, formData: FormData) {
         }
     }
 
-    const standardSupabase = await createClient()
-    const { data: { user } } = await standardSupabase.auth.getUser()
-    const isSelf = user?.id === id
+    const context = await getSecurityContext()
+    const isSelf = context.userId === id
     const canManage = await hasPermission('roles.manage')
 
-    if (!isSelf && !canManage && user?.email !== 'wmelot@gmail.com') return { error: 'Sem permissão.' }
+    if (!isSelf && !canManage && !context.isMaster) return { error: 'Sem permissão.' }
 
     const newPassword = formData.get('password') as string
     if (newPassword && newPassword.trim().length >= 6) {

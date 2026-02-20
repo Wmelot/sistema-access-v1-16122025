@@ -11,7 +11,7 @@ export default async function CustomFormsPage({ params }: { params: { slug: stri
     const { slug } = params // Destructure slug
 
     const [allTemplates, professionals] = await Promise.all([
-        getFormTemplates(),
+        getFormTemplates(slug),
         getOrganizationProfessionals(slug)
     ]);
 
@@ -29,9 +29,9 @@ export default async function CustomFormsPage({ params }: { params: { slug: stri
             .filter(Boolean)
             .filter((t: any) =>
                 !t.is_locked ||
-                t.type === 'assessment' ||
-                t.title?.includes('Avaliação PBE') ||
-                t.title?.includes('PBE')
+                ['assessment', 'physical_assessment', 'evolution'].includes(t.type) ||
+                t.title?.toLowerCase().includes('pbe') ||
+                t.title?.toLowerCase().includes('palmilha')
             )
             .map(async (t: any) => {
                 const canEdit = await canAccessAsset(t, 'edit');
