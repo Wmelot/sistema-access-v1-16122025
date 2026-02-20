@@ -409,22 +409,31 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
             setPropulsaoStatus(propulsaoRes)
 
             // 2. Salvar localmente no prontuário
-            await createAssessment(
-                patientId,
-                'insoles_prescription',
-                {
-                    ...prescriptionData,
-                    propulsaoOrder: propulsaoRes.success ? propulsaoRes.orderNumber : null
-                },
-                {
-                    total: calculatePrice,
-                    model: produto,
-                    type: tipoPalmilha,
-                    propulsaoOrder: propulsaoRes.success ? propulsaoRes.orderNumber : null
-                },
-                `Prescrição de Palmilha - ${produto} ${propulsaoRes.success ? `(Pedido Propulsão: ${propulsaoRes.orderNumber})` : ''}`,
-                slug
-            )
+            try {
+                const assessmentRes = await createAssessment(
+                    patientId,
+                    'insoles_prescription',
+                    {
+                        ...prescriptionData,
+                        propulsaoOrder: propulsaoRes.success ? propulsaoRes.orderNumber : null
+                    },
+                    {
+                        total: calculatePrice,
+                        model: produto,
+                        type: tipoPalmilha,
+                        propulsaoOrder: propulsaoRes.success ? propulsaoRes.orderNumber : null
+                    },
+                    `Prescrição de Palmilha - ${produto} ${propulsaoRes.success ? `(Pedido Propulsão: ${propulsaoRes.orderNumber})` : ''}`,
+                    slug
+                );
+
+                if (!assessmentRes.success) {
+                    console.error("Erro ao salvar avaliação localmente:", assessmentRes.msg);
+                    toast.warning("Pedido processado, mas houve um problema ao salvar no prontuário local.");
+                }
+            } catch (err: any) {
+                console.error("Exceção ao salvar no prontuário:", err);
+            }
 
             setIsSent(true)
             if (propulsaoRes.success) {

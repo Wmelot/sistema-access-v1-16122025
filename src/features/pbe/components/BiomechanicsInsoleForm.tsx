@@ -2859,8 +2859,8 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                             form={form}
                                             data={form.getValues()}
                                             patientId={patientId}
-                                            patientName={form.watch("patient.name") || "Paciente"}
-                                            patientEmail={form.watch("patient.email")}
+                                            patientName={form.watch("patient.name") || patient?.name || patient?.full_name || "Paciente"}
+                                            patientEmail={form.watch("patient.email") || patient?.email}
                                             patientPhone={form.watch("patient.phone")}
                                             openSection={openSection}
                                             patient={patient}

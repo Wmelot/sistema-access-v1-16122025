@@ -9,21 +9,22 @@ import { validateAccess, idSchema, slugSchema } from "@/lib/security"
 const CreateAssessmentSchema = z.object({
     patientId: idSchema,
     type: z.string().min(1, "Tipo é obrigatório"),
-    data: z.record(z.any()).default({}),
-    scores: z.record(z.any()).optional(),
+    data: z.record(z.string(), z.any()).default({}),
+    scores: z.record(z.string(), z.any()).optional(),
     title: z.string().optional(),
     slug: slugSchema.optional()
 });
 
-/**
- * Cria uma avaliação vinculada ao histórico do paciente com validação de acesso.
- */
 export async function createAssessment(patientId: string, type: string, data: any, scores: any, title?: string, slug?: string) {
+    console.log(`[createAssessment] Attempting to save ${type} for patient ${patientId}`);
     // 1. Validar inputs básicos (para evitar ataques de buffer ou injeção)
     const validation = CreateAssessmentSchema.safeParse({ patientId, type, data, scores, title, slug });
     if (!validation.success) {
+        console.error('[createAssessment] Validation Failed:', validation.error.issues);
         return { success: false, msg: validation.error.issues[0].message };
     }
+
+    console.log('[createAssessment] Validation passed');
 
     // 2. Trava de Segurança (Multi-tenancy)
     // Garante que o usuário logado tem permissão para escrever neste paciente.

@@ -1,6 +1,7 @@
 "use server";
 
 import forge from "node-forge";
+import { getSecurityContext } from "@/lib/security";
 
 function getStrictPublicKey(rawKey: string) {
     if (!rawKey) return "";
@@ -18,50 +19,88 @@ function getStrictPublicKey(rawKey: string) {
 }
 
 export async function sendOrderToPropulsao(orderData: any, patientData: any, professionalData: any) {
-    console.log("🚀 TENTANDO ENDPOINT: pedidos_axion");
+    console.log("🚀 [sendOrderToPropulsao] INICIANDO ENVIO...");
 
     try {
-        const AXION_TOKEN = process.env.AXION_TOKEN || "";
-        const PUBLIC_KEY_PEM_RAW = process.env.PROPULSAO_PUBLIC_KEY || "";
-        const publicKeyPem = getStrictPublicKey(PUBLIC_KEY_PEM_RAW);
-        const dataMs = Date.now();
-        const profEmail = (professionalData?.email || professionalData?.id || "contato@axiom.com").toLowerCase();
+        // Obter o e-mail do usuário ATIVO (logado no Axiom)
+        const context = await getSecurityContext().catch(() => null);
+        const activeUserEmail = context?.userEmail || professionalData?.email || "contato@axiom.com";
 
-        // 1. Dados Sensíveis (Padrão AXIOM)
+        const AXION_TOKEN = (process.env.AXION_TOKEN || "").trim();
+        const PUBLIC_KEY_PEM_RAW = (process.env.PROPULSAO_PUBLIC_KEY || "").trim();
+
+        console.log("   -> E-mail Profissional (Ativo):", activeUserEmail);
+        console.log("   -> Token Configurado:", AXION_TOKEN.length > 0 ? "Sim" : "Não");
+
+        if (!AXION_TOKEN) {
+            return { success: false, error: "Token de autenticação (AXION_TOKEN) não configurado." };
+        }
+
+        let publicKeyPem;
+        try {
+            publicKeyPem = getStrictPublicKey(PUBLIC_KEY_PEM_RAW);
+            if (!publicKeyPem || publicKeyPem.length < 50) throw new Error("Chave pública inválida ou ausente.");
+        } catch (e: any) {
+            console.error("❌ Erro ao processar chave pública:", e.message);
+            return { success: false, error: "Chave pública da Propulsão é inválida." };
+        }
+
+        const dataMs = Date.now();
+
+        // 1. Dados Sensíveis (Padrão AXIOM) - Importante usar Nome real e E-mail ativo
         const sensitiveData = {
             timestamp: Math.floor(dataMs / 1000),
             Email_paciente: (patientData.email || "contato@axiom.com").toLowerCase(),
-            IdFisio: [profEmail],
+            IdFisio: [activeUserEmail.toLowerCase()],
             LocalPedido: "AXIOM",
             Nome_Paciente: (patientData.nome || "PACIENTE TESTE").toUpperCase()
         };
 
+        console.log("   -> Payload Paciente:", sensitiveData.Nome_Paciente);
+
         // 2. Criptografia node-forge
-        const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
-        const buffer = forge.util.createBuffer(JSON.stringify(sensitiveData), 'utf8');
-        const encrypted = publicKey.encrypt(buffer.getBytes(), 'RSA-OAEP', {
-            md: forge.md.sha256.create(),
-            mgf1: { md: forge.md.sha256.create() }
-        });
-        const base64Payload = forge.util.encode64(encrypted);
+        let base64Payload;
+        try {
+            const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
+            const buffer = forge.util.createBuffer(JSON.stringify(sensitiveData), 'utf8');
+            const encrypted = publicKey.encrypt(buffer.getBytes(), 'RSA-OAEP', {
+                md: forge.md.sha256.create(),
+                mgf1: { md: forge.md.sha256.create() }
+            });
+            base64Payload = forge.util.encode64(encrypted);
+        } catch (e: any) {
+            console.error("❌ Erro na Criptografia:", e.message);
+            return { success: false, error: "Falha ao criptografar dados: " + e.message };
+        }
 
         // Map helpers
-        const mapArco = (a: string) => a.includes("Baixo") ? "Baixo" : a.includes("Alto") ? "Alto" : "Medio";
+        const mapArco = (a: string) => {
+            if (!a) return "Medio";
+            if (a.includes("Baixo")) return "Baixo";
+            if (a.includes("Alto")) return "Alto";
+            return "Medio";
+        };
 
         const mapFlex = (f: string) => {
+            if (!f) return "Flexível";
             if (f.includes("Rígido")) return "Rigido";
             if (f.includes("Semirrígido") || f.includes("Semi")) return "Semi-Flexível";
             return "Flexível";
         };
 
         const extractDegree = (s: string) => {
-            if (!s || s.includes("Sem correção") || s === "0") return "0";
-            // Extracts the number from strings like "P (+) positivo | 6 graus" or "M (-) negativo | -9 graus"
-            const match = s.match(/\| (.*) graus/);
-            if (match) {
-                const val = match[1].replace(/[^0-9-]/g, "");
-                return val.replace("-", ""); // Factory seems to use positive numbers and knows direction by context or signs are stripped
+            if (!s || s.includes("Sem correção") || s === "0" || s.includes("Neutro")) return "0";
+
+            const matchDeg = s.match(/\| (.*) graus/);
+            if (matchDeg) {
+                return matchDeg[1].replace(/[^0-9-]/g, "").replace("-", "");
             }
+
+            const matchParen = s.match(/\((\d+)º\)/);
+            if (matchParen) {
+                return matchParen[1];
+            }
+
             return "0";
         };
 
@@ -72,12 +111,13 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
         };
 
         const mapAbsorcao = (a: string) => {
-            if (a === "Absorção") return "Sim";
-            if (a === "Absorção inteira") return "Inteira";
+            if (!a) return "0";
+            if (a.includes("Absorção")) return "Sim";
+            if (a.includes("inteira")) return "Inteira";
             return "0";
         };
 
-        // 3. Info (Completo conforme mapeamento real do Firestore)
+        // 3. Info
         const info = {
             Cobertura: orderData.general?.cobertura ? orderData.general.cobertura.split('(')[0].trim() : "EVA AZUL",
             Numeracao: Math.round(Number(orderData.general?.tamanho) || 40),
@@ -87,11 +127,9 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             observacoesCompra: orderData.reportText || "Pedido via Axiom",
             PontosGerados: 0,
 
-            // Dados do Profissional
             Nome_indicacao: professionalData?.nome || "Fisio",
             Contato_indicacao: professionalData?.address || "Endereço Externo",
 
-            // Especificações Técnicas (Mapeadas para o formato da fábrica)
             Absorcao_dir: mapAbsorcao(orderData.rightFoot?.absorcao || ""),
             Absorcao_esq: mapAbsorcao(orderData.leftFoot?.absorcao || ""),
 
@@ -103,8 +141,8 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             Barra_Dir: mapBarra(orderData.rightFoot?.pads),
             Barra_Esq: mapBarra(orderData.leftFoot?.pads),
 
-            Elevacao_Dir: orderData.rightFoot?.elevacao === "Nenhuma" ? "0" : (orderData.rightFoot?.elevacao || "0"),
-            Elevacao_Esq: orderData.leftFoot?.elevacao === "Nenhuma" ? "0" : (orderData.leftFoot?.elevacao || "0"),
+            Elevacao_Dir: orderData.rightFoot?.elevacao === "Nenhuma" ? "0" : extractDegree(orderData.rightFoot?.elevacao || "0"),
+            Elevacao_Esq: orderData.leftFoot?.elevacao === "Nenhuma" ? "0" : extractDegree(orderData.leftFoot?.elevacao || "0"),
 
             Arco_Dir: mapArco(orderData.rightFoot?.arco || ""),
             Arco_Esq: mapArco(orderData.leftFoot?.arco || ""),
@@ -112,7 +150,6 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             SuporteArco_dir: mapFlex(orderData.rightFoot?.flexibilidade || ""),
             SuporteArco_esq: mapFlex(orderData.leftFoot?.flexibilidade || ""),
 
-            // Alívios (Campos específicos do Firestore)
             Alivio1_dir: orderData.rightFoot?.pads?.['Alívio 1º Metatarso'] ? "Sim" : "",
             Alivio1_esq: orderData.leftFoot?.pads?.['Alívio 1º Metatarso'] ? "Sim" : "",
             Alivio23_dir: orderData.rightFoot?.pads?.['Alívio 2/3º Metatarso'] ? "Sim" : "",
@@ -120,7 +157,6 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             Alivio45_dir: orderData.rightFoot?.pads?.['Alívio 4/5º Metatarso'] ? "Sim" : "",
             Alivio45_esq: orderData.leftFoot?.pads?.['Alívio 4/5º Metatarso'] ? "Sim" : "",
 
-            // Borda
             Borda_Dir: orderData.rightFoot?.borda || "Sem Borda",
             Borda_Esq: orderData.leftFoot?.borda || "Sem Borda",
 
@@ -129,33 +165,48 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
         };
 
         // 4. Envio
+        const headers = {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${AXION_TOKEN}`,
+            "x-axion-token": AXION_TOKEN
+        };
+
         const response = await fetch("https://us-central1-dev-propulsao.cloudfunctions.net/pedidos_axion", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${AXION_TOKEN}`
-            },
+            headers: headers,
             body: JSON.stringify({ payload: base64Payload, info: info }),
             cache: 'no-store'
         });
 
         const resText = await response.text();
+        console.log(`   -> Resposta da API (${response.status}):`, resText);
+
         let orderNumber = undefined;
         try {
             const resJson = JSON.parse(resText);
-            orderNumber = resJson.order || resJson.orderNumber;
-        } catch (e) { }
+            // Captura flexível de vários campos possíveis para o número do pedido
+            orderNumber = resJson.orderNumber || resJson.order || resJson.id || resJson.pedido || resJson.number;
+
+            // Se não encontrou no JSON processado, mas o texto contém algo como "Pedido #12345"
+            if (!orderNumber && resText.includes("#")) {
+                const match = resText.match(/#(\d+-\d+|\d+)/);
+                if (match) orderNumber = match[1];
+            }
+        } catch (e) {
+            // Se não for JSON, tenta via Regex no texto puro
+            const match = resText.match(/#(\d+-\d+|\d+)/);
+            if (match) orderNumber = match[1];
+        }
 
         if (response.ok) {
-            console.log("✅ SUCESSO!", resText);
+            console.log("✅ SUCESSO! Número do Pedido:", orderNumber);
             return { success: true, message: "Pedido enviado com sucesso!", orderNumber };
         }
 
-        console.error("❌ ERRO API:", response.status, resText);
         return { success: false, error: `Erro ${response.status}: ${resText || 'Falha no processamento'}` };
 
     } catch (error: any) {
-        console.error("🔥 EXCEÇÃO:", error.message);
-        return { success: false, error: "Falha interna ao processar o pedido." };
+        console.error("🔥 EXCEÇÃO em sendOrderToPropulsao:", error);
+        return { success: false, error: "Falha interna: " + (error.message || "Erro desconhecido") };
     }
 }
