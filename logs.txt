@@ -1,0 +1,500 @@
+2026-02-17T22:49:54.305533Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T22:49:54.307007079Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-17T22:49:54.461111304Z D pedidos_externos: Function execution started
+2026-02-17T22:49:54.466369Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T22:49:54.467310409Z D pedidos_externos: Function execution took 6 ms, finished with status code: 500
+2026-02-17T23:04:51.736465407Z D pedidos_externos: Function execution started
+2026-02-17T23:04:51.746393Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:04:51.747929810Z D pedidos_externos: Function execution took 11 ms, finished with status code: 500
+2026-02-17T23:04:52.071825904Z D pedidos_externos: Function execution started
+2026-02-17T23:04:52.079097Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:04:52.080501412Z D pedidos_externos: Function execution took 8 ms, finished with status code: 500
+2026-02-17T23:04:52.545264629Z D pedidos_externos: Function execution started
+2026-02-17T23:04:52.552345Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:04:52.553226235Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-17T23:11:24.065139027Z D pedidos_externos: Function execution started
+2026-02-17T23:11:24.072664Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:11:24.073849981Z D pedidos_externos: Function execution took 8 ms, finished with status code: 500
+2026-02-17T23:11:24.312141590Z D pedidos_externos: Function execution started
+2026-02-17T23:11:24.319922Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:11:24.320838535Z D pedidos_externos: Function execution took 8 ms, finished with status code: 500
+2026-02-17T23:11:24.470054654Z D pedidos_externos: Function execution started
+2026-02-17T23:11:24.475755Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:11:24.476746968Z D pedidos_externos: Function execution took 6 ms, finished with status code: 500
+2026-02-17T23:20:30.851334761Z D pedidos_externos: Function execution started
+2026-02-17T23:20:30.857911Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:20:30.858749514Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-17T23:24:11.367829979Z D pedidos_externos: Function execution started
+2026-02-17T23:24:11.386159Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:24:11.387151738Z D pedidos_externos: Function execution took 19 ms, finished with status code: 500
+2026-02-17T23:27:01.233700691Z D pedidos_externos: Function execution started
+2026-02-17T23:27:01.264595Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:27:01.265856007Z D pedidos_externos: Function execution took 32 ms, finished with status code: 500
+2026-02-17T23:27:01.510046043Z D pedidos_externos: Function execution started
+2026-02-17T23:27:01.519518Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:27:01.520519909Z D pedidos_externos: Function execution took 10 ms, finished with status code: 500
+2026-02-17T23:27:01.674081239Z D pedidos_externos: Function execution started
+2026-02-17T23:27:01.682085Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:27:01.683101906Z D pedidos_externos: Function execution took 9 ms, finished with status code: 500
+2026-02-17T23:27:01.834403995Z D pedidos_externos: Function execution started
+2026-02-17T23:27:01.843617Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:27:01.845088947Z D pedidos_externos: Function execution took 10 ms, finished with status code: 500
+2026-02-17T23:27:01.997258183Z D pedidos_externos: Function execution started
+2026-02-17T23:27:02.013117Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:27:02.014548614Z D pedidos_externos: Function execution took 17 ms, finished with status code: 500
+2026-02-17T23:28:43.388473656Z D pedidos_externos: Function execution started
+2026-02-17T23:28:43.399985Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:28:43.402853079Z D pedidos_externos: Function execution took 14 ms, finished with status code: 500
+2026-02-17T23:29:57.407404629Z D pedidos_externos: Function execution started
+2026-02-17T23:29:57.414142Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:29:57.415238549Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-17T23:32:41.290713770Z D pedidos_externos: Function execution started
+2026-02-17T23:32:41.297533Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:32:41.298681466Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-17T23:32:41.671149734Z D pedidos_externos: Function execution started
+2026-02-17T23:32:41.676877Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:32:41.677636413Z D pedidos_externos: Function execution took 6 ms, finished with status code: 500
+2026-02-17T23:41:49.790357378Z D pedidos_externos: Function execution started
+2026-02-17T23:41:49.804836Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:41:49.806138075Z D pedidos_externos: Function execution took 15 ms, finished with status code: 500
+2026-02-17T23:49:31.549099312Z D pedidos_externos: Function execution started
+2026-02-17T23:49:31.563739Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:49:31.565122903Z D pedidos_externos: Function execution took 16 ms, finished with status code: 500
+2026-02-17T23:56:34.735047489Z D pedidos_externos: Function execution started
+2026-02-17T23:56:34.744540Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-17T23:56:34.745566978Z D pedidos_externos: Function execution took 10 ms, finished with status code: 500
+2026-02-18T00:00:00.711126086Z D pedidos_externos: Function execution started
+2026-02-18T00:00:00.763427Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T00:00:00.764568864Z D pedidos_externos: Function execution took 53 ms, finished with status code: 500
+2026-02-18T00:04:49.361284317Z D pedidos_externos: Function execution started
+2026-02-18T00:04:49.368008Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T00:04:49.460846130Z D pedidos_externos: Function execution took 99 ms, finished with status code: 500
+2026-02-18T00:04:49.788671272Z D pedidos_externos: Function execution started
+2026-02-18T00:04:49.796029Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T00:04:49.797847628Z D pedidos_externos: Function execution took 9 ms, finished with status code: 500
+2026-02-18T00:04:49.970302196Z D pedidos_externos: Function execution started
+2026-02-18T00:04:49.977338Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T00:04:49.978254970Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-18T00:04:50.227262048Z D pedidos_externos: Function execution started
+2026-02-18T00:04:50.233723Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T00:04:50.234923500Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-18T00:05:39.161582200Z D pedidos_externos: Function execution started
+2026-02-18T00:05:39.266100Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T00:05:39.267260606Z D pedidos_externos: Function execution took 105 ms, finished with status code: 500
+2026-02-18T00:05:39.643720514Z D pedidos_externos: Function execution started
+2026-02-18T00:05:39.651261Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T00:05:39.653068807Z D pedidos_externos: Function execution took 9 ms, finished with status code: 500
+2026-02-18T00:05:39.822196513Z D pedidos_externos: Function execution started
+2026-02-18T00:05:39.828378Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T00:05:39.829188845Z D pedidos_externos: Function execution took 6 ms, finished with status code: 500
+2026-02-18T00:05:40.056822324Z D pedidos_externos: Function execution started
+2026-02-18T00:05:40.063824Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T00:05:40.065305929Z D pedidos_externos: Function execution took 8 ms, finished with status code: 500
+2026-02-18T00:14:23.609569117Z D pedidos_externos: Function execution started
+2026-02-18T00:14:23.619890Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T00:14:23.621231950Z D pedidos_externos: Function execution took 11 ms, finished with status code: 500
+2026-02-18T00:19:04.016759438Z D pedidos_externos: Function execution started
+2026-02-18T00:19:04.023256998Z D pedidos_externos: Function execution took 6 ms, finished with status code: 405
+2026-02-18T01:42:31.186612897Z N pedidos_axion: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","authenticationInfo":{"principalEmail":"desenvolvedor.propulsao@gmail.com"},"requestMetadata":{"callerIp":"::1","requestAttributes":{"time":"2026-02-18T01:42:31.023376062Z","auth":{}},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"SetIamPolicy","authorizationInfo":[{"resource":"projects/dev-propulsao/locations/us-central1/functions/pedidos_axion","permission":"cloudfunctions.functions.setIamPolicy","granted":true,"resourceAttributes":{"service":"cloudfunctions.googleapis.com","name":"projects/dev-propulsao/locations/us-central1/functions/pedidos_axion"},"permissionType":"ADMIN_WRITE"},{"resource":"projects/dev-propulsao/locations/us-central1/functions/pedidos_axion","permission":"cloudfunctions.functions.setIamPolicy","granted":true,"resourceAttributes":{"service":"cloudfunctions.googleapis.com","name":"projects/dev-propulsao/locations/us-central1/functions/pedidos_axion"},"permissionType":"ADMIN_WRITE"}],"resourceName":"projects/dev-propulsao/locations/us-central1/functions/pedidos_axion","request":{"policy":{"etag":"ACAB","bindings":[{"members":["allUsers"],"role":"roles/cloudfunctions.invoker"}]},"resource":"projects/dev-propulsao/locations/us-central1/functions/pedidos_axion","@type":"type.googleapis.com/google.iam.v1.SetIamPolicyRequest"},"response":{"@type":"type.googleapis.com/google.iam.v1.Policy","etag":"BwZLD00llfc=","bindings":[{"members":["allUsers"],"role":"roles/cloudfunctions.invoker"}]},"resourceLocation":{"currentLocations":["us-central1"]}}
+2026-02-18T01:43:38.708482Z ? pedidos_axion: [dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+2026-02-18T01:43:39.261600849Z D pedidos_axion: Function execution started
+2026-02-18T01:43:39.332966315Z D pedidos_axion: Function execution took 71 ms, finished with status code: 401
+2026-02-18T10:56:15.787654Z ? pedidos_axion: [dotenv@17.3.1] injecting env (0) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+2026-02-18T10:56:16.113320956Z D pedidos_axion: Function execution started
+2026-02-18T10:56:16.157726829Z D pedidos_axion: Function execution took 44 ms, finished with status code: 401
+2026-02-18T10:56:34.134183111Z D pedidos_axion: Function execution started
+2026-02-18T10:56:34.141820800Z D pedidos_axion: Function execution took 7 ms, finished with status code: 401
+2026-02-18T10:57:00.938790698Z D pedidos_axion: Function execution started
+2026-02-18T10:57:01.051651224Z D pedidos_axion: Function execution took 112 ms, finished with status code: 401
+2026-02-18T10:57:02.835894Z ? pedidos_externos: [dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  override existing env vars with { override: true }
+2026-02-18T10:57:03.239143083Z D pedidos_externos: Function execution started
+2026-02-18T10:57:03.292034Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T10:57:03.297247977Z D pedidos_externos: Function execution took 58 ms, finished with status code: 500
+2026-02-18T10:57:28.386498530Z D pedidos_axion: Function execution started
+2026-02-18T10:57:28.391093660Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-18T10:57:28.640295063Z D pedidos_axion: Function execution started
+2026-02-18T10:57:28.644271593Z D pedidos_axion: Function execution took 3 ms, finished with status code: 401
+2026-02-18T10:57:28.796601330Z D pedidos_externos: Function execution started
+2026-02-18T10:57:28.806885Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T10:57:28.807153534Z D pedidos_externos: Function execution took 10 ms, finished with status code: 500
+2026-02-18T10:57:28.955675086Z D pedidos_externos: Function execution started
+2026-02-18T10:57:28.963295Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T10:57:28.964706797Z D pedidos_externos: Function execution took 9 ms, finished with status code: 500
+2026-02-18T10:58:41.282474567Z D pedidos_axion: Function execution started
+2026-02-18T10:58:41.287116337Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-18T10:58:41.541226240Z D pedidos_externos: Function execution started
+2026-02-18T10:58:41.556298Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T10:58:41.557579165Z D pedidos_externos: Function execution took 16 ms, finished with status code: 500
+2026-02-18T10:58:41.709591036Z D pedidos_axion: Function execution started
+2026-02-18T10:58:41.714314946Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-18T10:58:41.864092951Z D pedidos_externos: Function execution started
+2026-02-18T10:58:41.870412Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T10:58:41.871462566Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-18T10:58:42.019704894Z D pedidos_axion: Function execution started
+2026-02-18T10:58:42.028037254Z D pedidos_axion: Function execution took 8 ms, finished with status code: 401
+2026-02-18T10:58:42.177239967Z D pedidos_externos: Function execution started
+2026-02-18T10:58:42.183308Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T10:58:42.184415138Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-18T10:58:42.333818748Z D pedidos_axion: Function execution started
+2026-02-18T10:58:42.358934778Z D pedidos_axion: Function execution took 25 ms, finished with status code: 401
+2026-02-18T10:58:42.508888178Z D pedidos_externos: Function execution started
+2026-02-18T10:58:42.514868Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T10:58:42.515976380Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-18T10:58:42.665105412Z D pedidos_axion: Function execution started
+2026-02-18T10:58:42.669277682Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-18T10:58:42.819314611Z D pedidos_externos: Function execution started
+2026-02-18T10:58:42.825128Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T10:58:42.826190934Z D pedidos_externos: Function execution took 6 ms, finished with status code: 500
+2026-02-18T10:58:42.975814556Z D pedidos_axion: Function execution started
+2026-02-18T10:58:42.979755726Z D pedidos_axion: Function execution took 3 ms, finished with status code: 401
+2026-02-18T10:58:43.127993014Z D pedidos_externos: Function execution started
+2026-02-18T10:58:43.148146Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T10:58:43.149385575Z D pedidos_externos: Function execution took 21 ms, finished with status code: 500
+2026-02-18T10:58:43.297218550Z D pedidos_axion: Function execution started
+2026-02-18T10:58:43.301169410Z D pedidos_axion: Function execution took 3 ms, finished with status code: 401
+2026-02-18T10:58:43.450160341Z D pedidos_externos: Function execution started
+2026-02-18T10:58:43.457742Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T10:58:43.458651417Z D pedidos_externos: Function execution took 8 ms, finished with status code: 500
+2026-02-18T10:58:43.607129385Z D pedidos_axion: Function execution started
+2026-02-18T10:58:43.611236645Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-18T10:58:43.760417988Z D pedidos_externos: Function execution started
+2026-02-18T10:58:43.766638Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T10:58:43.767705774Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-18T10:59:11.534788660Z D pedidos_externos: Function execution started
+2026-02-18T10:59:11.544359Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T10:59:11.546305299Z D pedidos_externos: Function execution took 11 ms, finished with status code: 500
+2026-02-18T10:59:11.784232359Z D pedidos_externos: Function execution started
+2026-02-18T10:59:11.790187Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T10:59:11.791473488Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-18T10:59:11.940048960Z D pedidos_externos: Function execution started
+2026-02-18T10:59:11.946047Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T10:59:11.947235477Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-18T11:03:29.800704549Z D pedidos_axion: Function execution started
+2026-02-18T11:03:29.804794899Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-18T11:05:28.142958323Z D pedidos_axion: Function execution started
+2026-02-18T11:05:28.147726512Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-18T11:05:28.407144130Z D pedidos_externos: Function execution started
+2026-02-18T11:05:28.414752Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T11:05:28.416632464Z D pedidos_externos: Function execution took 9 ms, finished with status code: 500
+2026-02-18T11:05:28.569775698Z D pedidos_axion: Function execution started
+2026-02-18T11:05:28.573125487Z D pedidos_axion: Function execution took 3 ms, finished with status code: 401
+2026-02-18T11:05:28.723832280Z D pedidos_externos: Function execution started
+2026-02-18T11:05:28.731010Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T11:05:28.731898198Z D pedidos_externos: Function execution took 8 ms, finished with status code: 500
+2026-02-18T11:05:28.881560079Z D pedidos_axion: Function execution started
+2026-02-18T11:05:28.884560249Z D pedidos_axion: Function execution took 3 ms, finished with status code: 401
+2026-02-18T11:05:29.035127355Z D pedidos_externos: Function execution started
+2026-02-18T11:05:29.040723Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T11:05:29.041979435Z D pedidos_externos: Function execution took 6 ms, finished with status code: 500
+2026-02-18T11:05:29.192851441Z D pedidos_axion: Function execution started
+2026-02-18T11:05:29.196882381Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-18T11:05:29.350196863Z D pedidos_externos: Function execution started
+2026-02-18T11:05:29.356404Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T11:05:29.357393380Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-18T11:05:29.511160623Z D pedidos_axion: Function execution started
+2026-02-18T11:05:29.514386873Z D pedidos_axion: Function execution took 3 ms, finished with status code: 401
+2026-02-18T11:05:29.667222796Z D pedidos_externos: Function execution started
+2026-02-18T11:05:29.673436Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T11:05:29.674449138Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-18T11:05:29.825335935Z D pedidos_axion: Function execution started
+2026-02-18T11:05:29.828462725Z D pedidos_axion: Function execution took 3 ms, finished with status code: 401
+2026-02-18T11:05:29.980629961Z D pedidos_externos: Function execution started
+2026-02-18T11:05:29.986826Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T11:05:29.987913772Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-18T11:05:30.138559097Z D pedidos_axion: Function execution started
+2026-02-18T11:05:30.142165967Z D pedidos_axion: Function execution took 3 ms, finished with status code: 401
+2026-02-18T11:05:30.292133290Z D pedidos_externos: Function execution started
+2026-02-18T11:05:30.298381Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T11:05:30.299644826Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-18T11:05:30.449300470Z D pedidos_axion: Function execution started
+2026-02-18T11:05:30.453431510Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-18T11:05:30.604301645Z D pedidos_externos: Function execution started
+2026-02-18T11:05:30.610166Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T11:05:30.611786206Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-18T11:09:53.009038864Z D pedidos_axion: Function execution started
+2026-02-18T11:09:53.013084164Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-18T11:13:30.681814521Z D pedidos_axion: Function execution started
+2026-02-18T11:13:30.686000651Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-18T11:13:52.965469901Z D pedidos_axion: Function execution started
+2026-02-18T11:13:52.970033331Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-18T11:16:13.738459147Z D pedidos_axion: Function execution started
+2026-02-18T11:16:13.742651497Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-18T11:16:13.987480029Z D pedidos_axion: Function execution started
+2026-02-18T11:16:13.991572118Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-18T11:16:14.156448336Z D pedidos_externos: Function execution started
+2026-02-18T11:16:14.164735Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T11:16:14.165908438Z D pedidos_externos: Function execution took 9 ms, finished with status code: 500
+2026-02-18T11:16:14.322513720Z D pedidos_axion: Function execution started
+2026-02-18T11:16:14.325902740Z D pedidos_axion: Function execution took 3 ms, finished with status code: 401
+2026-02-18T11:16:54.486670483Z D pedidos_axion: Function execution started
+2026-02-18T11:16:54.490200013Z D pedidos_axion: Function execution took 3 ms, finished with status code: 401
+2026-02-18T11:16:54.733148561Z D pedidos_axion: Function execution started
+2026-02-18T11:16:54.736188411Z D pedidos_axion: Function execution took 3 ms, finished with status code: 401
+2026-02-18T11:16:54.894740862Z D pedidos_externos: Function execution started
+2026-02-18T11:16:54.900830Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T11:16:54.902033788Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-18T11:16:55.055383915Z D pedidos_externos: Function execution started
+2026-02-18T11:16:55.061591Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T11:16:55.062720344Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-18T11:16:55.216690782Z D pedidos_axion: Function execution started
+2026-02-18T11:16:55.219806942Z D pedidos_axion: Function execution took 3 ms, finished with status code: 401
+2026-02-18T11:18:42.039153045Z D pedidos_axion: Function execution started
+2026-02-18T11:18:42.043881623Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-18T11:18:42.287957685Z D pedidos_axion: Function execution started
+2026-02-18T11:18:42.291513523Z D pedidos_axion: Function execution took 3 ms, finished with status code: 401
+2026-02-18T11:18:42.449679253Z D pedidos_externos: Function execution started
+2026-02-18T11:18:42.457782Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T11:18:42.458959189Z D pedidos_externos: Function execution took 9 ms, finished with status code: 500
+2026-02-18T11:18:42.610040859Z D pedidos_externos: Function execution started
+2026-02-18T11:18:42.618558Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-18T11:18:42.619458947Z D pedidos_externos: Function execution took 9 ms, finished with status code: 500
+2026-02-18T11:18:42.770000390Z D pedidos_axion: Function execution started
+2026-02-18T11:18:42.774425108Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-18T11:51:36.407707Z ? pedidos_axion: [dotenv@17.3.1] injecting env (0) from .env -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+2026-02-18T11:51:36.704205390Z D pedidos_axion: Function execution started
+2026-02-18T11:51:39.234042Z ? pedidos_axion: Erro ao enviar para o GCS: GaxiosError: dev-propulsao@appspot.gserviceaccount.com does not have storage.objects.create access to the Google Cloud Storage object. Permission 'storage.objects.create' denied on resource (or it may not exist).
+2026-02-18T11:51:39.234050Z ? pedidos_axion:     at Gaxios._request (/workspace/node_modules/gaxios/build/src/gaxios.js:130:23)
+2026-02-18T11:51:39.234053Z ? pedidos_axion:     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-02-18T11:51:39.234056Z ? pedidos_axion:     at async Compute.requestAsync (/workspace/node_modules/google-auth-library/build/src/auth/oauth2client.js:382:18)
+2026-02-18T11:51:39.234059Z ? pedidos_axion:     at async Upload.makeRequest (/workspace/node_modules/@google-cloud/storage/build/src/resumable-upload.js:623:21)
+2026-02-18T11:51:39.234062Z ? pedidos_axion:     at async retry.retries (/workspace/node_modules/@google-cloud/storage/build/src/resumable-upload.js:343:29)
+2026-02-18T11:51:39.234065Z ? pedidos_axion:     at async Upload.createURIAsync (/workspace/node_modules/@google-cloud/storage/build/src/resumable-upload.js:340:21) {
+2026-02-18T11:51:39.234068Z ? pedidos_axion:   response: {
+2026-02-18T11:51:39.234070Z ? pedidos_axion:     config: {
+2026-02-18T11:51:39.234073Z ? pedidos_axion:       method: 'POST',
+2026-02-18T11:51:39.234076Z ? pedidos_axion:       url: 'https://storage.googleapis.com/upload/storage/v1/b/site-propulsao-allpe.appspot.com/o?name=FT3D%2F14833-38%2FLado_Esquerdo.stl&uploadType=resumable',
+2026-02-18T11:51:39.234079Z ? pedidos_axion:       params: [Object],
+2026-02-18T11:51:39.234083Z ? pedidos_axion:       data: {},
+2026-02-18T11:51:39.234087Z ? pedidos_axion:       headers: [Object],
+2026-02-18T11:51:39.234093Z ? pedidos_axion:       validateStatus: [Function (anonymous)],
+2026-02-18T11:51:39.234097Z ? pedidos_axion:       paramsSerializer: [Function: paramsSerializer],
+2026-02-18T11:51:39.234101Z ? pedidos_axion:       body: '{}',
+2026-02-18T11:51:39.234105Z ? pedidos_axion:       responseType: 'json'
+2026-02-18T11:51:39.234110Z ? pedidos_axion:     },
+2026-02-18T11:51:39.234114Z ? pedidos_axion:     data: { error: [Object] },
+2026-02-18T11:51:39.234118Z ? pedidos_axion:     headers: {
+2026-02-18T11:51:39.234123Z ? pedidos_axion:       'alt-svc': 'h3=":443"; ma=2592000,h3-29=":443"; ma=2592000',
+2026-02-18T11:51:39.234126Z ? pedidos_axion:       'cache-control': 'no-cache, no-store, max-age=0, must-revalidate',
+2026-02-18T11:51:39.234130Z ? pedidos_axion:       connection: 'close',
+2026-02-18T11:51:39.234133Z ? pedidos_axion:       'content-length': '574',
+2026-02-18T11:51:39.234136Z ? pedidos_axion:       'content-type': 'text/html; charset=UTF-8',
+2026-02-18T11:51:39.234159Z ? pedidos_axion:       date: 'Wed, 18 Feb 2026 11:51:39 GMT',
+2026-02-18T11:51:39.234161Z ? pedidos_axion:       expires: 'Mon, 01 Jan 1990 00:00:00 GMT',
+2026-02-18T11:51:39.234164Z ? pedidos_axion:       pragma: 'no-cache',
+2026-02-18T11:51:39.234166Z ? pedidos_axion:       server: 'UploadServer',
+2026-02-18T11:51:39.234169Z ? pedidos_axion:       vary: 'Origin, X-Origin',
+2026-02-18T11:51:39.234173Z ? pedidos_axion:       'x-guploader-uploadid': 'AJRbA5UkzolQPteExy79eaVCzJn-Vn5bQe86fASjUDGuQLzBb_VFcj8UNJPRFrww5rWlUJo-xwQiSVzPxDJHHD8TxK083-JMpv2BEmSUwGyz5zno'
+2026-02-18T11:51:39.234176Z ? pedidos_axion:     },
+2026-02-18T11:51:39.234178Z ? pedidos_axion:     status: 403,
+2026-02-18T11:51:39.234181Z ? pedidos_axion:     statusText: 'Forbidden',
+2026-02-18T11:51:39.234183Z ? pedidos_axion:     request: {
+2026-02-18T11:51:39.234187Z ? pedidos_axion:       responseURL: 'https://storage.googleapis.com/upload/storage/v1/b/site-propulsao-allpe.appspot.com/o?name=FT3D%2F14833-38%2FLado_Esquerdo.stl&uploadType=resumable'
+2026-02-18T11:51:39.234190Z ? pedidos_axion:     }
+2026-02-18T11:51:39.234193Z ? pedidos_axion:   },
+2026-02-18T11:51:39.234195Z ? pedidos_axion:   config: {
+2026-02-18T11:51:39.234198Z ? pedidos_axion:     method: 'POST',
+2026-02-18T11:51:39.234201Z ? pedidos_axion:     url: 'https://storage.googleapis.com/upload/storage/v1/b/site-propulsao-allpe.appspot.com/o?name=FT3D%2F14833-38%2FLado_Esquerdo.stl&uploadType=resumable',
+2026-02-18T11:51:39.234203Z ? pedidos_axion:     params: {
+2026-02-18T11:51:39.234206Z ? pedidos_axion:       name: 'FT3D/14833-38/Lado_Esquerdo.stl',
+2026-02-18T11:51:39.234208Z ? pedidos_axion:       uploadType: 'resumable'
+2026-02-18T11:51:39.234210Z ? pedidos_axion:     },
+2026-02-18T11:51:39.234213Z ? pedidos_axion:     data: {},
+2026-02-18T11:51:39.234215Z ? pedidos_axion:     headers: {
+2026-02-18T11:51:39.234218Z ? pedidos_axion:       'x-goog-api-client': 'gl-node/22.22.0 gccl/6.11.0 gccl-invocation-id/dfc00ec1-9599-4bc9-9e1d-6141e15d0ab2 auth/8.8.0',
+2026-02-18T11:51:39.234221Z ? pedidos_axion:       'X-Upload-Content-Type': 'application/octet-stream',
+2026-02-18T11:51:39.234226Z ? pedidos_axion:       Authorization: 'Bearer ya29.c.c0AZ4bNpa-hA6tTjvYENGH4_ExW89eQ-tvcwlOwJ80JScYjBmgBfrLTsBFwzjWFYCVMW9HJHYl8n8uXv-uPquIwbxq9JOaOTdhITtQKue0g4FTYs6qJnfWqS_qc5k8wkxs4EwnXqfIzxdfjwjZZ2cmHDx-1xLSve9LQvHmv2Con9iw2e8Ld04ixQKFmuJSaG8uXjq54NfW7Z0N5sWxq03qA7xkQMsDyhLw5CiW88QYGDv6Wx_Zrhv7tpabBGNBw71IEejLX-WTztVpIw9Y9YHDAJhJmXQgHp4b7zRD_LKThgblvw0qfasNd0HXkW17t7VIrer1vExGTpFiyBDqjOKR-onHexWSwSMHzeni-t-tYjDI4i0IlUEVGgd_EmdV6eyhimEja7i---KvQhKWtPHiYTbfts1ET5lbeYgL_1pUOOhxzDyXAp5lZq3AVwIriXGG0ocO0gtbse7rcTT_Egio2rhv9a84YqbtFM6dpEOiRxFjCf6uY7Nq0d__3oOe7D9KPnSZgRcvT529Dj4xazUemsfZsrMhJabvalUIl6Fx1xQ1I45iXe4509R-wWoRMzJRR09Rx7S832IRZ69zxVvo6lOjstkVb1oX1SlU3VM1jqyjUm8_m39be6BOJuy21MXerRXx10umlc7xWgJMwX8XVqcb2kSSol3qMs6rxBXiR4c8B3-7ixIt3OfhOUhn_nl_VRa0l5m8Wi87v0FQpwxpcJn2r0sm069Bsb6898O_Bhcphn-YwZ78rzf_mlt16aF-7Izcw68pegIh5z43nJ8gyx0XQp5kFqJ_jM7vxV-izWFpURhfohnwrSabWh5tlnsdvpMtg0Mblg5akgxY2p_r5eBq1Wzqf-628iojRkjWS7J_bih8q3Yr1jv2epRVzd7WvahVxqp76-5qUU5wZOJtzgBQn-fdnb9RO-VjjoOb7ckyf2SIOIY-o_xIv4pRnS2shnU0IIXc5wc_l6p6Yh6lU_9_kxJzosOzW4re-lO8F9p5IjRpY0n3jdp',
+2026-02-18T11:51:39.234229Z ? pedidos_axion:       'User-Agent': 'google-api-nodejs-client/8.8.0',
+2026-02-18T11:51:39.234231Z ? pedidos_axion:       'Content-Type': 'application/json',
+2026-02-18T11:51:39.234234Z ? pedidos_axion:       Accept: 'application/json'
+2026-02-18T11:51:39.234236Z ? pedidos_axion:     },
+2026-02-18T11:51:39.234239Z ? pedidos_axion:     validateStatus: [Function (anonymous)],
+2026-02-18T11:51:39.234241Z ? pedidos_axion:     paramsSerializer: [Function: paramsSerializer],
+2026-02-18T11:51:39.234244Z ? pedidos_axion:     body: '{}',
+2026-02-18T11:51:39.234246Z ? pedidos_axion:     responseType: 'json'
+2026-02-18T11:51:39.234249Z ? pedidos_axion:   },
+2026-02-18T11:51:39.234251Z ? pedidos_axion:   code: 403,
+2026-02-18T11:51:39.234254Z ? pedidos_axion:   errors: [
+2026-02-18T11:51:39.234257Z ? pedidos_axion:     {
+2026-02-18T11:51:39.234260Z ? pedidos_axion:       message: "dev-propulsao@appspot.gserviceaccount.com does not have storage.objects.create access to the Google Cloud Storage object. Permission 'storage.objects.create' denied on resource (or it may not exist).",
+2026-02-18T11:51:39.234262Z ? pedidos_axion:       domain: 'global',
+2026-02-18T11:51:39.234265Z ? pedidos_axion:       reason: 'forbidden'
+2026-02-18T11:51:39.234268Z ? pedidos_axion:     }
+2026-02-18T11:51:39.234270Z ? pedidos_axion:   ]
+2026-02-18T11:51:39.234272Z ? pedidos_axion: }
+2026-02-18T11:51:39.240497Z ? pedidos_axion: Dados Axion recebidos: {
+2026-02-18T11:51:39.240503Z ? pedidos_axion:   Absorcao_dir: '',
+2026-02-18T11:51:39.240506Z ? pedidos_axion:   Absorcao_esq: '',
+2026-02-18T11:51:39.240509Z ? pedidos_axion:   Absorcao_perda: '',
+2026-02-18T11:51:39.240511Z ? pedidos_axion:   Ajuste: '',
+2026-02-18T11:51:39.240514Z ? pedidos_axion:   AjusteLamina_Dir: '',
+2026-02-18T11:51:39.240517Z ? pedidos_axion:   AjusteLamina_Esq: '',
+2026-02-18T11:51:39.240519Z ? pedidos_axion:   Alivio1_dir: '',
+2026-02-18T11:51:39.240521Z ? pedidos_axion:   Alivio1_esq: '',
+2026-02-18T11:51:39.240524Z ? pedidos_axion:   Alivio23_dir: '',
+2026-02-18T11:51:39.240526Z ? pedidos_axion:   Alivio23_esq: '',
+2026-02-18T11:51:39.240530Z ? pedidos_axion:   Alivio45_dir: '',
+2026-02-18T11:51:39.240532Z ? pedidos_axion:   Alivio45_esq: '',
+2026-02-18T11:51:39.240534Z ? pedidos_axion:   Antepe_Dir: '',
+2026-02-18T11:51:39.240537Z ? pedidos_axion:   Antepe_Esq: '',
+2026-02-18T11:51:39.240539Z ? pedidos_axion:   Arco_Dir: '',
+2026-02-18T11:51:39.240541Z ? pedidos_axion:   Arco_Esq: '',
+2026-02-18T11:51:39.240543Z ? pedidos_axion:   Barra_Dir: '',
+2026-02-18T11:51:39.240546Z ? pedidos_axion:   Barra_Esq: '',
+2026-02-18T11:51:39.240548Z ? pedidos_axion:   Barra_perda: '',
+2026-02-18T11:51:39.240550Z ? pedidos_axion:   Borda_Dir: '',
+2026-02-18T11:51:39.240553Z ? pedidos_axion:   Borda_Esq: '',
+2026-02-18T11:51:39.240555Z ? pedidos_axion:   Calcado: '',
+2026-02-18T11:51:39.240557Z ? pedidos_axion:   Cobertura: 'EVAazul',
+2026-02-18T11:51:39.240560Z ? pedidos_axion:   Cobertura_perda: '',
+2026-02-18T11:51:39.240562Z ? pedidos_axion:   Contato_indicacao: '',
+2026-02-18T11:51:39.240564Z ? pedidos_axion:   DataEntrega: '',
+2026-02-18T11:51:39.240567Z ? pedidos_axion:   DataInicioProd: '',
+2026-02-18T11:51:39.240569Z ? pedidos_axion:   DataPagamento: '',
+2026-02-18T11:51:39.240572Z ? pedidos_axion:   DataPedido: '18/02/2026',
+2026-02-18T11:51:39.240574Z ? pedidos_axion:   EVAbase_perda: '',
+2026-02-18T11:51:39.240577Z ? pedidos_axion:   Elevacao: '',
+2026-02-18T11:51:39.240579Z ? pedidos_axion:   Elevacao_Dir: '',
+2026-02-18T11:51:39.240581Z ? pedidos_axion:   Elevacao_Esq: '',
+2026-02-18T11:51:39.240584Z ? pedidos_axion:   Email_paciente: 'joao@example.com',
+2026-02-18T11:51:39.240586Z ? pedidos_axion:   Estampa: '',
+2026-02-18T11:51:39.240589Z ? pedidos_axion:   Gota_perda: '',
+2026-02-18T11:51:39.240591Z ? pedidos_axion:   IdFisio: 'fisio_axion_01',
+2026-02-18T11:51:39.240593Z ? pedidos_axion:   Idade_paciente: '',
+2026-02-18T11:51:39.240596Z ? pedidos_axion:   ladoPedido: 'Ambos',
+2026-02-18T11:51:39.240598Z ? pedidos_axion:   LocalPedido: 'Clinica Axion',
+2026-02-18T11:51:39.240601Z ? pedidos_axion:   N_Pedido: '14833-38',
+2026-02-18T11:51:39.240603Z ? pedidos_axion:   N_lote_producao: '',
+2026-02-18T11:51:39.240606Z ? pedidos_axion:   Nome_Paciente: 'João da Silva',
+2026-02-18T11:51:39.240608Z ? pedidos_axion:   Nome_indicacao: '',
+2026-02-18T11:51:39.240610Z ? pedidos_axion:   Numeracao: '42',
+2026-02-18T11:51:39.240612Z ? pedidos_axion:   OBSPedido: '',
+2026-02-18T11:51:39.240615Z ? pedidos_axion:   OBSProducao: '',
+2026-02-18T11:51:39.240617Z ? pedidos_axion:   Origem: 'Fitsole',
+2026-02-18T11:51:39.240619Z ? pedidos_axion:   Peso_paciente: '',
+2026-02-18T11:51:39.240622Z ? pedidos_axion:   PontosGerados: '',
+2026-02-18T11:51:39.240624Z ? pedidos_axion:   PrecoPedido: 150,
+2026-02-18T11:51:39.240626Z ? pedidos_axion:   Prescricao_URL: '',
+2026-02-18T11:51:39.240639Z ? pedidos_axion:   Produto: 'Palmilha Premium',
+2026-02-18T11:51:39.240643Z ? pedidos_axion:   Profissao_Indicacao: '',
+2026-02-18T11:51:39.240645Z ? pedidos_axion:   Retrope_Dir: '',
+2026-02-18T11:51:39.240647Z ? pedidos_axion:   Retrope_Esq: '',
+2026-02-18T11:51:39.240650Z ? pedidos_axion:   Sexo: '',
+2026-02-18T11:51:39.240652Z ? pedidos_axion:   Solicitante: '',
+2026-02-18T11:51:39.240655Z ? pedidos_axion:   StatusPagamento: 'Em aberto',
+2026-02-18T11:51:39.240658Z ? pedidos_axion:   StatusPedido: 'Aguardando Produção',
+2026-02-18T11:51:39.240660Z ? pedidos_axion:   SuporteArco_dir: '',
+2026-02-18T11:51:39.240662Z ? pedidos_axion:   SuporteArco_esq: '',
+2026-02-18T11:51:39.240665Z ? pedidos_axion:   Telefone_paciente: '',
+2026-02-18T11:51:39.240668Z ? pedidos_axion:   dataStamp: 1771415498294,
+2026-02-18T11:51:39.240670Z ? pedidos_axion:   fotoPED_URL: '',
+2026-02-18T11:51:39.240672Z ? pedidos_axion:   fotoPEE_URL: '',
+2026-02-18T11:51:39.240677Z ? pedidos_axion:   observacoesCompra: 'Teste Axion',
+2026-02-18T11:51:39.240679Z ? pedidos_axion:   plantigrafiaD_URL: '',
+2026-02-18T11:51:39.240682Z ? pedidos_axion:   plantigrafiaE_URL: ''
+2026-02-18T11:51:39.240684Z ? pedidos_axion: }
+2026-02-18T11:51:39.243285995Z D pedidos_axion: Function execution took 2539 ms, finished with status code: 200
+2026-02-18T11:51:43.033999Z ? PEDIDO_PROP_ADD: [dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+2026-02-18T11:51:43.517550392Z D PEDIDO_PROP_ADD: Function execution started
+2026-02-18T11:51:44.957658276Z D PEDIDO_PROP_ADD: Function execution took 1440 ms, finished with status: 'ok'
+2026-02-19T23:17:30.882859Z ? pedidos_axion: [dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+2026-02-19T23:17:31.440631484Z D pedidos_axion: Function execution started
+2026-02-19T23:17:31.555775673Z D pedidos_axion: Function execution took 115 ms, finished with status code: 401
+2026-02-19T23:17:53.215329564Z D pedidos_axion: Function execution started
+2026-02-19T23:17:53.221600164Z D pedidos_axion: Function execution took 6 ms, finished with status code: 401
+2026-02-19T23:18:11.315518Z ? pedidos_externos: [dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+2026-02-19T23:18:11.931246956Z D pedidos_externos: Function execution started
+2026-02-19T23:18:12.096595Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-19T23:18:12.101169903Z D pedidos_externos: Function execution took 169 ms, finished with status code: 500
+2026-02-19T23:19:09.096298392Z D pedidos_axion: Function execution started
+2026-02-19T23:19:09.102559672Z D pedidos_axion: Function execution took 6 ms, finished with status code: 401
+2026-02-19T23:19:22.374574552Z D pedidos_axion: Function execution started
+2026-02-19T23:19:22.379119542Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-19T23:19:39.531584163Z D pedidos_externos: Function execution started
+2026-02-19T23:19:39.541096Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-19T23:19:39.542597915Z D pedidos_externos: Function execution took 11 ms, finished with status code: 500
+2026-02-19T23:20:17.149912753Z D pedidos_externos: Function execution started
+2026-02-19T23:20:17.158452Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-19T23:20:17.159814978Z D pedidos_externos: Function execution took 9 ms, finished with status code: 500
+2026-02-19T23:20:30.939363861Z D pedidos_axion: Function execution started
+2026-02-19T23:20:30.945006742Z D pedidos_axion: Function execution took 5 ms, finished with status code: 401
+2026-02-19T23:21:00.294054628Z D pedidos_axion: Function execution started
+2026-02-19T23:21:00.299399408Z D pedidos_axion: Function execution took 5 ms, finished with status code: 401
+2026-02-19T23:21:38.020009281Z D pedidos_axion: Function execution started
+2026-02-19T23:21:38.025014021Z D pedidos_axion: Function execution took 5 ms, finished with status code: 401
+2026-02-19T23:21:38.298862459Z D pedidos_externos: Function execution started
+2026-02-19T23:21:38.306329Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-19T23:21:38.308261031Z D pedidos_externos: Function execution took 9 ms, finished with status code: 500
+2026-02-19T23:21:38.463268411Z D pedidos_axion: Function execution started
+2026-02-19T23:21:38.468464351Z D pedidos_axion: Function execution took 5 ms, finished with status code: 401
+2026-02-19T23:21:38.623650206Z D pedidos_externos: Function execution started
+2026-02-19T23:21:38.630325Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-19T23:21:38.631424531Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-19T23:21:38.784141456Z D pedidos_axion: Function execution started
+2026-02-19T23:21:38.790163446Z D pedidos_axion: Function execution took 6 ms, finished with status code: 401
+2026-02-19T23:21:38.939596164Z D pedidos_externos: Function execution started
+2026-02-19T23:21:38.948497Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-19T23:21:38.949699287Z D pedidos_externos: Function execution took 10 ms, finished with status code: 500
+2026-02-19T23:21:39.102515452Z D pedidos_axion: Function execution started
+2026-02-19T23:21:39.110117442Z D pedidos_axion: Function execution took 7 ms, finished with status code: 401
+2026-02-19T23:21:39.259674192Z D pedidos_externos: Function execution started
+2026-02-19T23:21:39.265777Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-19T23:21:39.266927997Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-19T23:21:39.422820117Z D pedidos_axion: Function execution started
+2026-02-19T23:21:39.433547037Z D pedidos_axion: Function execution took 10 ms, finished with status code: 401
+2026-02-19T23:21:39.592266310Z D pedidos_externos: Function execution started
+2026-02-19T23:21:39.599632Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-19T23:21:39.600809189Z D pedidos_externos: Function execution took 8 ms, finished with status code: 500
+2026-02-19T23:21:39.753509524Z D pedidos_axion: Function execution started
+2026-02-19T23:21:39.758263624Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-19T23:21:39.910292944Z D pedidos_externos: Function execution started
+2026-02-19T23:21:39.918429Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-19T23:21:39.919561433Z D pedidos_externos: Function execution took 9 ms, finished with status code: 500
+2026-02-19T23:21:40.069696683Z D pedidos_axion: Function execution started
+2026-02-19T23:21:40.073855273Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-19T23:21:40.238950880Z D pedidos_externos: Function execution started
+2026-02-19T23:21:40.246232Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-19T23:21:40.247599780Z D pedidos_externos: Function execution took 8 ms, finished with status code: 500
+2026-02-19T23:21:40.417007333Z D pedidos_axion: Function execution started
+2026-02-19T23:21:40.421039393Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-19T23:21:40.571600171Z D pedidos_externos: Function execution started
+2026-02-19T23:21:40.611833Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-19T23:21:40.612897209Z D pedidos_externos: Function execution took 41 ms, finished with status code: 500
+2026-02-19T23:22:04.087213130Z D pedidos_axion: Function execution started
+2026-02-19T23:22:04.092233220Z D pedidos_axion: Function execution took 5 ms, finished with status code: 401
+2026-02-19T23:22:04.344853844Z D pedidos_axion: Function execution started
+2026-02-19T23:22:04.348038914Z D pedidos_axion: Function execution took 3 ms, finished with status code: 401
+2026-02-19T23:22:04.511441478Z D pedidos_externos: Function execution started
+2026-02-19T23:22:04.518459Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-19T23:22:04.519644773Z D pedidos_externos: Function execution took 8 ms, finished with status code: 500
+2026-02-19T23:22:04.695467027Z D pedidos_externos: Function execution started
+2026-02-19T23:22:04.700862Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-19T23:22:04.701946554Z D pedidos_externos: Function execution took 6 ms, finished with status code: 500
+2026-02-19T23:22:04.893563451Z D pedidos_axion: Function execution started
+2026-02-19T23:22:04.897514551Z D pedidos_axion: Function execution took 3 ms, finished with status code: 401
+2026-02-19T23:23:48.795436296Z D pedidos_externos: Function execution started
+2026-02-19T23:23:48.802823Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-19T23:23:48.804197146Z D pedidos_externos: Function execution took 8 ms, finished with status code: 500
+2026-02-19T23:23:49.081245930Z D pedidos_axion: Function execution started
+2026-02-19T23:23:49.085256819Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-19T23:24:00.844789822Z D pedidos_externos: Function execution started
+2026-02-19T23:24:00.850846Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-19T23:24:00.852357510Z D pedidos_externos: Function execution took 7 ms, finished with status code: 500
+2026-02-19T23:24:01.121091210Z D pedidos_axion: Function execution started
+2026-02-19T23:24:01.124855930Z D pedidos_axion: Function execution took 3 ms, finished with status code: 401
+2026-02-19T23:24:59.134693101Z D pedidos_axion: Function execution started
+2026-02-19T23:24:59.138728461Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-19T23:25:13.007373094Z D pedidos_axion: Function execution started
+2026-02-19T23:25:13.012088964Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-19T23:28:42.638266411Z D pedidos_axion: Function execution started
+2026-02-19T23:28:42.642888061Z D pedidos_axion: Function execution took 4 ms, finished with status code: 401
+2026-02-19T23:29:02.335942195Z D pedidos_axion: Function execution started
+2026-02-19T23:29:02.339889465Z D pedidos_axion: Function execution took 3 ms, finished with status code: 401
+2026-02-19T23:29:10.617706834Z D pedidos_axion: Function execution started
+2026-02-19T23:29:10.633924602Z D pedidos_axion: Function execution took 16 ms, finished with status code: 401
+2026-02-19T23:32:05.018727595Z D pedidos_externos: Function execution started
+2026-02-19T23:32:05.034933Z ? pedidos_externos: Erro: error:02000079:rsa routines::oaep decoding error
+2026-02-19T23:32:05.036193225Z D pedidos_externos: Function execution took 17 ms, finished with status code: 500
+2026-02-19T23:33:04.878361226Z D pedidos_axion: Function execution started
+2026-02-19T23:33:04.882131156Z D pedidos_axion: Function execution took 3 ms, finished with status code: 401
+2026-02-19T23:34:14.237295148Z D pedidos_axion: Function execution started
+2026-02-19T23:34:14.249155988Z D pedidos_axion: Function execution took 11 ms, finished with status code: 401

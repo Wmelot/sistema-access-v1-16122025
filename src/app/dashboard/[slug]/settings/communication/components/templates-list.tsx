@@ -3,7 +3,7 @@
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Trash2, Send, Loader2, Phone, Pencil } from "lucide-react"
+import { Trash2, Send, Loader2, Phone, Pencil, BellRing, CheckCircle2, Cake, MousePointerClick, ClipboardList, Package, Hammer } from "lucide-react"
 import { deleteTemplate, sendTestMessage, toggleTemplateStatus } from "../actions"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
@@ -38,6 +38,20 @@ interface Template {
     channel: string
     trigger_type: string
     is_active: boolean
+}
+
+const TRIGGER_CONFIG: Record<string, { label: string, icon: any, color: string }> = {
+    'appointment_confirmation_immediate': { label: 'Imediato (Agendamento)', icon: Send, color: 'text-blue-700 bg-blue-50 border-blue-100' },
+    'appointment_confirmation': { label: 'Confirmação 24h', icon: BellRing, color: 'text-green-700 bg-green-50 border-green-100' },
+    'appointment_confirmation_8h': { label: 'Reforço 8h', icon: BellRing, color: 'text-amber-700 bg-amber-50 border-amber-100' },
+    'appointment_confirmation_2h': { label: 'Reforço 2h', icon: BellRing, color: 'text-orange-700 bg-orange-50 border-orange-100' },
+    'appointment_reminder_confirmed_2h': { label: 'Lembrete (Confirmado)', icon: BellRing, color: 'text-emerald-700 bg-emerald-50 border-emerald-100' },
+    'post_attendance': { label: 'Pós-atendimento', icon: CheckCircle2, color: 'text-purple-700 bg-purple-50 border-purple-100' },
+    'birthday': { label: 'Aniversário', icon: Cake, color: 'text-pink-700 bg-pink-100 border-pink-200' },
+    'manual': { label: 'Manual', icon: MousePointerClick, color: 'text-slate-700 bg-slate-100 border-slate-200' },
+    'questionnaire_12h': { label: 'Questionários (Legado)', icon: ClipboardList, color: 'text-slate-500 bg-slate-50 border-slate-200' },
+    'insole_delivery': { label: 'Entrega de Palmilha', icon: Package, color: 'text-indigo-700 bg-indigo-50 border-indigo-100' },
+    'insole_maintenance': { label: 'Adesão / Manutenção', icon: Hammer, color: 'text-cyan-700 bg-cyan-50 border-cyan-100' },
 }
 
 export function TemplatesList({ templates, slug }: { templates: Template[], slug?: string }) {
@@ -158,9 +172,16 @@ export function TemplatesList({ templates, slug }: { templates: Template[], slug
                                             <Badge variant="outline" className="text-[9px] h-4 px-1.5 font-bold uppercase bg-slate-50 text-slate-500 border-slate-200">
                                                 {template.channel}
                                             </Badge>
-                                            <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-medium bg-blue-50 text-blue-700 border-blue-100">
-                                                {template.trigger_type.replace(/_/g, ' ')}
-                                            </Badge>
+                                            {(() => {
+                                                const config = TRIGGER_CONFIG[template.trigger_type] || { label: template.trigger_type.replace(/_/g, ' '), icon: BellRing, color: 'bg-slate-50 text-slate-500' }
+                                                const Icon = config.icon
+                                                return (
+                                                    <Badge variant="secondary" className={`text-[10px] h-4 px-1.5 font-bold uppercase transition-colors flex items-center gap-1 ${config.color}`}>
+                                                        <Icon className="w-2.5 h-2.5" />
+                                                        {config.label}
+                                                    </Badge>
+                                                )
+                                            })()}
                                         </div>
                                     </div>
                                     <div className="flex shrink-0 pt-0.5 pl-1">

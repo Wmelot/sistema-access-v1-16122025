@@ -354,25 +354,31 @@ async function ensureDefaultTemplates(organizationId: string) {
         {
             title: 'Boas-vindas (Imediato ao Agendar)',
             trigger_type: 'appointment_confirmation_immediate',
-            content: 'Olá *{{paciente}}*! Tudo bem? É um prazer confirmar seu agendamento na *{{clinica}}*.\n\nEstamos felizes em acompanhar você em seu processo de reabilitação. \n\n*Detalhes do Agendamento:*\n📅 Data: *{{data}}* às *{{horario}}*\n👤 Profissional: *{{profissional}}*\n🛋️ Local: {{local}}\n📍 Endereço: {{endereco}}\n🗺️ Link do Mapa: {{local_url}}\n\nQualquer dúvida, estamos à disposição!',
+            content: 'Olá {{paciente}}! Boas notícias: seu agendamento na *{{clinica}}* foi realizado com sucesso. ✅\n\nEstamos ansiosos para te receber!\n\n*Detalhes:*\n📅 Data: *{{data}}* às *{{horario}}*\n👤 Profissional: *{{profissional}}*\n📍 Local: {{endereco}}\n🗺️ Link do Mapa: {{local_url}}\n\nQualquer dúvida ou necessidade de remarcação, é só nos chamar por aqui. Até logo! 👋',
             is_active: true
         },
         {
             title: 'Confirmação de Agendamento (24h antes)',
             trigger_type: 'appointment_confirmation',
-            content: 'Olá {{paciente}}, seu agendamento está confirmado para amanhã ({{data}}) às {{horario}} com {{profissional}}.\n\n📍 {{endereco}}\n🛋️ {{local}}\n\n*Por favor, confirme sua presença clicando no link:*\n{{confirmacao_link}}\n\n{{links_questionarios}}',
+            content: 'Olá {{paciente}}, seu atendimento na {{clinica}} está chegando! ✨\nGostaríamos de confirmar sua presença para amanhã ({{data}}) às {{horario}} com {{profissional}}.\n\n📍 {{endereco}}\n\n*Por favor, confirme clicando no link:*\n{{confirmacao_link}}\n\n{{links_questionarios}}',
             is_active: true
         },
         {
             title: 'Envio de Questionários (12h antes)',
             trigger_type: 'questionnaire_12h',
-            content: 'Olá {{paciente}}, para agilizar seu atendimento, por favor preencha os formulários abaixo antes da sua consulta com {{profissional}}:\n\n{{links_questionarios}}',
+            content: 'Olá {{paciente}}, para agilizar seu atendimento e garantir o melhor cuidado, por favor preencha os formulários abaixo antes da sua consulta com {{profissional}}:\n\n{{links_questionarios}}',
             is_active: true
         },
         {
             title: 'Pós-Atendimento / Feedback',
             trigger_type: 'post_attendance',
-            content: 'Olá {{paciente}}, como foi seu atendimento hoje com {{profissional}}? Sua opinião é muito importante para nós!\n\nDeixe sua avaliação aqui: {{link_avaliacao}}',
+            content: 'Olá {{paciente}}, como você se sentiu após o atendimento hoje com o(a) {{profissional}}? 😊\n\nSua opinião é fundamental para mantermos a excelência do nosso cuidado. Se puder, deixe uma breve avaliação no Google: {{link_avaliacao}}\n\nConte sempre conosco para o que precisar!',
+            is_active: true
+        },
+        {
+            title: 'Lembrete de Aniversário',
+            trigger_type: 'birthday',
+            content: 'Olá {{paciente}}, hoje o dia é todo seu! 🥳\nA equipe da {{clinica}} passa para te desejar um Feliz Aniversário! Que seu novo ciclo seja repleto de saúde, leveza e muitas conquistas.\n\nÉ um prazer ter você conosco. Aproveite muito o seu dia! 🎂✨',
             is_active: true
         }
     ]
@@ -631,7 +637,7 @@ export async function getMessageLogs(slug?: string) {
 }
 
 export async function sendTestMessage(templateId: string, phone: string, slug?: string) {
-    const supabase = await createClient()
+    const supabase = await createAdminClient()
 
     // Fetch template
     const { data: template, error } = await supabase

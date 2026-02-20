@@ -20,7 +20,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Plus, Sparkles, Bold, Italic, Strikethrough, Code, Clock, BellRing } from "lucide-react"
+import { Plus, Sparkles, Bold, Italic, Strikethrough, Code, Clock, BellRing, Send, CheckCircle2, Cake, MousePointerClick, ClipboardList } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useState, useRef, useEffect } from "react"
 import { toast } from "sonner"
@@ -168,12 +168,24 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="appointment_confirmation_immediate" className="font-semibold text-blue-600">🆕 No momento do agendamento</SelectItem>
-                                        <SelectItem value="appointment_confirmation" className="font-semibold text-green-600">🔔 Lembrete de Agendamento</SelectItem>
-                                        <SelectItem value="post_attendance" className="font-semibold text-purple-600">✅ Pós-atendimento / Follow-up</SelectItem>
-                                        <SelectItem value="birthday">🎂 Aniversário do Paciente</SelectItem>
-                                        <SelectItem value="manual">🔘 Disparo Manual</SelectItem>
-                                        <SelectItem value="questionnaire_12h" className="text-muted-foreground italic">📋 Questionários (Legado 12h)</SelectItem>
+                                        <SelectItem value="appointment_confirmation_immediate" className="font-semibold text-blue-600">
+                                            <div className="flex items-center gap-2"><Send className="w-4 h-4" /> No momento do agendamento</div>
+                                        </SelectItem>
+                                        <SelectItem value="appointment_confirmation" className="font-semibold text-green-600">
+                                            <div className="flex items-center gap-2"><BellRing className="w-4 h-4" /> Lembrete de Agendamento</div>
+                                        </SelectItem>
+                                        <SelectItem value="post_attendance" className="font-semibold text-purple-600">
+                                            <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Pós-atendimento / Follow-up</div>
+                                        </SelectItem>
+                                        <SelectItem value="birthday">
+                                            <div className="flex items-center gap-2"><Cake className="w-4 h-4 text-amber-500" /> Aniversário do Paciente</div>
+                                        </SelectItem>
+                                        <SelectItem value="manual">
+                                            <div className="flex items-center gap-2"><MousePointerClick className="w-4 h-4 text-slate-500" /> Disparo Manual</div>
+                                        </SelectItem>
+                                        <SelectItem value="questionnaire_12h" className="text-muted-foreground italic">
+                                            <div className="flex items-center gap-2"><ClipboardList className="w-4 h-4" /> Questionários (Legado)</div>
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

@@ -51,33 +51,34 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
 
         // 3. Info (Completo conforme INTEGRACAO_PEDIDOS_EXTERNOS.md)
         const info = {
-            Cobertura: orderData.general.cobertura || "EVA Azul (Padrão)",
-            Numeracao: Math.round(Number(orderData.general.tamanho) || 37),
+            Cobertura: orderData.general?.cobertura ? orderData.general.cobertura.toUpperCase() : "EVA AZUL",
+            Numeracao: Math.round(Number(orderData.general?.tamanho) || 40),
             ladoPedido: "DireitoEsquerdo",
-            PrecoPedido: Math.round(Number(orderData.totalPrice)) || 190,
-            Produto: orderData.general.produto || "Biomecânica",
-            dataStamp: dataMs,
-            LocalPedido: "AXIOM",
-            Nome_indicacao: professionalData.nome || "Axiom Fisioterapia",
-            observacoesCompra: orderData.reportText || "",
+            PrecoPedido: Number(orderData.totalPrice) || 190.00,
+            Produto: orderData.general?.produto || "Palmilha 3D",
+            observacoesCompra: orderData.reportText || "Pedido via Axiom",
+            PontosGerados: 0,
 
-            // Especificações Técnicas (Obrigatórias para evitar 500)
-            Absorcao_dir: orderData.rightFoot.absorcao || "0",
-            Absorcao_esq: orderData.leftFoot.absorcao || "0",
-            Antepe_Dir: orderData.rightFoot.antepe || "0",
-            Antepe_Esq: orderData.leftFoot.antepe || "0",
-            Retrope_Dir: orderData.rightFoot.retrope || "0",
-            Retrope_Esq: orderData.leftFoot.retrope || "0",
-            Elevacao_Dir: orderData.rightFoot.elevacao || "0",
-            Elevacao_Esq: orderData.leftFoot.elevacao || "0",
+            // Dados do Profissional
+            Nome_indicacao: professionalData?.nome || "Fisio",
+            Contato_indicacao: "Endereço Externo",
 
-            Arco_Dir: mapArco(orderData.rightFoot.arco),
-            Arco_Esq: mapArco(orderData.leftFoot.arco),
-            SuporteArco_dir: mapFlex(orderData.rightFoot.flexibilidade),
-            SuporteArco_esq: mapFlex(orderData.leftFoot.flexibilidade),
+            // Especificações Técnicas (Obrigatórias)
+            Absorcao_dir: orderData.rightFoot?.absorcao || "0",
+            Absorcao_esq: orderData.leftFoot?.absorcao || "0",
+            Antepe_Dir: orderData.rightFoot?.antepe || "0",
+            Antepe_Esq: orderData.leftFoot?.antepe || "0",
+            Retrope_Dir: orderData.rightFoot?.retrope || "0",
+            Retrope_Esq: orderData.leftFoot?.retrope || "0",
+            Barra_Dir: orderData.rightFoot?.pads?.['Barra'] ? "Sim" : "0",
+            Barra_Esq: orderData.leftFoot?.pads?.['Barra'] ? "Sim" : "0",
+            Elevacao_Dir: orderData.rightFoot?.elevacao || "0",
+            Elevacao_Esq: orderData.leftFoot?.elevacao || "0",
 
-            Barra_Dir: orderData.rightFoot.pads?.['Barra'] ? "Sim" : "0",
-            Barra_Esq: orderData.leftFoot.pads?.['Barra'] ? "Sim" : "0",
+            Arco_Dir: mapArco(orderData.rightFoot?.arco || ""),
+            Arco_Esq: mapArco(orderData.leftFoot?.arco || ""),
+            SuporteArco_dir: mapFlex(orderData.rightFoot?.flexibilidade || ""),
+            SuporteArco_esq: mapFlex(orderData.leftFoot?.flexibilidade || ""),
 
             fileE: orderData.fileE || "UExhY2Vob2xkZXI=",
             fileD: orderData.fileD || "UExhY2Vob2xkZXI="

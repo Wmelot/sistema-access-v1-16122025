@@ -13,7 +13,7 @@ uXRa2ln4Et0TnsNOVNqZlnPJl3CcO1sh28xSrLGKzt4Cl8OhL1FKOUC61/wmJ7WJ
 -----END PUBLIC KEY-----`;
 
     const TOKEN = "e1d0d69d999ec9faa20574d5fe1c8a3dfb8bc4585fc02fda414884bdb8c04f97";
-    const URL = "https://us-central1-dev-propulsao.cloudfunctions.net/pedidos_externos";
+    const URL = "https://us-central1-dev-propulsao.cloudfunctions.net/pedidos_axion";
 
     try {
         const sensitiveData = {
