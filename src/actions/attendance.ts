@@ -414,27 +414,25 @@ export async function getPatientStats(patientId: string) {
     }
 }
 
-export async function transcribeAndOrganize(formData: FormData) {
+export async function transcribeAndOrganize(base64Audio: string) {
     try {
-        const file = formData.get('file') as File
         const apiKey = process.env.GEMINI_API_KEY
-        if (!file || !apiKey) return { success: false, msg: 'Audio or API Key missing' }
+        if (!base64Audio || !apiKey) return { success: false, msg: 'Audio or API Key missing' }
 
         const genAI = new GoogleGenerativeAI(apiKey)
         const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" })
-        const arrayBuffer = await file.arrayBuffer()
-        const base64Audio = Buffer.from(arrayBuffer).toString('base64')
 
-        const prompt = `Você é um assistente especialista em Fisioterapia. Sua tarefa é transcrever o áudio de forma PROFISSIONAL e LIMPA.
-        
-        DIRETRIZES OBRIGATÓRIAS:
-        1. TEXTO LIMPO: NÃO use NENHUM asterisco (*) ou cerquilha (#) ou negrito (**).
-        2. FORMATAÇÃO: Use apenas parágrafos simples e hifens (-) para listas.
-        3. TÉCNICO: Use terminologia correta de fisioterapia se houver conteúdo clínico.
-        4. TESTES: Se for um áudio curto/teste, transcreva o que foi dito de forma polida.
-        5. RESULTADO: APENAS o texto organizado, sem introduções da IA.`
+        const prompt = `Você é um Fisioterapeuta sênior com mais de 25 anos de experiência clínica, especialista no reconhecimento de termos técnicos de todas as áreas da fisioterapia. Você conhece profundamente, de capa a capa, manuais de avaliação musculoesquelética de David J. Magee, Mark Dutton, e as referências essenciais de avaliação clínica. Você possui conhecimento extenso em anatomia, biomecânica e, principalmente, em Prática Baseada em Evidências (PBE).
+
+        Sua tarefa: Ouvir, compreender e transcrever o relato, organizando as informações.
+        REGRAS DETALHADAS:
+        1. FILTRE CHIT-CHAT: Ignore assuntos irrelevantes, conversas paralelas, risadas e saudações comuns. Transcreva SOMENTE as declarações de valor clínico.
+        2. ORGANIZE CONTEXTUALMENTE: Extraia e já identifique a qual parte da avaliação cada fala pertence (ex: Queixa Principal (QP), História da Moléstia Atual (HMA), História Pregressa (HP), Exame Físico, Conduta).
+        3. VOCABULÁRIO TÉCNICO: Corrija a gramática e converta termos leigos para técnicos quando apropriado, mantendo a verdade da queixa do paciente.
+        4. FORMATAÇÃO: NUNCA use marcadores em markdown (asteriscos, negritos). Mantenha o texto limpo, use hifens e texto corrido.
+        5. IMPESSOAL: Redija sem assinaturas ou introduções da IA.`
         const result = await model.generateContent([
-            { inlineData: { mimeType: file.type || 'audio/mp3', data: base64Audio } },
+            { inlineData: { mimeType: 'audio/webm', data: base64Audio } },
             { text: prompt }
         ])
         return { success: true, text: result.response.text() }

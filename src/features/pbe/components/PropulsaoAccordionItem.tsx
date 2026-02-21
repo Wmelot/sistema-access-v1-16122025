@@ -103,7 +103,7 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
     const [leftFoot, setLeftFoot] = useState<FootConfig>(DEFAULT_FOOT)
     const [rightFoot, setRightFoot] = useState<FootConfig>(DEFAULT_FOOT)
 
-    // Report Text
+    // Observações do Pedido (Free text)
     const [reportText, setReportText] = useState('')
 
     // Delivery & Automation States
@@ -380,6 +380,24 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
             return
         }
 
+        // --- VALIDAÇÕES DE DADOS OBRIGATÓRIOS ---
+        const nomeLimpo = patientName.trim();
+        if (nomeLimpo.split(' ').length < 2 || nomeLimpo.toUpperCase() === "PACIENTE TESTE") {
+            toast.error("O pedido exige o NOME COMPLETO do paciente. Por favor, atualize o cadastro.");
+            return;
+        }
+
+        if (!patientPhone || patientPhone.trim() === '') {
+            toast.error("O pedido exige o número de TELEFONE do paciente para contato. Por favor, atualize o cadastro.");
+            return;
+        }
+
+        if (!tamanho || tamanho.trim() === '' || isNaN(Number(tamanho))) {
+            toast.error("O pedido exige a NUMERAÇÃO da palmilha preenchida corretamente.");
+            return;
+        }
+        // ----------------------------------------
+
         setIsLoading(true)
         try {
             const prescriptionData = {
@@ -437,7 +455,7 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
 
             setIsSent(true)
             if (propulsaoRes.success) {
-                toast.success(`Pedido enviado à Propulsão (#${propulsaoRes.orderNumber}) e salvo no prontuário!`)
+                toast.success(`Pedido enviado à Propulsão!`)
             } else {
                 toast.warning("Prescrição salva no prontuário, mas houve um erro ao enviar para a Propulsão. Verifique o log.")
             }
@@ -622,10 +640,24 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                                         </Button>
                                     ) : (
                                         <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-center text-green-800 text-sm">
-                                            <p className="font-bold flex items-center justify-center gap-2">
-                                                <CheckCircle2 className="w-4 h-4" />
-                                                {propulsaoStatus?.success ? `PEDIDO ACEITO (#${propulsaoStatus.orderNumber})` : 'SALVO NO PRONTUÁRIO'}
-                                            </p>
+                                            {propulsaoStatus?.success ? (
+                                                <div className="mb-6 p-4 rounded-lg bg-green-50 border border-green-200 text-green-800 flex items-start gap-3 justify-between">
+                                                    <div className="flex gap-3">
+                                                        <CheckCircle className="w-5 h-5 mt-0.5" />
+                                                        <div>
+                                                            <h4 className="font-bold">Pedido Aceito pela Propulsão!</h4>
+                                                            <p className="text-sm text-green-700 mt-1">
+                                                                Os dados criptografados foram entregues à fábrica.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <p className="font-bold flex items-center justify-center gap-2">
+                                                    <CheckCircle2 className="w-4 h-4" />
+                                                    SALVO NO PRONTUÁRIO
+                                                </p>
+                                            )}
                                             {propulsaoStatus && !propulsaoStatus.success && (
                                                 <p className="text-[10px] text-red-500 mt-1 font-medium italic">
                                                     Erro no envio: {propulsaoStatus.error}
@@ -661,53 +693,9 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                             className="flex w-full rounded-md border border-blue-200 bg-white px-4 py-3 text-sm min-h-[150px] focus:ring-2 focus:ring-blue-500 text-slate-700 leading-relaxed"
                         />
                         <div className="absolute top-6 right-6">
-                            <span className="text-[10px] bg-blue-200 text-blue-800 px-2 py-1 rounded-full font-bold">Gerado por IA</span>
-                        </div>
-                    </div>
-
-                    {/* 5. ENTREGA E AUTOMAÇÃO (NEW) */}
-                    <div className="bg-emerald-50 p-6 rounded-xl border border-emerald-100 shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <CalendarClock className="w-5 h-5 text-emerald-600" />
-                                <Label className="text-base font-black text-emerald-900 uppercase tracking-tight">
-                                    Registro de Entrega & Automação
-                                </Label>
-                            </div>
-                            <Badge className="bg-emerald-600 text-white border-none uppercase text-[10px] tracking-widest px-2 py-0.5">Automático</Badge>
-                        </div>
-
-                        <p className="text-xs text-emerald-800 mb-6 leading-relaxed">
-                            Ao registrar a entrega, o sistema criará automaticamente as evoluções no prontuário e
-                            agendará os questionários de acompanhamento de <strong>40 dias</strong> e <strong>1 ano</strong>.
-                        </p>
-
-                        <div className="flex flex-col md:flex-row items-end gap-4 max-w-xl">
-                            <div className="flex-1 w-full">
-                                <Label className="text-[10px] font-black text-emerald-800 uppercase tracking-widest mb-1.5 block">Data da Entrega</Label>
-                                <input
-                                    type="date"
-                                    value={deliveryDate}
-                                    onChange={(e) => setDeliveryDate(e.target.value)}
-                                    className="h-10 w-full px-3 bg-white border border-emerald-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition-all shadow-sm"
-                                />
-                            </div>
-                            <Button
-                                onClick={handleRegisterDelivery}
-                                disabled={isRegisteringDelivery || !deliveryDate}
-                                className="h-10 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 shadow-lg shadow-emerald-100 transition-all active:scale-95"
-                            >
-                                {isRegisteringDelivery ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <CheckCircle2 className="w-4 h-4" />
-                                )}
-                                REGISTRAR ENTREGA
-                            </Button>
                         </div>
                     </div>
                 </div>
-
             </AccordionContent>
         </AccordionItem >
     )

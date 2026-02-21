@@ -32,10 +32,11 @@ export function VoiceRecorder({ onTranscriptionComplete, onRecordingStateChange,
 
             mediaRecorder.onstop = async () => {
                 const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
-                await transcribeAudio(audioBlob)
 
-                // Stop all tracks to release microphone
+                // Stop all tracks to release microphone BEFORE uploading
                 stream.getTracks().forEach(track => track.stop())
+
+                await transcribeAudio(audioBlob)
             }
 
             mediaRecorder.start()
@@ -58,13 +59,26 @@ export function VoiceRecorder({ onTranscriptionComplete, onRecordingStateChange,
 
     const transcribeAudio = async (audioBlob: Blob) => {
         try {
-            const formData = new FormData()
-            formData.append('file', audioBlob, 'audio.webm')
-            // Add model if needed, but endpoint defaults to whisper-1
+            const base64Audio = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const result = reader.result as string;
+                    resolve(result.split(',')[1] || '');
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(audioBlob);
+            });
+
+            if (!base64Audio) {
+                throw new Error("Erro ao ler o áudio gravado.");
+            }
 
             const response = await fetch('/api/openai/transcribe', {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ base64Audio })
             })
 
             const data = await response.json()

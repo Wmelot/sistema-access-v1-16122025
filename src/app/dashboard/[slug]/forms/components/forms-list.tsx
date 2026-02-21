@@ -39,15 +39,16 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
         return <div className="animate-pulse">Carregando...</div>
     }
 
-    const hasPalmilha = customForms.some((f: any) => f.title?.includes('Palmilha biomecânica'));
-    const hasPalmilhaV3 = customForms.some((f: any) => f.title?.includes('Palmilha Biomecânica V3'));
-    const hasWomensHealth = customForms.some((f: any) => f.title?.includes('Saúde da Mulher'));
-    const hasPbe = customForms.some((f: any) => f.title?.includes('Avaliação Clínica Inteligente'));
-    const hasUltimate = customForms.some((f: any) => f.title?.includes('Ultimate PBE'));
-    const hasWizard = customForms.some((f: any) => f.title?.includes('Tree Wizard'));
-    const hasPhysical = customForms.some((f: any) => f.title?.includes('Física Avançada'));
-    const hasDiabetic = customForms.some((f: any) => f.title?.includes('Pé Insensível'));
-    const hasEvolution = customForms.some((f: any) => f.title?.includes('Evolução Clínica & IA'));
+    // A clínica tem acesso à Palmilha se tiver qualquer template de palmilha liberado
+    const hasPalmilha = customForms.some((f: any) => f.title?.toLowerCase().includes('palmilha'));
+    const hasPalmilhaV3 = customForms.some((f: any) => f.title?.toLowerCase().includes('palmilha biomecânica v3'));
+    const hasWomensHealth = customForms.some((f: any) => f.title?.toLowerCase().includes('saúde da mulher'));
+    const hasPbe = customForms.some((f: any) => f.title?.toLowerCase().includes('avaliação clínica inteligente') || f.title?.toLowerCase().includes('pbe (inteligente)'));
+    const hasUltimate = customForms.some((f: any) => f.title?.toLowerCase().includes('ultimate pbe') || f.title?.toLowerCase().includes('fusão'));
+    const hasWizard = customForms.some((f: any) => f.title?.toLowerCase().includes('tree wizard'));
+    const hasPhysical = customForms.some((f: any) => f.title?.toLowerCase().includes('física avançada'));
+    const hasDiabetic = customForms.some((f: any) => f.title?.toLowerCase().includes('pé insensível'));
+    const hasEvolution = customForms.some((f: any) => f.title?.toLowerCase().includes('evolução clínica & ia'));
 
     return (
         <div className="space-y-6">
@@ -397,15 +398,16 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
                         // This ensures User's Custom Copies (is_locked=false) are still visible!
                         .filter((t: any) => {
                             if (t.is_locked) {
-                                if (t.title.includes('Palmilha biomecânica')) return false;
-                                if (t.title.includes('Palmilha Biomecânica V3')) return false;
-                                if (t.title.includes('Saúde da Mulher')) return false;
-                                if (t.title.includes('Avaliação Clínica Inteligente')) return false;
-                                if (t.title.includes('Avaliação Física Avançada')) return false;
-                                if (t.title.includes('Ultimate PBE')) return false;
-                                if (t.title.includes('Tree Wizard')) return false;
-                                if (t.title.includes('Palmilha pé insensível')) return false;
-                                if (t.title.includes('Evolução Clínica & IA')) return false;
+                                const lowerTitle = t.title?.toLowerCase() || '';
+                                if (lowerTitle.includes('palmilha biomecânica') && !lowerTitle.includes('v3')) return false;
+                                if (lowerTitle.includes('palmilha biomecânica v3')) return false;
+                                if (lowerTitle.includes('saúde da mulher')) return false;
+                                if (lowerTitle.includes('avaliação clínica inteligente') || lowerTitle.includes('pbe (inteligente)')) return false;
+                                if (lowerTitle.includes('física avançada')) return false;
+                                if (lowerTitle.includes('ultimate pbe')) return false;
+                                if (lowerTitle.includes('tree wizard')) return false;
+                                if (lowerTitle.includes('pé insensível')) return false;
+                                if (lowerTitle.includes('evolução clínica & ia')) return false;
                             }
                             return true;
                         })
@@ -511,15 +513,16 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
                     {customForms
                         .filter((t: any) => {
                             if (t.is_locked) {
-                                if (t.title.includes('Palmilha biomecânica')) return false;
-                                if (t.title.includes('Palmilha Biomecânica V3')) return false;
-                                if (t.title.includes('Saúde da Mulher')) return false;
-                                if (t.title.includes('Avaliação Clínica Inteligente')) return false;
-                                if (t.title.includes('Avaliação Física Avançada')) return false;
-                                if (t.title.includes('Ultimate PBE')) return false;
-                                if (t.title.includes('Tree Wizard')) return false;
-                                if (t.title.includes('Palmilha pé insensível')) return false;
-                                if (t.title.includes('Evolução Clínica & IA')) return false;
+                                const lowerTitle = t.title?.toLowerCase() || '';
+                                if (lowerTitle.includes('palmilha biomecânica') && !lowerTitle.includes('v3')) return false;
+                                if (lowerTitle.includes('palmilha biomecânica v3')) return false;
+                                if (lowerTitle.includes('saúde da mulher')) return false;
+                                if (lowerTitle.includes('avaliação clínica inteligente') || lowerTitle.includes('pbe (inteligente)')) return false;
+                                if (lowerTitle.includes('física avançada')) return false;
+                                if (lowerTitle.includes('ultimate pbe')) return false;
+                                if (lowerTitle.includes('tree wizard')) return false;
+                                if (lowerTitle.includes('pé insensível')) return false;
+                                if (lowerTitle.includes('evolução clínica & ia')) return false;
                             }
                             return true;
                         })

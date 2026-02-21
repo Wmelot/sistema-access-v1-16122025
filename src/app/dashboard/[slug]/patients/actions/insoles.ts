@@ -146,15 +146,15 @@ export async function triggerInsoleMaintenance(data: any) {
 
     try {
         const { userId, organizationId } = await validateAccess(patientId, 'patient', slug);
-        const supabase = await createClient();
+        const adminSupabase = await createAdminClient();
         const token = crypto.randomUUID();
 
-        const { error } = await supabase
+        const { error } = await adminSupabase
             .from('assessment_follow_ups')
             .insert({
                 patient_id: patientId,
                 organization_id: organizationId,
-                questionnaire_type: type,
+                type: type,
                 scheduled_date: scheduledDate.toISOString(),
                 delivery_date: new Date().toISOString(),
                 status: 'pending',
@@ -166,7 +166,7 @@ export async function triggerInsoleMaintenance(data: any) {
 
         // Se a data agendada for agora ou passado, tenta enviar imediatamente
         if (scheduledDate <= new Date()) {
-            const { data: patient } = await supabase.from('patients').select('name, phone').eq('id', patientId).single();
+            const { data: patient } = await adminSupabase.from('patients').select('name, phone').eq('id', patientId).single();
             const config = await getWhatsappConfig(slug);
 
             if (patient?.phone && config) {
@@ -181,7 +181,7 @@ export async function triggerInsoleMaintenance(data: any) {
 
                 const sendRes = await sendMessage(patient.phone, messageText, config);
                 if (sendRes.success) {
-                    await supabase.from('assessment_follow_ups').update({ status: 'sent', sent_at: new Date().toISOString() }).eq('token', token);
+                    await adminSupabase.from('assessment_follow_ups').update({ status: 'sent', sent_at: new Date().toISOString() }).eq('token', token);
                 }
             }
         }

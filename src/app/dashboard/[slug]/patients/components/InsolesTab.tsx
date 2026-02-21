@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { format, addDays, isPast, isFuture } from 'date-fns'
 import { useParams } from 'next/navigation'
 import { ptBR } from 'date-fns/locale'
-import { Calendar as CalendarIcon, CheckCircle2, AlertCircle, Clock, XCircle, Plus, Footprints, Zap, MessageCircle, Send, FileText } from 'lucide-react'
+import { Calendar as CalendarIcon, CheckCircle2, AlertCircle, Clock, XCircle, Plus, Footprints, Zap, MessageCircle, Send, FileText, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from "@/components/ui/button"
@@ -43,10 +43,9 @@ import {
 } from "@/components/ui/select"
 
 import { registerInsoleDelivery, cancelFollowUp, triggerInsoleMaintenance } from '@/app/dashboard/[slug]/patients/actions/insoles'
+import { updateAssessmentPropulsaoOrder } from '@/app/dashboard/[slug]/patients/actions/assessments'
 import { EmptyState } from '@/components/ui/empty-state'
-
-
-
+import { Input } from '@/components/ui/input'
 interface AssessmentFollowUp {
     id: string
     type: 'insoles_40d' | 'insoles_1y'
@@ -331,34 +330,172 @@ export function InsolesTab({ patientId, followUps, assessments = [] }: InsolesTa
                             {assessments
                                 .filter(a => a.type === 'insoles_prescription')
                                 .map((prescription) => (
-                                    <Card key={prescription.id} className="bg-white hover:shadow-md transition-shadow border-slate-200">
-                                        <CardHeader className="p-4 pb-2">
-                                            <div className="flex justify-between items-start">
-                                                <div className="p-2 bg-blue-50 rounded-lg">
-                                                    <Footprints className="h-4 w-4 text-blue-600" />
+                                    <Dialog key={prescription.id}>
+                                        <DialogTrigger asChild>
+                                            <Card className="bg-white hover:shadow-md transition-shadow border-slate-200 cursor-pointer hover:border-emerald-300">
+                                                <CardHeader className="p-4 pb-2">
+                                                    <div className="flex justify-between items-start">
+                                                        <div className="p-2 bg-blue-50 rounded-lg">
+                                                            <Footprints className="h-4 w-4 text-blue-600" />
+                                                        </div>
+                                                        {prescription.data?.propulsaoOrder && (
+                                                            <Badge variant="outline" className="text-[10px] font-mono bg-blue-50 text-blue-700 border-blue-200">
+                                                                #{prescription.data.propulsaoOrder}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </CardHeader>
+                                                <CardContent className="p-4 pt-0">
+                                                    <div className="space-y-1">
+                                                        <p className="font-bold text-slate-900 line-clamp-1">
+                                                            {prescription.data?.produto || 'Palmilha'} - {prescription.data?.tipoPalmilha || prescription.data?.type || '3D'}
+                                                        </p>
+                                                        <p className="text-[11px] text-slate-500">
+                                                            Criado em: {format(new Date(prescription.created_at), "dd/MM/yyyy")}
+                                                        </p>
+                                                    </div>
+                                                    <div className="mt-4 flex flex-wrap gap-1.5">
+                                                        <Badge variant="secondary" className="text-[9px] uppercase px-1.5 py-0 bg-slate-100">{prescription.data?.cobertura || 'EVA'}</Badge>
+                                                        <Badge variant="secondary" className="text-[9px] uppercase px-1.5 py-0 bg-slate-100">Tam: {prescription.data?.tamanho || '-'}</Badge>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-[700px] h-[85vh] overflow-y-auto p-0 border-emerald-200">
+                                            <div className="p-6 pb-4 border-b sticky top-0 bg-white z-10 flex flex-col gap-2 shadow-sm">
+                                                <DialogTitle className="text-xl flex items-center justify-between text-emerald-900">
+                                                    <span className="flex items-center gap-2">
+                                                        <Footprints className="w-5 h-5 text-emerald-600" />
+                                                        Detalhes da Prescrição
+                                                    </span>
+                                                    {prescription.data?.propulsaoOrder && (
+                                                        <Badge variant="outline" className="text-sm font-mono bg-blue-50 text-blue-700 border-blue-200">
+                                                            OS: #{prescription.data.propulsaoOrder}
+                                                        </Badge>
+                                                    )}
+                                                </DialogTitle>
+                                                <DialogDescription className="text-xs">
+                                                    Prescrito em: {format(new Date(prescription.created_at), "dd 'de' MMMM, yyyy 'às' HH:mm", { locale: ptBR })}
+                                                </DialogDescription>
+                                            </div>
+
+                                            <div className="p-6 space-y-6">
+                                                {/* Detalhes Basicos */}
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                                    <div className="space-y-1">
+                                                        <p className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">Modelo</p>
+                                                        <p className="font-semibold text-slate-900">{prescription.data?.produto || '-'}</p>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">Tipo</p>
+                                                        <p className="font-semibold text-slate-900">{prescription.data?.tipoPalmilha || prescription.data?.type || '-'}</p>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">Tamanho</p>
+                                                        <p className="font-semibold text-slate-900">{prescription.data?.tamanho || '-'}</p>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">Cobertura</p>
+                                                        <p className="font-semibold text-slate-900">{prescription.data?.cobertura || '-'}</p>
+                                                    </div>
                                                 </div>
-                                                {prescription.data?.propulsaoOrder && (
-                                                    <Badge variant="outline" className="text-[10px] font-mono bg-slate-50">
-                                                        #{prescription.data.propulsaoOrder}
-                                                    </Badge>
+
+                                                {/* Pés */}
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="bg-white p-4 rounded-xl border border-teal-100 shadow-sm">
+                                                        <h5 className="font-bold text-teal-700 mb-3 flex items-center gap-2">
+                                                            <div className="w-2 h-2 rounded-full bg-teal-500" /> Pé Esquerdo
+                                                        </h5>
+                                                        <ul className="text-xs space-y-2">
+                                                            <li className="flex justify-between border-b pb-1"><span className="text-slate-500">Arco:</span> <span className="font-medium">{prescription.data?.leftFoot?.arco || '-'}</span></li>
+                                                            <li className="flex justify-between border-b pb-1"><span className="text-slate-500">Flexibilidade:</span> <span className="font-medium">{prescription.data?.leftFoot?.flexibilidade || '-'}</span></li>
+                                                            {prescription.data?.leftFoot?.elevacao && prescription.data.leftFoot.elevacao !== '0' && (<li className="flex justify-between border-b pb-1"><span className="text-slate-500">Elevação:</span> <span className="font-bold text-teal-600">{prescription.data.leftFoot.elevacao}</span></li>)}
+                                                            <li className="flex justify-between border-b pb-1"><span className="text-slate-500">Borda:</span> <span className="font-medium">{prescription.data?.leftFoot?.borda || '-'}</span></li>
+                                                        </ul>
+                                                    </div>
+                                                    <div className="bg-white p-4 rounded-xl border border-rose-100 shadow-sm">
+                                                        <h5 className="font-bold text-rose-700 mb-3 flex items-center gap-2">
+                                                            <div className="w-2 h-2 rounded-full bg-rose-500" /> Pé Direito
+                                                        </h5>
+                                                        <ul className="text-xs space-y-2">
+                                                            <li className="flex justify-between border-b pb-1"><span className="text-slate-500">Arco:</span> <span className="font-medium">{prescription.data?.rightFoot?.arco || '-'}</span></li>
+                                                            <li className="flex justify-between border-b pb-1"><span className="text-slate-500">Flexibilidade:</span> <span className="font-medium">{prescription.data?.rightFoot?.flexibilidade || '-'}</span></li>
+                                                            {prescription.data?.rightFoot?.elevacao && prescription.data.rightFoot.elevacao !== '0' && (<li className="flex justify-between border-b pb-1"><span className="text-slate-500">Elevação:</span> <span className="font-bold text-rose-600">{prescription.data.rightFoot.elevacao}</span></li>)}
+                                                            <li className="flex justify-between border-b pb-1"><span className="text-slate-500">Borda:</span> <span className="font-medium">{prescription.data?.rightFoot?.borda || '-'}</span></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+
+                                                {/* Resumo */}
+                                                {prescription.data?.reportText && (
+                                                    <div className="bg-blue-50 p-5 rounded-xl border border-blue-100 shadow-sm">
+                                                        <h5 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
+                                                            <FileText className="w-4 h-4" /> Resumo Clínico / Observações
+                                                        </h5>
+                                                        <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{prescription.data.reportText}</p>
+                                                    </div>
                                                 )}
+
+                                                <hr className="my-2 border-slate-200" />
+
+                                                {/* Vincular OS Propulsão */}
+                                                <div className="bg-slate-50 p-4 rounded-xl border flex flex-col gap-3">
+                                                    <Label className="text-[11px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
+                                                        Atribuir OS da Propulsão
+                                                    </Label>
+                                                    <div className="flex gap-2">
+                                                        <Input
+                                                            id={`os-${prescription.id}`}
+                                                            placeholder="Ex: 14853-18"
+                                                            defaultValue={prescription.data?.propulsaoOrder || ''}
+                                                            className="bg-white max-w-[200px]"
+                                                        />
+                                                        <Button onClick={async () => {
+                                                            const val = (document.getElementById(`os-${prescription.id}`) as HTMLInputElement)?.value;
+                                                            if (!val) return;
+
+                                                            const res = await updateAssessmentPropulsaoOrder(prescription.id, val, patientId, slug);
+                                                            if (res.success) toast.success("OS salva com sucesso!");
+                                                            else toast.error("Erro ao salvar OS");
+                                                        }} variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50">Salvar OS</Button>
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-500">Como a integração atual não retorna o número do pedido automaticamente, insira-o manualmente aqui para manter o registro.</p>
+                                                </div>
+
+                                                {/* Registro de Entrega */}
+                                                <div className="bg-emerald-50 p-6 rounded-xl border border-emerald-200 shadow-inner mt-4">
+                                                    <h5 className="font-black text-emerald-900 mb-2 uppercase tracking-tight flex items-center gap-2">
+                                                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                                                        Registro de Entrega & Automação
+                                                    </h5>
+                                                    <p className="text-xs text-emerald-800 mb-5 leading-relaxed">
+                                                        Registre a entrega desta palmilha para gerar as evoluções clínicas automáticas e agendar os retornos de 40 dias e 1 ano para este paciente.
+                                                    </p>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div>
+                                                            <Label className="text-[10px] font-bold uppercase text-emerald-700 mb-1.5 block">Data da Ação</Label>
+                                                            <input
+                                                                type="date"
+                                                                onChange={(e) => setDate(new Date(e.target.value))}
+                                                                className="h-10 px-3 bg-white border border-emerald-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 w-full"
+                                                            />
+                                                        </div>
+                                                        <div className="flex items-end">
+                                                            <Button onClick={() => {
+                                                                setRegistrationType('delivery');
+                                                                setDeliveryNote(`Entrega de palmilha modelo ${prescription.data?.produto || 'Slim'} (${prescription.data?.propulsaoOrder ? `OS #${prescription.data.propulsaoOrder}` : 'Pedido via Axiom'}) registrada.`);
+                                                                handleRegister();
+                                                            }} disabled={isSubmitting || !date} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 transition-all shadow-md active:scale-95">
+                                                                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                                                                Registrar Entrega
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </CardHeader>
-                                        <CardContent className="p-4 pt-0">
-                                            <div className="space-y-1">
-                                                <p className="font-bold text-slate-900 line-clamp-1">
-                                                    {prescription.data?.produto || 'Palmilha'} - {prescription.data?.type || '3D'}
-                                                </p>
-                                                <p className="text-[11px] text-slate-500">
-                                                    Prescrito em: {format(new Date(prescription.created_at), "dd/MM/yyyy HH:mm")}
-                                                </p>
-                                            </div>
-                                            <div className="mt-4 flex flex-wrap gap-1.5">
-                                                <Badge variant="secondary" className="text-[9px] uppercase px-1.5 py-0 bg-slate-100">{prescription.data?.model || 'Slim'}</Badge>
-                                                <Badge variant="secondary" className="text-[9px] uppercase px-1.5 py-0 bg-slate-100">Tam: {prescription.data?.tamanho || '-'}</Badge>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
+                                        </DialogContent>
+                                    </Dialog>
                                 ))}
                         </div>
                         <div className="border-t border-dashed my-6" />

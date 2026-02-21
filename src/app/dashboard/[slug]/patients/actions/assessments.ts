@@ -112,3 +112,40 @@ export async function getAssessments(patientId: string, slug?: string) {
         return [];
     }
 }
+
+export async function updateAssessmentPropulsaoOrder(assessmentId: string, orderNumber: string, patientId: string, slug?: string) {
+    try {
+        await validateAccess(patientId, 'patient', slug);
+        const { createAdminClient } = await import('@/lib/supabase/server');
+        const adminSupabase = await createAdminClient();
+
+        // Fetches existing assessment to merge JSON
+        const { data: existing, error: fetchErr } = await adminSupabase
+            .from('patient_assessments')
+            .select('data, response_data')
+            .eq('id', assessmentId)
+            .single();
+
+        if (fetchErr || !existing) throw new Error("Avaliação não encontrada");
+
+        const updatePayload = {
+            data: { ...existing.data, propulsaoOrder: orderNumber },
+            response_data: { ...existing.response_data, propulsaoOrder: orderNumber }
+        };
+
+        const { error: updateErr } = await adminSupabase
+            .from('patient_assessments')
+            .update(updatePayload)
+            .eq('id', assessmentId);
+
+        if (updateErr) throw new Error("Erro ao atualizar banco de dados");
+
+        const { revalidatePath } = await import('next/cache');
+        if (slug) revalidatePath(`/dashboard/${slug}/patients/${patientId}`);
+
+        return { success: true };
+    } catch (error: any) {
+        console.error('[updateAssessmentPropulsaoOrder] Error:', error.message);
+        return { success: false, msg: error.message };
+    }
+}

@@ -32,8 +32,8 @@ export function AudioTextarea({ className, onTranscription, label, ...props }: A
 
             mediaRecorder.onstop = async () => {
                 const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
-                await processAudio(audioBlob);
                 stream.getTracks().forEach(track => track.stop());
+                await processAudio(audioBlob);
             };
 
             mediaRecorder.start();
@@ -64,10 +64,21 @@ export function AudioTextarea({ className, onTranscription, label, ...props }: A
 
     const processAudio = async (audioBlob: Blob) => {
         try {
-            const formData = new FormData();
-            formData.append('file', audioBlob, 'record.webm');
+            const base64Audio = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const result = reader.result as string;
+                    resolve(result.split(',')[1] || '');
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(audioBlob);
+            });
 
-            const result = await transcribeAndOrganize(formData);
+            if (!base64Audio) {
+                throw new Error("Falha ao processar arquivo de áudio.");
+            }
+
+            const result = await transcribeAndOrganize(base64Audio);
 
             if (result.success && result.text) {
                 // If controlled component, trigger onChange via synthesized event

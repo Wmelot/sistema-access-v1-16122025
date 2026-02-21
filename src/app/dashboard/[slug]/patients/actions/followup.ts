@@ -51,6 +51,8 @@ export async function scheduleFollowup(rawInput: any) {
             organization_id: organizationId
         };
 
+        const adminSupabase = await createAdminClient();
+
         if (isUuid) {
             payload.template_id = data.templateId;
             const { data: tmpl } = await supabase
@@ -60,13 +62,13 @@ export async function scheduleFollowup(rawInput: any) {
                 .maybeSingle();
 
             if (tmpl?.questionnaire_type && tmpl.questionnaire_type !== 'none') {
-                payload.questionnaire_type = tmpl.questionnaire_type;
+                payload.type = tmpl.questionnaire_type;
             }
         } else {
-            payload.questionnaire_type = data.templateId;
+            payload.type = data.templateId;
         }
 
-        const { data: followup, error } = await supabase
+        const { data: followup, error } = await adminSupabase
             .from('assessment_follow_ups')
             .insert(payload)
             .select()

@@ -124,7 +124,7 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             ladoPedido: "DireitoEsquerdo",
             PrecoPedido: Number(orderData.totalPrice) || 190.00,
             Produto: orderData.general?.produto || "Slim",
-            observacoesCompra: orderData.reportText || "Pedido via Axiom",
+            observacoesCompra: orderData.reportText || "",
             PontosGerados: 0,
 
             Nome_indicacao: professionalData?.nome || "Fisio",
