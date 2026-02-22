@@ -679,6 +679,7 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
                 <div className="space-y-3">
                     {/* HARDCODED SYSTEM FORMS IN LIST VIEW */}
                     {[
+                        { id: 'palmilha-5', title: 'Palmilha 5.0 (BETA)', desc: 'Nova versão sendo construída juntos.', href: `/dashboard/${slug}/test-form/palmilha-5`, type: 'system', color: 'indigo', show: hasPalmilha5 },
                         { id: 'palmilha', title: 'Palmilha Biomecânica', desc: 'Avaliação para confecção de palmilhas.', href: `/dashboard/${slug}/test-form`, type: 'system', color: 'indigo', show: hasPalmilha },
                         { id: 'palmilha-v3', title: 'Palmilha Biomecânica V3', desc: 'Nova versão com design premium e relatórios.', href: `/dashboard/${slug}/test-form/palmilha-v3`, type: 'system', color: 'violet', show: hasPalmilhaV3 },
                         { id: 'womens-health', title: 'Saúde da Mulher & Pélvica', desc: 'Avaliação completa de Saúde da Mulher.', href: `/dashboard/${slug}/test-form/womens-health`, type: 'system', color: 'pink', show: hasWomensHealth },
