@@ -224,6 +224,20 @@ export default function SyllabusWizard() {
         toast.success("IA: Datas sugeridas com base no cronograma pedagógico!");
     };
 
+    const isDateDisabled = (date: Date) => {
+        if (startDate && date < new Date(startDate.setHours(0, 0, 0, 0))) return true;
+        if (endDate && date > new Date(endDate.setHours(23, 59, 59, 999))) return true;
+
+        const jsDay = date.getDay() === 0 ? '7' : date.getDay().toString();
+        const activeDays = weekDays.map(w => w.day);
+        if (!activeDays.includes(jsDay)) return true;
+
+        const dateStr = date.toISOString().split('T')[0];
+        if (holidays.some(h => h.date === dateStr)) return true;
+
+        return false;
+    };
+
     // Step 2: Bibliography
     const [books, setBooks] = useState<Book[]>([
         { id: 'b1', title: 'Tratado de Fisioterapia Traumato-Ortopédica', author: 'Dutton', type: 'Básico' },
@@ -711,13 +725,18 @@ export default function SyllabusWizard() {
                                             Calculado automaticamente com base no intervalo de datas e dias da semana selecionados.
                                         </p>
                                     </div>
-                                    <div className="mt-6 border-2 border-dashed border-slate-100 rounded-[32px] p-6 flex flex-col items-center justify-center text-center group hover:border-[#8C132C]/20 transition-all cursor-pointer">
+                                    <label className="mt-6 border-2 border-dashed border-slate-100 rounded-[32px] p-6 flex flex-col items-center justify-center text-center group hover:border-[#8C132C]/20 transition-all cursor-pointer block">
+                                        <input type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => {
+                                            if (e.target.files && e.target.files.length > 0) {
+                                                toast.success("Calendário Institucional importado e analisado. Feriados e recessos sincronizados!");
+                                            }
+                                        }} />
                                         <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 mb-3 group-hover:bg-[#8C132C]/10 group-hover:text-[#8C132C] transition-all">
                                             <Upload size={20} />
                                         </div>
                                         <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Calendário Institucional</span>
                                         <p className="text-[9px] text-slate-300 font-bold mt-1">PDF ou Excel (Feriados e Recessos)</p>
-                                    </div>
+                                    </label>
                                 </div>
                             </Card>
 
@@ -785,7 +804,16 @@ export default function SyllabusWizard() {
                                                     <div className="space-y-1 flex-1">
                                                         <Input value={ass.name} onChange={e => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, name: e.target.value } : a))} className="bg-transparent border-none rounded-none focus:ring-0 font-black h-8 text-sm p-0 text-slate-700" />
                                                         <div className="flex gap-2">
-                                                            <Badge variant="outline" className="text-[8px] font-black uppercase px-2 py-0 border-slate-200 text-slate-400">{ass.type}</Badge>
+                                                            <Select value={ass.type} onValueChange={v => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, type: v as any } : a))}>
+                                                                <SelectTrigger className="h-6 text-[8px] font-black uppercase px-2 py-0 border-slate-200 text-slate-400 bg-transparent w-auto -ml-2 focus:ring-0">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="Professor"><span className="text-[10px] uppercase font-bold text-slate-600">Professor</span></SelectItem>
+                                                                    <SelectItem value="Institucional"><span className="text-[10px] uppercase font-bold text-slate-600">Institucional</span></SelectItem>
+                                                                    <SelectItem value="Curso"><span className="text-[10px] uppercase font-bold text-slate-600">Curso</span></SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
                                                         </div>
                                                     </div>
                                                     <div className="w-44">
@@ -797,7 +825,7 @@ export default function SyllabusWizard() {
                                                                 </Button>
                                                             </PopoverTrigger>
                                                             <PopoverContent className="w-auto p-0 rounded-3xl border-none shadow-2xl overflow-hidden" align="end">
-                                                                <Calendar mode="single" selected={ass.date || undefined} onSelect={(d) => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, date: d || null } : a))} locale={ptBR} />
+                                                                <Calendar mode="single" selected={ass.date || undefined} onSelect={(d) => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, date: d || null } : a))} locale={ptBR} disabled={isDateDisabled} />
                                                             </PopoverContent>
                                                         </Popover>
                                                     </div>

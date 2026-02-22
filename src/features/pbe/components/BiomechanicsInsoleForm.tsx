@@ -1815,7 +1815,7 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                     {/* 2. Teste do Catálogo */}
                                                     <div className="space-y-1">
-                                                        <FormLabel>Teste do Catálogo</FormLabel>
+                                                        <FormLabel>Teste do Catálogo (mm)</FormLabel>
                                                         <div className="flex gap-2">
                                                             <Input placeholder="E" type="number" {...form.register("postural.teste_catalogo.left")} />
                                                             <Input placeholder="D" type="number" {...form.register("postural.teste_catalogo.right")} />

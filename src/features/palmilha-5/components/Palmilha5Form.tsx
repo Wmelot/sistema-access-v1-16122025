@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { Accordion } from "@/components/ui/accordion";
+import { RapidAssessmentModal } from "@/features/pbe/components/RapidAssessmentModal";
 import { cn } from "@/lib/utils";
 import { Save, Loader2, Eye, Zap, Database, ArrowLeft, Menu, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,14 @@ import { PainMapAccordion } from "./accordions/PainMapAccordion";
 import { EfepAccordion } from "./accordions/EfepAccordion";
 import { SportsAccordion } from "./accordions/SportsAccordion";
 import { ShoeAccordion } from "./accordions/ShoeAccordion";
-// import deepMerge from "deepmerge"; // Need to handle this if they have it, but usually a simple merge works or we avoid it for tests
+import { BaropodometryAccordion } from "./accordions/BaropodometryAccordion";
+import { StaticAssessmentAccordion } from "./accordions/StaticAssessmentAccordion";
+import { FunctionalTestsAccordion } from "./accordions/FunctionalTestsAccordion";
+import { DynamicAssessmentAccordion } from "./accordions/DynamicAssessmentAccordion";
+import { DorsalTestsAccordion } from "./accordions/DorsalTestsAccordion";
+import { VentralTestsAccordion } from "./accordions/VentralTestsAccordion";
+import { ExamsAccordion } from "./accordions/ExamsAccordion";
+import { PlanAccordion } from "./accordions/PlanAccordion";
 
 const SECTION_STYLES: Record<string, { border: string, iconColor: string }> = {
     hma: { border: "border-l-blue-600", iconColor: "text-blue-600" },
@@ -39,6 +47,7 @@ const SECTION_STYLES: Record<string, { border: string, iconColor: string }> = {
 export default function Palmilha5Form({ patientId, initialData, onSave, hideHeader, hideButtons, readonly, isImported, organization, professional }: any) {
     const [openSection, setOpenSection] = useState("hma");
     const [feegowImportOpen, setFeegowImportOpen] = useState(false);
+    const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
     const defaults = {
@@ -82,6 +91,15 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
         if (section === 'efep') return !!form.watch('efep')?.some((i: any) => i.activity && i.score !== "");
         if (section === 'sports') return !!form.watch('sports')?.length && !!form.watch('sports')[0]?.type;
         if (section === 'shoe') return !!form.watch('shoe.model') || form.watch('shoe.injuryType') !== 'none';
+        if (section === 'baropo') return !!form.watch('tests.baropo_2d') || !!form.watch('tests.baropo_3d');
+        if (section === 'static') return !!form.watch('postural.shoeSize') || !!form.watch('postural.navicular.left');
+        if (section === 'fpi_detail') return form.watch('postural.fpi_left.talus') !== undefined;
+        if (section === 'orto') return !!form.watch('tests.jack.left') || !!form.watch('tests.lunge.left') || !!form.watch('tests.ybalance.legLength.left');
+        if (section === 'dynamic') return !!form.watch('tests.single_squat.pelvic_drop_left') || !!form.watch('tests.gait_photos.left.initial') || !!form.watch('tests.dfi.0.left');
+        if (section === 'dorsal') return !!form.watch('tests.thomas.left') || !!form.watch('tests.dorsal.first_ray.left');
+        if (section === 'ventral') return !!form.watch('tests.ventral.craig.left') || !!form.watch('tests.ventral.measures.left.retro');
+        if (section === 'exams') return !!form.watch('plan.exams');
+        if (section === 'exercises') return !!form.watch('plan.exercises')?.length || !!form.watch('plan.orientations');
         return false;
     };
 
@@ -96,7 +114,7 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
                     </div>
                     <div>
                         <h2 className="text-sm font-black text-indigo-900 uppercase">Ambiente de Transição (Palmilha 5.0)</h2>
-                        <p className="text-xs text-indigo-700 font-medium">Você está testando a nova arquitetura modular. Nenhum dado de pacientes reais será afetado. Até agora migramos: <b className="text-indigo-900">6/12 Acordeões</b></p>
+                        <p className="text-xs text-indigo-700 font-medium">Você está testando a nova arquitetura modular. Nenhum dado de pacientes reais será afetado. Até agora migramos: <b className="text-indigo-900">14/14 Acordeões</b></p>
                     </div>
                 </div>
 
@@ -140,7 +158,7 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
                             openSection={openSection}
                             isSectionFilled={isSectionFilled}
                             sectionStyle={SECTION_STYLES['efep']}
-                            setIsAssessmentModalOpen={() => console.log('Open modal')}
+                            setIsAssessmentModalOpen={setIsAssessmentModalOpen}
                         />
 
                         {/* 5. ROTINA DESPORTIVA (IPAQ) (MIGRADO!) */}
@@ -158,9 +176,90 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
                             organizationId={organization?.id}
                         />
 
+                        {/* 7. BAROPODOMETRIA (MIGRADO!) */}
+                        <BaropodometryAccordion
+                            openSection={openSection}
+                            isSectionFilled={isSectionFilled}
+                            sectionStyle={SECTION_STYLES['baropo']}
+                        />
+
+                        {/* 8. AVALIAÇÃO ESTÁTICA / FPI-6 (MIGRADO!) */}
+                        <StaticAssessmentAccordion
+                            openSection={openSection}
+                            isSectionFilled={isSectionFilled}
+                            sectionStyle={SECTION_STYLES['static']}
+                            fpiSectionStyle={SECTION_STYLES['fpi_detail']}
+                        />
+
+                        {/* 9. TESTES FUNCIONAIS (ORTO) (MIGRADO!) */}
+                        <FunctionalTestsAccordion
+                            openSection={openSection}
+                            isSectionFilled={isSectionFilled}
+                            sectionStyle={SECTION_STYLES['orto']}
+                        />
+
+                        {/* 10. AVALIAÇÃO DINÂMICA (MIGRADO!) */}
+                        <DynamicAssessmentAccordion
+                            openSection={openSection}
+                            isSectionFilled={isSectionFilled}
+                            sectionStyle={SECTION_STYLES['dynamic']}
+                        />
+
+                        {/* 11. TESTES FUNCIONAIS (DECÚBITO DORSAL) (MIGRADO!) */}
+                        <DorsalTestsAccordion
+                            openSection={openSection}
+                            isSectionFilled={isSectionFilled}
+                            sectionStyle={SECTION_STYLES['dorsal']}
+                        />
+
+                        {/* 12. TESTES FUNCIONAIS (DECÚBITO VENTRAL) (MIGRADO!) */}
+                        <VentralTestsAccordion
+                            openSection={openSection}
+                            isSectionFilled={isSectionFilled}
+                            sectionStyle={SECTION_STYLES['ventral']}
+                        />
+
+                        {/* 13. EXAMES COMPLEMENTARES (MIGRADO!) */}
+                        <ExamsAccordion
+                            openSection={openSection}
+                            isSectionFilled={isSectionFilled}
+                            sectionStyle={SECTION_STYLES['exams']}
+                            isImported={isImported}
+                        />
+
+                        {/* 14. PLANO TERAPÊUTICO E ORIENTAÇÕES (MIGRADO) */}
+                        <PlanAccordion
+                            openSection={openSection}
+                            isSectionFilled={isSectionFilled}
+                            sectionStyle={SECTION_STYLES['exercises']}
+                            isImported={isImported}
+                        />
+
                         {/* OUTROS AQUI... */}
                     </Accordion>
                 </div>
+
+                <RapidAssessmentModal
+                    isOpen={isAssessmentModalOpen}
+                    onClose={() => setIsAssessmentModalOpen(false)}
+                    assessmentType={form.watch("plan.extraQuestionnaire")}
+                    onSave={async (modalData: any) => {
+                        const type = modalData.type || form.getValues("plan.extraQuestionnaire");
+                        const current = form.getValues("plan.questionnaires") || [];
+
+                        const answers = modalData.answers || modalData;
+                        const score = modalData.score || 0;
+
+                        const newEntry = {
+                            type,
+                            data: answers,
+                            score: typeof score === 'object' ? (score.total || score.score) : score,
+                            savedAt: new Date().toISOString()
+                        };
+
+                        form.setValue("plan.questionnaires", [...current, newEntry], { shouldValidate: true, shouldDirty: true });
+                    }}
+                />
             </div>
         </FormProvider>
     );

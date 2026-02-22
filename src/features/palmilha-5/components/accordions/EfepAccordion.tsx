@@ -250,8 +250,8 @@ export function EfepAccordion({ openSection, isSectionFilled, sectionStyle, setI
                             <ClipboardList className="w-4 h-4 text-blue-600" />
                             <h4 className="font-bold text-slate-700 text-sm">Questionários Clínicos de Base</h4>
                         </div>
-                        <Badge variant="outline" className="text-[10px] font-bold border-blue-200 text-blue-600 bg-blue-50/50">
-                            PBE COMPLIANT
+                        <Badge variant="outline" className="text-[10px] font-bold border-blue-200 text-blue-600 bg-blue-50/50" title="Prática Baseada em Evidências">
+                            Padrão Ouro (PBE)
                         </Badge>
                     </div>
 

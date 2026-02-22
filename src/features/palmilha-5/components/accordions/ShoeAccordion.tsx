@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { Footprints, BookOpen, Search, Youtube, Info, Database, Loader2 } from "lucide-react";
+import { Footprints, BookOpen, Search, Youtube, Info, Database, Loader2, Zap, ThumbsUp, Activity, Ruler, Bone, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,11 +18,11 @@ import { calculateMinimalistIndex } from "@/utils/clinical-references";
 
 const ORIENTATIONS = {
     peso: "O peso impacta diretamente no custo metabólico da corrida. Cada 100g extra aumenta em ~1% o oxigênio consumido.",
-    drop: "Diferença de altura entre calcanhar e antepé. Drops baixos (0-4mm) favorecem a pisada de meio-pé/antepé.",
-    stack: "Espessura total da sola. Espessuras menores que 20mm aumentam o feedback sensorial do pé.",
-    estabilidade: "Presença de tecnologias de controle (postes, placas). Quanto mais tecnologias, menor a naturalidade.",
-    flex_long: "Avalia a rigidez na região das metatarso-falângicas. Tênis mais flexíveis exigem mais do sistema elástico/muscular.",
-    flex_tor: "Capacidade de torção do chassi. Crucial para adaptação do pé a irregularidades do terreno.",
+    drop: "Diferença de altura entre o calcanhar e o antepé. Drops baixos (0-4mm) favorecem a pisada de meio-pé/antepé.",
+    stack: "Espessura total da sola do chão. Espessuras menores que 20mm aumentam o feedback sensorial do pé.",
+    estabilidade: "Presença de tecnologias de controle de pronação (placas firmes, cunhas mediais). Se o tênis for DURO/CHEIO DE CONTROLE, marque 5. Se for de espuma limpa (TOTALMENTE NEUTRO), marque 0.",
+    flex_long: "Rigidez na ponta do tênis. Se você conseguir dobrar a frente do tênis com 1 dedo facilmente, marque 2.5 (Minimalista). Se não dobrar nada (ex: placa de carbono, sola muito dura), marque 0 (Maximalista).",
+    flex_tor: "Capacidade de torcer o tênis como um pano. Se torcer com muita facilidade, marque 2.5 (Minimalista). Se o chassi for rígido e o tênis não torcer nada lateralmente, marque 0 (Maximalista).",
 };
 
 const ShoeScale = ({ label, value, onChange, options, tooltip }: { label: string, value: any, onChange: (val: string) => void, options: { val: string, label: string }[], tooltip?: string }) => {
@@ -160,49 +160,98 @@ export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, orga
     }
 
     const shoeRecommendations = useMemo(() => {
-        const type = shoeVals?.injuryType;
-        const status = shoeVals?.injuryStatus;
+        const type = shoeVals?.injuryType || "none";
+        const status = shoeVals?.injuryStatus || "none";
+        const isPerformance = shoeVals?.goals?.includes("performance");
+        const exp = shoeVals?.experience || "amateur";
 
         let rec = {
-            text: "Tênis neutro recomendado.",
-            image: "👟",
-            feature: "Drop 6-8mm | Amortecimento Moderado",
-            details: "Mantenha o uso habitual enquanto não forem observados sintomas de dor.",
+            text: "Prescrição Baseada em Conforto",
+            image: <Footprints className="w-8 h-8 text-slate-400" />,
+            feature: "Manter o calçado atual se confortável",
+            details: "Preencha os campos para visualizar a recomendação técnica automática baseada na árvore de decisão da The Running Clinic.",
             color: "bg-slate-50 border-slate-200 text-slate-700"
         };
 
-        if (status === "acute") {
-            rec = {
-                text: "Fase Aguda: Evite mudanças importantes nesse momento.",
-                image: "⚠️",
-                feature: "Necessário melhor controle dos movimentos e estabilidade.",
-                details: "Mantenha o tênis atual, inicie ou dê continuidade a um programa de reabilitação e avalie a possibilidade do uso de palmilhas biomecânicas com o intuito de aliviar os sintomas.",
-                color: "bg-amber-50 border-amber-200 text-amber-800"
-            };
-        } else if (type === "achilles") {
-            rec = {
-                text: "Tênis com Drop Elevado Recomendado",
-                image: "📐",
-                feature: "Drop > 8mm",
-                details: "Ajuda a Reduzir a tensão mecânica no tendão Avalie a possibilidade do uso de palmilhas biomecânicas com o intuito de minimizar a sobrecarga no tendão de Aquiles e músculos da panturrilha",
-                color: "bg-blue-50 border-blue-200 text-blue-900"
-            };
-        } else if (type === "pfps") {
-            rec = {
-                text: "Tênis com Drop Baixo / Minimalista",
-                image: "👣",
-                feature: "Drop 0-4mm",
-                details: "Ajuda a Reduzir o estresse na articulação patelofemoral reduzindo a dor anterior do joelho. Avalie a possibilidade do uso de palmilhas biomecânicas com o intuito de melhorar a distribuição de forças na articulação patelofemoral",
-                color: "bg-green-50 border-green-200 text-green-900"
-            };
-        } else if (type === "stress_fracture") {
-            rec = {
-                text: "Maximalista / Rocker Sole",
-                image: "☁️",
-                feature: "Stack Alto | Rocker Sole",
-                details: "Protege os metatarsos durante a fase de propulsão. Avalie a possibilidade do uso de palmilhas biomecânicas com o intuito de reduzir a pressão nos metatarsos",
-                color: "bg-orange-50 border-orange-200 text-orange-900"
-            };
+
+        if (status === "none" || type === "none") {
+            // NOT INJURED PATH (FLOWCHART: RIGHT SIDE)
+            if (exp === "beginner") {
+                rec = {
+                    text: "Iniciantes (< 6 Meses)",
+                    image: <ThumbsUp className="w-8 h-8 text-indigo-500" />,
+                    feature: "Transição Gradual Longo Prazo",
+                    details: "Para corredores iniciais, o objetivo de atingir maior Índice Minimalista é possível a longo prazo. O foco é garantir a adaptação mecânica aos poucos, integrando novos calçados progressivamente sem gerar dor.",
+                    color: "bg-indigo-50 border-indigo-200 text-indigo-900"
+                };
+            } else if (exp === "elite" && isPerformance) {
+                rec = {
+                    text: "Competitivo / Performance Base (Elite)",
+                    image: <Zap className="w-8 h-8 text-violet-500" />,
+                    feature: "Minimalista (> 50-70%)",
+                    details: "Use calçados de performance (>50%) na maioria dos treinos de início/meio de temporada. Evite mudanças bruscas de hábitos. Em períodos Off-Season, em treinos curtos, o índice pode superar >70%.",
+                    color: "bg-violet-50 border-violet-200 text-violet-900"
+                };
+            } else if (isPerformance) {
+                rec = {
+                    text: "Objetivando Performance (Amador)",
+                    image: <Zap className="w-8 h-8 text-blue-500" />,
+                    feature: "Minimalista (> 50%)",
+                    details: "A literatura sugere que tênis mais leves e flexíveis melhoram a economia de corrida. Reduzir gradativamente o nível tecnológico do tênis para melhorar performance. Escolha Minimalista (> 50%).",
+                    color: "bg-blue-50 border-blue-200 text-blue-900"
+                };
+            } else {
+                rec = {
+                    text: "Prevenção e Correção",
+                    image: <ThumbsUp className="w-8 h-8 text-emerald-500" />,
+                    feature: "Manter tipo de calçado",
+                    details: "Sem dores e sem busca por quebra de recordes: a regra de ouro é NÃO MUDAR radicalmente de tênis para evitar lesões adaptativas de transição.",
+                    color: "bg-emerald-50 border-emerald-200 text-emerald-900"
+                };
+            }
+        } else {
+            // Se Fase Aguda, ignora tudo e puxa o vermelho
+            if (status === "acute") {
+                rec = {
+                    text: "Fase Aguda: Evite mudanças importantes",
+                    image: <AlertCircle className="w-8 h-8 text-amber-500" />,
+                    feature: "Controle e Estabilidade",
+                    details: "Mantenha o tênis atual, inicie ou dê continuidade a um programa de reabilitação e avalie a possibilidade do uso de palmilhas biomecânicas com o intuito de aliviar os sintomas.",
+                    color: "bg-amber-50 border-amber-200 text-amber-900"
+                };
+            } else if (type === "pfps") {
+                rec = {
+                    text: "Dor no Joelho (Patelofemoral) ou Tibial Anterior",
+                    image: <Activity className="w-8 h-8 text-green-500" />,
+                    feature: "Perfil Minimalista (> 60-70%)",
+                    details: "Recomenda-se calçados com DROP BAIXO, menos espessura e alta flexibilidade (Maior % Minimalista). Reduzir a estrutura mecânica do calçado diminui a sobrecarga nas articulações altas do joelho, transferindo a carga para a panturrilha.",
+                    color: "bg-green-50 border-green-200 text-green-900"
+                };
+            } else if (type === "achilles") {
+                rec = {
+                    text: "Lesão em Tendão de Aquiles ou Panturrilha",
+                    image: <Ruler className="w-8 h-8 text-orange-500" />,
+                    feature: "Perfil Maximalista (< 50%) / Drop Alto",
+                    details: "Evite calçados Minimalistas/Zero Drop. O paciente necessita de DROP ELEVADO (> 8mm) e sola com maior espessura para reduzir temporariamente a tensão e o alongamento estressante na musculatura posterior da perna.",
+                    color: "bg-orange-50 border-orange-200 text-orange-900"
+                };
+            } else if (type === "stress_fracture") {
+                rec = {
+                    text: "Metatarsalgia e Fratura por Estresse (Antepé)",
+                    image: <Bone className="w-8 h-8 text-red-500" />,
+                    feature: "Maximalista c/ Sola Rígida (< 40%)",
+                    details: "Recomendação fortíssima de Tênis Maximalista, Stack de Sola Alta, e PERFIL TOTALMENTE RÍGIDO (Rocker Sole / Sola em Berço). O objetivo é isolar e proteger os dedos na fase de impulsão (Toe-Off).",
+                    color: "bg-red-50 border-red-200 text-red-900"
+                };
+            } else if (type === "plantar_fasciitis") {
+                rec = {
+                    text: "Fasciite Plantar",
+                    image: <Footprints className="w-8 h-8 text-rose-500" />,
+                    feature: "Perfil Maximalista (< 40%)",
+                    details: "A literatura recomenda perfil menos minimalista, preferindo calçados que ofereçam suporte contra flexão excessiva (maior rigidez longitudinal) e stack mais elevado, isolando a fáscia durante a fase inflamatória.",
+                    color: "bg-rose-50 border-rose-200 text-rose-900"
+                };
+            }
         }
         return rec;
     }, [shoeVals]);
