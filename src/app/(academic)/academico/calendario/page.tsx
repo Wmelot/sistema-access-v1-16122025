@@ -175,6 +175,7 @@ export default function SyllabusWizard() {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [importedEnsinoFile, setImportedEnsinoFile] = useState<string | null>(null);
     const [importedCalendarioFile, setImportedCalendarioFile] = useState<string | null>(null);
+    const [selectedLogo, setSelectedLogo] = useState<string | null>(null);
     const printRef = useRef<HTMLDivElement>(null);
 
     // Step 1: Config
@@ -559,28 +560,68 @@ export default function SyllabusWizard() {
     };
 
     const handleImportSyllabus = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const data = JSON.parse(event.target?.result as string);
-                if (data.courseName) setCourseName(data.courseName);
-                if (data.publicSlug) setPublicSlug(data.publicSlug + '-copia');
-                if (data.theoryLocation) setTheoryLocation(data.theoryLocation);
-                if (data.practiceLocation) setPracticeLocation(data.practiceLocation);
-                if (data.weekDays) setWeekDays(data.weekDays);
-                if (data.assessments) setAssessments(data.assessments.map((a: any) => ({ ...a, date: a.date ? new Date(a.date) : null })));
-                if (data.assessments) setAssessments(data.assessments);
-                if (data.books) setBooks(data.books);
-                if (data.topics) setTopics(data.topics);
-                toast.success("Dossiê importado! Conteúdo preenchido automaticamente.");
-            } catch (err) {
-                toast.error("Erro ao importar: Arquivo inválido.");
-            }
+        let combinedCourseName = courseName;
+        let combinedPublicSlug = publicSlug;
+        let combinedTheoryLocation = theoryLocation;
+        let combinedPracticeLocation = practiceLocation;
+        let combinedWeekDays = weekDays;
+
+        let newAssessments: Assessment[] = [];
+        let newBooks: Book[] = [];
+        let newTopics: Topic[] = [];
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        const processFile = (file: File) => {
+            return new Promise<void>((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target?.result as string);
+                        if (data.courseName) combinedCourseName = data.courseName;
+                        if (data.publicSlug) combinedPublicSlug = data.publicSlug + '-copia';
+                        if (data.theoryLocation) combinedTheoryLocation = data.theoryLocation;
+                        if (data.practiceLocation) combinedPracticeLocation = data.practiceLocation;
+                        if (data.weekDays) combinedWeekDays = data.weekDays;
+
+                        if (data.assessments) {
+                            newAssessments = [...newAssessments, ...data.assessments.map((a: any) => ({ ...a, date: a.date ? new Date(a.date) : null }))];
+                        }
+                        if (data.books) newBooks = [...newBooks, ...data.books];
+                        if (data.topics) newTopics = [...newTopics, ...data.topics];
+
+                        successCount++;
+                    } catch (err) {
+                        errorCount++;
+                    }
+                    resolve();
+                };
+                reader.readAsText(file);
+            });
         };
-        reader.readAsText(file);
+
+        Promise.all(Array.from(files).map(processFile)).then(() => {
+            if (successCount > 0) {
+                setCourseName(combinedCourseName);
+                setPublicSlug(combinedPublicSlug);
+                setTheoryLocation(combinedTheoryLocation);
+                setPracticeLocation(combinedPracticeLocation);
+                setWeekDays(combinedWeekDays);
+
+                if (newAssessments.length > 0) setAssessments(newAssessments);
+                if (newBooks.length > 0) setBooks(newBooks);
+                if (newTopics.length > 0) setTopics(newTopics);
+
+                toast.success(`${successCount} dossiê(s) importado(s)! Conteúdo mesclado com sucesso.`);
+            }
+            if (errorCount > 0) {
+                toast.error(`Erro ao importar ${errorCount} arquivo(s). Formato inválido.`);
+            }
+        });
     };
     const handleAutoLinkBibliography = (topicId: string) => {
         const topic = topics.find(t => t.id === topicId);
@@ -599,9 +640,19 @@ export default function SyllabusWizard() {
         }
     };
 
+    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => setSelectedLogo(e.target?.result as string);
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleImportFromDocument = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files?.length) return;
-        setImportedEnsinoFile(e.target.files[0].name);
+        const fileNames = Array.from(e.target.files).map(f => f.name).join(', ');
+        setImportedEnsinoFile(fileNames);
         setIsAnalyzing(true);
         // Simulação de IA processando PDF/Word
         setTimeout(() => {
@@ -693,18 +744,30 @@ export default function SyllabusWizard() {
                                         </h4>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase text-slate-400 px-1">Início</Label>
+                                                <Label className="text-[10px] font-black uppercase text-slate-400 px-1">Período Letivo</Label>
                                                 <Popover>
                                                     <PopoverTrigger asChild>
-                                                        <Button variant="ghost" className="w-full justify-start rounded-2xl bg-slate-50 border-none font-bold h-14 hover:bg-slate-100 px-6">
-                                                            <CalendarIcon size={18} className="mr-3 opacity-30" />
-                                                            {startDate ? format(startDate, "PPP", { locale: ptBR }) : "Selecionar..."}
+                                                        <Button variant="outline" className={cn("w-full justify-start text-left font-bold rounded-2xl h-12 border-slate-100", !startDate && "text-muted-foreground")}>
+                                                            {startDate ? format(startDate, "dd/MM/yyyy") : <span>Data inícial</span>}
                                                         </Button>
                                                     </PopoverTrigger>
-                                                    <PopoverContent className="w-auto p-0 rounded-[28px] border-none shadow-2xl overflow-hidden" align="start">
-                                                        <Calendar mode="single" selected={startDate} onSelect={(d) => d && setStartDate(d)} initialFocus locale={ptBR} />
+                                                    <PopoverContent className="w-auto p-0 rounded-3xl border-none shadow-2xl overflow-hidden" align="start">
+                                                        <Calendar mode="single" selected={startDate} onSelect={(d) => d && setStartDate(d)} locale={ptBR} />
                                                     </PopoverContent>
                                                 </Popover>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase text-slate-400 px-1">Logo da Instituição</Label>
+                                                <label className="flex items-center justify-center w-full h-12 border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer hover:border-[#8C132C]/30 bg-slate-50 transition-all">
+                                                    <Input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                                                    {selectedLogo ? (
+                                                        <span className="text-[10px] font-bold text-slate-500 truncate px-4">Logotipo Selecionado</span>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
+                                                            <Upload size={14} /> Selecionar Logo
+                                                        </div>
+                                                    )}
+                                                </label>
                                             </div>
                                         </div>
                                     </div>
@@ -909,7 +972,7 @@ export default function SyllabusWizard() {
                                 <div className="flex justify-between w-full">
                                     <div className="flex gap-4">
                                         <label className="cursor-pointer">
-                                            <Input type="file" accept=".pdf,.doc,.docx" onChange={handleImportFromDocument} className="hidden" />
+                                            <Input type="file" multiple accept=".pdf,.doc,.docx" onChange={handleImportFromDocument} className="hidden" />
                                             <Button variant="outline" className="h-14 rounded-2xl border-[#8C132C]/20 text-[#8C132C] font-black uppercase text-[10px] tracking-widest px-8 hover:bg-[#8C132C]/5 flex items-center gap-2 pointer-events-none">
                                                 {isAnalyzing ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" /> : <Sparkles size={18} />}
                                                 {importedEnsinoFile || "Carregar Word/PDF (IA)"}
@@ -925,13 +988,13 @@ export default function SyllabusWizard() {
 
                                 {/* ÁREA DE IMPORTAÇÃO REQUISITADA - FOTO 3 */}
                                 <label className="group cursor-pointer w-full">
-                                    <Input type="file" accept=".json" onChange={handleImportSyllabus} className="hidden" />
+                                    <Input type="file" multiple accept=".json" onChange={handleImportSyllabus} className="hidden" />
                                     <div className="flex items-center gap-6 p-10 border-2 border-dashed border-slate-200 rounded-[44px] hover:border-[#8C132C]/30 hover:bg-[#8C132C]/5 transition-all w-full bg-slate-50/50">
                                         <div className="w-16 h-16 rounded-[24px] bg-white flex items-center justify-center text-slate-300 group-hover:bg-[#8C132C] group-hover:text-white transition-all shadow-xl group-hover:shadow-[#8C132C]/20">
                                             <Upload size={28} />
                                         </div>
                                         <div className="flex-1">
-                                            <div className="text-lg font-black text-slate-700">Importar Cronograma SINAES (.json)</div>
+                                            <div className="text-lg font-black text-slate-700">Importar Cronogramas SINAES (.json)</div>
                                             <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                                                 Carregue dossiês antigos para preencher conteúdos e bibliografias instantaneamente
                                             </div>
@@ -1620,14 +1683,17 @@ export default function SyllabusWizard() {
                                             Documento Oficial Acadêmico
                                         </Badge>
                                         <h1 className={cn(
-                                            "text-4xl font-black text-slate-800 leading-tight max-w-xl",
+                                            "text-4xl font-black text-slate-800 leading-tight truncate max-w-[600px]",
                                             selectedTemplate === 2 && "font-serif text-5xl italic"
-                                        )}>
+                                        )} title={courseName}>
                                             {courseName}
                                         </h1>
                                         <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Plano de Ensino & Cronograma Semestral</p>
                                     </div>
-                                    <div className="text-right">
+                                    <div className="text-right flex flex-col items-end">
+                                        {selectedLogo && (
+                                            <img src={selectedLogo} alt="Logo da Instituição" className="h-16 object-contain mb-4" />
+                                        )}
                                         <div className="text-[10px] font-black text-[#8C132C] mb-1">CÓD: TRAU-2026-X</div>
                                         <div className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Semestre 2026.1</div>
                                     </div>

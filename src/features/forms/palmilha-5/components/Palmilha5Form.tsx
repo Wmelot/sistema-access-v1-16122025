@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
-import { useForm, FormProvider } from "react-hook-form";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useForm, useWatch, FormProvider } from "react-hook-form";
+import { AxiomCopilot } from "@/components/copilot/AxiomCopilot";
 import { Accordion } from "@/components/ui/accordion";
 import { RapidAssessmentModal } from "@/features/forms/pbe/components/RapidAssessmentModal";
 import { cn } from "@/lib/utils";
@@ -10,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSidebar } from "@/hooks/use-sidebar";
-import { AiAssistantAccordion } from "./accordions/AiAssistantAccordion";
 import { HmaAccordion } from "./accordions/HmaAccordion";
 import { HistoryAccordion } from "./accordions/HistoryAccordion";
 import { PainMapAccordion } from "./accordions/PainMapAccordion";
@@ -244,24 +244,29 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
                                         <h2 className="text-3xl font-black tracking-tight text-slate-800">{activeSec.label}</h2>
                                         <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">{activeSec.desc}</p>
                                     </div>
+                                    <div className="flex flex-col sm:flex-row items-center gap-2">
+
+                                        <Badge variant="outline" className="hidden sm:flex h-9 justify-center gap-2 px-3 py-1 border-slate-200">
+                                            <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                            <span className="text-xs font-medium text-slate-600">Salvamento Automático</span>
+                                        </Badge>
+
+                                        <Button
+                                            type="button"
+                                            onClick={() => setFeegowImportOpen(true)}
+                                            variant="outline"
+                                            className="h-9 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 font-bold px-4 rounded-xl flex items-center gap-2"
+                                        >
+                                            <Database className="w-4 h-4" />
+                                            <span className="hidden sm:inline">Sincronizar Feegow</span>
+                                        </Button>
+                                    </div>
                                 </div>
                             );
                         })()}
                     </div>
 
-                    <div className="w-full [&>div>div>h3]:hidden">
-                        {/* 0. ASSISTENTE IA & TRANSCRIÇÃO (Fixo no topo da Main Column se quiser) */}
-                        <div className="mb-4">
-                            <Accordion type="single" collapsible={false} className="w-full">
-                                <AiAssistantAccordion
-                                    openSection="ai_assistant"
-                                    isSectionFilled={isSectionFilled}
-                                    sectionStyle={{ border: "border-l-indigo-600", iconColor: "text-indigo-600" }}
-                                    isImported={isImported}
-                                />
-                            </Accordion>
-                        </div>
-
+                    <div className="w-full">
                         <Accordion type="single" value={openSection} onValueChange={setOpenSection} className="w-full space-y-4 [&>[data-state=closed]]:hidden">
 
                             {/* 1. ANAMNESE (MIGRADO!) */}
@@ -478,6 +483,11 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
             {!hideButtons && (
                 <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-white/50 backdrop-blur-md p-2 rounded-full border border-slate-200/50 shadow-2xl animate-in slide-in-from-bottom-5">
 
+                    <AxiomCopilot
+                        specialty="Fisioterapeuta Sênior PBE"
+                        formSchemaName="Palmilha Biomecânica 5.0"
+                    />
+
                     {/* Botão Salvar (Outline) */}
                     <Button
                         type="button"
@@ -503,7 +513,7 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
                         className="rounded-full bg-slate-900 hover:bg-slate-800 text-white shadow-lg h-12 px-6 font-bold flex items-center gap-2 transition-all active:scale-95 border border-slate-700"
                     >
                         <Eye className="w-5 h-5 text-blue-400" />
-                        Gerar Relatório PDF
+                        Relatório
                     </Button>
 
                     {/* Botão Importar Feegow (Emerald) */}
@@ -513,7 +523,7 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
                         className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg h-12 px-6 font-bold flex items-center gap-2 transition-all active:scale-95 border border-emerald-500"
                     >
                         <Zap className="w-5 h-5 text-emerald-100" />
-                        Importar Feegow
+                        Importar
                     </Button>
                 </div>
             )}
