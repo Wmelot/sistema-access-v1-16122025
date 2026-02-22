@@ -2,9 +2,11 @@ import React, { useState, useEffect } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+
+const normalizeStr = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
 const EXERCISES_DB = [
     "Fortalecimento de Glúteo Médio (Drop Pélvico)",
@@ -21,6 +23,20 @@ const EXERCISES_DB = [
 
 const ComboboxSelector = ({ value, onChange, database, placeholder = "Buscar...", autoFocus, onCommit }: { value: string, onChange: (v: string) => void, database: string[], placeholder?: string, autoFocus?: boolean, onCommit?: () => void }) => {
     const [open, setOpen] = useState(false);
+    const [customInput, setCustomInput] = useState("");
+
+    const normalizedCustom = normalizeStr(customInput);
+
+    // check if it's an exact match (blocks adding)
+    const isExactDuplicate = normalizedCustom.length >= 3 && database.some(item => {
+        return normalizeStr(item) === normalizedCustom;
+    });
+
+    // check if there's a similar item (just warns, but allows adding if not exact)
+    const isSimilar = !isExactDuplicate && normalizedCustom.length >= 3 && database.some(item => {
+        const normalizedItem = normalizeStr(item);
+        return normalizedItem.includes(normalizedCustom) || normalizedCustom.includes(normalizedItem);
+    });
 
     useEffect(() => {
         if (autoFocus) {
@@ -67,17 +83,39 @@ const ComboboxSelector = ({ value, onChange, database, placeholder = "Buscar..."
                 <div className="p-2 border-t bg-slate-50">
                     <div className="text-[10px] text-slate-400 font-bold mb-1 uppercase">Não encontrou? Digite aqui:</div>
                     <Input
-                        className="h-8 bg-white border-slate-200 text-xs shadow-none"
+                        className={cn("h-8 text-xs shadow-none transition-colors",
+                            isExactDuplicate ? "bg-red-50 border-red-300 text-red-900 focus-visible:ring-red-400" :
+                                isSimilar ? "bg-amber-50 border-amber-300 text-amber-900 focus-visible:ring-amber-400" :
+                                    "bg-white border-slate-200"
+                        )}
                         placeholder="Nome personalizado..."
+                        value={customInput}
+                        onChange={(e) => setCustomInput(e.target.value)}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 e.preventDefault();
-                                onChange(e.currentTarget.value);
+                                if (isExactDuplicate) return; // prevents adding exact duplicate
+                                if (!customInput.trim()) return;
+
+                                onChange(customInput);
                                 setOpen(false);
+                                setCustomInput(""); // reset
                                 if (onCommit) onCommit()
                             }
                         }}
                     />
+                    {isExactDuplicate && (
+                        <div className="text-[10px] text-red-600 font-bold flex items-center gap-1 mt-1.5 animate-in fade-in slide-in-from-top-1">
+                            <AlertTriangle className="w-3 h-3" />
+                            Este exercício já existe exatamente assim!
+                        </div>
+                    )}
+                    {isSimilar && (
+                        <div className="text-[10px] text-amber-600 font-bold flex items-center gap-1 mt-1.5 animate-in fade-in slide-in-from-top-1">
+                            <AlertTriangle className="w-3 h-3" />
+                            Exercício similar encontrado acima. Tem certeza que quer adicionar? (Pressione Enter para forçar)
+                        </div>
+                    )}
                 </div>
             </PopoverContent>
         </Popover>

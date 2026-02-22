@@ -200,8 +200,8 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
         painPoints.forEach((p: any) => {
             if (!p.label) return
             const text = p.label.toLowerCase()
-            const isLeft = p.view === 'left-feet'
-            const isRight = p.view === 'right-feet'
+            const isLeft = p.view === 'feetLeft' || p.view === 'left-feet'
+            const isRight = p.view === 'feetRight' || p.view === 'right-feet'
             if (!isLeft && !isRight) return
 
             const setFoot = isLeft ? setLeftFoot : setRightFoot

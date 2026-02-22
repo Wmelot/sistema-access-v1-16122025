@@ -570,6 +570,7 @@ export default function SyllabusWizard() {
     };
 
     const handleImportFromDocument = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.length) return;
         setIsAnalyzing(true);
         // Simulação de IA processando PDF/Word
         setTimeout(() => {
@@ -578,8 +579,18 @@ export default function SyllabusWizard() {
                 { id: 'ia-2', title: 'Cadeias Musculares e Postura', classesNeeded: 4, bibliographyIds: [], isPractical: true, resources: ['Macas'], methodology: 'Estudo de Caso' },
                 { id: 'ia-3', title: 'Avaliação da Marcha Humana', classesNeeded: 2, bibliographyIds: [], isPractical: true, resources: ['Câmera'], methodology: 'Demonstração Prática' }
             ]);
+
+            setAssessments([
+                { id: 'ia-a1', name: 'Avaliação Parcial (PI)', date: new Date(2026, 3, 15), points: 30, type: 'Professor' },
+                { id: 'ia-a2', name: 'Relatório Prático / Casos Clínicos', date: new Date(2026, 4, 10), points: 30, type: 'Curso' },
+                { id: 'ia-a3', name: 'Avaliação Global (PII)', date: new Date(2026, 5, 20), points: 40, type: 'Institucional' }
+            ]);
+
+            setDistribution({ exams: 60, presence: 10, participation: 30 });
+
             setIsAnalyzing(false);
-            toast.success("IA: Conteúdo extraído com sucesso do seu documento antigo!");
+            e.target.value = ''; // Reset input
+            toast.success("IA: Cronograma antigo processado! Tópicos e critérios de provas importados automaticamente.");
         }, 2500);
     };
     return (

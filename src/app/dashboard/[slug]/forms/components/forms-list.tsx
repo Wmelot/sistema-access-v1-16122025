@@ -10,6 +10,7 @@ import { ViewModeToggle } from "@/components/ui/view-mode-toggle"
 import { useViewMode } from "@/hooks/use-view-mode"
 import { ManagementHeader } from "@/components/dashboard/management-header"
 import { FormCardActions } from './form-card-actions'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
     Dialog,
     DialogContent,
@@ -117,401 +118,553 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
             </ManagementHeader>
 
             {viewMode === 'grid' ? (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <Tabs defaultValue="forms" className="w-full">
+                    <TabsList className="mb-6 h-auto p-1 bg-slate-100 flex flex-wrap lg:flex-nowrap">
+                        <TabsTrigger value="forms" className="py-2.5 px-6 font-bold text-xs uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-xl">
+                            📁 Formulários
+                        </TabsTrigger>
+                        <TabsTrigger value="questionnaires" className="py-2.5 px-6 font-bold text-xs uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-xl">
+                            📋 Questionários
+                        </TabsTrigger>
+                        <TabsTrigger value="protocols" className="py-2.5 px-6 font-bold text-xs uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-xl">
+                            📚 Protocolos
+                        </TabsTrigger>
+                    </TabsList>
 
-                    {/* SANDBOX CARDS (HARDCODED FORMS) */}
+                    {/* FOLDER: FORMULÁRIOS */}
+                    <TabsContent value="forms" className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 focus-visible:outline-none">
 
-                    {/* Palmilha 5.0 (Novo/Beta/Refatoração em andamento) */}
-                    {hasPalmilha5 && (
-                        <Card className="hover:border-zinc-500/50 transition-colors flex flex-col justify-between relative group border-2 border-zinc-900 bg-zinc-900 overflow-hidden shadow-2xl">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 blur-3xl -z-10 rounded-full mix-blend-screen opacity-50"></div>
-                            <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-blue-500/20 to-emerald-500/20 blur-3xl -z-10 rounded-full mix-blend-screen opacity-50"></div>
+                        {/* SANDBOX CARDS (HARDCODED FORMS) */}
 
-                            <div>
-                                <CardHeader className="pb-2 relative z-10">
-                                    <CardTitle className="text-xl font-bold flex items-center gap-2 text-white">
-                                        <div className="bg-white/10 p-2 rounded-xl border border-white/10 backdrop-blur-md">
-                                            <FileText className="h-5 w-5 text-indigo-400" />
-                                        </div>
-                                        Palmilha 5.0
-                                    </CardTitle>
-                                    <CardDescription className="text-zinc-400 leading-relaxed pt-2">
-                                        Nova versão sendo construída juntos, usando arquitetura modular extrema sem afetar o modelo original.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="relative z-10 pt-2">
-                                    <div className="flex gap-2">
-                                        <Badge className="bg-gradient-to-r from-indigo-500 to-purple-600 border-none text-white uppercase text-[10px] tracking-widest font-black shadow-lg shadow-indigo-500/20">
-                                            EM CONSTRUÇÃO (BETA)
-                                        </Badge>
-                                        <Badge className="bg-zinc-800 text-zinc-400 uppercase text-[10px] tracking-widest font-black border-zinc-700">Refatoração</Badge>
-                                    </div>
-                                </CardContent>
-                            </div>
-                            <div className="p-6 pt-4 relative z-10">
-                                <Link href={`/dashboard/${slug}/test-form/palmilha-5`} className="w-full" onClick={() => showLoading()}>
-                                    <Button className="w-full bg-white hover:bg-zinc-100 text-zinc-900 font-black h-12 shadow-xl shadow-black/20 transition-all hover:scale-[1.02] active:scale-95 text-xs tracking-wide">
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        ACOMPANHAR A CONSTRUÇÃO DO V5
-                                    </Button>
-                                </Link>
-                            </div>
-                        </Card>
-                    )}
+                        {/* Palmilha 5.0 (Novo/Beta/Refatoração em andamento) */}
+                        {hasPalmilha5 && (
+                            <Card className="hover:border-zinc-500/50 transition-colors flex flex-col justify-between relative group border-2 border-zinc-900 bg-zinc-900 overflow-hidden shadow-2xl">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 blur-3xl -z-10 rounded-full mix-blend-screen opacity-50"></div>
+                                <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-blue-500/20 to-emerald-500/20 blur-3xl -z-10 rounded-full mix-blend-screen opacity-50"></div>
 
-                    {/* 1. Palmilha Access (Já existente) */}
-                    {hasPalmilha && (
-                        <Card className="hover:border-indigo-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-indigo-50/10">
-                            <div>
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-lg font-medium flex items-center gap-2 text-indigo-700">
-                                        <FileText className="h-5 w-5" />
-                                        Palmilha Biomecânica
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Avaliação para confecção de palmilhas (Baropodometria e Exame Físico).
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex gap-2 mb-2">
-                                        <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200 uppercase text-[10px] tracking-widest font-black">Sistema</Badge>
-                                    </div>
-                                </CardContent>
-                            </div>
-                            <div className="p-6 pt-0">
-                                <Link href={`/dashboard/${slug}/test-form`} className="w-full" onClick={() => showLoading()}>
-                                    <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white group-hover:shadow-md transition-all font-bold">
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        Abrir Formulário
-                                    </Button>
-                                </Link>
-                            </div>
-                        </Card>
-                    )}
-
-                    {/* 1.1 Palmilha Biomecânica V3 (NEW) */}
-                    {hasPalmilhaV3 && (
-                        <Card className="hover:border-violet-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-violet-50/10">
-                            <div>
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-lg font-medium flex items-center gap-2 text-violet-700">
-                                        <FileText className="h-5 w-5" />
-                                        Palmilha Biomecânica V3
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Nova versão com design premium e relatórios integrados.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex gap-2 mb-2">
-                                        <Badge className="bg-violet-100 text-violet-800 hover:bg-violet-200 uppercase text-[10px] tracking-widest font-black">NOVO</Badge>
-                                    </div>
-                                </CardContent>
-                            </div>
-                            <div className="p-6 pt-0">
-                                <Link href={`/dashboard/${slug}/test-form/palmilha-v3`} className="w-full" onClick={() => showLoading()}>
-                                    <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white group-hover:shadow-md transition-all font-bold">
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        Abrir V3
-                                    </Button>
-                                </Link>
-                            </div>
-                        </Card>
-                    )}
-
-                    {/* 2. Saúde da Mulher */}
-                    {hasWomensHealth && (
-                        <Card className="hover:border-pink-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-pink-50/10">
-                            <div>
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-lg font-medium flex items-center gap-2 text-pink-700">
-                                        <FileText className="h-5 w-5" />
-                                        Saúde da Mulher & Pélvica
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Avaliação completa de Saúde da Mulher Uro-Ginecológica.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex gap-2 mb-2">
-                                        <Badge className="bg-pink-100 text-pink-800 hover:bg-pink-200 uppercase text-[10px] tracking-widest font-black">Sistema</Badge>
-                                    </div>
-                                </CardContent>
-                            </div>
-                            <div className="p-6 pt-0">
-                                <Link href={`/dashboard/${slug}/test-form/womens-health`} className="w-full" onClick={() => showLoading()}>
-                                    <Button className="w-full bg-pink-600 hover:bg-pink-700 text-white group-hover:shadow-md transition-all font-bold">
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        Abrir Formulário
-                                    </Button>
-                                </Link>
-                            </div>
-                        </Card>
-                    )}
-
-                    {/* 3. Avaliação Clínica Inteligente (PBE) */}
-                    {hasPbe && (
-                        <Card className="hover:border-blue-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-blue-50/10">
-                            <div>
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-lg font-medium flex items-center gap-2 text-blue-700">
-                                        <FileText className="h-5 w-5" />
-                                        Avaliação PBE (Inteligente)
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Formulário inteligente com triagem de Red Flags e anamnese direcionada.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex gap-2 mb-2">
-                                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 uppercase text-[10px] tracking-widest font-black">Sistema</Badge>
-                                    </div>
-                                </CardContent>
-                            </div>
-                            <div className="p-6 pt-0">
-                                <Link href={`/dashboard/${slug}/test-form/pbe`} className="w-full" onClick={() => showLoading()}>
-                                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white group-hover:shadow-md transition-all font-bold">
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        Abrir Formulário
-                                    </Button>
-                                </Link>
-                            </div>
-                        </Card>
-                    )}
-
-                    {/* 3.5 Ultimate PBE (FUSÃO) */}
-                    {hasUltimate && (
-                        <Card className="hover:border-violet-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-violet-50/10 col-span-1 md:col-span-2 lg:col-span-1 border-violet-200">
-                            <div>
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-lg font-black flex items-center gap-2 text-violet-700">
-                                        <Brain className="h-5 w-5 fill-violet-200" />
-                                        Ultimate PBE (Fusão)
-                                    </CardTitle>
-                                    <CardDescription className="text-violet-600/70 font-medium">
-                                        A unificação definitiva: Clínica + Física + Biomecânica em uma única tela.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex gap-2 mb-2">
-                                        <Badge className="bg-violet-600 text-white hover:bg-violet-700 uppercase text-[10px] tracking-widest font-black shadow-sm">BETA</Badge>
-                                    </div>
-                                </CardContent>
-                            </div>
-                            <div className="p-6 pt-0">
-                                <Link href={`/dashboard/${slug}/test-form/ultimate-pbe`} className="w-full" onClick={() => showLoading()}>
-                                    <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white group-hover:shadow-md transition-all font-bold shadow-violet-200">
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        Abrir Ultimate
-                                    </Button>
-                                </Link>
-                            </div>
-                        </Card>
-                    )}
-
-                    {/* 3.6 PBE 3.0 Tree Wizard (IA) */}
-                    {hasWizard && (
-                        <Card className="hover:border-indigo-500/50 transition-colors flex flex-col justify-between relative group border-2 bg-indigo-50/10 border-indigo-200 shadow-lg shadow-indigo-100/50">
-                            <div className="absolute -top-3 -right-3">
-                                <Badge className="bg-indigo-600 text-white border-2 border-white px-3 py-1 text-[10px] font-black tracking-widest animate-bounce">TOP</Badge>
-                            </div>
-                            <div>
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-lg font-black flex items-center gap-2 text-indigo-700">
-                                        <Brain className="h-5 w-5" />
-                                        PBE 3.0: Tree Wizard (IA)
-                                    </CardTitle>
-                                    <CardDescription className="text-indigo-600/80 font-bold">
-                                        Avaliação orientada por Árvore de Decisão e Raciocínio Clínico IA.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex gap-2 mb-2">
-                                        <Badge className="bg-indigo-100 text-indigo-700 border-none uppercase text-[9px] font-black tracking-tighter">✨ Especialista IA</Badge>
-                                    </div>
-                                </CardContent>
-                            </div>
-                            <div className="p-6 pt-0">
-                                <Link href={`/dashboard/${slug}/test-form/smart-wizard`} className="w-full" onClick={() => showLoading()}>
-                                    <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white group-hover:shadow-lg transition-all font-black tracking-tight">
-                                        <Brain className="mr-2 h-4 w-4" />
-                                        INICIAR WIZARD
-                                    </Button>
-                                </Link>
-                            </div>
-                        </Card>
-                    )}
-
-                    {/* 4. Avaliação Física Avançada (Restored) */}
-                    {hasPhysical && (
-                        <Card className="hover:border-emerald-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-emerald-50/10">
-                            <div>
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-lg font-medium flex items-center gap-2 text-emerald-700">
-                                        <Activity className="h-5 w-5" />
-                                        Avaliação Física Avançada
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Versão completa com 8 etapas, cálculos de risco, força, cardio e relatórios.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex gap-2 mb-2">
-                                        <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 uppercase text-[10px] tracking-widest font-black">Sistema</Badge>
-                                    </div>
-                                </CardContent>
-                            </div>
-                            <div className="p-6 pt-0">
-                                <Link href={`/dashboard/${slug}/test-form/physical`} className="w-full" onClick={() => showLoading()}>
-                                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white group-hover:shadow-md transition-all font-bold">
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        Abrir Formulário
-                                    </Button>
-                                </Link>
-                            </div>
-                        </Card>
-                    )}
-
-                    {/* 5. Palmilha Pé Insensível */}
-                    {hasDiabetic && (
-                        <Card className="hover:border-emerald-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-emerald-50/10">
-                            <div>
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-lg font-medium flex items-center gap-2 text-emerald-700">
-                                        <FileText className="h-5 w-5" />
-                                        Palmilha Pé Insensível
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Avaliação completa para pés diabéticos e prescrição de palmilhas especiais.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex gap-2 mb-2">
-                                        <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 uppercase text-[10px] tracking-widest font-black">Sistema</Badge>
-                                    </div>
-                                </CardContent>
-                            </div>
-                            <div className="p-6 pt-0">
-                                <Link href={`/dashboard/${slug}/test-form/diabetic-foot`} className="w-full" onClick={() => showLoading()}>
-                                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white group-hover:shadow-md transition-all font-bold">
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        Abrir Formulário
-                                    </Button>
-                                </Link>
-                            </div>
-                        </Card>
-                    )}
-
-                    {/* 6. Evolução Clínica Inteligente (NEW) */}
-                    {hasEvolution && (
-                        <Card className="hover:border-indigo-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-indigo-50/10">
-                            <div>
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-lg font-medium flex items-center gap-2 text-indigo-700">
-                                        <Brain className="h-5 w-5" />
-                                        Evolução Clínica & IA
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Evolução assistida por voz com Tutor de Carga e raciocínio clínico.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex gap-2 mb-2">
-                                        <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200 uppercase text-[10px] tracking-widest font-black">NOVO</Badge>
-                                    </div>
-                                </CardContent>
-                            </div>
-                            <div className="p-6 pt-0">
-                                <Link href={`/dashboard/${slug}/test-form/clinical-evolution`} className="w-full" onClick={() => showLoading()}>
-                                    <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white group-hover:shadow-md transition-all font-bold">
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        Abrir Formulário
-                                    </Button>
-                                </Link>
-                            </div>
-                        </Card>
-                    )}
-
-                    {customForms
-                        // Filter out duplicates ONLY if they are Locked System Forms that we replaced with Hardcoded Cards
-                        // This ensures User's Custom Copies (is_locked=false) are still visible!
-                        .filter((t: any) => {
-                            if (t.is_locked) {
-                                const lowerTitle = t.title?.toLowerCase() || '';
-                                if (lowerTitle.includes('palmilha biomecânica') && !lowerTitle.includes('v3')) return false;
-                                if (lowerTitle.includes('palmilha biomecânica v3')) return false;
-                                if (lowerTitle.includes('saúde da mulher')) return false;
-                                if (lowerTitle.includes('avaliação clínica inteligente') || lowerTitle.includes('pbe (inteligente)')) return false;
-                                if (lowerTitle.includes('física avançada')) return false;
-                                if (lowerTitle.includes('ultimate pbe')) return false;
-                                if (lowerTitle.includes('tree wizard')) return false;
-                                if (lowerTitle.includes('pé insensível')) return false;
-                                if (lowerTitle.includes('evolução clínica & ia')) return false;
-                            }
-                            return true;
-                        })
-                        .map((template: any) => (
-                            <Card key={template.id} className="hover:border-primary/50 transition-colors flex flex-col justify-between relative group">
                                 <div>
-                                    <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                                        <CardTitle className="text-lg font-medium line-clamp-1" title={template.title}>
-                                            {template.title}
+                                    <CardHeader className="pb-2 relative z-10">
+                                        <CardTitle className="text-xl font-bold flex items-center gap-2 text-white">
+                                            <div className="bg-white/10 p-2 rounded-xl border border-white/10 backdrop-blur-md">
+                                                <FileText className="h-5 w-5 text-indigo-400" />
+                                            </div>
+                                            Palmilha 5.0
                                         </CardTitle>
-                                        <div className="absolute top-2 right-2 opacity-100 transition-opacity">
-                                            <FormCardActions
-                                                templateId={template.id}
-                                                templateTitle={template.title}
-                                                isActive={!!template.is_active}
-                                                allowedRoles={template.allowed_roles || []}
-                                                accessConfig={template.access_config}
-                                                professionals={professionals}
-                                                userId={template.user_id}
-                                                currentUserId={user?.id}
-                                            />
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="mb-2 flex gap-2">
-                                            <Badge variant={template.is_active ? "default" : "secondary"} className={template.is_active ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}>
-                                                {template.is_active ? "Ativo" : "Rascunho / Inativo"}
-                                            </Badge>
-                                            <Badge variant={template.is_locked ? "secondary" : "outline"} className="text-xs font-normal">
-                                                {template.is_locked ? "Padronizado" : "Personalizado"}
-                                            </Badge>
-                                        </div>
-                                        <CardDescription className="line-clamp-2 min-h-[40px]">
-                                            {template.description || "Sem descrição."}
+                                        <CardDescription className="text-zinc-400 leading-relaxed pt-2">
+                                            Nova versão sendo construída juntos, usando arquitetura modular extrema sem afetar o modelo original.
                                         </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="relative z-10 pt-2">
+                                        <div className="flex gap-2">
+                                            <Badge className="bg-gradient-to-r from-indigo-500 to-purple-600 border-none text-white uppercase text-[10px] tracking-widest font-black shadow-lg shadow-indigo-500/20">
+                                                EM CONSTRUÇÃO (BETA)
+                                            </Badge>
+                                            <Badge className="bg-zinc-800 text-zinc-400 uppercase text-[10px] tracking-widest font-black border-zinc-700">Refatoração</Badge>
+                                        </div>
                                     </CardContent>
                                 </div>
-                                <div className="p-6 pt-0">
-                                    <Link
-                                        href={template.is_locked ? `/dashboard/${slug}/questionnaires/preview/${template.id}` : `/dashboard/${slug}/forms/builder/${template.id}`}
-                                        className={`w-full ${!template.is_locked && !template.canEdit ? 'pointer-events-none' : ''}`}
-                                        onClick={() => showLoading()}
-                                    >
-                                        <Button
-                                            variant={template.is_locked ? "secondary" : "outline"}
-                                            className="w-full group-hover:bg-primary group-hover:text-white transition-colors"
-                                            disabled={!template.is_locked && !template.canEdit}
-                                        >
-                                            {template.is_locked ? (
-                                                <>
-                                                    <FileText className="mr-2 h-3 w-3" />
-                                                    Visualizar
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Pencil className="mr-2 h-3 w-3" />
-                                                    {template.canEdit ? 'Editar Layout' : 'Apenas Visualizar'}
-                                                </>
-                                            )}
+                                <div className="p-6 pt-4 relative z-10">
+                                    <Link href={`/dashboard/${slug}/test-form/palmilha-5`} className="w-full" onClick={() => showLoading()}>
+                                        <Button className="w-full bg-white hover:bg-zinc-100 text-zinc-900 font-black h-12 shadow-xl shadow-black/20 transition-all hover:scale-[1.02] active:scale-95 text-xs tracking-wide">
+                                            <Pencil className="mr-2 h-4 w-4" />
+                                            ACOMPANHAR A CONSTRUÇÃO DO V5
                                         </Button>
                                     </Link>
                                 </div>
                             </Card>
-                        ))}
-                </div>
+                        )}
+
+                        {/* 1. Palmilha Access (Já existente) */}
+                        {hasPalmilha && (
+                            <Card className="hover:border-indigo-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-indigo-50/10">
+                                <div>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-lg font-medium flex items-center gap-2 text-indigo-700">
+                                            <FileText className="h-5 w-5" />
+                                            Palmilha Biomecânica
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Avaliação para confecção de palmilhas (Baropodometria e Exame Físico).
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="flex gap-2 mb-2">
+                                            <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200 uppercase text-[10px] tracking-widest font-black">Sistema</Badge>
+                                        </div>
+                                    </CardContent>
+                                </div>
+                                <div className="p-6 pt-0">
+                                    <Link href={`/dashboard/${slug}/test-form`} className="w-full" onClick={() => showLoading()}>
+                                        <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white group-hover:shadow-md transition-all font-bold">
+                                            <Pencil className="mr-2 h-4 w-4" />
+                                            Abrir Formulário
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </Card>
+                        )}
+
+                        {/* 1.1 Palmilha Biomecânica V3 (NEW) */}
+                        {hasPalmilhaV3 && (
+                            <Card className="hover:border-violet-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-violet-50/10">
+                                <div>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-lg font-medium flex items-center gap-2 text-violet-700">
+                                            <FileText className="h-5 w-5" />
+                                            Palmilha Biomecânica V3
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Nova versão com design premium e relatórios integrados.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="flex gap-2 mb-2">
+                                            <Badge className="bg-violet-100 text-violet-800 hover:bg-violet-200 uppercase text-[10px] tracking-widest font-black">NOVO</Badge>
+                                        </div>
+                                    </CardContent>
+                                </div>
+                                <div className="p-6 pt-0">
+                                    <Link href={`/dashboard/${slug}/test-form/palmilha-v3`} className="w-full" onClick={() => showLoading()}>
+                                        <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white group-hover:shadow-md transition-all font-bold">
+                                            <Pencil className="mr-2 h-4 w-4" />
+                                            Abrir V3
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </Card>
+                        )}
+
+                        {/* 2. Saúde da Mulher */}
+                        {hasWomensHealth && (
+                            <Card className="hover:border-pink-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-pink-50/10">
+                                <div>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-lg font-medium flex items-center gap-2 text-pink-700">
+                                            <FileText className="h-5 w-5" />
+                                            Saúde da Mulher & Pélvica
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Avaliação completa de Saúde da Mulher Uro-Ginecológica.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="flex gap-2 mb-2">
+                                            <Badge className="bg-pink-100 text-pink-800 hover:bg-pink-200 uppercase text-[10px] tracking-widest font-black">Sistema</Badge>
+                                        </div>
+                                    </CardContent>
+                                </div>
+                                <div className="p-6 pt-0">
+                                    <Link href={`/dashboard/${slug}/test-form/womens-health`} className="w-full" onClick={() => showLoading()}>
+                                        <Button className="w-full bg-pink-600 hover:bg-pink-700 text-white group-hover:shadow-md transition-all font-bold">
+                                            <Pencil className="mr-2 h-4 w-4" />
+                                            Abrir Formulário
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </Card>
+                        )}
+
+                        {/* 3. Avaliação Clínica Inteligente (PBE) */}
+                        {hasPbe && (
+                            <Card className="hover:border-blue-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-blue-50/10">
+                                <div>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-lg font-medium flex items-center gap-2 text-blue-700">
+                                            <FileText className="h-5 w-5" />
+                                            Avaliação PBE (Inteligente)
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Formulário inteligente com triagem de Red Flags e anamnese direcionada.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="flex gap-2 mb-2">
+                                            <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 uppercase text-[10px] tracking-widest font-black">Sistema</Badge>
+                                        </div>
+                                    </CardContent>
+                                </div>
+                                <div className="p-6 pt-0">
+                                    <Link href={`/dashboard/${slug}/test-form/pbe`} className="w-full" onClick={() => showLoading()}>
+                                        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white group-hover:shadow-md transition-all font-bold">
+                                            <Pencil className="mr-2 h-4 w-4" />
+                                            Abrir Formulário
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </Card>
+                        )}
+
+                        {/* 3.5 Ultimate PBE (FUSÃO) */}
+                        {hasUltimate && (
+                            <Card className="hover:border-violet-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-violet-50/10 col-span-1 md:col-span-2 lg:col-span-1 border-violet-200">
+                                <div>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-lg font-black flex items-center gap-2 text-violet-700">
+                                            <Brain className="h-5 w-5 fill-violet-200" />
+                                            Ultimate PBE (Fusão)
+                                        </CardTitle>
+                                        <CardDescription className="text-violet-600/70 font-medium">
+                                            A unificação definitiva: Clínica + Física + Biomecânica em uma única tela.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="flex gap-2 mb-2">
+                                            <Badge className="bg-violet-600 text-white hover:bg-violet-700 uppercase text-[10px] tracking-widest font-black shadow-sm">BETA</Badge>
+                                        </div>
+                                    </CardContent>
+                                </div>
+                                <div className="p-6 pt-0">
+                                    <Link href={`/dashboard/${slug}/test-form/ultimate-pbe`} className="w-full" onClick={() => showLoading()}>
+                                        <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white group-hover:shadow-md transition-all font-bold shadow-violet-200">
+                                            <Pencil className="mr-2 h-4 w-4" />
+                                            Abrir Ultimate
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </Card>
+                        )}
+
+                        {/* 3.6 PBE 3.0 Tree Wizard (IA) */}
+                        {hasWizard && (
+                            <Card className="hover:border-indigo-500/50 transition-colors flex flex-col justify-between relative group border-2 bg-indigo-50/10 border-indigo-200 shadow-lg shadow-indigo-100/50">
+                                <div className="absolute -top-3 -right-3">
+                                    <Badge className="bg-indigo-600 text-white border-2 border-white px-3 py-1 text-[10px] font-black tracking-widest animate-bounce">TOP</Badge>
+                                </div>
+                                <div>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-lg font-black flex items-center gap-2 text-indigo-700">
+                                            <Brain className="h-5 w-5" />
+                                            PBE 3.0: Tree Wizard (IA)
+                                        </CardTitle>
+                                        <CardDescription className="text-indigo-600/80 font-bold">
+                                            Avaliação orientada por Árvore de Decisão e Raciocínio Clínico IA.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="flex gap-2 mb-2">
+                                            <Badge className="bg-indigo-100 text-indigo-700 border-none uppercase text-[9px] font-black tracking-tighter">✨ Especialista IA</Badge>
+                                        </div>
+                                    </CardContent>
+                                </div>
+                                <div className="p-6 pt-0">
+                                    <Link href={`/dashboard/${slug}/test-form/smart-wizard`} className="w-full" onClick={() => showLoading()}>
+                                        <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white group-hover:shadow-lg transition-all font-black tracking-tight">
+                                            <Brain className="mr-2 h-4 w-4" />
+                                            INICIAR WIZARD
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </Card>
+                        )}
+
+                        {/* 4. Avaliação Física Avançada (Restored) */}
+                        {hasPhysical && (
+                            <Card className="hover:border-emerald-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-emerald-50/10">
+                                <div>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-lg font-medium flex items-center gap-2 text-emerald-700">
+                                            <Activity className="h-5 w-5" />
+                                            Avaliação Física Avançada
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Versão completa com 8 etapas, cálculos de risco, força, cardio e relatórios.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="flex gap-2 mb-2">
+                                            <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 uppercase text-[10px] tracking-widest font-black">Sistema</Badge>
+                                        </div>
+                                    </CardContent>
+                                </div>
+                                <div className="p-6 pt-0">
+                                    <Link href={`/dashboard/${slug}/test-form/physical`} className="w-full" onClick={() => showLoading()}>
+                                        <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white group-hover:shadow-md transition-all font-bold">
+                                            <Pencil className="mr-2 h-4 w-4" />
+                                            Abrir Formulário
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </Card>
+                        )}
+
+                        {/* 5. Palmilha Pé Insensível */}
+                        {hasDiabetic && (
+                            <Card className="hover:border-emerald-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-emerald-50/10">
+                                <div>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-lg font-medium flex items-center gap-2 text-emerald-700">
+                                            <FileText className="h-5 w-5" />
+                                            Palmilha Pé Insensível
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Avaliação completa para pés diabéticos e prescrição de palmilhas especiais.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="flex gap-2 mb-2">
+                                            <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 uppercase text-[10px] tracking-widest font-black">Sistema</Badge>
+                                        </div>
+                                    </CardContent>
+                                </div>
+                                <div className="p-6 pt-0">
+                                    <Link href={`/dashboard/${slug}/test-form/diabetic-foot`} className="w-full" onClick={() => showLoading()}>
+                                        <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white group-hover:shadow-md transition-all font-bold">
+                                            <Pencil className="mr-2 h-4 w-4" />
+                                            Abrir Formulário
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </Card>
+                        )}
+
+                        {/* 6. Evolução Clínica Inteligente (NEW) */}
+                        {hasEvolution && (
+                            <Card className="hover:border-indigo-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-indigo-50/10">
+                                <div>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-lg font-medium flex items-center gap-2 text-indigo-700">
+                                            <Brain className="h-5 w-5" />
+                                            Evolução Clínica & IA
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Evolução assistida por voz com Tutor de Carga e raciocínio clínico.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="flex gap-2 mb-2">
+                                            <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200 uppercase text-[10px] tracking-widest font-black">NOVO</Badge>
+                                        </div>
+                                    </CardContent>
+                                </div>
+                                <div className="p-6 pt-0">
+                                    <Link href={`/dashboard/${slug}/test-form/clinical-evolution`} className="w-full" onClick={() => showLoading()}>
+                                        <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white group-hover:shadow-md transition-all font-bold">
+                                            <Pencil className="mr-2 h-4 w-4" />
+                                            Abrir Formulário
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </Card>
+                        )}
+
+                        {customForms
+                            // Filter out duplicates ONLY if they are Locked System Forms that we replaced with Hardcoded Cards
+                            // This ensures User's Custom Copies (is_locked=false) are still visible!
+                            .filter((t: any) => {
+                                if (t.is_locked) {
+                                    const lowerTitle = t.title?.toLowerCase() || '';
+                                    if (lowerTitle.includes('palmilha biomecânica') && !lowerTitle.includes('v3')) return false;
+                                    if (lowerTitle.includes('palmilha biomecânica v3')) return false;
+                                    if (lowerTitle.includes('saúde da mulher')) return false;
+                                    if (lowerTitle.includes('avaliação clínica inteligente') || lowerTitle.includes('pbe (inteligente)')) return false;
+                                    if (lowerTitle.includes('física avançada')) return false;
+                                    if (lowerTitle.includes('ultimate pbe')) return false;
+                                    if (lowerTitle.includes('tree wizard')) return false;
+                                    if (lowerTitle.includes('pé insensível')) return false;
+                                    if (lowerTitle.includes('evolução clínica & ia')) return false;
+                                }
+                                return true;
+                            })
+                            .map((template: any) => (
+                                <Card key={template.id} className="hover:border-primary/50 transition-colors flex flex-col justify-between relative group">
+                                    <div>
+                                        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                                            <CardTitle className="text-lg font-medium line-clamp-1" title={template.title}>
+                                                {template.title}
+                                            </CardTitle>
+                                            <div className="absolute top-2 right-2 opacity-100 transition-opacity">
+                                                <FormCardActions
+                                                    templateId={template.id}
+                                                    templateTitle={template.title}
+                                                    isActive={!!template.is_active}
+                                                    allowedRoles={template.allowed_roles || []}
+                                                    accessConfig={template.access_config}
+                                                    professionals={professionals}
+                                                    userId={template.user_id}
+                                                    currentUserId={user?.id}
+                                                />
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="mb-2 flex gap-2">
+                                                <Badge variant={template.is_active ? "default" : "secondary"} className={template.is_active ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}>
+                                                    {template.is_active ? "Ativo" : "Rascunho / Inativo"}
+                                                </Badge>
+                                                <Badge variant={template.is_locked ? "secondary" : "outline"} className="text-xs font-normal">
+                                                    {template.is_locked ? "Padronizado" : "Personalizado"}
+                                                </Badge>
+                                            </div>
+                                            <CardDescription className="line-clamp-2 min-h-[40px]">
+                                                {template.description || "Sem descrição."}
+                                            </CardDescription>
+                                        </CardContent>
+                                    </div>
+                                    <div className="p-6 pt-0">
+                                        <Link
+                                            href={template.is_locked ? `/dashboard/${slug}/questionnaires/preview/${template.id}` : `/dashboard/${slug}/forms/builder/${template.id}`}
+                                            className={`w-full ${!template.is_locked && !template.canEdit ? 'pointer-events-none' : ''}`}
+                                            onClick={() => showLoading()}
+                                        >
+                                            <Button
+                                                variant={template.is_locked ? "secondary" : "outline"}
+                                                className="w-full group-hover:bg-primary group-hover:text-white transition-colors"
+                                                disabled={!template.is_locked && !template.canEdit}
+                                            >
+                                                {template.is_locked ? (
+                                                    <>
+                                                        <FileText className="mr-2 h-3 w-3" />
+                                                        Visualizar
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Pencil className="mr-2 h-3 w-3" />
+                                                        {template.canEdit ? 'Editar Layout' : 'Apenas Visualizar'}
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                </Card>
+                            ))}
+                    </TabsContent>
+
+                    {/* FOLDER: QUESTIONÁRIOS */}
+                    <TabsContent value="questionnaires" className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 focus-visible:outline-none">
+                        {customForms
+                            .filter((t: any) => {
+                                const lowerTitle = t.title?.toLowerCase() || '';
+                                return t.type === 'questionnaire' || lowerTitle.includes('acompanhamento de palmilhas') || lowerTitle.includes('manutenção de palmilhas');
+                            })
+                            .map((template: any) => (
+                                <Card key={template.id} className="hover:border-primary/50 transition-colors flex flex-col justify-between relative group">
+                                    <div>
+                                        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                                            <CardTitle className="text-lg font-medium line-clamp-1" title={template.title}>
+                                                {template.title}
+                                            </CardTitle>
+                                            <div className="absolute top-2 right-2 opacity-100 transition-opacity">
+                                                <FormCardActions
+                                                    templateId={template.id}
+                                                    templateTitle={template.title}
+                                                    isActive={!!template.is_active}
+                                                    allowedRoles={template.allowed_roles || []}
+                                                    accessConfig={template.access_config}
+                                                    professionals={professionals}
+                                                    userId={template.user_id}
+                                                    currentUserId={user?.id}
+                                                />
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="mb-2 flex gap-2">
+                                                <Badge variant={template.is_active ? "default" : "secondary"} className={template.is_active ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}>
+                                                    {template.is_active ? "Ativo" : "Rascunho / Inativo"}
+                                                </Badge>
+                                                <Badge variant={template.is_locked ? "secondary" : "outline"} className="text-xs font-normal">
+                                                    {template.is_locked ? "Padronizado" : "Personalizado"}
+                                                </Badge>
+                                            </div>
+                                            <CardDescription className="line-clamp-2 min-h-[40px]">
+                                                {template.description || "Sem descrição."}
+                                            </CardDescription>
+                                        </CardContent>
+                                    </div>
+                                    <div className="p-6 pt-0">
+                                        <Link
+                                            href={template.is_locked ? `/dashboard/${slug}/questionnaires/preview/${template.id}` : `/dashboard/${slug}/forms/builder/${template.id}`}
+                                            className={`w-full ${!template.is_locked && !template.canEdit ? 'pointer-events-none' : ''}`}
+                                            onClick={() => showLoading()}
+                                        >
+                                            <Button
+                                                variant={template.is_locked ? "secondary" : "outline"}
+                                                className="w-full group-hover:bg-primary group-hover:text-white transition-colors"
+                                                disabled={!template.is_locked && !template.canEdit}
+                                            >
+                                                {template.is_locked ? (
+                                                    <>
+                                                        <FileText className="mr-2 h-3 w-3" />
+                                                        Visualizar
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Pencil className="mr-2 h-3 w-3" />
+                                                        {template.canEdit ? 'Editar Layout' : 'Apenas Visualizar'}
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                </Card>
+                            ))}
+                    </TabsContent>
+
+                    {/* FOLDER: PROTOCOLOS */}
+                    <TabsContent value="protocols" className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 focus-visible:outline-none">
+                        {customForms
+                            .filter((t: any) => t.type === 'protocol' || t.title?.toLowerCase().includes('protocolo'))
+                            .map((template: any) => (
+                                <Card key={template.id} className="hover:border-primary/50 transition-colors flex flex-col justify-between relative group">
+                                    <div>
+                                        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                                            <CardTitle className="text-lg font-medium line-clamp-1" title={template.title}>
+                                                {template.title}
+                                            </CardTitle>
+                                            <div className="absolute top-2 right-2 opacity-100 transition-opacity">
+                                                <FormCardActions
+                                                    templateId={template.id}
+                                                    templateTitle={template.title}
+                                                    isActive={!!template.is_active}
+                                                    allowedRoles={template.allowed_roles || []}
+                                                    accessConfig={template.access_config}
+                                                    professionals={professionals}
+                                                    userId={template.user_id}
+                                                    currentUserId={user?.id}
+                                                />
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="mb-2 flex gap-2">
+                                                <Badge variant={template.is_active ? "default" : "secondary"} className={template.is_active ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}>
+                                                    {template.is_active ? "Ativo" : "Rascunho / Inativo"}
+                                                </Badge>
+                                                <Badge variant={template.is_locked ? "secondary" : "outline"} className="text-xs font-normal">
+                                                    {template.is_locked ? "Padronizado" : "Personalizado"}
+                                                </Badge>
+                                            </div>
+                                            <CardDescription className="line-clamp-2 min-h-[40px]">
+                                                {template.description || "Sem descrição."}
+                                            </CardDescription>
+                                        </CardContent>
+                                    </div>
+                                    <div className="p-6 pt-0">
+                                        <Link
+                                            href={template.is_locked ? `/dashboard/${slug}/questionnaires/preview/${template.id}` : `/dashboard/${slug}/forms/builder/${template.id}`}
+                                            className={`w-full ${!template.is_locked && !template.canEdit ? 'pointer-events-none' : ''}`}
+                                            onClick={() => showLoading()}
+                                        >
+                                            <Button
+                                                variant={template.is_locked ? "secondary" : "outline"}
+                                                className="w-full group-hover:bg-primary group-hover:text-white transition-colors"
+                                                disabled={!template.is_locked && !template.canEdit}
+                                            >
+                                                {template.is_locked ? (
+                                                    <>
+                                                        <FileText className="mr-2 h-3 w-3" />
+                                                        Visualizar
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Pencil className="mr-2 h-3 w-3" />
+                                                        {template.canEdit ? 'Editar Layout' : 'Apenas Visualizar'}
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                </Card>
+                            ))}
+                    </TabsContent>
+                </Tabs>
             ) : (
                 <div className="space-y-3">
                     {/* HARDCODED SYSTEM FORMS IN LIST VIEW */}
