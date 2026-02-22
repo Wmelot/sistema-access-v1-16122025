@@ -20,7 +20,7 @@ import {
     Bookmark,
     Upload,
     FileSpreadsheet,
-    FileText as FilePdf,
+    FileText,
     Check,
     Info,
     Settings,
@@ -62,7 +62,7 @@ import { useReactToPrint } from 'react-to-print';
 const PRINT_STYLES = (orientation: 'portrait' | 'landscape') => `
 @media print {
   @page {
-    size: ${orientation} auto;
+    size: A4 ${orientation};
     margin: 10mm;
   }
   .no-print {
@@ -87,6 +87,7 @@ interface Topic {
     isPractical: boolean;
     resources: string[];
     methodology: string;
+    date?: Date | null; // Manual override for specific dates
 }
 
 interface Assessment {
@@ -141,11 +142,13 @@ export default function SyllabusWizard() {
     const [showPreviewModal, setShowPreviewModal] = useState(false);
     const [selectedTemplate, setSelectedTemplate] = useState(1);
     const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
+    const [isSynced, setIsSynced] = useState(false);
     const [visibleColumns, setVisibleColumns] = useState<string[]>(['data', 'dia', 'conteudo', 'references', 'atividade', 'pontos']);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [uploadedFiles, setUploadedFiles] = useState<{ name: string, type: string }[]>([]);
+    const [uploadedFiles, setUploadedFiles] = useState<{ name: string, type: string, file?: File }[]>([]);
     const [selectedLogo, setSelectedLogo] = useState<string | null>(null);
     const [showDraftsModal, setShowDraftsModal] = useState(false);
+    const [showConflictModal, setShowConflictModal] = useState(false);
     const [drafts, setDrafts] = useState<{ id: string, name: string, date: string, data: any }[]>([]);
     const printRef = useRef<HTMLDivElement>(null);
 
@@ -224,7 +227,15 @@ export default function SyllabusWizard() {
         { day: '2', start: '19:00', end: '20:40' },
         { day: '4', start: '19:00', end: '20:40' }
     ]);
-    const [holidays, setHolidays] = useState<{ date: string, desc: string }[]>([]);
+    const [holidays, setHolidays] = useState<{ date: string, desc: string }[]>([
+        { date: '2026-02-16', desc: 'Recesso de Carnaval' },
+        { date: '2026-02-17', desc: 'Carnaval' },
+        { date: '2026-02-18', desc: 'Quarta-feira de Cinzas' },
+        { date: '2026-04-03', desc: 'Sexta-feira da Paixão' },
+        { date: '2026-04-21', desc: 'Tiradentes' },
+        { date: '2026-05-01', desc: 'Dia do Trabalho' },
+        { date: '2026-06-04', desc: 'Corpus Christi' }
+    ]);
 
     // Slug generation logic
     useEffect(() => {
@@ -242,8 +253,8 @@ export default function SyllabusWizard() {
     }, [courseName, startDate]);
 
     const [assessments, setAssessments] = useState<Assessment[]>([
-        { id: 'a1', name: 'Avaliação Parcial (PI)', date: null, points: 30, type: 'Institucional' },
-        { id: 'a2', name: 'Avaliação Final (Exame)', date: null, points: 40, type: 'Professor' }
+        { id: 'a1', name: 'Atividades Avaliativas', date: null, points: 70, type: 'Professor' },
+        { id: 'a2', name: 'Avaliação Global', date: null, points: 30, type: 'Institucional' }
     ]);
     const totalPoints = assessments.reduce((acc, a) => acc + (a.isSubstitutive ? 0 : a.points), 0);
 
@@ -255,15 +266,59 @@ export default function SyllabusWizard() {
 
         const start = new Date(startDate);
         const end = new Date(endDate);
-        const diff = end.getTime() - start.getTime();
-        const interval = diff / (assessments.length + 1);
+        const activeDays = weekDays.map(w => w.day);
 
-        setAssessments(assessments.map((a, i) => {
-            const suggestedDate = new Date(start.getTime() + interval * (i + 1));
-            return { ...a, date: suggestedDate };
-        }));
+        // Separa avaliações regulares, globais e substitutivas
+        const regular = assessments.filter(a => !a.isSubstitutive && !a.name.toLowerCase().includes('global'));
+        const global = assessments.find(a => a.name.toLowerCase().includes('global'));
+        const sub = assessments.find(a => a.isSubstitutive);
 
-        toast.success("IA: Datas sugeridas com base no cronograma pedagógico!");
+        const newAssessments = [...assessments];
+
+        // 1. Sugerir Global na penúltima semana letiva
+        if (global) {
+            let target = new Date(end);
+            target.setDate(target.getDate() - 7); // 1 semana antes do fim
+            newAssessments.find(a => a.id === global.id)!.date = findNearestClassDay(target, activeDays);
+        }
+
+        // 2. Sugerir Substitutiva na última semana letiva
+        if (sub) {
+            let target = new Date(end);
+            target.setDate(target.getDate() - 2); // Bem no final
+            newAssessments.find(a => a.id === sub.id)!.date = findNearestClassDay(target, activeDays);
+        }
+
+        // 3. Distribui as regulares no intervalo restante
+        // Tentamos deixar pelo menos 15 dias de intervalo entre as provas se houver muitas
+        const endOfRegulars = global
+            ? new Date(new Date(global.date || end).getTime() - 7 * 24 * 60 * 60 * 1000)
+            : new Date(end.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+        const regularInterval = (endOfRegulars.getTime() - start.getTime()) / (regular.length + 1);
+
+        regular.forEach((a, i) => {
+            const target = new Date(start.getTime() + regularInterval * (i + 1));
+            newAssessments.find(ass => ass.id === a.id)!.date = findNearestClassDay(target, activeDays);
+        });
+
+        setAssessments(newAssessments);
+        toast.success("Axiom AI: Datas sugeridas seguindo o padrão institucional (Finais nas últimas semanas).");
+    };
+
+    const findNearestClassDay = (target: Date, activeDays: string[]) => {
+        for (let offset = 0; offset <= 10; offset++) {
+            const forward = new Date(target);
+            forward.setDate(target.getDate() + offset);
+            const fDay = forward.getDay() === 0 ? '7' : forward.getDay().toString();
+            if (activeDays.includes(fDay) && !holidays.some(h => h.date === forward.toISOString().split('T')[0])) return forward;
+
+            const backward = new Date(target);
+            backward.setDate(target.getDate() - offset);
+            const bDay = backward.getDay() === 0 ? '7' : backward.getDay().toString();
+            if (activeDays.includes(bDay) && !holidays.some(h => h.date === backward.toISOString().split('T')[0])) return backward;
+        }
+        return target;
     };
 
     const isDateDisabled = (date: Date) => {
@@ -295,7 +350,10 @@ export default function SyllabusWizard() {
 
     // Derived Logic: Overflow
     const [availableDays, setAvailableDays] = useState(0);
-    const [requiredDays, setRequiredDays] = useState(0);
+    const [availableHours, setAvailableHours] = useState(0);
+    const [totalNeededHours, setTotalNeededHours] = useState(0);
+    const [showReallocateModal, setShowReallocateModal] = useState(false);
+    const [proposedHours, setProposedHours] = useState<{ [key: string]: number }>({});
 
     useEffect(() => {
         if (!startDate || !endDate) return;
@@ -305,33 +363,44 @@ export default function SyllabusWizard() {
         let current = new Date(start);
 
         const activeDays = weekDays.map(w => w.day);
+        let totalAvailableHours = 0;
 
         while (current <= end) {
             const jsDay = current.getDay() === 0 ? '7' : current.getDay().toString();
             if (activeDays.includes(jsDay)) {
                 const dateStr = current.toISOString().split('T')[0];
                 const isHoliday = holidays.some(h => h.date === dateStr);
-                if (!isHoliday) count++;
+                if (!isHoliday) {
+                    const config = weekDays.find(w => w.day === jsDay);
+                    if (config) {
+                        const [h1, m1] = config.start.split(':').map(Number);
+                        const [h2, m2] = config.end.split(':').map(Number);
+                        const duration = (h2 * 60 + m2 - (h1 * 60 + m1)) / 50; // Usando hora-aula de 50min padrão PUC
+                        totalAvailableHours += duration;
+                    }
+                    count++;
+                }
             }
             current.setDate(current.getDate() + 1);
         }
         setAvailableDays(count);
+        setAvailableHours(totalAvailableHours); // Novo estado
 
-        const needed = topics.reduce((acc, t) => acc + t.classesNeeded, 0);
-        setRequiredDays(needed);
+        const totalNeededHoursCalc = topics.reduce((acc, t) => acc + t.classesNeeded, 0);
+        setTotalNeededHours(totalNeededHoursCalc);
     }, [startDate, endDate, weekDays, holidays, topics]);
 
-    const isOverflow = requiredDays > availableDays;
+    const isOverflow = totalNeededHours > availableHours + 0.1;
 
     const generateFullSchedule = () => {
         if (!startDate || !endDate) return [];
         const start = new Date(startDate);
         const end = new Date(endDate);
-        const schedule = [];
+        const schedule: any[] = [];
         let current = new Date(start);
         const activeDays = weekDays.map(w => w.day);
 
-        let topicIdx = 0;
+        let topicProgressHours = 0; // Renomeado de topicIdx para refletir horas
 
         while (current <= end) {
             const jsDayNum = current.getDay();
@@ -341,6 +410,11 @@ export default function SyllabusWizard() {
                 const dateStr = current.toISOString().split('T')[0];
                 const holiday = holidays.find(h => h.date === dateStr);
                 const dayConfig = weekDays.find(w => w.day === jsDay);
+
+                // Cálculo de duração desta aula específica
+                const [h1, m1] = (dayConfig?.start || "00:00").split(':').map(Number);
+                const [h2, m2] = (dayConfig?.end || "00:00").split(':').map(Number);
+                const classDuration = (h2 * 60 + m2 - (h1 * 60 + m1)) / 50; // hora-aula PUC
 
                 const assessment = assessments.find(a => {
                     if (!a.date) return false;
@@ -373,31 +447,86 @@ export default function SyllabusWizard() {
                         time: `${dayConfig?.start} - ${dayConfig?.end}`,
                         bibliographyIds: []
                     });
-                } else if (topicIdx < topics.length) {
-                    const topic = topics[topicIdx];
-                    schedule.push({
-                        date: format(current, 'dd/MM'),
-                        dia: diaSemana,
-                        type: 'topic',
-                        content: topic.title,
-                        activity: topic.methodology,
-                        points: null,
-                        time: `${dayConfig?.start} - ${dayConfig?.end}`,
-                        isPractical: topic.isPractical,
-                        bibliographyIds: topic.bibliographyIds
-                    });
-                    topicIdx++;
                 } else {
-                    schedule.push({
-                        date: format(current, 'dd/MM'),
-                        dia: diaSemana,
-                        type: 'empty',
-                        content: 'Planejamento em Aberto',
-                        activity: '---',
-                        points: null,
-                        time: `${dayConfig?.start} - ${dayConfig?.end}`,
-                        bibliographyIds: []
-                    });
+                    // Procura por tópico pinado
+                    const pinnedTopic = topics.find(t => t.date && format(new Date(t.date), 'yyyy-MM-dd') === dateStr);
+
+                    if (pinnedTopic) {
+                        schedule.push({
+                            date: format(current, 'dd/MM'),
+                            dia: diaSemana,
+                            type: 'topic',
+                            content: pinnedTopic.title,
+                            activity: pinnedTopic.methodology,
+                            points: null,
+                            time: `${dayConfig?.start} - ${dayConfig?.end}`,
+                            isPractical: pinnedTopic.isPractical,
+                            bibliographyIds: pinnedTopic.bibliographyIds
+                        });
+                    } else {
+                        // Lógica de distribuição fluída por HORAS
+                        const unpinnedtopics = topics.filter(t => !t.date);
+
+                        // Encontra o tópico atual baseado no que já foi preenchido no schedule
+                        // Contamos quantas horas de tópicos já colocamos
+                        let hoursUsedSoFar = 0;
+                        schedule.forEach(item => {
+                            if (item.type === 'topic') {
+                                // Verifica se o conteúdo do item é um tópico não pinado
+                                const topicRef = topics.find(t => t.title === item.content);
+                                if (topicRef && !topicRef.date) {
+                                    // Pega a duração daquela aula específica baseada no horário
+                                    const [itemDay, itemMonth] = item.date.split('/');
+                                    const year = new Date(startDate).getFullYear();
+                                    const itemDate = new Date(year, parseInt(itemMonth) - 1, parseInt(itemDay));
+                                    const itemJsDay = itemDate.getDay() === 0 ? '7' : itemDate.getDay().toString();
+                                    const config = weekDays.find(w => w.day === itemJsDay);
+
+                                    if (config) {
+                                        const [h1_i, m1_i] = config.start.split(':').map(Number);
+                                        const [h2_i, m2_i] = config.end.split(':').map(Number);
+                                        hoursUsedSoFar += (h2_i * 60 + m2_i - (h1_i * 60 + m1_i)) / 50;
+                                    }
+                                }
+                            }
+                        });
+
+                        // Localiza qual tópico da lista deve estar sendo dado agora
+                        let accumulated = 0;
+                        let currentTopic = null;
+                        for (const ut of unpinnedtopics) {
+                            accumulated += ut.classesNeeded;
+                            if (accumulated > hoursUsedSoFar) {
+                                currentTopic = ut;
+                                break;
+                            }
+                        }
+
+                        if (currentTopic) {
+                            schedule.push({
+                                date: format(current, 'dd/MM'),
+                                dia: diaSemana,
+                                type: 'topic',
+                                content: currentTopic.title,
+                                activity: currentTopic.methodology,
+                                points: null,
+                                time: `${dayConfig?.start} - ${dayConfig?.end}`,
+                                isPractical: currentTopic.isPractical,
+                                bibliographyIds: currentTopic.bibliographyIds
+                            });
+                        } else {
+                            schedule.push({
+                                date: format(current, 'dd/MM'),
+                                dia: diaSemana,
+                                type: 'empty',
+                                content: 'Planejamento em Aberto',
+                                activity: '---',
+                                points: null,
+                                time: `${dayConfig?.start} - ${dayConfig?.end}`,
+                                bibliographyIds: []
+                            });
+                        }
+                    }
                 }
             }
             current.setDate(current.getDate() + 1);
@@ -510,9 +639,89 @@ export default function SyllabusWizard() {
                     {i < 4 && <div className={cn("w-14 h-1 mx-2 rounded-full", step > i ? "bg-emerald-500" : "bg-slate-100")} />}
                 </div>
             ))}
+            {/* AI REALLOCATION MODAL */}
+            <Dialog open={showReallocateModal} onOpenChange={setShowReallocateModal}>
+                <DialogContent className="max-w-[95vw] w-[95vw] rounded-[40px] p-10 border-none shadow-[0_30px_100px_rgba(0,0,0,0.1)] max-h-[92vh] overflow-hidden flex flex-col">
+                    <div className="space-y-8 overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="w-14 h-14 rounded-[20px] bg-amber-50 flex items-center justify-center text-amber-500">
+                                    <Sparkles size={28} />
+                                </div>
+                                <div>
+                                    <DialogTitle className="text-2xl font-black text-slate-800">Ajuste Estratégico de Carga Horária</DialogTitle>
+                                    <DialogDescription className="font-bold text-slate-400 text-lg">
+                                        Total Atual: <span className="text-[#8C132C]">{totalNeededHours}h</span> | Disponível no Semestre: <span className="text-emerald-600">{availableHours.toFixed(1)}h</span>
+                                    </DialogDescription>
+                                </div>
+                            </div>
+                            <div className={cn(
+                                "px-8 py-4 rounded-3xl font-black text-sm uppercase transition-all",
+                                Object.values(proposedHours).reduce((a, b) => a + b, 0) > availableHours ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"
+                            )}>
+                                Total Ajustado: {Object.values(proposedHours).reduce((a, b) => a + b, 0)}h / {availableHours.toFixed(0)}h
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-50 rounded-[32px] p-8 space-y-6 border border-slate-100">
+                            <h4 className="text-[11px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
+                                <Info size={16} /> Ajuste a carga horária de cada tópico para caber no seu calendário
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {topics.map(t => (
+                                    <div key={t.id} className="flex flex-col p-6 bg-white rounded-3xl border border-slate-100 shadow-sm hover:border-[#8C132C]/20 transition-all group">
+                                        <div className="text-[10px] font-black text-slate-400 uppercase mb-3 truncate">{t.title}</div>
+                                        <div className="flex items-center justify-between gap-4 mt-auto">
+                                            <div>
+                                                <div className="text-[9px] font-bold text-slate-300 uppercase">Original</div>
+                                                <div className="text-base font-black text-slate-400 line-through">{t.classesNeeded}h</div>
+                                            </div>
+                                            <div className="flex-1 max-w-[120px]">
+                                                <div className="text-[9px] font-black text-[#8C132C] uppercase mb-1">Ajustar</div>
+                                                <div className="relative">
+                                                    <Input
+                                                        type="number"
+                                                        value={proposedHours[t.id] || 0}
+                                                        onChange={(e) => setProposedHours({ ...proposedHours, [t.id]: parseInt(e.target.value) || 0 })}
+                                                        className="h-12 rounded-2xl bg-slate-50 border-none font-black text-center text-xl pr-8 focus:ring-2 focus:ring-[#8C132C]/20 transition-all"
+                                                    />
+                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black opacity-20">H</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex gap-6">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowReallocateModal(false)}
+                                className="flex-1 h-16 rounded-3xl font-black text-sm uppercase tracking-widest border-slate-200 hover:bg-slate-50"
+                            >
+                                Descartar Alterações
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    const updated = topics.map(t => ({
+                                        ...t,
+                                        classesNeeded: proposedHours[t.id] || t.classesNeeded
+                                    }));
+                                    setTopics(updated);
+                                    setShowReallocateModal(false);
+                                    toast.success("Axiom IA: Cargas horárias atualizadas com sucesso!");
+                                }}
+                                className="flex-1 h-16 rounded-3xl bg-[#8C132C] hover:bg-[#6c0f22] text-white font-black text-sm uppercase tracking-widest shadow-2xl shadow-[#8C132C]/30"
+                            >
+                                Aplicar Ajustes ao Cronograma
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
-
     const toggleTopicCompletion = (id: string) => {
         setCompletedTopicIds(prev =>
             prev.includes(id) ? prev.filter(tid => tid !== id) : [...prev, id]
@@ -647,48 +856,144 @@ export default function SyllabusWizard() {
         if (!e.target.files?.length) return;
         const newFiles = Array.from(e.target.files).map(f => ({
             name: f.name,
-            type: f.type || 'Documento'
+            type: f.type || 'Documento',
+            file: f
         }));
         setUploadedFiles([...uploadedFiles, ...newFiles]);
+        setIsSynced(false);
         e.target.value = ''; // Permite subir o mesmo arquivo se deletado
         toast.success(`${newFiles.length} arquivo(s) adicionado(s) à fila de análise.`);
     };
 
-    const handleRunAIAnalysis = () => {
+    const handleRunAIAnalysis = async () => {
         setIsAnalyzing(true);
-        // Simulação de IA processando PDF/Word
-        setTimeout(() => {
-            const isPhysio = courseName.toLowerCase().includes('fisio');
+        toast.info("Axiom AI: Lendo e interpretando os documentos oficiais...");
 
-            setBooks([
-                ...books,
-                { id: 'ia-b1', title: 'Biomecânica Básica', author: 'Susan Hall', type: 'Básico' },
-                { id: 'ia-b2', title: 'Cinesiologia Clínica e Anatomia', author: 'Lippert', type: 'Básico' },
-                { id: 'ia-b3', title: 'Cadeias Musculares', author: 'Leopold Busquet', type: 'Complementar' }
-            ]);
+        try {
+            const formData = new FormData();
+            uploadedFiles.forEach(uf => {
+                if (uf.file) formData.append('files', uf.file);
+            });
 
-            setTopics([
-                ...topics,
-                { id: 'ia-1', title: 'Fundamentos de Biomecânica', classesNeeded: 2, bibliographyIds: ['ia-b1', 'b1'], isPractical: false, resources: ['Projetor', 'Artigos'], methodology: 'Aula Dialogada' },
-                { id: 'ia-2', title: 'Cadeias Musculares e Postura', classesNeeded: 4, bibliographyIds: ['ia-b1', 'ia-b3'], isPractical: true, resources: ['Macas'], methodology: 'Estudo de Caso' },
-                { id: 'ia-3', title: 'Avaliação da Marcha Humana', classesNeeded: 2, bibliographyIds: ['ia-b2'], isPractical: true, resources: ['Câmera', 'Laboratório'], methodology: 'Demonstração Prática' },
-                { id: 'ia-4', title: 'Cinesiologia do Membro Superior', classesNeeded: 3, bibliographyIds: ['ia-b2', 'b2'], isPractical: false, resources: ['Esqueleto Anatômico'], methodology: 'PBL' }
-            ]);
+            const response = await fetch('/api/ai/extract-syllabus', {
+                method: 'POST',
+                body: formData
+            });
 
-            setAssessments([
-                ...assessments,
-                { id: 'ia-a1', name: 'Avaliação Parcial (PI)', date: null, points: 30, type: 'Professor' },
-                { id: 'ia-a2', name: 'Relatório Prático / Casos Clínicos', date: null, points: 30, type: 'Curso' },
-                { id: 'ia-a3', name: 'Avaliação Global (PII)', date: null, points: 40, type: 'Institucional' },
-                { id: 'ia-a4', name: 'Prova Substitutiva', date: null, points: 40, type: 'Institucional', isSubstitutive: true }
-            ]);
+            if (!response.ok) {
+                const err = await response.json();
+                toast.error(`Erro na IA: ${err.error || 'Falha ao analisar'}`);
+                setIsAnalyzing(false);
+                return;
+            }
+
+            const data = await response.json();
+
+            // Set Data
+            setCourseName(data.courseName || "Nova Disciplina");
+
+            if (data.startDate) {
+                // Parse date in UTC ignoring timezone shifts
+                const [y, m, d] = data.startDate.split('-');
+                if (y && m && d) setStartDate(new Date(parseInt(y), parseInt(m) - 1, parseInt(d)));
+            }
+
+            if (data.endDate) {
+                const [y, m, d] = data.endDate.split('-');
+                if (y && m && d) setEndDate(new Date(parseInt(y), parseInt(m) - 1, parseInt(d)));
+            }
+
+            const bookIdMap: Record<string, string> = {};
+
+            // Normalizando bibliografia com IDs seguros
+            const parsedBooks: Book[] = (data.books || []).map((b: any, index: number) => {
+                const newId = `b_ai_${index}`;
+                if (b.id) bookIdMap[b.id] = newId;
+                return {
+                    id: newId,
+                    title: b.title || "Obra Desconhecida",
+                    author: b.author || "Autor Omitido",
+                    type: (['Básico', 'Complementar'].includes(b.type)) ? b.type : 'Básico'
+                };
+            });
+
+            setBooks(parsedBooks);
+
+            // Mapeando topicos e gerando referências cruzadas
+            const parsedTopics: Topic[] = (data.topics || []).map((t: any, index: number) => ({
+                id: `t_ai_${index}`,
+                title: t.title || "Tópico Não Especificado",
+                classesNeeded: t.classesNeeded || 2,
+                bibliographyIds: t.bibliographyIds ?
+                    t.bibliographyIds.map((bid: string) => bookIdMap[bid] || parsedBooks[0]?.id).filter(Boolean) : [],
+                isPractical: !!t.isPractical,
+                resources: t.resources || ['Projetor'],
+                methodology: t.methodology || 'Aula Dialogada'
+            }));
+
+            // If some topics lack bibliography, force assign
+            parsedTopics.forEach(pt => {
+                if (pt.bibliographyIds.length === 0 && parsedBooks.length > 0) {
+                    pt.bibliographyIds.push(parsedBooks[0].id);
+                }
+            });
+
+            setTopics(parsedTopics);
+
+            // Avaliações base padrão da PUC (se não houver extração forte)
+
+            const aiAssessments: Assessment[] = [
+                { id: 'a-p1', name: 'Prova Teórica 1', date: null, points: 20, type: 'Professor' },
+                { id: 'a-pp', name: 'Prova Prática', date: null, points: 15, type: 'Professor' },
+                { id: 'a-p2', name: 'Prova Teórica 2', date: null, points: 20, type: 'Professor' },
+                { id: 'a-pt', name: 'Pontos de Participação (Práticas)', date: null, points: 5, type: 'Professor' },
+                { id: 'a-ti', name: 'Trabalho Interdisciplinar (TI)', date: null, points: 10, type: 'Curso' },
+                { id: 'a-fg', name: 'Prova Final (Global)', date: null, points: 30, type: 'Institucional' },
+                { id: 'a-re', name: 'Reavaliação / Substitutiva', date: null, points: 30, type: 'Institucional', isSubstitutive: true }
+            ];
+
+            setBooks(aiBooks);
+            setTopics(aiTopics);
+            setCourseName(aiCourseName);
+
+            // Lógica de Sugestão de Datas baseada nas Datas Finais do Estado
+            const start = data.startDate ? new Date(startDate.getTime()) : startDate;
+            const end = data.endDate ? new Date(endDate.getTime()) : endDate;
+            const activeDays = weekDays.map(w => w.day);
+            const global = aiAssessments.find(a => a.name.toLowerCase().includes('global'));
+            const sub = aiAssessments.find(a => a.isSubstitutive);
+
+            if (global) {
+                let target = new Date(end);
+                target.setDate(target.getDate() - 7);
+                global.date = findNearestClassDay(target, activeDays);
+            }
+            if (sub) {
+                let target = new Date(end);
+                target.setDate(target.getDate() - 2);
+                sub.date = findNearestClassDay(target, activeDays);
+            }
+
+            // Atribui datas para as Provas Teóricas e Práticas
+            const regulars = aiAssessments.filter(a => !a.isSubstitutive && !a.name.toLowerCase().includes('global') && a.name.includes('Prova'));
+            const interval = (end.getTime() - start.getTime()) / (regulars.length + 2);
+            regulars.forEach((a, i) => {
+                const target = new Date(start.getTime() + interval * (i + 1));
+                a.date = findNearestClassDay(target, activeDays);
+            });
+
+            setAssessments(aiAssessments);
 
             setIsAnalyzing(false);
-            setUploadedFiles([]); // Limpa a fila após sucesso
-            toast.success("IA: Arquivos processados! Tópicos, Bibliografia e critérios de provas importados automaticamente.");
-            setStep(3); // Pula para o calendário para ver o resultado
-        }, 3000);
+            setIsSynced(true);
+            toast.success("IA: Leitura concluída! Cronograma estruturado baseado no seu documento.");
+        } catch (error) {
+            console.error(error);
+            toast.error("Erro geral na requisição AI.");
+            setIsAnalyzing(false);
+        }
     };
+
     return (
         <>
             <div className="min-h-screen bg-[#FDFDFD] p-8 max-w-6xl mx-auto font-sans">
@@ -749,9 +1054,9 @@ export default function SyllabusWizard() {
                                         <h4 className="text-sm font-black text-slate-400 flex items-center gap-2">
                                             <CalendarIcon size={16} /> Período Letivo
                                         </h4>
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-3 gap-4">
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase text-slate-400 px-1">Período Letivo</Label>
+                                                <Label className="text-[10px] font-black uppercase text-slate-400 px-1">Início das Aulas</Label>
                                                 <Popover>
                                                     <PopoverTrigger asChild>
                                                         <Button variant="outline" className={cn("w-full justify-start text-left font-bold rounded-2xl h-12 border-slate-100", !startDate && "text-muted-foreground")}>
@@ -760,6 +1065,19 @@ export default function SyllabusWizard() {
                                                     </PopoverTrigger>
                                                     <PopoverContent className="w-auto p-0 rounded-3xl border-none shadow-2xl overflow-hidden" align="start">
                                                         <Calendar mode="single" selected={startDate} onSelect={(d) => d && setStartDate(d)} locale={ptBR} />
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase text-slate-400 px-1">Término das Aulas</Label>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <Button variant="outline" className={cn("w-full justify-start text-left font-bold rounded-2xl h-12 border-slate-100", !endDate && "text-muted-foreground")}>
+                                                            {endDate ? format(endDate, "dd/MM/yyyy") : <span>Data final</span>}
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0 rounded-3xl border-none shadow-2xl overflow-hidden" align="start">
+                                                        <Calendar mode="single" selected={endDate} onSelect={(d) => d && setEndDate(d)} locale={ptBR} />
                                                     </PopoverContent>
                                                 </Popover>
                                             </div>
@@ -838,816 +1156,904 @@ export default function SyllabusWizard() {
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="bg-[#363636] rounded-[32px] p-8 flex flex-col items-center justify-center text-center flex-1 text-white shadow-xl">
-                                    <CalendarIcon size={32} className="mb-4 text-emerald-400" />
-                                    <div className="text-4xl font-black mb-2">{availableDays}</div>
-                                    <div className="text-[10px] font-black uppercase opacity-50 tracking-[0.2em]">Dias Letivos</div>
-                                    <p className="text-[10px] opacity-40 mt-4 leading-relaxed max-w-[180px]">
-                                        Sincronizado automaticamente com o calendário acadêmico institucional.
-                                    </p>
-                                </div>
-                            </div>
-                        </Card>
-
-                            {/* ASSESSMENT & POINTS CONFIG */}
-                    <Card className="p-10 rounded-[44px] border-none shadow-[0_20px_50px_rgba(0,0,0,0.03)] space-y-8">
-                        <div className="flex justify-between items-center">
-                            <h3 className="text-xl font-black text-[#8C132C] flex items-center gap-3">
-                                <Sparkles size={24} /> Avaliações e Pontuação
-                            </h3>
-                            <Button
-                                onClick={suggestExamDates}
-                                variant="outline"
-                                className="border-[#8C132C]/20 text-[#8C132C] rounded-xl font-black text-[10px] uppercase h-10 hover:bg-[#8C132C]/5"
-                            >
-                                <Sparkles size={14} className="mr-2" /> Sugerir Datas via IA
-                            </Button>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-12">
-                            <div className="space-y-6 col-span-1 border-r border-slate-50 pr-8">
-                                <div className="space-y-1">
-                                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Soma de Pontos</Label>
-                                    <p className="text-[10px] text-slate-400 font-medium">Soma automática com base nas atividades lançadas. Provas substitutivas não somam nota.</p>
-                                </div>
-                                <div className="space-y-5">
-                                    <div className={cn(
-                                        "p-5 rounded-3xl text-center flex flex-col items-center justify-center transition-all h-32",
-                                        totalPoints === 100
-                                            ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
-                                            : "bg-red-50 text-red-500 border border-red-100"
-                                    )}>
-                                        <span className="text-[9px] font-black uppercase tracking-widest opacity-80">Soma Total</span>
-                                        <span className="text-4xl font-black mt-2 mb-1">{totalPoints} / 100</span>
-                                        {totalPoints !== 100 && (
-                                            <span className="text-[8px] font-bold mt-1 uppercase italic">Ajuste as avaliações para fechar 100pts</span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="col-span-2 space-y-6">
-                                <div className="flex justify-between items-center px-2">
-                                    <div className="space-y-1">
-                                        <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Cronograma de Atividades Avaliativas</Label>
-                                        <p className="text-[10px] text-slate-400 font-medium">Provas, Trabalhos, Seminários e PI.</p>
-                                    </div>
-                                    <Button size="sm" variant="ghost" className="bg-[#8C132C]/10 text-[#8C132C] hover:bg-[#8C132C] hover:text-white rounded-xl font-black text-[10px] uppercase h-9 px-4 transition-all" onClick={() => setAssessments([...assessments, { id: Date.now().toString(), name: 'Nova Atividade', date: null, points: 0, type: 'Professor' }])}>+ Adicionar Atividade</Button>
-                                </div>
-                                <div className="grid gap-3">
-                                    {assessments.map(ass => (
-                                        <motion.div layout key={ass.id} className="bg-slate-50/50 p-4 rounded-3xl flex items-center gap-4 group border border-slate-100/50 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all border-l-4 border-l-[#8C132C]">
-                                            <div className="space-y-1 flex-1">
-                                                <Input value={ass.name} onChange={e => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, name: e.target.value } : a))} className="bg-transparent border-none rounded-none focus:ring-0 font-black h-8 text-sm p-0 text-slate-700" />
-                                                <div className="flex gap-2 items-center">
-                                                    <Select value={ass.type} onValueChange={v => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, type: v as any } : a))}>
-                                                        <SelectTrigger className="h-6 text-[8px] font-black uppercase px-2 py-0 border-slate-200 text-slate-400 bg-transparent w-auto focus:ring-0">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="Professor"><span className="text-[10px] uppercase font-bold text-slate-600">Professor</span></SelectItem>
-                                                            <SelectItem value="Institucional"><span className="text-[10px] uppercase font-bold text-slate-600">Institucional</span></SelectItem>
-                                                            <SelectItem value="Curso"><span className="text-[10px] uppercase font-bold text-slate-600">Curso</span></SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <div className="h-3 w-px bg-slate-200 mx-2" />
-                                                    <label className="flex items-center gap-1 cursor-pointer">
-                                                        <Checkbox
-                                                            checked={ass.isSubstitutive}
-                                                            onCheckedChange={(c) => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, isSubstitutive: c === true } : a))}
-                                                            className="h-3 w-3 rounded-[3px] border-slate-300 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
-                                                        />
-                                                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Prova Substitutiva</span>
-                                                    </label>
-                                                    {ass.isSubstitutive && (
-                                                        <>
-                                                            <div className="h-3 w-px bg-slate-200 mx-1" />
-                                                            <Popover>
-                                                                <PopoverTrigger asChild>
-                                                                    <Button variant="outline" size="sm" className="h-6 text-[8px] font-black uppercase px-2 py-0 border-slate-200 text-amber-600 bg-amber-50 shadow-none">
-                                                                        {ass.substitutesIds?.length ? `${ass.substitutesIds.length} selecionada(s)` : 'Vincular Avaliações'}
-                                                                    </Button>
-                                                                </PopoverTrigger>
-                                                                <PopoverContent className="w-56 p-2 space-y-2 z-[110]">
-                                                                    <div className="text-[10px] font-black uppercase text-slate-400 mb-2 px-1">Substitui quais avaliações?</div>
-                                                                    {assessments.filter(a => !a.isSubstitutive).map(a => (
-                                                                        <label key={a.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
-                                                                            <Checkbox
-                                                                                checked={ass.substitutesIds?.includes(a.id)}
-                                                                                onCheckedChange={(checked) => {
-                                                                                    const currentIds = ass.substitutesIds || [];
-                                                                                    const newIds = checked ? [...currentIds, a.id] : currentIds.filter(id => id !== a.id);
-                                                                                    setAssessments(assessments.map(acc => acc.id === ass.id ? { ...acc, substitutesIds: newIds } : acc));
-                                                                                }}
-                                                                                className="h-3.5 w-3.5 rounded-[4px] border-slate-300 data-[state=checked]:bg-[#8C132C]"
-                                                                            />
-                                                                            <span className="text-[10px] uppercase font-bold text-slate-600 leading-none mt-0.5">{a.name || 'Sem nome'}</span>
-                                                                        </label>
-                                                                    ))}
-                                                                    <div className="pt-2 border-t border-slate-100 mt-2">
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            className="w-full text-[10px] text-amber-600 font-bold uppercase transition-all hover:bg-amber-50"
-                                                                            onClick={() => setAssessments(assessments.map(acc => acc.id === ass.id ? { ...acc, substitutesIds: assessments.filter(a => !a.isSubstitutive).map(a => a.id) } : acc))}
-                                                                        >
-                                                                            Selecionar Todas
-                                                                        </Button>
-                                                                    </div>
-                                                                </PopoverContent>
-                                                            </Popover>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="w-44">
-                                                <Popover>
-                                                    <PopoverTrigger asChild>
-                                                        <Button variant="ghost" className="w-full justify-start rounded-xl bg-white border border-slate-100 font-bold h-11 text-[10px] uppercase shadow-sm">
-                                                            <CalendarIcon size={14} className="mr-2 opacity-30" />
-                                                            {ass.date ? format(ass.date, "dd 'de' MMMM", { locale: ptBR }) : "Definir Data"}
-                                                        </Button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-auto p-0 rounded-3xl border-none shadow-2xl overflow-hidden" align="end">
-                                                        <Calendar mode="single" selected={ass.date || undefined} onSelect={(d) => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, date: d || null } : a))} locale={ptBR} disabled={isDateDisabled} />
-                                                    </PopoverContent>
-                                                </Popover>
-                                            </div>
-                                            <div className={cn("flex items-center gap-2 bg-white px-4 h-11 rounded-xl border border-slate-100 shadow-sm transition-all", ass.isSubstitutive && "opacity-50 grayscale bg-slate-50")}>
-                                                <Input type="number" disabled={ass.isSubstitutive} value={ass.points} onChange={e => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, points: parseInt(e.target.value) } : a))} className="w-12 bg-transparent border-none rounded-none focus:ring-0 font-black h-8 text-sm text-center p-0 disabled:opacity-100" />
-                                                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">PTS</span>
-                                            </div>
-                                            <button onClick={() => setAssessments(assessments.filter(a => a.id !== ass.id))} className="w-11 h-11 flex items-center justify-center text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-xl opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={18} /></button>
-                                        </motion.div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </Card>
-                    <div className="flex flex-col gap-6 flex-1">
-                        <div className="space-y-4">
-                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest px-2">Análise de Documentos (Base Legal/Pedagógica)</h4>
-                            <div className="flex flex-wrap gap-3">
-                                <label className="cursor-pointer">
-                                    <Input type="file" multiple accept=".pdf,.doc,.docx" onChange={handleImportFromDocument} className="hidden" />
-                                    <div className="h-20 w-44 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 hover:border-[#8C132C]/30 hover:bg-[#8C132C]/5 transition-all gap-1">
-                                        <Plus size={20} />
-                                        <span className="text-[9px] font-black uppercase">Adicionar Arquivos</span>
-                                    </div>
-                                </label>
-                                {uploadedFiles.map((f, i) => (
-                                    <div key={i} className="h-20 px-6 rounded-3xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-4 group">
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] font-black text-slate-700 truncate max-w-[120px]">{f.name}</span>
-                                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">{f.type || 'Documento'}</span>
+                                    <div className="bg-[#363636] rounded-[40px] p-8 text-white shadow-2xl relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-6 opacity-10">
+                                            <CalendarIcon size={80} />
                                         </div>
-                                        <button onClick={() => setUploadedFiles(uploadedFiles.filter((_, idx) => idx !== i))} className="text-slate-300 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100">
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
+                                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-emerald-400 mb-6 flex items-center gap-2">
+                                            <ShieldCheck size={16} /> Calendário Institucional
+                                        </h3>
 
-                            {uploadedFiles.length > 0 && (
-                                <Button
-                                    onClick={handleRunAIAnalysis}
-                                    disabled={isAnalyzing}
-                                    className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#8C132C] to-amber-600 text-white font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-[#8C132C]/20 animate-in fade-in slide-in-from-top-2"
-                                >
-                                    {isAnalyzing ? (
-                                        <div className="flex items-center gap-3">
-                                            <div className="animate-spin rounded-full h-5 w-5 border-3 border-white border-t-transparent" />
-                                            <span>IA Analisando Documentos...</span>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-3">
-                                            <Sparkles size={20} className="animate-pulse" />
-                                            <span>Sincronizar Cronograma com IA</span>
-                                        </div>
-                                    )}
-                                </Button>
-                            )}
-                        </div>
-
-                        <div className="flex justify-end pt-4">
-                            <Button onClick={() => setStep(2)} className="bg-[#8C132C] h-14 rounded-2xl px-10 font-black uppercase tracking-widest transition-all hover:scale-105 shadow-xl shadow-[#8C132C]/20">
-                                Pular para Bibliografia <ChevronRight size={18} className="ml-2" />
-                            </Button>
-                        </div>
-
-                        <div className="w-full h-px bg-slate-100 my-4" />
-
-                        {/* ÁREA DE IMPORTAÇÃO REQUISITADA - FOTO 3 */}
-                        <label className="group cursor-pointer w-full">
-                            <Input type="file" multiple accept=".json" onChange={handleImportSyllabus} className="hidden" />
-                            <div className="flex items-center gap-6 p-10 border-2 border-dashed border-slate-200 rounded-[44px] hover:border-[#8C132C]/30 hover:bg-[#8C132C]/5 transition-all w-full bg-slate-50/50">
-                                <div className="w-16 h-16 rounded-[24px] bg-white flex items-center justify-center text-slate-300 group-hover:bg-[#8C132C] group-hover:text-white transition-all shadow-xl group-hover:shadow-[#8C132C]/20">
-                                    <Upload size={28} />
-                                </div>
-                                <div className="flex-1">
-                                    <div className="text-lg font-black text-slate-700">Importar Cronogramas SINAES (.json)</div>
-                                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                                        Carregue dossiês antigos para preencher conteúdos e bibliografias instantaneamente
-                                    </div>
-                                </div>
-                                <div className="bg-white px-4 py-2 rounded-xl text-[10px] font-black text-slate-400 uppercase border border-slate-100">
-                                    Upload de Arquivo
-                                </div>
-                            </div>
-                        </label>
-                    </div>
-                </motion.div>
-                    )}
-
-                {
-                    step === 2 && (
-                        <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
-                            <div className="grid grid-cols-3 gap-8">
-                                <Card className="col-span-1 p-8 rounded-[40px] border-none shadow-xl h-fit">
-                                    <h3 className="text-lg font-black text-[#8C132C] mb-6 flex items-center gap-2">
-                                        <Library size={20} /> Cadastrar Obra
-                                    </h3>
-                                    <div className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase text-slate-400">Título / Nome</Label>
-                                            <Input value={newBook.title} onChange={e => setNewBook({ ...newBook, title: e.target.value })} placeholder="Ex: Tratado de..." className="rounded-xl border-slate-100 bg-slate-50 font-bold" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase text-slate-400">Autor / Edição</Label>
-                                            <Input value={newBook.author} onChange={e => setNewBook({ ...newBook, author: e.target.value })} placeholder="Ex: Dutton, 2024" className="rounded-xl border-slate-100 bg-slate-50 font-bold" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase text-slate-400">Tipo SINAES</Label>
-                                            <Select onValueChange={(val: any) => setNewBook({ ...newBook, type: val })} defaultValue="Básico">
-                                                <SelectTrigger className="rounded-xl border-slate-100 bg-slate-50 font-bold">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent className="rounded-xl border-none shadow-2xl">
-                                                    <SelectItem value="Básico">Básica (Mín. 3)</SelectItem>
-                                                    <SelectItem value="Complementar">Complementar (Mín. 5)</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <Button onClick={addBook} className="w-full bg-[#363636] h-12 rounded-xl font-black uppercase text-[10px] tracking-widest mt-4">
-                                            Adicionar à Biblioteca
-                                        </Button>
-                                    </div>
-                                </Card>
-
-                                <div className="col-span-2 space-y-4">
-                                    <Label className="text-[10px] font-black uppercase text-slate-400 px-4">Biblioteca do Semestre</Label>
-                                    {books.map(book => (
-                                        <motion.div layout key={book.id} className="bg-white p-5 rounded-3xl flex items-center justify-between shadow-sm border border-slate-50 group hover:border-[#8C132C]/20 transition-all">
-                                            <div className="flex items-center gap-4">
-                                                <div className={cn(
-                                                    "w-12 h-12 rounded-2xl flex items-center justify-center",
-                                                    book.type === 'Básico' ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
-                                                )}>
-                                                    <BookOpen size={20} />
-                                                </div>
+                                        <div className="space-y-4 relative z-10">
+                                            <div className="flex justify-between items-end pb-4 border-b border-white/10">
                                                 <div>
-                                                    <h4 className="font-bold text-sm text-slate-800">{book.title}</h4>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{book.author} • {book.type}</p>
+                                                    <div className="text-[9px] font-black uppercase opacity-40 mb-1">Início do Semestre</div>
+                                                    <div className="text-sm font-black">{startDate ? format(startDate, "dd 'de' MMMM", { locale: ptBR }) : '---'}</div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-[9px] font-black uppercase opacity-40 mb-1">Fim das Aulas</div>
+                                                    <div className="text-sm font-black">{endDate ? format(endDate, "dd 'de' MMMM", { locale: ptBR }) : '---'}</div>
                                                 </div>
                                             </div>
-                                            <button onClick={() => removeBook(book.id)} className="p-3 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100">
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </motion.div>
-                                    ))}
-                                    {books.length === 0 && (
-                                        <div className="h-40 border-2 border-dashed border-slate-100 rounded-[40px] flex flex-col items-center justify-center text-slate-300">
-                                            <Bookmark size={32} className="mb-2 opacity-50" />
-                                            <p className="text-xs font-bold uppercase tracking-widest">Nenhuma obra cadastrada</p>
+
+                                            <div className="grid grid-cols-2 gap-4 py-2">
+                                                <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                                                    <div className="text-[18px] font-black text-emerald-400">{availableDays} <span className="text-[10px] opacity-50">dias</span></div>
+                                                    <div className="text-[8px] font-black uppercase opacity-50">{availableHours.toFixed(0)} Horas-Aula Disponíveis</div>
+                                                </div>
+                                                <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                                                    <div className="text-[18px] font-black text-amber-400">03</div>
+                                                    <div className="text-[8px] font-black uppercase opacity-50">Feriados/Recessos</div>
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-4 space-y-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                                    <div className="text-[9px] font-bold opacity-60 uppercase tracking-tight">Janela Sugerida para Exame Final: <span className="text-white">22/06 a 28/06</span></div>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-2 h-2 rounded-full bg-amber-400" />
+                                                    <div className="text-[9px] font-bold opacity-60 uppercase tracking-tight">Prazo Limite Lançamento Notas: <span className="text-white">05/07</span></div>
+                                                </div>
+                                            </div>
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex justify-between items-center pt-8 border-t border-slate-50">
-                                <Button onClick={() => setStep(1)} variant="ghost" className="h-14 rounded-2xl px-10 font-black uppercase tracking-widest text-slate-400">
-                                    <ChevronLeft size={18} className="mr-2" /> Voltar
-                                </Button>
-                                <Button onClick={() => setStep(3)} className="bg-[#8C132C] h-14 rounded-2xl px-10 font-black uppercase tracking-widest transition-all hover:scale-105">
-                                    Próximo Passo <ChevronRight size={18} className="ml-2" />
-                                </Button>
-                            </div>
-                        </motion.div>
-                    )
-                }
 
-                {
-                    step === 3 && (
-                        <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
-                            {/* ALERT OVERFLOW */}
-                            {isOverflow && (
-                                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="bg-amber-50 border border-amber-200 rounded-[32px] p-6 flex items-center gap-6 shadow-lg shadow-amber-500/5">
-                                    <div className="w-16 h-16 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg animate-pulse">
-                                        <AlertTriangle size={32} />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="text-amber-800 font-black text-lg">Estouro de Conteúdo Detectado!</h4>
-                                        <p className="text-amber-700/70 text-sm font-medium">
-                                            Você planejou <strong>{requiredDays}</strong> tópicos/aulas, mas o seu calendário só possui <strong>{availableDays}</strong> datas disponíveis.
-                                        </p>
-                                        <p className="text-amber-800 text-[10px] font-black uppercase mt-2">Dica: Mescle tópicos arrastando um sobre o outro ou ajuste o calendário.</p>
-                                    </div>
-                                    <Button onClick={() => setStep(1)} className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs uppercase h-10 px-6">
-                                        Ajustar Datas
-                                    </Button>
-                                </motion.div>
-                            )}
+                                <div className="flex flex-col gap-8">
+                                    <div className="space-y-6">
+                                        <div className="flex justify-between items-center px-2">
+                                            <h3 className="text-xl font-black text-[#8C132C] flex items-center gap-3">
+                                                <Sparkles size={24} /> Avaliações e Pontuação
+                                            </h3>
+                                            <Button
+                                                onClick={suggestExamDates}
+                                                variant="outline"
+                                                className="border-[#8C132C]/20 text-[#8C132C] rounded-xl font-black text-[10px] uppercase h-10 hover:bg-[#8C132C]/5"
+                                            >
+                                                <Sparkles size={14} className="mr-2" /> Sugerir Datas via IA
+                                            </Button>
+                                        </div>
 
-                            <div className="flex items-center justify-between mb-2 px-6">
-                                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Plano de Ensino (Sequência Didática)</Label>
-                                <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-2 text-xs font-bold bg-slate-100 p-2 rounded-lg">
-                                        <span className="text-slate-500 uppercase">Total:</span>
-                                        <span className={cn(isOverflow ? "text-red-500" : "text-emerald-500")}>
-                                            {requiredDays} / {availableDays}
-                                        </span>
-                                    </div>
-                                    <Button onClick={generateAIContent} size="sm" variant="outline" className="border-[#8C132C]/20 text-[#8C132C] hover:bg-[#8C132C]/5 rounded-xl font-black text-[10px] uppercase h-10">
-                                        <Sparkles size={14} className="mr-2" /> Sugerir com IA
-                                    </Button>
-                                    <Button onClick={addTopic} size="sm" className="bg-[#8C132C] text-white rounded-xl font-black text-[10px] uppercase h-10 shadow-lg shadow-[#8C132C]/10">
-                                        <Plus size={14} className="mr-1" /> Novo Tópico
-                                    </Button>
-                                </div>
-                            </div>
+                                        <div className={cn(
+                                            "p-6 rounded-[32px] text-center flex flex-col items-center justify-center transition-all h-32 border-2",
+                                            totalPoints === 100
+                                                ? "bg-emerald-500 border-emerald-400 text-white shadow-lg shadow-emerald-500/20"
+                                                : "bg-red-50 border-red-100 text-red-500"
+                                        )}>
+                                            <span className="text-[10px] font-black uppercase tracking-widest opacity-80">Soma Total</span>
+                                            <span className="text-4xl font-black mt-2 mb-1">{totalPoints} / 100</span>
+                                            {totalPoints !== 100 && (
+                                                <span className="text-[8px] font-bold mt-1 uppercase italic">Ajuste as avaliações para fechar 100pts</span>
+                                            )}
+                                        </div>
 
-                            <DragDropContext onDragEnd={onDragEnd}>
-                                <Droppable droppableId="topics-list" isCombineEnabled>
-                                    {(provided) => (
-                                        <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4 pb-12">
-                                            {topics.map((topic, index) => (
-                                                <Draggable key={topic.id} draggableId={topic.id} index={index}>
-                                                    {(provided, snapshot) => (
-                                                        <div
-                                                            ref={provided.innerRef}
-                                                            {...provided.draggableProps}
-                                                            className={cn(
-                                                                "bg-white rounded-[32px] p-1 border-2 transition-all shadow-sm",
-                                                                snapshot.isDragging ? "border-[#8C132C] shadow-2xl scale-102 z-50 ring-4 ring-[#8C132C]/5" : "border-transparent hover:border-slate-100"
-                                                            )}
-                                                        >
-                                                            <div className="flex items-center gap-4 p-4">
-                                                                <div {...provided.dragHandleProps} className="text-slate-300 hover:text-slate-400 p-2">
-                                                                    <GripVertical size={20} />
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-center px-2">
+                                                <div className="space-y-1">
+                                                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Atividades Avaliativas</Label>
+                                                    <p className="text-[9px] text-slate-400 font-medium">Provas, Trabalhos e Seminários.</p>
+                                                </div>
+                                                <Button size="sm" variant="ghost" className="bg-[#8C132C]/10 text-[#8C132C] hover:bg-[#8C132C] hover:text-white rounded-xl font-black text-[10px] uppercase h-9 px-4 transition-all" onClick={() => setAssessments([...assessments, { id: Date.now().toString(), name: 'Nova Atividade', date: null, points: 0, type: 'Professor' }])}>+ Adicionar</Button>
+                                            </div>
+
+                                            <div className="grid gap-3 max-h-[400px] overflow-y-auto pr-2 no-scrollbar">
+                                                {assessments.map(ass => (
+                                                    <motion.div layout key={ass.id} className="bg-slate-50/50 p-4 rounded-[24px] flex flex-col gap-3 group border border-slate-100/50 hover:bg-white hover:shadow-lg transition-all border-l-4 border-l-[#8C132C]">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="flex-1 min-w-0">
+                                                                <Input value={ass.name} onChange={e => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, name: e.target.value } : a))} className="bg-transparent border-none font-black h-7 text-xs p-0 text-slate-700 focus:ring-0" />
+                                                                <div className="flex items-center gap-2 mt-1">
+                                                                    <Select value={ass.type} onValueChange={(val: any) => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, type: val } : a))}>
+                                                                        <SelectTrigger className="h-4 border-none bg-transparent p-0 text-[7px] font-black uppercase text-slate-400 w-auto gap-1 shadow-none focus:ring-0">
+                                                                            <SelectValue />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent className="rounded-xl border-none shadow-2xl">
+                                                                            <SelectItem value="Institucional">Institucional</SelectItem>
+                                                                            <SelectItem value="Professor">Professor</SelectItem>
+                                                                            <SelectItem value="Curso">Curso</SelectItem>
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    {ass.isSubstitutive && <Badge className="text-[7px] font-black bg-amber-500 text-white h-4 border-none">SUBST.</Badge>}
                                                                 </div>
-                                                                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black text-slate-400 text-xs">
-                                                                    {index + 1}
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="relative">
+                                                                    <Input
+                                                                        type="number"
+                                                                        value={ass.points}
+                                                                        onChange={e => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, points: parseInt(e.target.value) || 0 } : a))}
+                                                                        className="w-14 h-8 rounded-xl border-none bg-white text-[10px] font-black text-center p-0 shadow-sm"
+                                                                    />
+                                                                    <span className="absolute -right-1 -top-1 bg-[#8C132C] text-white text-[6px] font-black px-1 rounded-full">PTS</span>
                                                                 </div>
-                                                                <Input
-                                                                    value={topic.title}
-                                                                    onChange={e => updateTopic(topic.id, { title: e.target.value })}
-                                                                    placeholder="Título do Tópico ou Conteudo da Aula"
-                                                                    className="flex-1 bg-transparent border-none font-bold text-slate-700 h-12 text-sm focus:ring-0 placeholder:text-slate-300 focus:bg-slate-50/50 rounded-xl px-4"
-                                                                />
+                                                                <button onClick={() => setAssessments(assessments.filter(a => a.id !== ass.id))} className="text-slate-300 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100 p-1">
+                                                                    <Trash2 size={14} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
 
-                                                                <div className="flex items-center gap-6">
-                                                                    {/* PRACTICAL TOGGLE & CONFLICT ALERT */}
-                                                                    <div className="flex flex-col items-center gap-1 group/conflict relative">
-                                                                        <button
-                                                                            onClick={() => updateTopic(topic.id, { isPractical: !topic.isPractical })}
-                                                                            className={cn(
-                                                                                "px-4 h-9 rounded-xl font-black text-[9px] uppercase transition-all flex items-center gap-2",
-                                                                                topic.isPractical ? "bg-emerald-50 text-emerald-600 ring-2 ring-emerald-500/20" : "bg-slate-50 text-slate-400"
-                                                                            )}
-                                                                        >
-                                                                            {topic.isPractical ? 'Prática' : 'Teórica'}
-                                                                        </button>
-                                                                        {topic.isPractical && !practiceLocation && (
-                                                                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-bounce shadow-sm" title="Falta definir local de aula prática no Passo 1" />
-                                                                        )}
-                                                                    </div>
+                                                        <div className="flex items-center justify-between pt-2 border-t border-slate-100/50">
+                                                            <div className="flex items-center gap-2">
+                                                                <Popover>
+                                                                    <PopoverTrigger asChild>
+                                                                        <Button variant="ghost" className="h-6 p-0 text-[8px] font-black uppercase text-slate-400 gap-1.5 hover:bg-transparent">
+                                                                            <CalendarIcon size={10} className="text-[#8C132C]" />
+                                                                            {ass.date ? format(ass.date, "dd/MM") : "Definir Data"}
+                                                                        </Button>
+                                                                    </PopoverTrigger>
+                                                                    <PopoverContent className="w-auto p-0 rounded-3xl border-none shadow-2xl overflow-hidden" align="start">
+                                                                        <Calendar
+                                                                            mode="single"
+                                                                            selected={ass.date || undefined}
+                                                                            onSelect={(d) => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, date: d || null } : a))}
+                                                                            locale={ptBR}
+                                                                            disabled={(date) => isDateDisabled(date)}
+                                                                        />
+                                                                    </PopoverContent>
+                                                                </Popover>
+                                                            </div>
 
-                                                                    {/* METHODOLOGY SELECTOR & COACH */}
-                                                                    <div className="flex items-center gap-2">
-                                                                        <div className="relative group/method">
-                                                                            <div className="h-9 px-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-[9px] font-black text-slate-400 uppercase cursor-pointer hover:bg-slate-100 transition-all">
-                                                                                {topic.methodology || 'Metodologia'}
-                                                                            </div>
-                                                                            <Select onValueChange={(val) => updateTopic(topic.id, { methodology: val })}>
-                                                                                <SelectTrigger className="absolute inset-0 opacity-0 cursor-pointer">
-                                                                                    <SelectValue />
-                                                                                </SelectTrigger>
-                                                                                <SelectContent>
-                                                                                    {Object.keys(METHODOLOGY_GUIDE).map(m => (
-                                                                                        <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>
-                                                                                    ))}
-                                                                                    <SelectItem value="Seminário" className="font-bold">Seminário</SelectItem>
-                                                                                    <SelectItem value="Gamificação" className="font-bold">Gamificação</SelectItem>
-                                                                                </SelectContent>
-                                                                            </Select>
-                                                                        </div>
+                                                            <div className="flex items-center gap-3">
+                                                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                                                    <Checkbox
+                                                                        checked={ass.isSubstitutive}
+                                                                        onCheckedChange={(checked) => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, isSubstitutive: !!checked } : a))}
+                                                                        className="h-3 w-3 rounded-[4px] border-slate-200 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                                                                    />
+                                                                    <span className="text-[8px] font-black uppercase text-slate-400 mt-0.5">Substitutiva</span>
+                                                                </label>
 
-                                                                        {/* Pedagogical Coach Popover */}
-                                                                        {topic.methodology && METHODOLOGY_GUIDE[topic.methodology] && (
-                                                                            <Popover>
-                                                                                <PopoverTrigger asChild>
-                                                                                    <button className="w-7 h-7 rounded-lg bg-[#8C132C]/10 text-[#8C132C] flex items-center justify-center transition-all hover:bg-[#8C132C] hover:text-white">
-                                                                                        <Sparkles size={12} />
-                                                                                    </button>
-                                                                                </PopoverTrigger>
-                                                                                <PopoverContent className="w-80 p-6 rounded-[32px] border-none shadow-2xl bg-white space-y-4">
-                                                                                    <div className="space-y-1">
-                                                                                        <h4 className="text-sm font-black text-[#8C132C] flex items-center gap-2 uppercase tracking-tight">
-                                                                                            <Sparkles size={14} /> Professor Coach: {topic.methodology}
-                                                                                        </h4>
-                                                                                        <p className="text-[11px] text-slate-500 leading-relaxed italic">{METHODOLOGY_GUIDE[topic.methodology].desc}</p>
-                                                                                    </div>
-
-                                                                                    <div className="space-y-2">
-                                                                                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Ideias de Atividades</span>
-                                                                                        <div className="grid gap-2">
-                                                                                            {METHODOLOGY_GUIDE[topic.methodology].activities.map((act, i) => (
-                                                                                                <div key={i} className="bg-slate-50 p-3 rounded-2xl text-[10px] font-bold text-slate-700 flex items-start gap-2 border border-slate-100">
-                                                                                                    <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center text-[8px] text-[#8C132C] shadow-sm flex-shrink-0">{i + 1}</div>
-                                                                                                    {act}
-                                                                                                </div>
-                                                                                            ))}
-                                                                                        </div>
-                                                                                    </div>
-
-                                                                                    <div className="pt-2 border-t border-slate-50">
-                                                                                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2 block">Links Úteis</span>
-                                                                                        <div className="flex flex-wrap gap-2">
-                                                                                            {METHODOLOGY_GUIDE[topic.methodology].links.map((link, i) => (
-                                                                                                <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 rounded-xl bg-[#8C132C]/5 text-[#8C132C] text-[9px] font-black uppercase hover:bg-[#8C132C] hover:text-white transition-all">
-                                                                                                    {link.label}
-                                                                                                </a>
-                                                                                            ))}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </PopoverContent>
-                                                                            </Popover>
-                                                                        )}
-                                                                    </div>
-
-                                                                    {/* RESOURCES SELECTOR */}
-                                                                    <div className="relative group/resources">
-                                                                        <div className="flex -space-x-2 cursor-pointer">
-                                                                            {topic.resources.length > 0 ? (
-                                                                                <div className="h-8 px-3 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[9px] font-black text-slate-500 uppercase">
-                                                                                    {topic.resources.length} Recursos
-                                                                                </div>
-                                                                            ) : (
-                                                                                <div className="text-slate-200 hover:text-[#8C132C] p-2" title="Add Recursos Didáticos">
-                                                                                    <LayoutDashboard size={18} />
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                        <Select
-                                                                            onValueChange={(val) => {
-                                                                                const updated = topic.resources.includes(val)
-                                                                                    ? topic.resources.filter(r => r !== val)
-                                                                                    : [...topic.resources, val];
-                                                                                updateTopic(topic.id, { resources: updated });
-                                                                            }}
-                                                                        >
-                                                                            <SelectTrigger className="absolute inset-0 opacity-0 bg-transparent border-none cursor-pointer">
-                                                                                <SelectValue />
-                                                                            </SelectTrigger>
-                                                                            <SelectContent>
-                                                                                {['Projetor', 'Esqueleto', 'Macas', 'Modelos 3D', 'Software', 'Artigos Impressos', 'Instrumentos Avaliação'].map(r => (
-                                                                                    <SelectItem key={r} value={r} className="font-bold">
-                                                                                        {topic.resources.includes(r) && "✓ "} {r}
-                                                                                    </SelectItem>
-                                                                                ))}
-                                                                            </SelectContent>
-                                                                        </Select>
-                                                                    </div>
-
+                                                                {ass.isSubstitutive && (
                                                                     <Popover>
                                                                         <PopoverTrigger asChild>
-                                                                            <div className="flex -space-x-2 cursor-pointer items-center">
-                                                                                {topic.bibliographyIds.length > 0 ? (
-                                                                                    topic.bibliographyIds.map(bid => {
-                                                                                        const b = books.find(book => book.id === bid);
-                                                                                        return (
-                                                                                            <div key={bid} className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center shadow-sm hover:z-10 transition-all hover:scale-110" title={b?.title}>
-                                                                                                <BookOpen size={14} className="text-slate-400" />
-                                                                                            </div>
-                                                                                        );
-                                                                                    })
-                                                                                ) : (
-                                                                                    <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 hover:text-[#8C132C] transition-all hover:bg-[#8C132C]/5" title="Vincular Referência">
-                                                                                        <BookOpen size={16} />
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
+                                                                            <Button variant="outline" size="sm" className="h-6 text-[8px] font-black uppercase px-2 border-slate-100 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg">
+                                                                                {ass.substitutesIds?.length ? `${ass.substitutesIds.length} Vinc.` : 'Vincular'}
+                                                                            </Button>
                                                                         </PopoverTrigger>
-                                                                        <PopoverContent className="w-80 p-6 rounded-[32px] border-none shadow-2xl bg-white space-y-4">
-                                                                            <div className="flex items-center justify-between mb-2">
-                                                                                <h4 className="text-[10px] font-black uppercase text-slate-400">Referências da Aula</h4>
-                                                                                <Button
-                                                                                    variant="ghost"
-                                                                                    size="sm"
-                                                                                    onClick={() => handleAutoLinkBibliography(topic.id)}
-                                                                                    className="h-7 rounded-lg text-[9px] font-black uppercase text-[#8C132C] hover:bg-[#8C132C]/10 gap-1.5"
-                                                                                >
-                                                                                    <Sparkles size={10} /> Vincular IA
-                                                                                </Button>
-                                                                            </div>
-                                                                            <div className="grid gap-2 max-h-64 overflow-y-auto pr-2 no-scrollbar">
-                                                                                {books.map(book => (
-                                                                                    <button
-                                                                                        key={book.id}
-                                                                                        onClick={() => {
-                                                                                            const updated = topic.bibliographyIds.includes(book.id)
-                                                                                                ? topic.bibliographyIds.filter(id => id !== book.id)
-                                                                                                : [...topic.bibliographyIds, book.id];
-                                                                                            updateTopic(topic.id, { bibliographyIds: updated });
-                                                                                        }}
-                                                                                        className={cn(
-                                                                                            "flex items-center gap-4 p-4 rounded-2xl text-left transition-all border group/item",
-                                                                                            topic.bibliographyIds.includes(book.id)
-                                                                                                ? "bg-[#8C132C]/5 border-[#8C132C]/20"
-                                                                                                : "bg-white border-slate-50 hover:bg-slate-50"
-                                                                                        )}
-                                                                                    >
-                                                                                        <div className={cn(
-                                                                                            "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                                                                                            topic.bibliographyIds.includes(book.id) ? "bg-[#8C132C] border-[#8C132C]" : "bg-white border-slate-200"
-                                                                                        )}>
-                                                                                            {topic.bibliographyIds.includes(book.id) && <CheckCircle2 size={12} className="text-white" />}
-                                                                                        </div>
-                                                                                        <div className="flex-1 overflow-hidden">
-                                                                                            <div className="text-[11px] font-black text-slate-700 truncate">{book.title}</div>
-                                                                                            <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{book.author}</div>
-                                                                                        </div>
-                                                                                    </button>
+                                                                        <PopoverContent className="w-48 p-3 rounded-2xl border-none shadow-2xl">
+                                                                            <div className="text-[9px] font-black uppercase text-slate-400 mb-2 px-1 tracking-widest">Substitui:</div>
+                                                                            <div className="space-y-1">
+                                                                                {assessments.filter(a => a.id !== ass.id && !a.isSubstitutive).map(a => (
+                                                                                    <label key={a.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                                                                                        <Checkbox
+                                                                                            checked={ass.substitutesIds?.includes(a.id)}
+                                                                                            onCheckedChange={(checked) => {
+                                                                                                const currentIds = ass.substitutesIds || [];
+                                                                                                const newIds = checked ? [...currentIds, a.id] : currentIds.filter(id => id !== a.id);
+                                                                                                setAssessments(assessments.map(acc => acc.id === ass.id ? { ...acc, substitutesIds: newIds } : acc));
+                                                                                            }}
+                                                                                            className="h-3.5 w-3.5 rounded-[4px] border-slate-300 data-[state=checked]:bg-[#8C132C]"
+                                                                                        />
+                                                                                        <span className="text-[9px] font-bold text-slate-600 truncate">{a.name}</span>
+                                                                                    </label>
                                                                                 ))}
-                                                                                {books.length === 0 && (
-                                                                                    <div className="py-10 text-center space-y-3">
-                                                                                        <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto text-slate-200">
-                                                                                            <Library size={24} />
-                                                                                        </div>
-                                                                                        <p className="text-[10px] font-bold text-slate-400">Nenhum livro cadastrado no Passo 2.</p>
-                                                                                    </div>
+                                                                                {assessments.filter(a => a.id !== ass.id && !a.isSubstitutive).length === 0 && (
+                                                                                    <p className="text-[8px] text-slate-400 italic px-1">Nenhuma avaliação passível de substituição.</p>
                                                                                 )}
                                                                             </div>
                                                                         </PopoverContent>
                                                                     </Popover>
-
-                                                                    <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-2xl border border-slate-100/50">
-                                                                        <button
-                                                                            onClick={() => updateTopic(topic.id, { classesNeeded: Math.max(1, topic.classesNeeded - 1) })}
-                                                                            className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-slate-400 hover:text-[#8C132C] shadow-sm transition-all"
-                                                                        >
-                                                                            -
-                                                                        </button>
-                                                                        <span className="w-8 text-center font-black text-xs text-[#8C132C]">{topic.classesNeeded}h</span>
-                                                                        <button
-                                                                            onClick={() => updateTopic(topic.id, { classesNeeded: topic.classesNeeded + 1 })}
-                                                                            className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-slate-400 hover:text-[#8C132C] shadow-sm transition-all"
-                                                                        >
-                                                                            +
-                                                                        </button>
-                                                                    </div>
-
-                                                                    <button onClick={() => removeTopic(topic.id)} className="p-2 text-slate-200 hover:text-red-400 transition-colors">
-                                                                        <Trash2 size={18} />
-                                                                    </button>
-                                                                </div>
+                                                                )}
                                                             </div>
                                                         </div>
-                                                    )}
-                                                </Draggable>
-                                            ))}
-                                            {provided.placeholder}
+                                                    </motion.div>
+                                                ))}
+                                            </div>
                                         </div>
-                                    )}
-                                </Droppable>
-                            </DragDropContext>
+                                    </div>
 
-                            <div className="flex justify-between items-center pt-8 border-t border-slate-50">
-                                <Button onClick={() => setStep(2)} variant="ghost" className="h-14 rounded-2xl px-10 font-black uppercase tracking-widest text-slate-400">
-                                    <ChevronLeft size={18} className="mr-2" /> Voltar
-                                </Button>
-                                <Button disabled={isOverflow} onClick={() => setStep(4)} className="bg-emerald-600 hover:bg-emerald-700 h-16 rounded-[28px] px-12 font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20">
-                                    <Sparkles size={18} className="mr-2" /> Ativar Cronograma
-                                </Button>
-                            </div>
+                                    <div className="space-y-6 pt-6 border-t border-slate-50">
+                                        <div className="bg-[#8C132C]/5 border-2 border-dashed border-[#8C132C]/20 rounded-3xl p-8 space-y-6">
+                                            <div className="flex items-center justify-between">
+                                                <Label className="text-[#8C132C] font-black uppercase text-[10px] tracking-widest">Documentos Ativos (Considerados pela IA)</Label>
+                                                <div className="px-3 py-1 bg-[#8C132C] text-white text-[9px] font-black rounded-full animate-pulse">
+                                                    {uploadedFiles.length} ATIVOS
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-wrap gap-3">
+                                                <label className="cursor-pointer">
+                                                    <Input type="file" multiple accept=".pdf,.doc,.docx" onChange={handleImportFromDocument} className="hidden" />
+                                                    <div className="h-20 w-32 rounded-3xl bg-white border border-slate-100 flex flex-col items-center justify-center text-slate-300 hover:text-[#8C132C] hover:border-[#8C132C]/30 transition-all shadow-sm">
+                                                        <Plus size={24} />
+                                                    </div>
+                                                </label>
+                                                {uploadedFiles.map((f, i) => (
+                                                    <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} key={i} className="h-20 px-6 rounded-3xl bg-white border border-[#8C132C]/10 flex items-center gap-4 shadow-sm group">
+                                                        <div className="w-10 h-10 rounded-2xl bg-[#8C132C]/5 flex items-center justify-center text-[#8C132C]">
+                                                            <FileText size={18} />
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[10px] font-black text-slate-700 truncate max-w-[120px]">{f.name}</span>
+                                                            <span className={cn("text-[8px] font-bold uppercase tracking-tighter flex items-center gap-1", isSynced ? "text-emerald-500" : "text-amber-500")}>
+                                                                {isSynced ? <Check size={10} /> : <Clock size={10} />}
+                                                                {isSynced ? "Sincronizado" : "Aguardando Leitura"}
+                                                            </span>
+                                                        </div>
+                                                        <button onClick={() => setUploadedFiles(uploadedFiles.filter((_, idx) => idx !== i))} className="ml-2 text-slate-200 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100">
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </motion.div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {uploadedFiles.length > 0 && (
+                                            <Button
+                                                onClick={handleRunAIAnalysis}
+                                                disabled={isAnalyzing}
+                                                className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#8C132C] to-amber-600 text-white font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-[#8C132C]/20 animate-in fade-in slide-in-from-top-2"
+                                            >
+                                                {isAnalyzing ? (
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="animate-spin rounded-full h-5 w-5 border-3 border-white border-t-transparent" />
+                                                        <span>IA Analisando...</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-3">
+                                                        <Sparkles size={20} className="animate-pulse" />
+                                                        <span>Sincronizar com IA</span>
+                                                    </div>
+                                                )}
+                                            </Button>
+                                        )}
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <Button onClick={() => setStep(2)} className="bg-[#8C132C] h-14 rounded-2xl font-black uppercase tracking-widest transition-all hover:scale-105 shadow-xl shadow-[#8C132C]/20">
+                                                Próximo Passo <ChevronRight size={18} className="ml-2" />
+                                            </Button>
+                                            <label className="group cursor-pointer">
+                                                <Input type="file" multiple accept=".json" onChange={handleImportSyllabus} className="hidden" />
+                                                <div className="h-14 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-400 group-hover:border-[#8C132C]/30 group-hover:bg-[#8C132C]/5 transition-all gap-2">
+                                                    <Upload size={18} />
+                                                    <span className="text-[9px] font-black uppercase">Importar JSON</span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card>
                         </motion.div>
                     )}
 
-                {step === 4 && (
-                    <motion.div key="step4" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-10 pb-40">
-                        {/* HEADBOARD - VIEW MODE SELECTOR */}
-                        <div className="bg-white p-2 rounded-[32px] shadow-xl shadow-slate-200/50 flex gap-2 w-fit mx-auto border border-slate-50">
-                            <Button
-                                variant="ghost"
-                                onClick={() => setViewMode('professor')}
-                                className={cn(
-                                    "rounded-[24px] px-8 h-12 font-black text-[10px] uppercase transition-all",
-                                    viewMode === 'professor' ? "bg-[#8C132C] text-white shadow-lg shadow-[#8C132C]/20" : "text-slate-400 hover:bg-slate-50"
-                                )}
-                            >
-                                Modo Professor (Gestão)
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                onClick={() => setViewMode('student')}
-                                className={cn(
-                                    "rounded-[24px] px-8 h-12 font-black text-[10px] uppercase transition-all",
-                                    viewMode === 'student' ? "bg-[#8C132C] text-white shadow-lg shadow-[#8C132C]/20" : "text-slate-400 hover:bg-slate-50"
-                                )}
-                            >
-                                Modo Aluno (Consulta)
-                            </Button>
-                        </div>
-
-                        <div className="grid grid-cols-12 gap-8">
-                            {/* LEFT: PROGRESS & INFO */}
-                            <div className="col-span-4 space-y-6">
-                                <Card className="p-8 rounded-[44px] border-none shadow-2xl bg-[#363636] text-white overflow-hidden relative">
-                                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-3xl" />
-                                    <h3 className="text-sm font-black uppercase tracking-widest opacity-50 mb-6">Progresso do Semestre</h3>
-                                    <div className="flex items-end gap-4 mb-2">
-                                        <span className="text-6xl font-black">{Math.round((completedTopicIds.length / topics.length) * 100)}%</span>
-                                        <span className="text-xs font-bold opacity-40 pb-3 uppercase">Concluído</span>
-                                    </div>
-                                    <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
-                                        <motion.div
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${(completedTopicIds.length / topics.length) * 100}%` }}
-                                            className="h-full bg-emerald-400 shadow-[0_0_20px_#10b981]"
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4 mt-8 pt-8 border-t border-white/10">
-                                        <div>
-                                            <div className="text-[9px] font-black uppercase opacity-40">Aulas Dadas</div>
-                                            <div className="text-xl font-black">{completedTopicIds.length}</div>
+                    {
+                        step === 2 && (
+                            <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
+                                <div className="grid grid-cols-3 gap-8">
+                                    <Card className="col-span-1 p-8 rounded-[40px] border-none shadow-xl h-fit">
+                                        <h3 className="text-lg font-black text-[#8C132C] mb-6 flex items-center gap-2">
+                                            <Library size={20} /> Cadastrar Obra
+                                        </h3>
+                                        <div className="space-y-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase text-slate-400">Título / Nome</Label>
+                                                <Input value={newBook.title} onChange={e => setNewBook({ ...newBook, title: e.target.value })} placeholder="Ex: Tratado de..." className="rounded-xl border-slate-100 bg-slate-50 font-bold" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase text-slate-400">Autor / Edição</Label>
+                                                <Input value={newBook.author} onChange={e => setNewBook({ ...newBook, author: e.target.value })} placeholder="Ex: Dutton, 2024" className="rounded-xl border-slate-100 bg-slate-50 font-bold" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase text-slate-400">Tipo SINAES</Label>
+                                                <Select onValueChange={(val: any) => setNewBook({ ...newBook, type: val })} defaultValue="Básico">
+                                                    <SelectTrigger className="rounded-xl border-slate-100 bg-slate-50 font-bold">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="rounded-xl border-none shadow-2xl">
+                                                        <SelectItem value="Básico">Básica (Mín. 3)</SelectItem>
+                                                        <SelectItem value="Complementar">Complementar (Mín. 5)</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <Button onClick={addBook} className="w-full bg-[#363636] h-12 rounded-xl font-black uppercase text-[10px] tracking-widest mt-4">
+                                                Adicionar à Biblioteca
+                                            </Button>
                                         </div>
-                                        <div>
-                                            <div className="text-[9px] font-black uppercase opacity-40">Restantes</div>
-                                            <div className="text-xl font-black">{topics.length - completedTopicIds.length}</div>
-                                        </div>
-                                    </div>
-                                </Card>
+                                    </Card>
 
-                                <Card className="p-8 rounded-[44px] border-none shadow-xl bg-white border border-slate-50 space-y-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-2xl bg-[#8C132C]/5 flex items-center justify-center text-[#8C132C]"><LinkIcon size={20} /></div>
-                                        <div>
-                                            <h4 className="text-sm font-black text-slate-700">Link de Acesso Acadêmico</h4>
-                                            <p className="text-[10px] font-bold text-slate-400">Compartilhe com seus alunos</p>
-                                        </div>
-                                    </div>
-                                    <div className="bg-slate-50 p-4 rounded-2xl flex items-center justify-between border border-slate-100">
-                                        <code className="text-[10px] font-bold text-[#8C132C] truncate pr-4">axiom.ai/c/{publicSlug}</code>
-                                        <Button variant="ghost" size="sm" className="h-8 rounded-lg bg-white shadow-sm font-black text-[9px] uppercase px-3" onClick={() => {
-                                            navigator.clipboard.writeText(`https://axiom.ai/c/${publicSlug}`);
-                                            toast.success("Link copiado!");
-                                        }}>Copiar</Button>
-                                    </div>
-                                </Card>
-                            </div>
-
-                            {/* RIGHT: INTERACTIVE SCHEDULE LOG */}
-                            <div className="col-span-8 space-y-4">
-                                <div className="flex justify-between items-center px-4">
-                                    <h3 className="text-lg font-black text-slate-700">Diário de Classe Digital</h3>
-                                    <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[9px] uppercase tracking-widest px-4 py-1.5">Semestre Ativo</Badge>
-                                </div>
-
-                                <div className="space-y-3">
-                                    {topics.map((topic, index) => {
-                                        const isDone = completedTopicIds.includes(topic.id);
-                                        return (
-                                            <motion.div
-                                                layout
-                                                key={topic.id}
-                                                className={cn(
-                                                    "bg-white p-5 rounded-[36px] border-2 transition-all flex items-center gap-5 group",
-                                                    isDone ? "border-emerald-100 opacity-60 grayscale-[0.5]" : "border-slate-50 shadow-sm hover:border-[#8C132C]/20"
-                                                )}
-                                            >
-                                                {viewMode === 'professor' && (
-                                                    <button
-                                                        onClick={() => toggleTopicCompletion(topic.id)}
-                                                        className={cn(
-                                                            "w-12 h-12 rounded-2xl flex items-center justify-center transition-all border-2",
-                                                            isDone ? "bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200" : "bg-white border-slate-100 text-slate-200 group-hover:border-[#8C132C]/30"
-                                                        )}
-                                                    >
-                                                        <Check size={24} strokeWidth={4} />
-                                                    </button>
-                                                )}
-
-                                                {viewMode === 'student' && (
+                                    <div className="col-span-2 space-y-4">
+                                        <Label className="text-[10px] font-black uppercase text-slate-400 px-4">Biblioteca do Semestre</Label>
+                                        {books.map(book => (
+                                            <motion.div layout key={book.id} className="bg-white p-5 rounded-3xl flex items-center justify-between shadow-sm border border-slate-50 group hover:border-[#8C132C]/20 transition-all">
+                                                <div className="flex items-center gap-4">
                                                     <div className={cn(
-                                                        "w-12 h-12 rounded-2xl flex items-center justify-center transition-all border-2",
-                                                        isDone ? "bg-emerald-50 border-emerald-100 text-emerald-500" : "bg-slate-50 border-transparent text-slate-300"
+                                                        "w-12 h-12 rounded-2xl flex items-center justify-center",
+                                                        book.type === 'Básico' ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
                                                     )}>
-                                                        {isDone ? <CheckCircle2 size={24} /> : <div className="text-xs font-black">{index + 1}</div>}
+                                                        <BookOpen size={20} />
                                                     </div>
-                                                )}
-
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-3 mb-0.5">
-                                                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Aula {index + 1}</span>
-                                                        {topic.isPractical && <Badge className="bg-blue-50 text-blue-500 text-[8px] font-black uppercase px-2 py-0 border-none">Prática</Badge>}
-                                                    </div>
-                                                    <h4 className={cn("text-base font-black transition-all", isDone ? "text-slate-400 line-through" : "text-slate-700")}>
-                                                        {topic.title}
-                                                    </h4>
-                                                    <div className="flex items-center gap-4 mt-2">
-                                                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                                                            <Clock size={12} className="opacity-50" /> {topic.classesNeeded}h
-                                                        </div>
-                                                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                                                            <Sparkles size={12} className="opacity-50" /> {topic.methodology}
-                                                        </div>
-                                                        <div className="flex -space-x-2 ml-2">
-                                                            {topic.bibliographyIds.map(bid => (
-                                                                <div key={bid} className="w-5 h-5 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[8px] text-slate-400 font-bold" title="Livro">B</div>
-                                                            ))}
-                                                        </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-sm text-slate-800">{book.title}</h4>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{book.author} • {book.type}</p>
                                                     </div>
                                                 </div>
-
-                                                {!isDone && (
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <Button variant="ghost" className="w-10 h-10 rounded-xl p-0 hover:bg-[#8C132C]/5 text-slate-300 hover:text-[#8C132C]"><Info size={20} /></Button>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-64 p-5 rounded-[28px] border-none shadow-2xl space-y-3">
-                                                            <h5 className="font-black text-xs text-[#8C132C] uppercase tracking-tight">Recursos da Aula</h5>
-                                                            <div className="flex flex-wrap gap-1.5">
-                                                                {topic.resources.map(r => <Badge key={r} variant="outline" className="text-[9px] font-bold border-slate-100">{r}</Badge>)}
-                                                            </div>
-                                                            <div className="pt-2">
-                                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Localização</p>
-                                                                <p className="text-[11px] font-black text-slate-600">{topic.isPractical ? practiceLocation : theoryLocation}</p>
-                                                            </div>
-                                                        </PopoverContent>
-                                                    </Popover>
-                                                )}
+                                                <button onClick={() => removeBook(book.id)} className="p-3 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100">
+                                                    <Trash2 size={18} />
+                                                </button>
                                             </motion.div>
-                                        );
-                                    })}
+                                        ))}
+                                        {books.length === 0 && (
+                                            <div className="h-40 border-2 border-dashed border-slate-100 rounded-[40px] flex flex-col items-center justify-center text-slate-300">
+                                                <Bookmark size={32} className="mb-2 opacity-50" />
+                                                <p className="text-xs font-bold uppercase tracking-widest">Nenhuma obra cadastrada</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex justify-between items-center pt-8 border-t border-slate-50">
+                                    <Button onClick={() => setStep(1)} variant="ghost" className="h-14 rounded-2xl px-10 font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all">
+                                        <ChevronLeft size={18} className="mr-2" /> Voltar
+                                    </Button>
+                                    <Button onClick={() => setStep(3)} className="bg-[#8C132C] h-14 rounded-2xl px-10 font-black uppercase tracking-widest transition-all hover:scale-105 shadow-xl shadow-[#8C132C]/20">
+                                        Próximo Passo <ChevronRight size={18} className="ml-2" />
+                                    </Button>
+                                </div>
+                            </motion.div>
+                        )
+                    }
+
+                    {
+                        step === 3 && (
+                            <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
+                                {/* ALERT OVERFLOW */}
+                                {isOverflow && (
+                                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="bg-amber-50 border border-amber-200 rounded-[32px] p-6 flex items-center gap-6 shadow-lg shadow-amber-500/5">
+                                        <div className="w-16 h-16 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg animate-pulse">
+                                            <AlertTriangle size={32} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="text-amber-800 font-black text-lg">Estouro de Conteúdo Detectado!</h4>
+                                            <p className="text-amber-700/70 text-sm font-medium">
+                                                Sua carga horária planejada (<strong>{totalNeededHours}h</strong>) excede o tempo disponível no calendário (<strong>{availableHours.toFixed(1)}h</strong>).
+                                            </p>
+                                            <p className="text-amber-800 text-[10px] font-black uppercase mt-2 italic">A IA pode sugerir uma redução proporcional para caber no semestre.</p>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <Button onClick={() => setShowReallocateModal(true)} variant="outline" className="border-amber-400 text-amber-900 rounded-xl font-bold text-xs uppercase h-10 px-6 hover:bg-amber-100">
+                                                Redistribuir com IA
+                                            </Button>
+                                            <Button onClick={() => setStep(3)} className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs uppercase h-10 px-6">
+                                                Organizar Manualmente
+                                            </Button>
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                <div className="flex items-center justify-between mb-2 px-6">
+                                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Plano de Ensino (Sequência Didática)</Label>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2 text-xs font-bold bg-slate-100 p-2 rounded-lg">
+                                            <span className="text-slate-500 uppercase">Carga Horária:</span>
+                                            <span className={cn(isOverflow ? "text-red-500" : "text-emerald-500")}>
+                                                {totalNeededHours}h / {availableHours.toFixed(1)}h
+                                            </span>
+                                        </div>
+                                        <Button onClick={generateAIContent} size="sm" variant="outline" className="border-[#8C132C]/20 text-[#8C132C] hover:bg-[#8C132C]/5 rounded-xl font-black text-[10px] uppercase h-10">
+                                            <Sparkles size={14} className="mr-2" /> Sugerir com IA
+                                        </Button>
+                                        <Button onClick={addTopic} size="sm" className="bg-[#8C132C] text-white rounded-xl font-black text-[10px] uppercase h-10 shadow-lg shadow-[#8C132C]/10">
+                                            <Plus size={14} className="mr-1" /> Novo Tópico
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <DragDropContext onDragEnd={onDragEnd}>
+                                    <Droppable droppableId="topics-list" isCombineEnabled>
+                                        {(provided) => (
+                                            <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4 pb-12">
+                                                {topics.map((topic, index) => (
+                                                    <Draggable key={topic.id} draggableId={topic.id} index={index}>
+                                                        {(provided, snapshot) => (
+                                                            <div
+                                                                ref={provided.innerRef}
+                                                                {...provided.draggableProps}
+                                                                className={cn(
+                                                                    "bg-white rounded-[32px] p-1 border-2 transition-all shadow-sm",
+                                                                    snapshot.isDragging ? "border-[#8C132C] shadow-2xl scale-102 z-50 ring-4 ring-[#8C132C]/5" : "border-transparent hover:border-slate-100"
+                                                                )}
+                                                            >
+                                                                <div className="flex items-center gap-4 p-4">
+                                                                    <div {...provided.dragHandleProps} className="text-slate-300 hover:text-slate-400 p-2">
+                                                                        <GripVertical size={20} />
+                                                                    </div>
+                                                                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black text-slate-400 text-xs">
+                                                                        {index + 1}
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <Input
+                                                                            value={topic.title}
+                                                                            onChange={e => updateTopic(topic.id, { title: e.target.value })}
+                                                                            placeholder="Título do Tópico ou Conteudo da Aula"
+                                                                            className="bg-transparent border-none font-bold text-slate-700 h-9 text-sm focus:ring-0 placeholder:text-slate-300 focus:bg-slate-50/50 rounded-xl px-4 w-full"
+                                                                        />
+                                                                        <div className="flex items-center gap-3 px-4 mt-1">
+                                                                            {/* Date Selection / Estimation */}
+                                                                            <Popover>
+                                                                                <PopoverTrigger asChild>
+                                                                                    <button className={cn(
+                                                                                        "flex items-center gap-1.5 text-[8px] font-black uppercase transition-all px-2 py-0.5 rounded-md",
+                                                                                        topic.date ? "bg-[#8C132C]/10 text-[#8C132C]" : "text-slate-300 hover:text-slate-400"
+                                                                                    )}>
+                                                                                        <Clock size={10} />
+                                                                                        {topic.date
+                                                                                            ? `Fixado: ${format(new Date(topic.date), 'dd/MM')}`
+                                                                                            : `Estimado: ${generateFullSchedule().find(s => s.content === topic.title)?.date || '---'}`
+                                                                                        }
+                                                                                    </button>
+                                                                                </PopoverTrigger>
+                                                                                <PopoverContent className="w-auto p-0 rounded-3xl border-none shadow-2xl">
+                                                                                    <Calendar
+                                                                                        mode="single"
+                                                                                        selected={topic.date ? new Date(topic.date) : undefined}
+                                                                                        onSelect={(d) => updateTopic(topic.id, { date: d })}
+                                                                                        initialFocus
+                                                                                        locale={ptBR}
+                                                                                        disabled={(date) => isDateDisabled(date)}
+                                                                                    />
+                                                                                    {topic.date && (
+                                                                                        <div className="p-2 border-t border-slate-50 text-center">
+                                                                                            <button
+                                                                                                onClick={() => updateTopic(topic.id, { date: null })}
+                                                                                                className="text-[8px] font-black uppercase text-red-500 hover:text-red-600"
+                                                                                            >
+                                                                                                Remover Data Fixa
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </PopoverContent>
+                                                                            </Popover>
+
+                                                                            <div className="flex items-center gap-1">
+                                                                                <div className="w-1 h-1 rounded-full bg-slate-200" />
+                                                                                <span className="text-[8px] font-black text-slate-300 uppercase">Carga: {topic.classesNeeded}h</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-6">
+                                                                        {/* PRACTICAL TOGGLE & CONFLICT ALERT */}
+                                                                        <div className="flex flex-col items-center gap-1 group/conflict relative">
+                                                                            <button
+                                                                                onClick={() => updateTopic(topic.id, { isPractical: !topic.isPractical })}
+                                                                                className={cn(
+                                                                                    "px-4 h-9 rounded-xl font-black text-[9px] uppercase transition-all flex items-center gap-2",
+                                                                                    topic.isPractical ? "bg-emerald-50 text-emerald-600 ring-2 ring-emerald-500/20" : "bg-slate-50 text-slate-400"
+                                                                                )}
+                                                                            >
+                                                                                {topic.isPractical ? 'Prática' : 'Teórica'}
+                                                                            </button>
+                                                                            {topic.isPractical && !practiceLocation && (
+                                                                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-bounce shadow-sm" title="Falta definir local de aula prática no Passo 1" />
+                                                                            )}
+                                                                        </div>
+
+                                                                        {/* METHODOLOGY SELECTOR & COACH */}
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className="relative group/method">
+                                                                                <div className="h-9 px-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-[9px] font-black text-slate-400 uppercase cursor-pointer hover:bg-slate-100 transition-all">
+                                                                                    {topic.methodology || 'Metodologia'}
+                                                                                </div>
+                                                                                <Select onValueChange={(val) => updateTopic(topic.id, { methodology: val })}>
+                                                                                    <SelectTrigger className="absolute inset-0 opacity-0 cursor-pointer">
+                                                                                        <SelectValue />
+                                                                                    </SelectTrigger>
+                                                                                    <SelectContent>
+                                                                                        {Object.keys(METHODOLOGY_GUIDE).map(m => (
+                                                                                            <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>
+                                                                                        ))}
+                                                                                        <SelectItem value="Seminário" className="font-bold">Seminário</SelectItem>
+                                                                                        <SelectItem value="Gamificação" className="font-bold">Gamificação</SelectItem>
+                                                                                    </SelectContent>
+                                                                                </Select>
+                                                                            </div>
+
+                                                                            {/* Pedagogical Coach Popover */}
+                                                                            {topic.methodology && METHODOLOGY_GUIDE[topic.methodology] && (
+                                                                                <Popover>
+                                                                                    <PopoverTrigger asChild>
+                                                                                        <button className="w-7 h-7 rounded-lg bg-[#8C132C]/10 text-[#8C132C] flex items-center justify-center transition-all hover:bg-[#8C132C] hover:text-white">
+                                                                                            <Sparkles size={12} />
+                                                                                        </button>
+                                                                                    </PopoverTrigger>
+                                                                                    <PopoverContent className="w-80 p-6 rounded-[32px] border-none shadow-2xl bg-white space-y-4">
+                                                                                        <div className="space-y-1">
+                                                                                            <h4 className="text-sm font-black text-[#8C132C] flex items-center gap-2 uppercase tracking-tight">
+                                                                                                <Sparkles size={14} /> Professor Coach: {topic.methodology}
+                                                                                            </h4>
+                                                                                            <p className="text-[11px] text-slate-500 leading-relaxed italic">{METHODOLOGY_GUIDE[topic.methodology].desc}</p>
+                                                                                        </div>
+
+                                                                                        <div className="space-y-2">
+                                                                                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Ideias de Atividades</span>
+                                                                                            <div className="grid gap-2">
+                                                                                                {METHODOLOGY_GUIDE[topic.methodology].activities.map((act, i) => (
+                                                                                                    <div key={i} className="bg-slate-50 p-3 rounded-2xl text-[10px] font-bold text-slate-700 flex items-start gap-2 border border-slate-100">
+                                                                                                        <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center text-[8px] text-[#8C132C] shadow-sm flex-shrink-0">{i + 1}</div>
+                                                                                                        {act}
+                                                                                                    </div>
+                                                                                                ))}
+                                                                                            </div>
+                                                                                        </div>
+
+                                                                                        <div className="pt-2 border-t border-slate-50">
+                                                                                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2 block">Links Úteis</span>
+                                                                                            <div className="flex flex-wrap gap-2">
+                                                                                                {METHODOLOGY_GUIDE[topic.methodology].links.map((link, i) => (
+                                                                                                    <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 rounded-xl bg-[#8C132C]/5 text-[#8C132C] text-[9px] font-black uppercase hover:bg-[#8C132C] hover:text-white transition-all">
+                                                                                                        {link.label}
+                                                                                                    </a>
+                                                                                                ))}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </PopoverContent>
+                                                                                </Popover>
+                                                                            )}
+                                                                        </div>
+
+                                                                        {/* RESOURCES SELECTOR */}
+                                                                        <div className="relative group/resources">
+                                                                            <div className="flex -space-x-2 cursor-pointer">
+                                                                                {topic.resources.length > 0 ? (
+                                                                                    <div className="h-8 px-3 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[9px] font-black text-slate-500 uppercase">
+                                                                                        {topic.resources.length} Recursos
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <div className="text-slate-200 hover:text-[#8C132C] p-2" title="Add Recursos Didáticos">
+                                                                                        <LayoutDashboard size={18} />
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                            <Select
+                                                                                onValueChange={(val) => {
+                                                                                    const updated = topic.resources.includes(val)
+                                                                                        ? topic.resources.filter(r => r !== val)
+                                                                                        : [...topic.resources, val];
+                                                                                    updateTopic(topic.id, { resources: updated });
+                                                                                }}
+                                                                            >
+                                                                                <SelectTrigger className="absolute inset-0 opacity-0 bg-transparent border-none cursor-pointer">
+                                                                                    <SelectValue />
+                                                                                </SelectTrigger>
+                                                                                <SelectContent>
+                                                                                    {['Projetor', 'Esqueleto', 'Macas', 'Modelos 3D', 'Software', 'Artigos Impressos', 'Instrumentos Avaliação'].map(r => (
+                                                                                        <SelectItem key={r} value={r} className="font-bold">
+                                                                                            {topic.resources.includes(r) && "✓ "} {r}
+                                                                                        </SelectItem>
+                                                                                    ))}
+                                                                                </SelectContent>
+                                                                            </Select>
+                                                                        </div>
+
+                                                                        <Popover>
+                                                                            <PopoverTrigger asChild>
+                                                                                <div className="flex -space-x-2 cursor-pointer items-center">
+                                                                                    {topic.bibliographyIds.length > 0 ? (
+                                                                                        topic.bibliographyIds.map(bid => {
+                                                                                            const b = books.find(book => book.id === bid);
+                                                                                            return (
+                                                                                                <div key={bid} className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center shadow-sm hover:z-10 transition-all hover:scale-110" title={b?.title}>
+                                                                                                    <BookOpen size={14} className="text-slate-400" />
+                                                                                                </div>
+                                                                                            );
+                                                                                        })
+                                                                                    ) : (
+                                                                                        <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 hover:text-[#8C132C] transition-all hover:bg-[#8C132C]/5" title="Vincular Referência">
+                                                                                            <BookOpen size={16} />
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            </PopoverTrigger>
+                                                                            <PopoverContent className="w-80 p-6 rounded-[32px] border-none shadow-2xl bg-white space-y-4">
+                                                                                <div className="flex items-center justify-between mb-2">
+                                                                                    <h4 className="text-[10px] font-black uppercase text-slate-400">Referências da Aula</h4>
+                                                                                    <Button
+                                                                                        variant="ghost"
+                                                                                        size="sm"
+                                                                                        onClick={() => handleAutoLinkBibliography(topic.id)}
+                                                                                        className="h-7 rounded-lg text-[9px] font-black uppercase text-[#8C132C] hover:bg-[#8C132C]/10 gap-1.5"
+                                                                                    >
+                                                                                        <Sparkles size={10} /> Vincular IA
+                                                                                    </Button>
+                                                                                </div>
+                                                                                <div className="grid gap-2 max-h-64 overflow-y-auto pr-2 no-scrollbar">
+                                                                                    {books.map(book => (
+                                                                                        <button
+                                                                                            key={book.id}
+                                                                                            onClick={() => {
+                                                                                                const updated = topic.bibliographyIds.includes(book.id)
+                                                                                                    ? topic.bibliographyIds.filter(id => id !== book.id)
+                                                                                                    : [...topic.bibliographyIds, book.id];
+                                                                                                updateTopic(topic.id, { bibliographyIds: updated });
+                                                                                            }}
+                                                                                            className={cn(
+                                                                                                "flex items-center gap-4 p-4 rounded-2xl text-left transition-all border group/item",
+                                                                                                topic.bibliographyIds.includes(book.id)
+                                                                                                    ? "bg-[#8C132C]/5 border-[#8C132C]/20"
+                                                                                                    : "bg-white border-slate-50 hover:bg-slate-50"
+                                                                                            )}
+                                                                                        >
+                                                                                            <div className={cn(
+                                                                                                "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                                                topic.bibliographyIds.includes(book.id) ? "bg-[#8C132C] border-[#8C132C]" : "bg-white border-slate-200"
+                                                                                            )}>
+                                                                                                {topic.bibliographyIds.includes(book.id) && <CheckCircle2 size={12} className="text-white" />}
+                                                                                            </div>
+                                                                                            <div className="flex-1 overflow-hidden">
+                                                                                                <div className="text-[11px] font-black text-slate-700 truncate">{book.title}</div>
+                                                                                                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">{book.author} • {book.type}</div>
+                                                                                            </div>
+                                                                                        </button>
+                                                                                    ))}
+                                                                                    {books.length === 0 && (
+                                                                                        <div className="py-10 text-center space-y-3">
+                                                                                            <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto text-slate-200">
+                                                                                                <Library size={24} />
+                                                                                            </div>
+                                                                                            <p className="text-[10px] font-bold text-slate-400">Nenhum livro cadastrado no Passo 2.</p>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            </PopoverContent>
+                                                                        </Popover>
+
+                                                                        <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-2xl border border-slate-100/50">
+                                                                            <button
+                                                                                onClick={() => updateTopic(topic.id, { classesNeeded: Math.max(1, topic.classesNeeded - 1) })}
+                                                                                className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-slate-400 hover:text-[#8C132C] shadow-sm transition-all"
+                                                                            >
+                                                                                -
+                                                                            </button>
+                                                                            <span className="w-8 text-center font-black text-xs text-[#8C132C]">{topic.classesNeeded}h</span>
+                                                                            <button
+                                                                                onClick={() => updateTopic(topic.id, { classesNeeded: topic.classesNeeded + 1 })}
+                                                                                className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-slate-400 hover:text-[#8C132C] shadow-sm transition-all"
+                                                                            >
+                                                                                +
+                                                                            </button>
+                                                                        </div>
+
+                                                                        <button onClick={() => removeTopic(topic.id)} className="p-2 text-slate-200 hover:text-red-400 transition-colors">
+                                                                            <Trash2 size={18} />
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </Draggable>
+                                                ))}
+                                                {provided.placeholder}
+                                            </div>
+                                        )}
+                                    </Droppable>
+                                </DragDropContext>
+
+                                <div className="flex justify-between items-center pt-8 border-t border-slate-50">
+                                    <Button onClick={() => setStep(2)} variant="ghost" className="h-14 rounded-2xl px-10 font-black uppercase tracking-widest text-slate-400">
+                                        <ChevronLeft size={18} className="mr-2" /> Voltar
+                                    </Button>
+                                    <Button disabled={isOverflow} onClick={() => setStep(4)} className="bg-emerald-600 hover:bg-emerald-700 h-16 rounded-[28px] px-12 font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20">
+                                        <Sparkles size={18} className="mr-2" /> Ativar Cronograma
+                                    </Button>
+                                </div>
+                            </motion.div>
+                        )}
+
+                    {step === 4 && (
+                        <motion.div key="step4" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-10 pb-40">
+                            {/* HEADBOARD - VIEW MODE SELECTOR */}
+                            <div className="bg-white p-2 rounded-[32px] shadow-xl shadow-slate-200/50 flex gap-2 w-fit mx-auto border border-slate-50">
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => setViewMode('professor')}
+                                    className={cn(
+                                        "rounded-[24px] px-8 h-12 font-black text-[10px] uppercase transition-all",
+                                        viewMode === 'professor' ? "bg-[#8C132C] text-white shadow-lg shadow-[#8C132C]/20" : "text-slate-400 hover:bg-slate-50"
+                                    )}
+                                >
+                                    Modo Professor (Gestão)
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => setViewMode('student')}
+                                    className={cn(
+                                        "rounded-[24px] px-8 h-12 font-black text-[10px] uppercase transition-all",
+                                        viewMode === 'student' ? "bg-[#8C132C] text-white shadow-lg shadow-[#8C132C]/20" : "text-slate-400 hover:bg-slate-50"
+                                    )}
+                                >
+                                    Modo Aluno (Consulta)
+                                </Button>
+                            </div>
+
+                            <div className="grid grid-cols-12 gap-8">
+                                {/* LEFT: PROGRESS & INFO */}
+                                <div className="col-span-4 space-y-6">
+                                    <Card className="p-8 rounded-[44px] border-none shadow-2xl bg-[#363636] text-white overflow-hidden relative">
+                                        <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-3xl" />
+                                        <h3 className="text-sm font-black uppercase tracking-widest opacity-50 mb-6">Progresso do Semestre</h3>
+                                        <div className="flex items-end gap-4 mb-2">
+                                            <span className="text-6xl font-black">{Math.round((completedTopicIds.length / topics.length) * 100)}%</span>
+                                            <span className="text-xs font-bold opacity-40 pb-3 uppercase">Concluído</span>
+                                        </div>
+                                        <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${(completedTopicIds.length / topics.length) * 100}%` }}
+                                                className="h-full bg-emerald-400 shadow-[0_0_20px_#10b981]"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 mt-8 pt-8 border-t border-white/10">
+                                            <div>
+                                                <div className="text-[9px] font-black uppercase opacity-40">Aulas Dadas</div>
+                                                <div className="text-xl font-black">{completedTopicIds.length}</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-[9px] font-black uppercase opacity-40">Restantes</div>
+                                                <div className="text-xl font-black">{topics.length - completedTopicIds.length}</div>
+                                            </div>
+                                        </div>
+                                    </Card>
+
+                                    <Card className="p-8 rounded-[44px] border-none shadow-xl bg-white border border-slate-50 space-y-6">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-2xl bg-[#8C132C]/5 flex items-center justify-center text-[#8C132C]"><LinkIcon size={20} /></div>
+                                            <div>
+                                                <h4 className="text-sm font-black text-slate-700">Link de Acesso Acadêmico</h4>
+                                                <p className="text-[10px] font-bold text-slate-400">Compartilhe com seus alunos</p>
+                                            </div>
+                                        </div>
+                                        <div className="bg-slate-50 p-4 rounded-2xl flex items-center justify-between border border-slate-100">
+                                            <code className="text-[10px] font-bold text-[#8C132C] truncate pr-4">axiom.ai/c/{publicSlug}</code>
+                                            <Button variant="ghost" size="sm" className="h-8 rounded-lg bg-white shadow-sm font-black text-[9px] uppercase px-3" onClick={() => {
+                                                navigator.clipboard.writeText(`https://axiom.ai/c/${publicSlug}`);
+                                                toast.success("Link copiado!");
+                                            }}>Copiar</Button>
+                                        </div>
+                                    </Card>
+                                </div>
+
+                                {/* RIGHT: INTERACTIVE SCHEDULE LOG */}
+                                <div className="col-span-8 space-y-4">
+                                    <div className="flex justify-between items-center px-4">
+                                        <h3 className="text-lg font-black text-slate-700">Diário de Classe Digital</h3>
+                                        <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[9px] uppercase tracking-widest px-4 py-1.5">Semestre Ativo</Badge>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {topics.map((topic, index) => {
+                                            const isDone = completedTopicIds.includes(topic.id);
+                                            return (
+                                                <motion.div
+                                                    layout
+                                                    key={topic.id}
+                                                    className={cn(
+                                                        "bg-white p-5 rounded-[36px] border-2 transition-all flex items-center gap-5 group",
+                                                        isDone ? "border-emerald-100 opacity-60 grayscale-[0.5]" : "border-slate-50 shadow-sm hover:border-[#8C132C]/20"
+                                                    )}
+                                                >
+                                                    {viewMode === 'professor' && (
+                                                        <button
+                                                            onClick={() => toggleTopicCompletion(topic.id)}
+                                                            className={cn(
+                                                                "w-12 h-12 rounded-2xl flex items-center justify-center transition-all border-2",
+                                                                isDone ? "bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200" : "bg-white border-slate-100 text-slate-200 group-hover:border-[#8C132C]/30"
+                                                            )}
+                                                        >
+                                                            <Check size={24} strokeWidth={4} />
+                                                        </button>
+                                                    )}
+
+                                                    {viewMode === 'student' && (
+                                                        <div className={cn(
+                                                            "w-12 h-12 rounded-2xl flex items-center justify-center transition-all border-2",
+                                                            isDone ? "bg-emerald-50 border-emerald-100 text-emerald-500" : "bg-slate-50 border-transparent text-slate-300"
+                                                        )}>
+                                                            {isDone ? <CheckCircle2 size={24} /> : <div className="text-xs font-black">{index + 1}</div>}
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-3 mb-0.5">
+                                                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Aula {index + 1}</span>
+                                                            {topic.isPractical && <Badge className="bg-blue-50 text-blue-500 text-[8px] font-black uppercase px-2 py-0 border-none">Prática</Badge>}
+                                                        </div>
+                                                        <h4 className={cn("text-base font-black transition-all", isDone ? "text-slate-400 line-through" : "text-slate-700")}>
+                                                            {topic.title}
+                                                        </h4>
+                                                        <div className="flex items-center gap-4 mt-2">
+                                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                                                <Clock size={12} className="opacity-50" /> {topic.classesNeeded}h
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                                                <Sparkles size={12} className="opacity-50" /> {topic.methodology}
+                                                            </div>
+                                                            <div className="flex -space-x-2 ml-2">
+                                                                {topic.bibliographyIds.map(bid => (
+                                                                    <div key={bid} className="w-5 h-5 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[8px] text-slate-400 font-bold" title="Livro">B</div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {!isDone && (
+                                                        <Popover>
+                                                            <PopoverTrigger asChild>
+                                                                <Button variant="ghost" className="w-10 h-10 rounded-xl p-0 hover:bg-[#8C132C]/5 text-slate-300 hover:text-[#8C132C]"><Info size={20} /></Button>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="w-64 p-5 rounded-[28px] border-none shadow-2xl space-y-3">
+                                                                <h5 className="font-black text-xs text-[#8C132C] uppercase tracking-tight">Recursos da Aula</h5>
+                                                                <div className="flex flex-wrap gap-1.5">
+                                                                    {topic.resources.map(r => <Badge key={r} variant="outline" className="text-[9px] font-bold border-slate-100">{r}</Badge>)}
+                                                                </div>
+                                                                <div className="pt-2">
+                                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Localização</p>
+                                                                    <p className="text-[11px] font-black text-slate-600">{topic.isPractical ? practiceLocation : theoryLocation}</p>
+                                                                </div>
+                                                            </PopoverContent>
+                                                        </Popover>
+                                                    )}
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="fixed bottom-10 right-10 flex gap-4">
-                            <Button
-                                onClick={() => setStep(3)}
-                                className="h-16 rounded-[32px] px-8 bg-white border-2 border-slate-100 text-slate-400 font-black uppercase text-[10px] tracking-widest shadow-xl hover:bg-slate-50 transition-all"
-                            >
-                                <ChevronLeft size={18} className="mr-2" /> Voltar para Edição
-                            </Button>
-                            <Button
-                                onClick={() => toast.success("Cronograma arquivado com sucesso!")}
-                                className="h-16 rounded-[32px] px-10 bg-[#363636] font-black uppercase text-xs tracking-widest shadow-2xl transition-all hover:scale-105 active:scale-95"
-                            >
-                                Finalizar Semestre
-                            </Button>
-                        </div>
+                            <div className="fixed bottom-10 right-10 flex gap-4">
+                                <Button
+                                    onClick={() => setStep(3)}
+                                    className="h-16 rounded-[32px] px-8 bg-white border-2 border-slate-100 text-slate-400 font-black uppercase text-[10px] tracking-widest shadow-xl hover:bg-slate-50 transition-all"
+                                >
+                                    <ChevronLeft size={18} className="mr-2" /> Voltar para Edição
+                                </Button>
+                                <Button
+                                    onClick={() => toast.success("Cronograma arquivado com sucesso!")}
+                                    className="h-16 rounded-[32px] px-10 bg-[#363636] font-black uppercase text-xs tracking-widest shadow-2xl transition-all hover:scale-105 active:scale-95"
+                                >
+                                    Finalizar Semestre
+                                </Button>
+                            </div>
 
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
-            {/* FLOATING STATUS INFO */}
-            {step === 3 && (
-                <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50">
-                    <div className={cn(
-                        "px-8 py-4 rounded-full shadow-2xl flex items-center gap-6 backdrop-blur-xl border transition-all",
-                        isOverflow ? "bg-red-500/90 border-red-400 text-white" : "bg-[#363636]/90 border-white/10 text-slate-100"
-                    )}>
-                        <div className="flex items-center gap-3 border-r border-white/10 pr-6">
-                            <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_#10b981]" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Calendário Ativo</span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="text-[11px] font-bold">Aulas: {requiredDays} / {availableDays}h</div>
-                            {totalPoints !== 100 && (
-                                <div className="flex items-center gap-2 bg-red-400/20 px-3 py-1 rounded-full text-[9px] font-black uppercase text-red-200">
-                                    <AlertTriangle size={12} /> Pontos: {totalPoints}/100
-                                </div>
-                            )}
-                            {isOverflow ? (
-                                <div className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-[9px] font-black uppercase">
-                                    <AlertTriangle size={12} /> Estouro: {requiredDays - availableDays}h
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-2 bg-emerald-500/20 px-3 py-1 rounded-full text-[9px] font-black uppercase text-emerald-300">
-                                    <CheckCircle2 size={12} /> Espaço OK
-                                </div>
-                            )}
+                {/* FLOATING STATUS INFO */}
+                {step === 3 && (
+                    <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50">
+                        <div className={cn(
+                            "px-8 py-4 rounded-full shadow-2xl flex items-center gap-6 backdrop-blur-xl border transition-all",
+                            isOverflow ? "bg-red-500/90 border-red-400 text-white" : "bg-[#363636]/90 border-white/10 text-slate-100"
+                        )}>
+                            <div className="flex items-center gap-3 border-r border-white/10 pr-6">
+                                <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_#10b981]" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Calendário Ativo</span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="text-[11px] font-bold">Aulas: {totalNeededHours} / {availableHours.toFixed(0)}h</div>
+                                {totalPoints !== 100 && (
+                                    <div className="flex items-center gap-2 bg-red-400/20 px-3 py-1 rounded-full text-[9px] font-black uppercase text-red-200">
+                                        <AlertTriangle size={12} /> Pontos: {totalPoints}/100
+                                    </div>
+                                )}
+                                {isOverflow ? (
+                                    <div className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-[9px] font-black uppercase">
+                                        <AlertTriangle size={12} /> Estouro: {(totalNeededHours - availableHours).toFixed(1)}h
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 bg-emerald-500/20 px-3 py-1 rounded-full text-[9px] font-black uppercase text-emerald-300">
+                                        <CheckCircle2 size={12} /> Espaço OK
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-        </div >
+            </div >
 
-            {/* SYLLABUS PREVIEW MODAL */ }
-            < Dialog open = { showPreviewModal } onOpenChange = { setShowPreviewModal } >
+            {/* SYLLABUS PREVIEW MODAL */}
+            < Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal} >
                 <DialogContent className="max-w-[1400px] sm:max-w-[90vw] rounded-[48px] p-0 border-none overflow-hidden max-h-[96vh] flex flex-col">
                     {/* Header do Modal */}
                     <div className="bg-[#F8F9FA] px-10 py-6 border-b border-slate-100 flex items-center justify-between shrink-0">
@@ -1764,7 +2170,7 @@ export default function SyllabusWizard() {
                                     </div>
                                     <div>
                                         <div className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Carga Horária</div>
-                                        <div className="text-xs font-black text-slate-700">{requiredDays * 2} Horas Totais</div>
+                                        <div className="text-xs font-black text-slate-700">{totalNeededHours} Horas Totais</div>
                                     </div>
                                 </div>
                             </header>
@@ -1882,7 +2288,7 @@ export default function SyllabusWizard() {
                                         ))}
                                         <div className="mt-6 pt-6 border-t-2 border-slate-200 flex justify-between items-center">
                                             <span className="text-xs font-black text-[#8C132C] uppercase tracking-widest">Total da Disciplina</span>
-                                            <span className="text-2xl font-black text-[#8C132C]">100 pts</span>
+                                            <span className="text-2xl font-black text-[#8C132C]">{totalPoints} pts</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1922,52 +2328,100 @@ export default function SyllabusWizard() {
                 </DialogContent>
             </Dialog >
 
-        {/* Drafts Modal */ }
-        < Dialog open = { showDraftsModal } onOpenChange = { setShowDraftsModal } >
-            <DialogContent className="max-w-[800px] rounded-[48px] p-10 border-none shadow-2xl">
-                <DialogHeader>
-                    <DialogTitle className="text-3xl font-black text-slate-800">Meus Rascunhos</DialogTitle>
-                    <DialogDescription className="font-bold uppercase text-[10px] tracking-widest text-slate-400">
-                        Gerencie e carregue versões salvas do seu cronograma
-                    </DialogDescription>
-                </DialogHeader>
-
-                <div className="grid gap-4 mt-8 max-h-[500px] overflow-y-auto pr-4 no-scrollbar">
-                    {drafts.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-slate-300 gap-4">
-                            <BookOpen size={48} className="opacity-20" />
-                            <span className="font-black uppercase text-xs tracking-widest">Nenhum rascunho salvo</span>
+            {/* Conflict Resolution Modal */}
+            <Dialog open={showConflictModal} onOpenChange={setShowConflictModal}>
+                <DialogContent className="max-w-[600px] rounded-[48px] p-10 border-none shadow-2xl">
+                    <DialogHeader>
+                        <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-3xl flex items-center justify-center mb-6">
+                            <AlertTriangle size={32} />
                         </div>
-                    ) : (
-                        drafts.map((draft) => (
-                            <div key={draft.id} className="group bg-slate-50 p-6 rounded-[32px] border border-slate-100/50 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all flex items-center justify-between gap-6">
-                                <div className="flex-1 min-w-0">
-                                    <h4 className="font-black text-slate-700 truncate">{draft.name}</h4>
-                                    <div className="flex items-center gap-3 mt-2">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                            {format(new Date(draft.date), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
-                                        </span>
+                        <DialogTitle className="text-2xl font-black text-slate-800">Divergência entre Documentos</DialogTitle>
+                        <DialogDescription className="font-bold text-slate-400 mt-2">
+                            A Axiom AI detectou informações conflitantes entre o <strong className="text-slate-600">Plano de Ensino</strong> e o <strong className="text-slate-600">Cronograma Auxiliar</strong>. Como deseja proceder?
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-4 mt-8">
+                        <button
+                            onClick={() => {
+                                setShowConflictModal(false);
+                                setUploadedFiles([]); // Limpa para evitar loop de conflito
+                                toast.success("Utilizando dados do Plano de Ensino (Prioridade Acadêmica)");
+                                setTimeout(() => handleRunAIAnalysis(), 500);
+                            }}
+                            className="bg-slate-50 p-6 rounded-3xl border border-slate-100 hover:border-[#8C132C]/20 text-left transition-all group"
+                        >
+                            <div className="flex justify-between items-center">
+                                <span className="font-black text-slate-700">Priorizar Plano de Ensino</span>
+                                <ChevronRight size={18} className="text-slate-300 group-hover:text-[#8C132C]" />
+                            </div>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Usa bibliografia e ementa oficial do PPC.</p>
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                setShowConflictModal(false);
+                                setUploadedFiles([]); // Limpa para evitar loop de conflito
+                                toast.success("Utilizando dados do Cronograma Auxiliar");
+                                setTimeout(() => handleRunAIAnalysis(), 500);
+                            }}
+                            className="bg-slate-50 p-6 rounded-3xl border border-slate-100 hover:border-[#8C132C]/20 text-left transition-all group"
+                        >
+                            <div className="flex justify-between items-center">
+                                <span className="font-black text-slate-700">Priorizar Cronograma Auxiliar</span>
+                                <ChevronRight size={18} className="text-slate-300 group-hover:text-[#8C132C]" />
+                            </div>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Usa datas e sequências customizadas do docente.</p>
+                        </button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showDraftsModal} onOpenChange={setShowDraftsModal} >
+                <DialogContent className="max-w-[800px] rounded-[48px] p-10 border-none shadow-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-3xl font-black text-slate-800">Meus Rascunhos</DialogTitle>
+                        <DialogDescription className="font-bold uppercase text-[10px] tracking-widest text-slate-400">
+                            Gerencie e carregue versões salvas do seu cronograma
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-4 mt-8 max-h-[500px] overflow-y-auto pr-4 no-scrollbar">
+                        {drafts.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-slate-300 gap-4">
+                                <BookOpen size={48} className="opacity-20" />
+                                <span className="font-black uppercase text-xs tracking-widest">Nenhum rascunho salvo</span>
+                            </div>
+                        ) : (
+                            drafts.map((draft) => (
+                                <div key={draft.id} className="group bg-slate-50 p-6 rounded-[32px] border border-slate-100/50 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all flex items-center justify-between gap-6">
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-black text-slate-700 truncate">{draft.name}</h4>
+                                        <div className="flex items-center gap-3 mt-2">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                {format(new Date(draft.date), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            onClick={() => loadDraft(draft)}
+                                            className="bg-[#8C132C] rounded-2xl h-11 px-6 font-black uppercase text-[10px] tracking-widest transition-all hover:scale-105"
+                                        >
+                                            Carregar
+                                        </Button>
+                                        <button
+                                            onClick={() => deleteDraft(draft.id)}
+                                            className="w-11 h-11 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all shadow-sm"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="flex gap-2">
-                                    <Button
-                                        onClick={() => loadDraft(draft)}
-                                        className="bg-[#8C132C] rounded-2xl h-11 px-6 font-black uppercase text-[10px] tracking-widest transition-all hover:scale-105"
-                                    >
-                                        Carregar
-                                    </Button>
-                                    <button
-                                        onClick={() => deleteDraft(draft.id)}
-                                        className="w-11 h-11 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all shadow-sm"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </DialogContent>
+                            ))
+                        )}
+                    </div>
+                </DialogContent>
             </Dialog >
         </>
     );
