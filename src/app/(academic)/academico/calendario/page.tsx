@@ -57,6 +57,7 @@ import {
 } from "@/components/ui/dialog";
 import { Printer, Download, Palette, Layout, ShieldCheck, FileSignature, Award } from 'lucide-react';
 import { useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
 
 const PRINT_STYLES = (orientation: 'portrait' | 'landscape') => `
 @media print {
@@ -64,39 +65,8 @@ const PRINT_STYLES = (orientation: 'portrait' | 'landscape') => `
     size: ${orientation} auto;
     margin: 10mm;
   }
-  body * {
-    visibility: hidden;
-  }
-  .print-area, .print-area * {
-    visibility: visible;
-  }
-  .print-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100% !important;
-    height: auto !important;
-    margin: 0;
-    padding: 0 !important;
-    background: white !important;
-    visibility: visible !important;
-    box-shadow: none !important;
-  }
   .no-print {
     display: none !important;
-  }
-  .DialogOverlay, .DialogClose {
-    display: none !important;
-  }
-  body, html, [data-state="open"], div[role="dialog"] {
-    overflow: visible !important;
-    height: auto !important;
-    max-height: none !important;
-  }
-  .overflow-y-auto, .overflow-hidden {
-    overflow: visible !important;
-    height: auto !important;
-    max-height: none !important;
   }
 }
 `;
@@ -126,7 +96,7 @@ interface Assessment {
     points: number;
     type: 'Institucional' | 'Professor' | 'Curso';
     isSubstitutive?: boolean;
-    substitutesId?: string | 'Todas';
+    substitutesIds?: string[];
 }
 
 
@@ -527,12 +497,10 @@ export default function SyllabusWizard() {
             toast.success("Aula marcada como concluída! Progresso atualizado.");
         }
     };
-
-    const handlePrint = () => {
-        if (printRef.current) {
-            window.print();
-        }
-    };
+    const handlePrint = useReactToPrint({
+        contentRef: printRef,
+        documentTitle: `Cronograma-${publicSlug}`,
+    });
 
     const handleExportSyllabus = () => {
         const data = {
@@ -621,6 +589,8 @@ export default function SyllabusWizard() {
             if (errorCount > 0) {
                 toast.error(`Erro ao importar ${errorCount} arquivo(s). Formato inválido.`);
             }
+        }).finally(() => {
+            e.target.value = '';
         });
     };
     const handleAutoLinkBibliography = (topicId: string) => {
@@ -654,6 +624,8 @@ export default function SyllabusWizard() {
         const fileNames = Array.from(e.target.files).map(f => f.name).join(', ');
         setImportedEnsinoFile(fileNames);
         setIsAnalyzing(true);
+        // Reseta o valor para permitir novos envios do mesmo arquivo
+        e.target.value = '';
         // Simulação de IA processando PDF/Word
         setTimeout(() => {
             setBooks([
@@ -929,17 +901,40 @@ export default function SyllabusWizard() {
                                                             {ass.isSubstitutive && (
                                                                 <>
                                                                     <div className="h-3 w-px bg-slate-200 mx-1" />
-                                                                    <Select value={ass.substitutesId || "Todas"} onValueChange={(v) => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, substitutesId: v } : a))}>
-                                                                        <SelectTrigger className="h-6 text-[8px] font-black uppercase px-2 py-0 border-slate-200 text-amber-600 bg-amber-50 w-auto shadow-none">
-                                                                            <SelectValue placeholder="..." />
-                                                                        </SelectTrigger>
-                                                                        <SelectContent className="z-[110]">
-                                                                            <SelectItem value="Todas"><span className="text-[10px] uppercase font-bold text-slate-600 tracking-widest">Todas / Final</span></SelectItem>
+                                                                    <Popover>
+                                                                        <PopoverTrigger asChild>
+                                                                            <Button variant="outline" size="sm" className="h-6 text-[8px] font-black uppercase px-2 py-0 border-slate-200 text-amber-600 bg-amber-50 shadow-none">
+                                                                                {ass.substitutesIds?.length ? `${ass.substitutesIds.length} selecionada(s)` : 'Vincular Avaliações'}
+                                                                            </Button>
+                                                                        </PopoverTrigger>
+                                                                        <PopoverContent className="w-56 p-2 space-y-2 z-[110]">
+                                                                            <div className="text-[10px] font-black uppercase text-slate-400 mb-2 px-1">Substitui quais avaliações?</div>
                                                                             {assessments.filter(a => !a.isSubstitutive).map(a => (
-                                                                                <SelectItem key={a.id} value={a.id}><span className="text-[10px] uppercase font-bold text-slate-600">{a.name || 'Sem nome'}</span></SelectItem>
+                                                                                <label key={a.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                                                                                    <Checkbox
+                                                                                        checked={ass.substitutesIds?.includes(a.id)}
+                                                                                        onCheckedChange={(checked) => {
+                                                                                            const currentIds = ass.substitutesIds || [];
+                                                                                            const newIds = checked ? [...currentIds, a.id] : currentIds.filter(id => id !== a.id);
+                                                                                            setAssessments(assessments.map(acc => acc.id === ass.id ? { ...acc, substitutesIds: newIds } : acc));
+                                                                                        }}
+                                                                                        className="h-3.5 w-3.5 rounded-[4px] border-slate-300 data-[state=checked]:bg-[#8C132C]"
+                                                                                    />
+                                                                                    <span className="text-[10px] uppercase font-bold text-slate-600 leading-none mt-0.5">{a.name || 'Sem nome'}</span>
+                                                                                </label>
                                                                             ))}
-                                                                        </SelectContent>
-                                                                    </Select>
+                                                                            <div className="pt-2 border-t border-slate-100 mt-2">
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    className="w-full text-[10px] text-amber-600 font-bold uppercase transition-all hover:bg-amber-50"
+                                                                                    onClick={() => setAssessments(assessments.map(acc => acc.id === ass.id ? { ...acc, substitutesIds: assessments.filter(a => !a.isSubstitutive).map(a => a.id) } : acc))}
+                                                                                >
+                                                                                    Selecionar Todas
+                                                                                </Button>
+                                                                            </div>
+                                                                        </PopoverContent>
+                                                                    </Popover>
                                                                 </>
                                                             )}
                                                         </div>
@@ -1674,8 +1669,8 @@ export default function SyllabusWizard() {
 
                             {/* Template Header */}
                             <header className="mb-12 relative">
-                                <div className="flex justify-between items-start mb-10">
-                                    <div className="space-y-4">
+                                <div className="flex justify-between items-start mb-10 gap-8">
+                                    <div className="space-y-4 flex-1 min-w-0">
                                         <Badge className={cn(
                                             "bg-emerald-50 text-emerald-600 border-none font-black text-[9px] uppercase tracking-widest px-4 py-1.5",
                                             selectedTemplate === 4 && "bg-[#363636] text-white"
@@ -1683,14 +1678,16 @@ export default function SyllabusWizard() {
                                             Documento Oficial Acadêmico
                                         </Badge>
                                         <h1 className={cn(
-                                            "text-4xl font-black text-slate-800 leading-tight truncate max-w-[600px]",
-                                            selectedTemplate === 2 && "font-serif text-5xl italic"
-                                        )} title={courseName}>
+                                            "font-black text-slate-800 leading-tight break-words line-clamp-2",
+                                            courseName.length > 40 ? "text-2xl" : "text-4xl",
+                                            selectedTemplate === 2 && "font-serif italic",
+                                            selectedTemplate === 2 && courseName.length > 40 ? "text-4xl" : selectedTemplate === 2 ? "text-5xl" : ""
+                                        )} style={{ textWrap: 'balance' }} title={courseName}>
                                             {courseName}
                                         </h1>
                                         <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Plano de Ensino & Cronograma Semestral</p>
                                     </div>
-                                    <div className="text-right flex flex-col items-end">
+                                    <div className="text-right flex flex-col items-end shrink-0">
                                         {selectedLogo && (
                                             <img src={selectedLogo} alt="Logo da Instituição" className="h-16 object-contain mb-4" />
                                         )}
