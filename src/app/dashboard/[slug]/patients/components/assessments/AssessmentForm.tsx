@@ -21,7 +21,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { WomensHealthForm } from '@/features/womens-health/components/WomensHealthForm'
+import { WomensHealthForm } from '@/features/forms/womens-health/components/WomensHealthForm'
 
 interface AssessmentFormProps {
     patientId: string

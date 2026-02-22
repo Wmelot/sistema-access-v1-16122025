@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AudioTextarea } from "@/features/pbe/components/audio-textarea";
+import { AudioTextarea } from "@/features/forms/pbe/components/audio-textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";

@@ -39,7 +39,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { BiomechanicsReport } from "@/features/pbe/components/biomechanics-report";
+import { BiomechanicsReport } from "@/features/forms/pbe/components/biomechanics-report";
 
 import { useSidebar } from "@/hooks/use-sidebar";
 

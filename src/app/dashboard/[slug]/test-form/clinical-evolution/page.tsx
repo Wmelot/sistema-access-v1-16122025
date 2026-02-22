@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import FisioterapiaEvolutionForm from "@/features/clinical-evolution/components/FisioterapiaEvolutionForm";
+import FisioterapiaEvolutionForm from "@/features/forms/clinical-evolution/components/FisioterapiaEvolutionForm";
 import { ArrowLeft, FileText, Check, ChevronsUpDown } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';

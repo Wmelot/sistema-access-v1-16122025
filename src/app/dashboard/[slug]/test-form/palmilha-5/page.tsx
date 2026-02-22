@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Palmilha5Form from "@/features/palmilha-5/components/Palmilha5Form";
+import Palmilha5Form from "@/features/forms/palmilha-5/components/Palmilha5Form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, Save, Check, ChevronsUpDown, FileText, ArrowLeft, ChevronDown } from "lucide-react";
 import { Button } from '@/components/ui/button';

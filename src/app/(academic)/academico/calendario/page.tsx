@@ -32,6 +32,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -87,6 +88,16 @@ const PRINT_STYLES = (orientation: 'portrait' | 'landscape') => `
   .lucide, button, .DialogOverlay, .DialogClose {
     display: none !important;
   }
+  body, html, [data-state="open"], div[role="dialog"] {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+  .overflow-y-auto, .overflow-hidden {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
 }
 `;
 
@@ -113,14 +124,11 @@ interface Assessment {
     name: string;
     date: Date | null;
     points: number;
-    type: 'Institucional' | 'Professor';
+    type: 'Institucional' | 'Professor' | 'Curso';
+    isSubstitutive?: boolean;
 }
 
-interface PointsDistribution {
-    exams: number;
-    presence: number;
-    participation: number;
-}
+
 
 const METHODOLOGY_GUIDE: Record<string, { desc: string, activities: string[], links: { label: string, url: string }[] }> = {
     'Aula Dialogada': {
@@ -194,12 +202,11 @@ export default function SyllabusWizard() {
         }
     }, [courseName, startDate]);
 
-    // Points & Assessments
-    const [distribution, setDistribution] = useState<PointsDistribution>({ exams: 70, presence: 10, participation: 20 });
     const [assessments, setAssessments] = useState<Assessment[]>([
         { id: 'a1', name: 'Avaliação Parcial (PI)', date: null, points: 30, type: 'Institucional' },
         { id: 'a2', name: 'Avaliação Final (Exame)', date: null, points: 40, type: 'Professor' }
     ]);
+    const totalPoints = assessments.reduce((acc, a) => acc + (a.isSubstitutive ? 0 : a.points), 0);
 
     const suggestExamDates = () => {
         if (!startDate || !endDate || weekDays.length === 0) {
@@ -207,18 +214,14 @@ export default function SyllabusWizard() {
             return;
         }
 
-        // Logic to find dates at ~40% and ~90% of the course
         const start = new Date(startDate);
         const end = new Date(endDate);
         const diff = end.getTime() - start.getTime();
-
-        const dateMid = new Date(start.getTime() + diff * 0.45);
-        const dateFinal = new Date(start.getTime() + diff * 0.90);
+        const interval = diff / (assessments.length + 1);
 
         setAssessments(assessments.map((a, i) => {
-            if (i === 0) return { ...a, date: dateMid };
-            if (i === 1) return { ...a, date: dateFinal };
-            return a;
+            const suggestedDate = new Date(start.getTime() + interval * (i + 1));
+            return { ...a, date: suggestedDate };
         }));
 
         toast.success("IA: Datas sugeridas com base no cronograma pedagógico!");
@@ -372,7 +375,6 @@ export default function SyllabusWizard() {
             startDate,
             endDate,
             weekDays,
-            distribution,
             assessments,
             books,
             topics
@@ -511,7 +513,6 @@ export default function SyllabusWizard() {
             startDate,
             endDate,
             weekDays,
-            distribution,
             assessments,
             books,
             topics: topics.map(t => ({ ...t, id: t.id.startsWith('import-') ? t.id : `import-${t.id}` }))
@@ -541,7 +542,7 @@ export default function SyllabusWizard() {
                 if (data.theoryLocation) setTheoryLocation(data.theoryLocation);
                 if (data.practiceLocation) setPracticeLocation(data.practiceLocation);
                 if (data.weekDays) setWeekDays(data.weekDays);
-                if (data.distribution) setDistribution(data.distribution);
+                if (data.assessments) setAssessments(data.assessments.map((a: any) => ({ ...a, date: a.date ? new Date(a.date) : null })));
                 if (data.assessments) setAssessments(data.assessments);
                 if (data.books) setBooks(data.books);
                 if (data.topics) setTopics(data.topics);
@@ -574,19 +575,26 @@ export default function SyllabusWizard() {
         setIsAnalyzing(true);
         // Simulação de IA processando PDF/Word
         setTimeout(() => {
+            setBooks([
+                ...books,
+                { id: 'ia-b1', title: 'Biomecânica Básica', author: 'Susan Hall', type: 'Básico' },
+                { id: 'ia-b2', title: 'Cinesiologia Clínica e Anatomia', author: 'Lippert', type: 'Básico' },
+                { id: 'ia-b3', title: 'Cadeias Musculares', author: 'Leopold Busquet', type: 'Complementar' }
+            ]);
+
             setTopics([
-                { id: 'ia-1', title: 'Fundamentos de Biomecânica', classesNeeded: 2, bibliographyIds: [], isPractical: false, resources: ['Projetor'], methodology: 'Aula Dialogada' },
-                { id: 'ia-2', title: 'Cadeias Musculares e Postura', classesNeeded: 4, bibliographyIds: [], isPractical: true, resources: ['Macas'], methodology: 'Estudo de Caso' },
-                { id: 'ia-3', title: 'Avaliação da Marcha Humana', classesNeeded: 2, bibliographyIds: [], isPractical: true, resources: ['Câmera'], methodology: 'Demonstração Prática' }
+                { id: 'ia-1', title: 'Fundamentos de Biomecânica', classesNeeded: 2, bibliographyIds: ['ia-b1', 'b1'], isPractical: false, resources: ['Projetor', 'Artigos'], methodology: 'Aula Dialogada' },
+                { id: 'ia-2', title: 'Cadeias Musculares e Postura', classesNeeded: 4, bibliographyIds: ['ia-b1', 'ia-b3'], isPractical: true, resources: ['Macas'], methodology: 'Estudo de Caso' },
+                { id: 'ia-3', title: 'Avaliação da Marcha Humana', classesNeeded: 2, bibliographyIds: ['ia-b2'], isPractical: true, resources: ['Câmera', 'Laboratório'], methodology: 'Demonstração Prática' },
+                { id: 'ia-4', title: 'Cinesiologia do Membro Superior', classesNeeded: 3, bibliographyIds: ['ia-b2', 'b2'], isPractical: false, resources: ['Esqueleto Anatômico'], methodology: 'PBL' }
             ]);
 
             setAssessments([
-                { id: 'ia-a1', name: 'Avaliação Parcial (PI)', date: new Date(2026, 3, 15), points: 30, type: 'Professor' },
-                { id: 'ia-a2', name: 'Relatório Prático / Casos Clínicos', date: new Date(2026, 4, 10), points: 30, type: 'Curso' },
-                { id: 'ia-a3', name: 'Avaliação Global (PII)', date: new Date(2026, 5, 20), points: 40, type: 'Institucional' }
+                { id: 'ia-a1', name: 'Avaliação Parcial (PI)', date: null, points: 30, type: 'Professor' },
+                { id: 'ia-a2', name: 'Relatório Prático / Casos Clínicos', date: null, points: 30, type: 'Curso' },
+                { id: 'ia-a3', name: 'Avaliação Global (PII)', date: null, points: 40, type: 'Institucional' },
+                { id: 'ia-a4', name: 'Prova Substitutiva', date: null, points: 40, type: 'Institucional', isSubstitutive: true }
             ]);
-
-            setDistribution({ exams: 60, presence: 10, participation: 30 });
 
             setIsAnalyzing(false);
             e.target.value = ''; // Reset input
@@ -769,33 +777,20 @@ export default function SyllabusWizard() {
                                 <div className="grid grid-cols-3 gap-12">
                                     <div className="space-y-6 col-span-1 border-r border-slate-50 pr-8">
                                         <div className="space-y-1">
-                                            <Label className="text-[10px] font-black uppercase text-slate-400">Composição das Notas</Label>
-                                            <p className="text-[10px] text-slate-400 font-medium">Defina o peso de cada categoria para o SINAES.</p>
+                                            <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Soma de Pontos</Label>
+                                            <p className="text-[10px] text-slate-400 font-medium">Soma automática com base nas atividades lançadas. Provas substitutivas não somam nota.</p>
                                         </div>
                                         <div className="space-y-5">
-                                            <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/50">
-                                                <div className="flex justify-between text-[11px] font-black mb-3 uppercase text-slate-600">Provas <span>{distribution.exams}%</span></div>
-                                                <Input type="range" min="0" max="100" value={distribution.exams} onChange={e => setDistribution({ ...distribution, exams: parseInt(e.target.value) })} className="accent-[#8C132C] h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer" />
-                                            </div>
-                                            <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/50">
-                                                <div className="flex justify-between text-[11px] font-black mb-3 uppercase text-slate-600">Frequência <span>{distribution.presence}%</span></div>
-                                                <Input type="range" min="0" max="100" value={distribution.presence} onChange={e => setDistribution({ ...distribution, presence: parseInt(e.target.value) })} className="accent-emerald-500 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer" />
-                                            </div>
-                                            <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/50">
-                                                <div className="flex justify-between text-[11px] font-black mb-3 uppercase text-slate-600">Participação <span>{distribution.participation}%</span></div>
-                                                <Input type="range" min="0" max="100" value={distribution.participation} onChange={e => setDistribution({ ...distribution, participation: parseInt(e.target.value) })} className="accent-blue-500 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer" />
-                                            </div>
-
                                             <div className={cn(
-                                                "p-5 rounded-3xl text-center flex flex-col items-center justify-center transition-all",
-                                                (distribution.exams + distribution.presence + distribution.participation) === 100
+                                                "p-5 rounded-3xl text-center flex flex-col items-center justify-center transition-all h-32",
+                                                totalPoints === 100
                                                     ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
                                                     : "bg-red-50 text-red-500 border border-red-100"
                                             )}>
                                                 <span className="text-[9px] font-black uppercase tracking-widest opacity-80">Soma Total</span>
-                                                <span className="text-2xl font-black">{distribution.exams + distribution.presence + distribution.participation} / 100</span>
-                                                {(distribution.exams + distribution.presence + distribution.participation) !== 100 && (
-                                                    <span className="text-[8px] font-bold mt-1 uppercase italic">Ajuste os valores para fechar 100pts</span>
+                                                <span className="text-4xl font-black mt-2 mb-1">{totalPoints} / 100</span>
+                                                {totalPoints !== 100 && (
+                                                    <span className="text-[8px] font-bold mt-1 uppercase italic">Ajuste as avaliações para fechar 100pts</span>
                                                 )}
                                             </div>
                                         </div>
@@ -814,9 +809,9 @@ export default function SyllabusWizard() {
                                                 <motion.div layout key={ass.id} className="bg-slate-50/50 p-4 rounded-3xl flex items-center gap-4 group border border-slate-100/50 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all border-l-4 border-l-[#8C132C]">
                                                     <div className="space-y-1 flex-1">
                                                         <Input value={ass.name} onChange={e => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, name: e.target.value } : a))} className="bg-transparent border-none rounded-none focus:ring-0 font-black h-8 text-sm p-0 text-slate-700" />
-                                                        <div className="flex gap-2">
+                                                        <div className="flex gap-2 items-center">
                                                             <Select value={ass.type} onValueChange={v => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, type: v as any } : a))}>
-                                                                <SelectTrigger className="h-6 text-[8px] font-black uppercase px-2 py-0 border-slate-200 text-slate-400 bg-transparent w-auto -ml-2 focus:ring-0">
+                                                                <SelectTrigger className="h-6 text-[8px] font-black uppercase px-2 py-0 border-slate-200 text-slate-400 bg-transparent w-auto focus:ring-0">
                                                                     <SelectValue />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
@@ -825,6 +820,15 @@ export default function SyllabusWizard() {
                                                                     <SelectItem value="Curso"><span className="text-[10px] uppercase font-bold text-slate-600">Curso</span></SelectItem>
                                                                 </SelectContent>
                                                             </Select>
+                                                            <div className="h-3 w-px bg-slate-200 mx-2" />
+                                                            <label className="flex items-center gap-1 cursor-pointer">
+                                                                <Checkbox
+                                                                    checked={ass.isSubstitutive}
+                                                                    onCheckedChange={(c) => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, isSubstitutive: c === true } : a))}
+                                                                    className="h-3 w-3 rounded-[3px] border-slate-300 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                                                                />
+                                                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Prova Substitutiva</span>
+                                                            </label>
                                                         </div>
                                                     </div>
                                                     <div className="w-44">
@@ -840,8 +844,8 @@ export default function SyllabusWizard() {
                                                             </PopoverContent>
                                                         </Popover>
                                                     </div>
-                                                    <div className="flex items-center gap-2 bg-white px-4 h-11 rounded-xl border border-slate-100 shadow-sm">
-                                                        <Input type="number" value={ass.points} onChange={e => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, points: parseInt(e.target.value) } : a))} className="w-12 bg-transparent border-none rounded-none focus:ring-0 font-black h-8 text-sm text-center p-0" />
+                                                    <div className={cn("flex items-center gap-2 bg-white px-4 h-11 rounded-xl border border-slate-100 shadow-sm transition-all", ass.isSubstitutive && "opacity-50 grayscale bg-slate-50")}>
+                                                        <Input type="number" disabled={ass.isSubstitutive} value={ass.points} onChange={e => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, points: parseInt(e.target.value) } : a))} className="w-12 bg-transparent border-none rounded-none focus:ring-0 font-black h-8 text-sm text-center p-0 disabled:opacity-100" />
                                                         <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">PTS</span>
                                                     </div>
                                                     <button onClick={() => setAssessments(assessments.filter(a => a.id !== ass.id))} className="w-11 h-11 flex items-center justify-center text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-xl opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={18} /></button>
@@ -1456,9 +1460,9 @@ export default function SyllabusWizard() {
                             </div>
                             <div className="flex items-center gap-4">
                                 <div className="text-[11px] font-bold">Aulas: {requiredDays} / {availableDays}h</div>
-                                {(distribution.exams + distribution.presence + distribution.participation) !== 100 && (
+                                {totalPoints !== 100 && (
                                     <div className="flex items-center gap-2 bg-red-400/20 px-3 py-1 rounded-full text-[9px] font-black uppercase text-red-200">
-                                        <AlertTriangle size={12} /> Pontos: {distribution.exams + distribution.presence + distribution.participation}/100
+                                        <AlertTriangle size={12} /> Pontos: {totalPoints}/100
                                     </div>
                                 )}
                                 {isOverflow ? (
@@ -1541,9 +1545,9 @@ export default function SyllabusWizard() {
                     </div>
 
                     {/* Área de Preview com Templates - SIMULAÇÃO A4 */}
-                    <div className="flex-1 overflow-y-auto p-12 bg-slate-200/40 flex justify-center no-scrollbar scroll-smooth">
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-12 bg-slate-200/40 flex justify-center no-scrollbar scroll-smooth">
                         <div ref={printRef} className={cn(
-                            "bg-white shadow-[0_30px_60px_rgba(0,0,0,0.1)] transition-all duration-500 relative print-area overflow-hidden",
+                            "bg-white shadow-[0_30px_60px_rgba(0,0,0,0.1)] transition-all duration-500 relative print-area",
                             orientation === 'portrait' ? "w-[210mm] min-h-[297mm] p-16" : "w-[297mm] min-h-[210mm] p-12",
                             selectedTemplate === 1 && "rounded-sm border-t-[16px] border-[#8C132C]",
                             selectedTemplate === 2 && "rounded-none border-[1px] border-slate-200 font-serif",
@@ -1700,18 +1704,12 @@ export default function SyllabusWizard() {
                                         <Award className="text-[#8C132C]" size={20} /> Composição de Notas
                                     </h3>
                                     <div className="p-8 bg-slate-50 rounded-[32px] space-y-4 border border-slate-100">
-                                        <div className="flex justify-between items-center pb-4 border-b border-slate-200/50">
-                                            <span className="text-xs font-bold text-slate-500">Avaliações Formais (Provas)</span>
-                                            <span className="text-sm font-black text-slate-800">{distribution.exams} pts</span>
-                                        </div>
-                                        <div className="flex justify-between items-center pb-4 border-b border-slate-200/50">
-                                            <span className="text-xs font-bold text-slate-500">Frequência e Assiduidade</span>
-                                            <span className="text-sm font-black text-slate-800">{distribution.presence} pts</span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-xs font-bold text-slate-500">Participação e Práticas</span>
-                                            <span className="text-sm font-black text-slate-800">{distribution.participation} pts</span>
-                                        </div>
+                                        {assessments.filter((a) => !a.isSubstitutive).map((a) => (
+                                            <div key={a.id} className="flex justify-between items-center pb-4 border-b border-slate-200/50">
+                                                <span className="text-xs font-bold text-slate-500">{a.name}</span>
+                                                <span className="text-sm font-black text-slate-800">{a.points} pts</span>
+                                            </div>
+                                        ))}
                                         <div className="mt-6 pt-6 border-t-2 border-slate-200 flex justify-between items-center">
                                             <span className="text-xs font-black text-[#8C132C] uppercase tracking-widest">Total da Disciplina</span>
                                             <span className="text-2xl font-black text-[#8C132C]">100 pts</span>

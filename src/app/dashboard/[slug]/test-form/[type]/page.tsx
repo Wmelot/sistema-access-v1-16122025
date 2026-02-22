@@ -1,13 +1,13 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation';
-import { WomensHealthForm } from "@/features/womens-health/components/WomensHealthForm";
-import { ConceptPBEForm } from "@/features/pbe/components/ConceptPBEForm";
-import { AdvancedPhysicalForm } from "@/features/pbe/components/AdvancedPhysicalForm";
-import SmartPBEForm from "@/features/pbe/components/SmartPBEForm";
-import DiabeticFootForm from "@/features/pbe/components/DiabeticFootForm";
-import UltimatePBEForm from "@/features/pbe/components/UltimatePBEForm";
-import AdvancedSmartAssessment from "@/features/smart-assessment/components/AdvancedSmartAssessment";
+import { WomensHealthForm } from "@/features/forms/womens-health/components/WomensHealthForm";
+import { ConceptPBEForm } from "@/features/forms/pbe/components/ConceptPBEForm";
+import { AdvancedPhysicalForm } from "@/features/forms/pbe/components/AdvancedPhysicalForm";
+import SmartPBEForm from "@/features/forms/pbe/components/SmartPBEForm";
+import DiabeticFootForm from "@/features/forms/pbe/components/DiabeticFootForm";
+import UltimatePBEForm from "@/features/forms/pbe/components/UltimatePBEForm";
+import AdvancedSmartAssessment from "@/features/forms/smart-assessment/components/AdvancedSmartAssessment";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, Save, UserPlus, User, X, FileText, ArrowLeft, ChevronDown, Check, ChevronsUpDown } from "lucide-react";

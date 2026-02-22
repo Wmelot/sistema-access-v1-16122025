@@ -15,15 +15,15 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-import { SmartAssessmentSidebar } from '@/features/pbe/components/sections/SmartAssessmentSidebar';
-import { LumbarSpineForm } from '@/features/pbe/components/regions/spine-lumbar-form';
-import { KneeForm } from '@/features/pbe/components/regions/knee-form';
-import { ShoulderForm } from '@/features/pbe/components/regions/shoulder-form';
-import { AnkleForm } from '@/features/pbe/components/regions/ankle-form';
-import { HipForm } from '@/features/pbe/components/regions/hip-form';
-import { CervicalSpineForm } from '@/features/pbe/components/regions/spine-cervical-form';
-import { ElbowHandForm } from '@/features/pbe/components/regions/elbow-hand-form';
-import { FunctionalAssessmentSection } from '@/features/pbe/components/sections/FunctionalAssessmentSection';
+import { SmartAssessmentSidebar } from '@/features/forms/pbe/components/sections/SmartAssessmentSidebar';
+import { LumbarSpineForm } from '@/features/forms/pbe/components/regions/spine-lumbar-form';
+import { KneeForm } from '@/features/forms/pbe/components/regions/knee-form';
+import { ShoulderForm } from '@/features/forms/pbe/components/regions/shoulder-form';
+import { AnkleForm } from '@/features/forms/pbe/components/regions/ankle-form';
+import { HipForm } from '@/features/forms/pbe/components/regions/hip-form';
+import { CervicalSpineForm } from '@/features/forms/pbe/components/regions/spine-cervical-form';
+import { ElbowHandForm } from '@/features/forms/pbe/components/regions/elbow-hand-form';
+import { FunctionalAssessmentSection } from '@/features/forms/pbe/components/sections/FunctionalAssessmentSection';
 
 // --- SCHEMA (Mantido conforme lógica anterior) ---
 const smartAssessmentSchema = z.object({

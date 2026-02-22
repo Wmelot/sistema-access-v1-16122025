@@ -4,7 +4,7 @@ import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/
 import { Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { BodyPainMap } from "@/features/pbe/components/body-pain-map";
+import { BodyPainMap } from "@/features/forms/pbe/components/body-pain-map";
 
 interface PainMapAccordionProps {
     openSection: string;

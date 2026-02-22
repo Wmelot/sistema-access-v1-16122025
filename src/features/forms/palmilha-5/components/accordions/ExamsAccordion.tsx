@@ -3,7 +3,7 @@ import { useFormContext } from "react-hook-form";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { FileText, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AudioTextarea } from "@/features/pbe/components/audio-textarea";
+import { AudioTextarea } from "@/features/forms/pbe/components/audio-textarea";
 
 interface ExamsAccordionProps {
     openSection: string;

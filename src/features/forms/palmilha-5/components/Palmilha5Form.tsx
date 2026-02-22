@@ -3,12 +3,13 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { Accordion } from "@/components/ui/accordion";
-import { RapidAssessmentModal } from "@/features/pbe/components/RapidAssessmentModal";
+import { RapidAssessmentModal } from "@/features/forms/pbe/components/RapidAssessmentModal";
 import { cn } from "@/lib/utils";
 import { Save, Loader2, Eye, Zap, Database, ArrowLeft, Menu, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSidebar } from "@/hooks/use-sidebar";
 import { AiAssistantAccordion } from "./accordions/AiAssistantAccordion";
 import { HmaAccordion } from "./accordions/HmaAccordion";
 import { HistoryAccordion } from "./accordions/HistoryAccordion";
@@ -24,13 +25,13 @@ import { DorsalTestsAccordion } from "./accordions/DorsalTestsAccordion";
 import { VentralTestsAccordion } from "./accordions/VentralTestsAccordion";
 import { ExamsAccordion } from "./accordions/ExamsAccordion";
 import { PlanAccordion } from "./accordions/PlanAccordion";
-import { PropulsaoAccordionItem } from "@/features/pbe/components/PropulsaoAccordionItem";
+import { PropulsaoAccordionItem } from "@/features/forms/pbe/components/PropulsaoAccordionItem";
 import { CompactBiomechanicsCard } from "./CompactBiomechanicsCard";
 import { ChevronRight, ChevronLeft } from "lucide-react";
-import { BiomechanicsReport } from "@/features/pbe/components/biomechanics-report";
+import { BiomechanicsReport } from "@/features/forms/pbe/components/biomechanics-report";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { parseFeegowText } from "@/features/palmilha-biomecanica/utils/feegow-parser";
+import { parseFeegowText } from "@/features/forms/palmilha-biomecanica/utils/feegow-parser";
 
 const SECTION_STYLES: Record<string, { border: string, iconColor: string }> = {
     hma: { border: "border-l-blue-600", iconColor: "text-blue-600" },
@@ -78,10 +79,17 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
     const [previewOpen, setPreviewOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
+    const { setIsCollapsed } = useSidebar();
+
     // Efeito para rolar para o topo quando uma seção for aberta
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [openSection]);
+
+    // Ocultar a barra lateral em qualquer formulário PBE para ampliar a tela
+    useEffect(() => {
+        setIsCollapsed(true);
+    }, [setIsCollapsed]);
 
     const defaults = {
         hma: { qp: "", history: "", eva: [0] },

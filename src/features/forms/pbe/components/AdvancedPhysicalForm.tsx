@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { STRENGTH_TESTS, FORCE_REFERENCES_BY_AGE } from '@/app/dashboard/[slug]/assessments/strength-references'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { generateAssessmentReport } from "@/actions/attendance"
-import { EvolutionCharts } from '@/features/pbe/components/evolution-charts'
+import { EvolutionCharts } from '@/features/forms/pbe/components/evolution-charts'
 import { Bot, Loader2, Sparkles, FileText, CheckCircle, Printer, Camera, TrendingUp, Save, Zap, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useDebounce } from 'use-debounce'

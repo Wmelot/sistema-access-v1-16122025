@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import BiomechanicsInsoleForm from "@/features/pbe/components/BiomechanicsInsoleForm"; // Restored
+import BiomechanicsInsoleForm from "@/features/forms/pbe/components/BiomechanicsInsoleForm"; // Restored
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, Save, Check, ChevronsUpDown, FileText, ArrowLeft, ChevronDown } from "lucide-react";
 import { Button } from '@/components/ui/button';

@@ -40,7 +40,7 @@ import {
     BookOpen,
     Youtube,
 } from "lucide-react";
-import { RapidAssessmentModal } from "@/features/pbe/components/RapidAssessmentModal";
+import { RapidAssessmentModal } from "@/features/forms/pbe/components/RapidAssessmentModal";
 import Swal from 'sweetalert2';
 import { Badge } from "@/components/ui/badge";
 import { parseFeegowToLegacyForm } from "../utils/feegow-legacy-parser";
@@ -57,9 +57,9 @@ import { cn } from "@/lib/utils";
 
 // COMPONENTES FILHOS
 import { BiomechanicsSidebar } from "./biomechanics-sidebar";
-import { AdvancedPhysicalForm } from "@/features/pbe/components/AdvancedPhysicalForm";
-import { ConceptPBEForm } from "@/features/pbe/components/ConceptPBEForm";
-import WomensHealthForm from "@/features/womens-health/components/WomensHealthForm";
+import { AdvancedPhysicalForm } from "@/features/forms/pbe/components/AdvancedPhysicalForm";
+import { ConceptPBEForm } from "@/features/forms/pbe/components/ConceptPBEForm";
+import WomensHealthForm from "@/features/forms/womens-health/components/WomensHealthForm";
 import { BodyPainMap } from "./body-pain-map";
 import { PasteUploadZone } from "@/components/ui/paste-upload-zone";
 import { BipolarSlider } from "@/components/ui/bipolar-slider";

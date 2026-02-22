@@ -31,20 +31,20 @@ import { FinishAttendanceDialog } from "./finish-attendance-dialog"
 import { ViewRecordDialog } from "@/components/records/ViewRecordDialog"
 import { useActiveAttendance } from "@/components/providers/active-attendance-provider"
 import { useGlobalLoader } from "@/components/providers/global-loader-provider"
-import { AdvancedPhysicalForm } from "@/features/pbe/components/AdvancedPhysicalForm"
+import { AdvancedPhysicalForm } from "@/features/forms/pbe/components/AdvancedPhysicalForm"
 import { VoiceRecorder } from "@/components/ui/voice-recorder"
 // BiomechanicsForm removed
-import SmartPBEForm from "@/features/pbe/components/SmartPBEForm"
+import SmartPBEForm from "@/features/forms/pbe/components/SmartPBEForm"
 import { FocusModeEvolution } from "@/features/attendance/components/FocusModeEvolution"
-import { WomensHealthForm } from "@/features/womens-health/components/WomensHealthForm" // [NEW]
+import { WomensHealthForm } from "@/features/forms/womens-health/components/WomensHealthForm" // [NEW]
 import { ScanFace } from "lucide-react"
-import BiomechanicsInsoleForm from "@/features/pbe/components/BiomechanicsInsoleForm"
-import DiabeticFootForm from "@/features/pbe/components/DiabeticFootForm"
-import { ConceptPBEForm } from "@/features/pbe/components/ConceptPBEForm"
-import PalmilhaFormV3 from "@/features/palmilha-biomecanica/components/PalmilhaFormV3"
-import FisioterapiaEvolutionForm from "@/features/clinical-evolution/components/FisioterapiaEvolutionForm"
-import { UltimatePBEForm } from "@/features/pbe/components/UltimatePBEForm"
-import AdvancedSmartAssessment from "@/features/smart-assessment/components/AdvancedSmartAssessment"
+import BiomechanicsInsoleForm from "@/features/forms/pbe/components/BiomechanicsInsoleForm"
+import DiabeticFootForm from "@/features/forms/pbe/components/DiabeticFootForm"
+import { ConceptPBEForm } from "@/features/forms/pbe/components/ConceptPBEForm"
+import PalmilhaFormV3 from "@/features/forms/palmilha-biomecanica/components/PalmilhaFormV3"
+import FisioterapiaEvolutionForm from "@/features/forms/clinical-evolution/components/FisioterapiaEvolutionForm"
+import { UltimatePBEForm } from "@/features/forms/pbe/components/UltimatePBEForm"
+import AdvancedSmartAssessment from "@/features/forms/smart-assessment/components/AdvancedSmartAssessment"
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
 import { formatPhoneDisplay } from '@/utils/format-phone'

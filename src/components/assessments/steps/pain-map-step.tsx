@@ -1,7 +1,7 @@
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Activity } from "lucide-react"
-import { BodyPainMap } from "@/features/pbe/components/body-pain-map"
+import { BodyPainMap } from "@/features/forms/pbe/components/body-pain-map"
 
 interface PainMapStepProps {
     data: any

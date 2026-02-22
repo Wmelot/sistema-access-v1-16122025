@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import PalmilhaFormV3 from "@/features/palmilha-biomecanica/components/PalmilhaFormV3";
+import PalmilhaFormV3 from "@/features/forms/palmilha-biomecanica/components/PalmilhaFormV3";
 import { ArrowLeft, FileText, Check, ChevronsUpDown } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';

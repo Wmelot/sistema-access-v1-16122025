@@ -10,9 +10,9 @@ import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { AlertTriangle, Save, Baby, HeartPulse, Activity, Brain } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { FunctionalAssessmentSection } from "@/features/pbe/components/sections/FunctionalAssessmentSection";
+import { FunctionalAssessmentSection } from "@/features/forms/pbe/components/sections/FunctionalAssessmentSection";
 import { cn } from "@/lib/utils"
-import { RapidAssessmentModal } from "@/features/pbe/components/RapidAssessmentModal"
+import { RapidAssessmentModal } from "@/features/forms/pbe/components/RapidAssessmentModal"
 import { toast } from "sonner"
 
 interface WomensHealthFormProps {

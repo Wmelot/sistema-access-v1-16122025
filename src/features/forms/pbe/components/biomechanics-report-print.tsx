@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 import { AssessmentRadar } from './assessment-radar'
 // Using the more complete radar calculation from clinical-references
 import { calculateRadarData as calculateRadarDataRef } from '@/utils/clinical-references'
-import { calculateMinimalismIndex, calculateSmartRecommendation, getFpiClass } from '@/features/pbe/utils/biomechanics-calculations'
+import { calculateMinimalismIndex, calculateSmartRecommendation, getFpiClass } from '@/features/forms/pbe/utils/biomechanics-calculations'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Footprints, Activity, Ruler, Scaling, User, AlertCircle, CheckCircle2, Info, Clock, Weight } from 'lucide-react'

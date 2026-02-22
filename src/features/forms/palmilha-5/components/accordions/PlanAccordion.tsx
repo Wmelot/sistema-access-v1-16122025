@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label as FormLabel } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { AudioTextarea } from "@/features/pbe/components/audio-textarea";
-import { ExerciseCombobox } from "@/features/pbe/components/ExerciseCombobox";
+import { AudioTextarea } from "@/features/forms/pbe/components/audio-textarea";
+import { ExerciseCombobox } from "@/features/forms/pbe/components/ExerciseCombobox";
 import { cn } from "@/lib/utils";
 
 interface PlanAccordionProps {
