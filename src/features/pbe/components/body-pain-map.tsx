@@ -43,7 +43,7 @@ type DragState =
 export function BodyPainMap({ painPoints, onChange, customPoints = [], onCustomPointsChange, readOnly = false }: BodyPainMapProps) {
     const [coords, setCoords] = useState(INITIAL_COORDS)
     const [isCalibration, setIsCalibration] = useState(false)
-    const [showStandard, setShowStandard] = useState(true)
+    const [showStandard, setShowStandard] = useState(false) // Changed default to false
     const [dragging, setDragging] = useState<DragState | null>(null)
     const [hoveredLabel, setHoveredLabel] = useState<string | null>(null)
     const interactionRef = useRef<{ startX: number; startY: number; moved: boolean }>({ startX: 0, startY: 0, moved: false })
@@ -118,7 +118,7 @@ export function BodyPainMap({ painPoints, onChange, customPoints = [], onCustomP
         return () => window.removeEventListener('keydown', handleKeyDown)
     }, [handleUndo])
 
-    const handleBackgroundClick = (e: React.MouseEvent, view: 'anterior' | 'posterior' | 'feetLeft' | 'feetRight') => {
+    const handleBackgroundClick = async (e: React.MouseEvent, view: 'anterior' | 'posterior' | 'feetLeft' | 'feetRight') => {
         if (readOnly || isCalibration) return;
         if ((e.target as HTMLElement).closest('button')) return;
         const ref = containerRefs[view];
@@ -126,12 +126,25 @@ export function BodyPainMap({ painPoints, onChange, customPoints = [], onCustomP
         const rect = ref.current.getBoundingClientRect();
         const x = ((e.clientX - rect.left) / rect.width) * 100;
         const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+        const { value: painName } = await MySwal.fire({
+            title: 'O que o paciente sente aqui?',
+            input: 'text',
+            inputPlaceholder: 'Ex: Pontada fina, Choque, Dormência...',
+            showCancelButton: true,
+            confirmButtonText: 'Marcar no Mapa',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#ef4444'
+        });
+
+        if (!painName) return;
+
         const newPoint: CustomPoint = {
             id: crypto.randomUUID(),
             x,
             y,
             view,
-            label: "Dor Local",
+            label: painName,
             active: true
         };
         addToHistory()
@@ -247,58 +260,53 @@ export function BodyPainMap({ painPoints, onChange, customPoints = [], onCustomP
         const handleSave = () => { if (label !== point.label) onUpdate(point.id, { label }) }
         const isActive = point.active !== false
         return (
-            <ContextMenu>
-                <ContextMenuTrigger asChild disabled={readOnly}>
-                    <button type="button"
-                        className={`absolute -ml-2.5 -mt-2.5 rounded-full z-20 transition-all duration-300 flex items-center justify-center
-                            ${isActive ? 'w-5 h-5 bg-blue-500 border-2 border-white shadow-[0_0_0_4px_rgba(59,130,246,0.3)] animate-pulse' : 'w-4 h-4 bg-transparent border-2 border-blue-500 hover:bg-blue-50'}
-                            ${!readOnly ? 'cursor-pointer hover:scale-110' : ''}`}
-                        style={{ left: `${point.x}%`, top: `${point.y}%` }}
-                        onMouseDown={(e) => { e.stopPropagation(); onMouseDown(e) }}
-                        onClick={(e) => { e.stopPropagation(); if (!readOnly) onUpdate(point.id, { active: !isActive }) }}
-                        title={point.label}
-                    >
-                        <span className="sr-only">{point.label}</span>
-                    </button>
-                </ContextMenuTrigger>
-                <ContextMenuContent className="w-64 p-3 gap-2">
-                    <div className="space-y-2 mb-2"><h4 className="font-medium text-sm">Editar Ponto</h4></div>
-                    <div className="flex gap-2 items-center mb-1">
-                        <Input value={label} onChange={(e) => setLabel(e.target.value)} onBlur={handleSave} onKeyDown={(e) => e.key === 'Enter' && handleSave()} className="h-8 text-sm" placeholder="Nome da dor..." onClick={(e) => e.stopPropagation()} />
-                    </div>
-                    <ContextMenuItem className="text-red-600" onSelect={() => onDelete(point.id)}><Trash2 className="w-4 h-4 mr-2" /> Excluir Ponto</ContextMenuItem>
-                </ContextMenuContent>
-            </ContextMenu>
+            <div className={`absolute z-20 flex flex-col items-center pointer-events-none`} style={{ left: `${point.x}%`, top: `${point.y}%` }}>
+                <div className="absolute -top-7 whitespace-nowrap bg-black/75 shadow-sm text-white text-[9px] font-bold px-1.5 py-0.5 rounded cursor-default pointer-events-auto">
+                    {point.label}
+                </div>
+                <ContextMenu>
+                    <ContextMenuTrigger asChild disabled={readOnly}>
+                        <button type="button"
+                            className={`-ml-2.5 -mt-2.5 rounded-full transition-all duration-300 flex items-center justify-center pointer-events-auto
+                                ${isActive ? 'w-5 h-5 bg-red-500 border-2 border-white shadow-[0_0_0_4px_rgba(239,68,68,0.3)]' : 'w-4 h-4 bg-transparent border-2 border-red-500 hover:bg-red-50'}
+                                ${!readOnly ? 'cursor-pointer hover:scale-110' : ''}`}
+                            onMouseDown={(e) => { e.stopPropagation(); onMouseDown(e) }}
+                            onClick={(e) => { e.stopPropagation(); if (!readOnly) onUpdate(point.id, { active: !isActive }) }}
+                            title={point.label}
+                        >
+                            <span className="sr-only">{point.label}</span>
+                        </button>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent className="w-64 p-3 gap-2">
+                        <div className="space-y-2 mb-2"><h4 className="font-medium text-sm">Editar Ponto</h4></div>
+                        <div className="flex gap-2 items-center mb-1">
+                            <Input value={label} onChange={(e) => setLabel(e.target.value)} onBlur={handleSave} onKeyDown={(e) => e.key === 'Enter' && handleSave()} className="h-8 text-sm" placeholder="Nome da dor..." onClick={(e) => e.stopPropagation()} />
+                        </div>
+                        <ContextMenuItem className="text-red-600" onSelect={() => onDelete(point.id)}><Trash2 className="w-4 h-4 mr-2" /> Excluir Ponto</ContextMenuItem>
+                    </ContextMenuContent>
+                </ContextMenu>
+            </div>
         )
     }
 
     return (
         <div className="w-full select-none space-y-8">
-            <div className="flex flex-wrap gap-2 justify-between items-center bg-slate-50 p-3 rounded-lg border">
+            <div className="flex flex-wrap gap-2 justify-between items-center p-2 mb-2 border border-slate-100 rounded-lg bg-slate-50 shadow-sm">
                 <div className="flex gap-2 items-center">
-                    <Button type="button" variant={showStandard ? "default" : "outline"} size="sm" onClick={() => setShowStandard(!showStandard)} className={showStandard ? 'bg-slate-700 hover:bg-slate-800' : ''}>
-                        {showStandard ? 'Ocultar Pontos Padrão' : 'Mostrar Pontos Padrão'}
-                    </Button>
-                    <Button type="button" variant="destructive" size="sm" onClick={handleClearAll} className="gap-2" disabled={readOnly}>
+                    <Button type="button" variant="destructive" size="sm" onClick={handleClearAll} className="gap-2 focusable-element" disabled={readOnly}>
                         <Trash2 className="w-4 h-4" /> Limpar Mapa
                     </Button>
                 </div>
-                <div className="flex-1 flex justify-center h-6">
-                    {hoveredLabel && <div className="bg-black/75 text-white px-3 py-1 rounded-full text-xs font-bold uppercase animate-in fade-in zoom-in duration-200">{hoveredLabel}</div>}
-                </div>
-                <div className="flex gap-2">
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setIsCalibration(!isCalibration)} className="text-xs text-slate-400">
-                        {isCalibration ? 'Modo Visualização' : 'Ajustar Posições'}
-                    </Button>
-                    {isCalibration && <Button type="button" size="sm" onClick={copyConfig} className="gap-2"><Copy className="w-4 h-4" /> Copiar Coordenadas</Button>}
+                <div className="flex-1 flex justify-center h-6 pointer-events-none">
+                    {hoveredLabel && showStandard && <div className="bg-black/75 text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase animate-in fade-in zoom-in duration-200">{hoveredLabel}</div>}
                 </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
                 {/* ANTERIOR */}
                 <div ref={containerRefs.anterior} className={`relative aspect-[3/4] bg-slate-100 rounded-lg overflow-hidden border ${!readOnly && !isCalibration ? 'cursor-crosshair' : ''}`} onClick={(e) => handleBackgroundClick(e, 'anterior')}>
-                    <img src="/body-map-anterior.jpg" className="w-full h-full object-cover opacity-90" alt="Anterior" />
-                    <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 text-white text-xs rounded uppercase pointer-events-none">Frente</div>
+                    <img src="/body-map-anterior.jpg" className="w-full h-full object-cover opacity-90 mix-blend-multiply" alt="Anterior" />
+                    <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 text-white text-xs font-bold rounded uppercase pointer-events-none shadow">FRENTE</div>
                     {showStandard && Object.entries(coords.anterior || {}).map(([key, sides]) => (
                         Object.entries(sides as any).map(([side, pos]: any) => (
                             <Point key={`ant-${key}-${side}`} label={`${key} (${side})`} x={pos.x} y={pos.y} active={painPoints?.[key]?.[side]} onClick={() => togglePoint(key, side as 'left' | 'right')} onMouseDown={(e: any) => handleMouseDown(e, { type: 'standard', view: 'anterior', key, side })} onMouseEnter={() => setHoveredLabel(`${key} (${side === 'left' ? 'Esq' : 'Dir'})`)} onMouseLeave={() => setHoveredLabel(null)} readOnly={readOnly} isCalibration={isCalibration} />
@@ -308,8 +316,8 @@ export function BodyPainMap({ painPoints, onChange, customPoints = [], onCustomP
                 </div>
                 {/* POSTERIOR */}
                 <div ref={containerRefs.posterior} className={`relative aspect-[3/4] bg-slate-100 rounded-lg overflow-hidden border ${!readOnly && !isCalibration ? 'cursor-crosshair' : ''}`} onClick={(e) => handleBackgroundClick(e, 'posterior')}>
-                    <img src="/body-map-posterior.jpg" className="w-full h-full object-cover opacity-90" alt="Posterior" />
-                    <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 text-white text-xs rounded uppercase pointer-events-none">Costas</div>
+                    <img src="/body-map-posterior.jpg" className="w-full h-full object-cover opacity-90 mix-blend-multiply" alt="Posterior" />
+                    <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 text-white text-xs font-bold rounded uppercase pointer-events-none shadow">COSTAS</div>
                     {showStandard && Object.entries(coords.posterior || {}).map(([key, sides]) => (
                         Object.entries(sides as any).map(([side, pos]: any) => (
                             <Point key={`post-${key}-${side}`} label={`${key} (${side})`} x={pos.x} y={pos.y} active={painPoints?.[key]?.[side]} onClick={() => togglePoint(key, side as 'left' | 'right')} onMouseDown={(e: any) => handleMouseDown(e, { type: 'standard', view: 'posterior', key, side })} onMouseEnter={() => setHoveredLabel(`${key} (${side === 'left' ? 'Esq' : 'Dir'})`)} onMouseLeave={() => setHoveredLabel(null)} readOnly={readOnly} isCalibration={isCalibration} />

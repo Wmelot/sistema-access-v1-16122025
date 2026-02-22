@@ -42,6 +42,7 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
     // A clínica tem acesso à Palmilha se tiver qualquer template de palmilha liberado
     const hasPalmilha = customForms.some((f: any) => f.title?.toLowerCase().includes('palmilha'));
     const hasPalmilhaV3 = customForms.some((f: any) => f.title?.toLowerCase().includes('palmilha biomecânica v3'));
+    const hasPalmilha5 = hasPalmilha; // Always show the Beta/Migration button for Palmilha 5 if Palmilha is allowed
     const hasWomensHealth = customForms.some((f: any) => f.title?.toLowerCase().includes('saúde da mulher'));
     const hasPbe = customForms.some((f: any) => f.title?.toLowerCase().includes('avaliação clínica inteligente') || f.title?.toLowerCase().includes('pbe (inteligente)'));
     const hasUltimate = customForms.some((f: any) => f.title?.toLowerCase().includes('ultimate pbe') || f.title?.toLowerCase().includes('fusão'));
@@ -119,6 +120,44 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 
                     {/* SANDBOX CARDS (HARDCODED FORMS) */}
+
+                    {/* Palmilha 5.0 (Novo/Beta/Refatoração em andamento) */}
+                    {hasPalmilha5 && (
+                        <Card className="hover:border-zinc-500/50 transition-colors flex flex-col justify-between relative group border-2 border-zinc-900 bg-zinc-900 overflow-hidden shadow-2xl">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 blur-3xl -z-10 rounded-full mix-blend-screen opacity-50"></div>
+                            <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-blue-500/20 to-emerald-500/20 blur-3xl -z-10 rounded-full mix-blend-screen opacity-50"></div>
+
+                            <div>
+                                <CardHeader className="pb-2 relative z-10">
+                                    <CardTitle className="text-xl font-bold flex items-center gap-2 text-white">
+                                        <div className="bg-white/10 p-2 rounded-xl border border-white/10 backdrop-blur-md">
+                                            <FileText className="h-5 w-5 text-indigo-400" />
+                                        </div>
+                                        Palmilha 5.0
+                                    </CardTitle>
+                                    <CardDescription className="text-zinc-400 leading-relaxed pt-2">
+                                        Nova versão sendo construída juntos, usando arquitetura modular extrema sem afetar o modelo original.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="relative z-10 pt-2">
+                                    <div className="flex gap-2">
+                                        <Badge className="bg-gradient-to-r from-indigo-500 to-purple-600 border-none text-white uppercase text-[10px] tracking-widest font-black shadow-lg shadow-indigo-500/20">
+                                            EM CONSTRUÇÃO (BETA)
+                                        </Badge>
+                                        <Badge className="bg-zinc-800 text-zinc-400 uppercase text-[10px] tracking-widest font-black border-zinc-700">Refatoração</Badge>
+                                    </div>
+                                </CardContent>
+                            </div>
+                            <div className="p-6 pt-4 relative z-10">
+                                <Link href={`/dashboard/${slug}/test-form/palmilha-5`} className="w-full" onClick={() => showLoading()}>
+                                    <Button className="w-full bg-white hover:bg-zinc-100 text-zinc-900 font-black h-12 shadow-xl shadow-black/20 transition-all hover:scale-[1.02] active:scale-95 text-xs tracking-wide">
+                                        <Pencil className="mr-2 h-4 w-4" />
+                                        ACOMPANHAR A CONSTRUÇÃO DO V5
+                                    </Button>
+                                </Link>
+                            </div>
+                        </Card>
+                    )}
 
                     {/* 1. Palmilha Access (Já existente) */}
                     {hasPalmilha && (

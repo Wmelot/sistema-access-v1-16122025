@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
+import Swal from 'sweetalert2';
 
 interface Point {
     id: string;
@@ -58,12 +59,18 @@ const DraggablePoint = ({ point, onMove, onRemove, readOnly }: { point: Point, o
         >
             <div className="w-4 h-4 bg-red-500/80 rounded-full border-2 border-white shadow-sm ring-1 ring-red-200 animate-in fade-in zoom-in duration-200"></div>
 
+            {point.label && (
+                <div className="absolute -top-6 whitespace-nowrap bg-black/75 text-white text-[9px] font-bold px-1.5 py-0.5 rounded pointer-events-none">
+                    {point.label}
+                </div>
+            )}
+
             {!readOnly && (
                 <button
                     onClick={(e) => { e.stopPropagation(); onRemove(point.id); }}
-                    className="absolute -top-3 -right-3 bg-slate-800 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute -top-3 -right-3 bg-red-600 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:scale-110"
                 >
-                    <X size={10} />
+                    <X size={12} />
                 </button>
             )}
         </div>
@@ -74,18 +81,31 @@ export const BodyPainMap = ({ value, onChange, readOnly = false }: BodyPainMapPr
     const [activeTab, setActiveTab] = useState("anterior");
     const points = value?.points || [];
 
-    const handleAddPoint = (e: React.MouseEvent<HTMLDivElement>) => {
+    const handleAddPoint = async (e: React.MouseEvent<HTMLDivElement>) => {
         if (readOnly) return;
         const rect = e.currentTarget.getBoundingClientRect();
+        // Clicar exatamente onde o mouse está
         const x = ((e.clientX - rect.left) / rect.width) * 100;
         const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+        const { value: painName } = await Swal.fire({
+            title: 'Qual a queixa/dor neste local?',
+            input: 'text',
+            inputPlaceholder: 'Ex: Pontada contínua, Dor irradiada...',
+            showCancelButton: true,
+            confirmButtonText: 'Salvar Ponto',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#ef4444',
+        });
+
+        if (!painName) return;
 
         const newPoint: Point = {
             id: crypto.randomUUID(),
             x,
             y,
             view: activeTab,
-            label: "Dor"
+            label: painName
         };
 
         onChange({ ...value, points: [...points, newPoint] });
@@ -142,8 +162,10 @@ export const BodyPainMap = ({ value, onChange, readOnly = false }: BodyPainMapPr
                     ))}
 
                     {!readOnly && currentPoints.length === 0 && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <span className="text-xs text-slate-400 bg-white/80 px-2 py-1 rounded">Clique para marcar</span>
+                        <div className="absolute inset-x-0 bottom-4 flex items-center justify-center pointer-events-none">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 bg-white/90 px-3 py-1.5 rounded-full shadow-sm border border-slate-200">
+                                CLIQUE EM QUALQUER LUGAR PARA MARCAR
+                            </span>
                         </div>
                     )}
                 </div>
