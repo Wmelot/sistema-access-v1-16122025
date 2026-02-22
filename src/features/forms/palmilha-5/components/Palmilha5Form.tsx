@@ -110,9 +110,9 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
             ybalance: { legLength: { left: "", right: "" } },
             dfi: [{ left: 0, right: 0 }, { left: 0, right: 0 }, { left: 0, right: 0 }],
             gait_photos: { left: { initial: "", mid: "", terminal: "" }, right: { initial: "", mid: "", terminal: "" } },
-            single_squat: { pelvic_drop_left: "no", pelvic_drop_right: "no", photo_left: "", photo_right: "" }
+            single_squat: { pelvic_drop_left: "Normal", pelvic_drop_right: "Normal", valgus_left: "Normal", valgus_right: "Normal", trunk_left: "Normal", trunk_right: "Normal", photo_left: "", photo_right: "" }
         },
-        shoe: { injuryType: "none", weight: "", drop: "", stack: "" },
+        shoe: { injuryType: "none", injuryStatus: "none", goals: ["pain_reduction"], experience: "amateur", weight: "", drop: "", stack: "" },
         plan: { orientations: "", exercises: [], followUpDays: [], monitorPain: true, extraQuestionnaire: "none", questionnaires: [], deliveryDate: "" },
         painPoints: [],
         painZones: {}
@@ -140,7 +140,7 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
         if (!data) return false;
         if (section === 'hma') return !!(data.qp || data.history || (data.eva && data.eva[0] > 0));
         if (section === 'history') return !!(data.comorbidities?.length || data.meds?.length || data.treatments?.length);
-        if (section === 'map') return !!form.watch('painPoints')?.length;
+        if (section === 'map') return !!form.watch('painPoints')?.length || Object.keys(form.watch('painZones') || {}).length > 0;
         if (section === 'efep') return !!form.watch('efep')?.some((i: any) => i.activity && i.score !== "");
         if (section === 'sports') return !!form.watch('sports')?.length && !!form.watch('sports')[0]?.type;
         if (section === 'shoe') return !!form.watch('shoe.model') || form.watch('shoe.injuryType') !== 'none';
@@ -168,18 +168,34 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
                     <div className="bg-white rounded-3xl p-3 border border-slate-100 shadow-sm flex flex-wrap gap-2 mt-2 mb-20">
                         {MENU_SECTIONS.map((sec, idx) => {
                             const isFilled = isSectionFilled(sec.id);
-                            const isActive = openSection === sec.id;
-                            const isPast = MENU_SECTIONS.findIndex(s => s.id === openSection) > idx;
+                            const curIdx = MENU_SECTIONS.findIndex(s => s.id === openSection);
+                            const isActive = curIdx === idx;
+                            const isPast = curIdx > idx;
 
-                            // Cápsula Circular para Acões Já Preenchidas e Inativas
-                            if (isFilled && !isActive) {
+                            let showAsCard = false;
+                            const total = MENU_SECTIONS.length;
+                            if (curIdx === 0) {
+                                showAsCard = idx <= 2;
+                            } else if (curIdx === total - 1) {
+                                showAsCard = idx >= total - 3;
+                            } else {
+                                showAsCard = idx >= curIdx - 1 && idx <= curIdx + 1;
+                            }
+
+                            // Círculos compactos para itens fora da janela de 3
+                            if (!showAsCard) {
                                 return (
                                     <button
                                         key={sec.id}
                                         type="button"
                                         onClick={() => setOpenSection(sec.id)}
                                         title={sec.label}
-                                        className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center font-black text-[10px] hover:bg-emerald-100 transition-all shadow-sm shrink-0 uppercase"
+                                        className={cn(
+                                            "w-10 h-10 rounded-full border flex items-center justify-center font-black text-[10px] transition-all shadow-sm shrink-0 uppercase",
+                                            isFilled
+                                                ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100 ring-2 ring-emerald-500/20"
+                                                : "bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100"
+                                        )}
                                     >
                                         {sec.label.charAt(0)}
                                     </button>
@@ -246,7 +262,7 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
                             </Accordion>
                         </div>
 
-                        <Accordion type="single" value={openSection} onValueChange={setOpenSection} className="w-full space-y-4 [&_[data-state=closed]]:hidden">
+                        <Accordion type="single" value={openSection} onValueChange={setOpenSection} className="w-full space-y-4 [&>[data-state=closed]]:hidden">
 
                             {/* 1. ANAMNESE (MIGRADO!) */}
                             <HmaAccordion
@@ -405,7 +421,7 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
                                             onClick={form.handleSubmit(async (data) => {
                                                 setIsSaving(true);
                                                 try {
-                                                    await onSave(data);
+                                                    await onSave(data, true);
                                                 } finally {
                                                     setIsSaving(false);
                                                 }
@@ -468,7 +484,7 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
                         onClick={form.handleSubmit(async (data) => {
                             setIsSaving(true);
                             try {
-                                await onSave(data);
+                                await onSave(data, true);
                             } finally {
                                 setIsSaving(false);
                             }

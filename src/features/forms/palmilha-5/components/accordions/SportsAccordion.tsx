@@ -63,16 +63,14 @@ export function SportsAccordion({ openSection, isSectionFilled, sectionStyle }: 
         name: "sports"
     });
 
-    const weightVal = useWatch({ control: form.control, name: "anthropometry.weight" });
-    const sportsVal = useWatch({ control: form.control, name: "sports" });
+    const weightVal = form.watch("anthropometry.weight");
+    const sportsVal = form.watch("sports");
 
     const calData = useMemo(() => {
-        // Fallback pra zero caso function falhe sem args apropriados
-        if (!weightVal || isNaN(Number(weightVal))) {
-            return { weekly: 0, minutes: 0, level: 'SEDENTÁRIO', color: 'bg-red-50 text-red-600 border-red-200' };
-        }
+        const currentWeight = weightVal && !isNaN(Number(weightVal)) ? Number(weightVal) : 70;
+
         try {
-            const res = calculateActivityLevel(Number(weightVal), sportsVal || []);
+            const res = calculateActivityLevel(currentWeight, sportsVal || []);
             return { weekly: res.weeklyBurn, minutes: res.totalMinutes, level: res.level, color: res.color, riskText: res.riskText };
         } catch (e) {
             return { weekly: 0, minutes: 0, level: 'SEDENTÁRIO', color: 'bg-red-50 text-red-600 border-red-200' };

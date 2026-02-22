@@ -451,8 +451,18 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
                             // Filter out duplicates ONLY if they are Locked System Forms that we replaced with Hardcoded Cards
                             // This ensures User's Custom Copies (is_locked=false) are still visible!
                             .filter((t: any) => {
+                                const lowerTitle = t.title?.toLowerCase() || '';
+
+                                // Hide backup, feegow forms and unwanted evolutions from UI
+                                if (lowerTitle.includes('feegow')) return false;
+                                if (lowerTitle.trim() === 'evolução') return false;
+                                if (lowerTitle.includes('backup')) return false;
+                                // Hide questionnaires and protocols from this tab (they have their own tabs)
+                                if (t.type === 'questionnaire' || t.type === 'protocol') return false;
+                                if (lowerTitle.includes('acompanhamento de palmilhas')) return false;
+                                if (lowerTitle.includes('manutenção de palmilhas')) return false;
+
                                 if (t.is_locked) {
-                                    const lowerTitle = t.title?.toLowerCase() || '';
                                     if (lowerTitle.includes('palmilha biomecânica') && !lowerTitle.includes('v3')) return false;
                                     if (lowerTitle.includes('palmilha biomecânica v3')) return false;
                                     if (lowerTitle.includes('saúde da mulher')) return false;

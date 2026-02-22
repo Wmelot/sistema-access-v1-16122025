@@ -28,6 +28,8 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
         setIsMounted(true);
     }, []);
 
+    const opt = (v: any) => ["Normal", "Leve", "Moderado", "Acentuado"].includes(v) ? v : "Normal";
+
     return (
         <AccordionItem
             value="dynamic"
@@ -188,7 +190,7 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                             <div className="grid grid-cols-1 gap-4 text-xs font-semibold">
                                 <div className="space-y-1.5 flex flex-col">
                                     <label className="text-slate-500 uppercase text-[10px] tracking-wider font-bold shrink-0">Queda Pélvica</label>
-                                    <Select onValueChange={v => form.setValue("tests.single_squat.pelvic_drop_left", v)} value={form.watch("tests.single_squat.pelvic_drop_left") || "Normal"}>
+                                    <Select onValueChange={v => form.setValue("tests.single_squat.pelvic_drop_left", v)} value={opt(form.watch("tests.single_squat.pelvic_drop_left"))}>
                                         <SelectTrigger className="bg-slate-50 border-slate-200 h-9 font-bold text-slate-700"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                         <SelectContent position="popper" side="bottom" className="z-[110]">
                                             <SelectItem value="Normal"><span className="text-emerald-600 font-bold">Normal</span></SelectItem>
@@ -200,7 +202,7 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                                 </div>
                                 <div className="space-y-1.5 flex flex-col">
                                     <label className="text-slate-500 uppercase text-[10px] tracking-wider font-bold shrink-0">Valgo Dinâmico do Joelho</label>
-                                    <Select onValueChange={v => form.setValue("tests.single_squat.valgus_left", v)} value={form.watch("tests.single_squat.valgus_left") || "Normal"}>
+                                    <Select onValueChange={v => form.setValue("tests.single_squat.valgus_left", v)} value={opt(form.watch("tests.single_squat.valgus_left"))}>
                                         <SelectTrigger className="bg-slate-50 border-slate-200 h-9 font-bold text-slate-700"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                         <SelectContent position="popper" side="bottom" className="z-[110]">
                                             <SelectItem value="Normal"><span className="text-emerald-600 font-bold">Normal</span></SelectItem>
@@ -212,7 +214,7 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                                 </div>
                                 <div className="space-y-1.5 flex flex-col">
                                     <label className="text-slate-500 uppercase text-[10px] tracking-wider font-bold shrink-0">Anteriorização Excessiva do Tronco</label>
-                                    <Select onValueChange={v => form.setValue("tests.single_squat.trunk_left", v)} value={form.watch("tests.single_squat.trunk_left") || "Normal"}>
+                                    <Select onValueChange={v => form.setValue("tests.single_squat.trunk_left", v)} value={opt(form.watch("tests.single_squat.trunk_left"))}>
                                         <SelectTrigger className="bg-slate-50 border-slate-200 h-9 font-bold text-slate-700"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                         <SelectContent position="popper" side="bottom" className="z-[110]">
                                             <SelectItem value="Normal"><span className="text-emerald-600 font-bold">Normal</span></SelectItem>
@@ -243,7 +245,7 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                             <div className="grid grid-cols-1 gap-4 text-xs font-semibold">
                                 <div className="space-y-1.5 flex flex-col">
                                     <label className="text-slate-500 uppercase text-[10px] tracking-wider font-bold shrink-0">Queda Pélvica</label>
-                                    <Select onValueChange={v => form.setValue("tests.single_squat.pelvic_drop_right", v)} value={form.watch("tests.single_squat.pelvic_drop_right") || "Normal"}>
+                                    <Select onValueChange={v => form.setValue("tests.single_squat.pelvic_drop_right", v)} value={opt(form.watch("tests.single_squat.pelvic_drop_right"))}>
                                         <SelectTrigger className="bg-slate-50 border-slate-200 h-9 font-bold text-slate-700"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                         <SelectContent position="popper" side="bottom" className="z-[110]">
                                             <SelectItem value="Normal"><span className="text-emerald-600 font-bold">Normal</span></SelectItem>
@@ -255,7 +257,7 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                                 </div>
                                 <div className="space-y-1.5 flex flex-col">
                                     <label className="text-slate-500 uppercase text-[10px] tracking-wider font-bold shrink-0">Valgo Dinâmico do Joelho</label>
-                                    <Select onValueChange={v => form.setValue("tests.single_squat.valgus_right", v)} value={form.watch("tests.single_squat.valgus_right") || "Normal"}>
+                                    <Select onValueChange={v => form.setValue("tests.single_squat.valgus_right", v)} value={opt(form.watch("tests.single_squat.valgus_right"))}>
                                         <SelectTrigger className="bg-slate-50 border-slate-200 h-9 font-bold text-slate-700"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                         <SelectContent position="popper" side="bottom" className="z-[110]">
                                             <SelectItem value="Normal"><span className="text-emerald-600 font-bold">Normal</span></SelectItem>
@@ -267,7 +269,7 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                                 </div>
                                 <div className="space-y-1.5 flex flex-col">
                                     <label className="text-slate-500 uppercase text-[10px] tracking-wider font-bold shrink-0">Anteriorização Excessiva do Tronco</label>
-                                    <Select onValueChange={v => form.setValue("tests.single_squat.trunk_right", v)} value={form.watch("tests.single_squat.trunk_right") || "Normal"}>
+                                    <Select onValueChange={v => form.setValue("tests.single_squat.trunk_right", v)} value={opt(form.watch("tests.single_squat.trunk_right"))}>
                                         <SelectTrigger className="bg-slate-50 border-slate-200 h-9 font-bold text-slate-700"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                         <SelectContent position="popper" side="bottom" className="z-[110]">
                                             <SelectItem value="Normal"><span className="text-emerald-600 font-bold">Normal</span></SelectItem>

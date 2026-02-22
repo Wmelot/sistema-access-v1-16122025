@@ -19,8 +19,8 @@ interface StaticAssessmentAccordionProps {
 export function StaticAssessmentAccordion({ openSection, isSectionFilled, sectionStyle, fpiSectionStyle }: StaticAssessmentAccordionProps) {
     const form = useFormContext();
 
-    const fpiLeftVals = useWatch({ control: form.control, name: "postural.fpi_left" });
-    const fpiRightVals = useWatch({ control: form.control, name: "postural.fpi_right" });
+    const fpiLeftVals = form.watch("postural.fpi_left");
+    const fpiRightVals = form.watch("postural.fpi_right");
 
     const fpiData = useMemo(() => {
         const l = calculateFpiScore(fpiLeftVals);

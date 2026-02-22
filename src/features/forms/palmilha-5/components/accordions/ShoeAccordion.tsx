@@ -113,7 +113,7 @@ export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, orga
         setSearchOpen(false);
     };
 
-    const shoeVals = useWatch({ control: form.control, name: "shoe" });
+    const shoeVals = form.watch("shoe");
 
     const minIndexResult = useMemo(() => {
         if (!shoeVals) return 0;
@@ -180,7 +180,7 @@ export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, orga
                 rec = {
                     text: "Iniciantes (< 6 Meses)",
                     image: <ThumbsUp className="w-8 h-8 text-indigo-500" />,
-                    feature: "Transição Gradual Longo Prazo",
+                    feature: "Transição Gradual (> 70% Índice Minimalista)",
                     details: "Para corredores iniciais, o objetivo de atingir maior Índice Minimalista é possível a longo prazo. O foco é garantir a adaptação mecânica aos poucos, integrando novos calçados progressivamente sem gerar dor.",
                     color: "bg-indigo-50 border-indigo-200 text-indigo-900"
                 };
@@ -188,8 +188,8 @@ export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, orga
                 rec = {
                     text: "Competitivo / Performance Base (Elite)",
                     image: <Zap className="w-8 h-8 text-violet-500" />,
-                    feature: "Minimalista (> 50-70%)",
-                    details: "Use calçados de performance (>50%) na maioria dos treinos de início/meio de temporada. Evite mudanças bruscas de hábitos. Em períodos Off-Season, em treinos curtos, o índice pode superar >70%.",
+                    feature: "Período de Base (> 50%) | Off-Season (> 70%)",
+                    details: "Use calçados mais leves na maioria dos treinos. Evite mudanças bruscas de hábitos. Em períodos Off-Season, em treinos curtos, o índice pode superar >70%.",
                     color: "bg-violet-50 border-violet-200 text-violet-900"
                 };
             } else if (isPerformance) {
@@ -202,59 +202,100 @@ export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, orga
                 };
             } else {
                 rec = {
-                    text: "Prevenção e Correção",
+                    text: "Recreacional / Prevenção e Correção",
                     image: <ThumbsUp className="w-8 h-8 text-emerald-500" />,
-                    feature: "Manter tipo de calçado",
-                    details: "Sem dores e sem busca por quebra de recordes: a regra de ouro é NÃO MUDAR radicalmente de tênis para evitar lesões adaptativas de transição.",
+                    feature: "Sem Mudança de Hábitos",
+                    details: "Satisfeito com o desempenho e sem dores: a regra de ouro é NÃO MUDAR radicalmente de tênis para evitar lesões adaptativas de transição.",
                     color: "bg-emerald-50 border-emerald-200 text-emerald-900"
                 };
             }
         } else {
-            // Se Fase Aguda, ignora tudo e puxa o vermelho
-            if (status === "acute") {
-                rec = {
-                    text: "Fase Aguda: Evite mudanças importantes",
-                    image: <AlertCircle className="w-8 h-8 text-amber-500" />,
-                    feature: "Controle e Estabilidade",
-                    details: "Mantenha o tênis atual, inicie ou dê continuidade a um programa de reabilitação e avalie a possibilidade do uso de palmilhas biomecânicas com o intuito de aliviar os sintomas.",
-                    color: "bg-amber-50 border-amber-200 text-amber-900"
-                };
-            } else if (type === "pfps") {
-                rec = {
-                    text: "Dor no Joelho (Patelofemoral) ou Tibial Anterior",
-                    image: <Activity className="w-8 h-8 text-green-500" />,
-                    feature: "Perfil Minimalista (> 60-70%)",
-                    details: "Recomenda-se calçados com DROP BAIXO, menos espessura e alta flexibilidade (Maior % Minimalista). Reduzir a estrutura mecânica do calçado diminui a sobrecarga nas articulações altas do joelho, transferindo a carga para a panturrilha.",
-                    color: "bg-green-50 border-green-200 text-green-900"
-                };
-            } else if (type === "achilles") {
-                rec = {
-                    text: "Lesão em Tendão de Aquiles ou Panturrilha",
-                    image: <Ruler className="w-8 h-8 text-orange-500" />,
-                    feature: "Perfil Maximalista (< 50%) / Drop Alto",
-                    details: "Evite calçados Minimalistas/Zero Drop. O paciente necessita de DROP ELEVADO (> 8mm) e sola com maior espessura para reduzir temporariamente a tensão e o alongamento estressante na musculatura posterior da perna.",
-                    color: "bg-orange-50 border-orange-200 text-orange-900"
-                };
-            } else if (type === "stress_fracture") {
-                rec = {
-                    text: "Metatarsalgia e Fratura por Estresse (Antepé)",
-                    image: <Bone className="w-8 h-8 text-red-500" />,
-                    feature: "Maximalista c/ Sola Rígida (< 40%)",
-                    details: "Recomendação fortíssima de Tênis Maximalista, Stack de Sola Alta, e PERFIL TOTALMENTE RÍGIDO (Rocker Sole / Sola em Berço). O objetivo é isolar e proteger os dedos na fase de impulsão (Toe-Off).",
-                    color: "bg-red-50 border-red-200 text-red-900"
-                };
-            } else if (type === "plantar_fasciitis") {
-                rec = {
-                    text: "Fasciite Plantar",
-                    image: <Footprints className="w-8 h-8 text-rose-500" />,
-                    feature: "Perfil Maximalista (< 40%)",
-                    details: "A literatura recomenda perfil menos minimalista, preferindo calçados que ofereçam suporte contra flexão excessiva (maior rigidez longitudinal) e stack mais elevado, isolando a fáscia durante a fase inflamatória.",
-                    color: "bg-rose-50 border-rose-200 text-rose-900"
-                };
+            // INJURED PATH (FLOWCHART: LEFT STRIPES)
+            // Lógica divide por patologia e considera se é Aguda ou Crônica.
+
+            // 1. JOELHO / PERNA ANTERIOR (PFPS)
+            if (type === "pfps") {
+                if (status === "acute") {
+                    rec = {
+                        text: "Fase Aguda: Joelho / Perna Anterior",
+                        image: <Activity className="w-8 h-8 text-amber-500" />,
+                        feature: "Perfil Minimalista (> 60%)",
+                        details: "Para dor aguda no joelho (Patelofemoral / Tibial Anterior), recomenda-se reduzir a estrutura do calçado para diminuir a sobrecarga nas articulações altas, transferindo parte da carga para a panturrilha.",
+                        color: "bg-amber-50 border-amber-200 text-amber-900"
+                    };
+                } else {
+                    rec = {
+                        text: "Fase Persistente: Joelho / Perna Anterior",
+                        image: <Activity className="w-8 h-8 text-green-500" />,
+                        feature: "Perfil Minimalista (> 70%)",
+                        details: "Em casos crônicos do joelho, tênis extremamente flexíveis e com drop zero encorajam aumento de cadência, reduzindo significativamente o impacto patelofemoral (adaptação rápida esperada).",
+                        color: "bg-green-50 border-green-200 text-green-900"
+                    };
+                }
+            }
+            // 2. TENDÃO DE AQUILES E PANTURRILHA
+            else if (type === "achilles") {
+                if (status === "acute") {
+                    rec = {
+                        text: "Fase Aguda: Tendinopatia de Aquiles",
+                        image: <AlertCircle className="w-8 h-8 text-orange-500" />,
+                        feature: "Proteção / Maximalista (< 50%) | Stack & Drop Altos",
+                        details: "O paciente necessita de amortecimento, DROP ELEVADO e sola com maior espessura (Stack Height maior) para reduzir imediatamente a tensão muscular na perna durante a fase inflamatória.",
+                        color: "bg-orange-50 border-orange-200 text-orange-900"
+                    };
+                } else {
+                    rec = {
+                        text: "Fase Persistente: Adaptação de Aquiles",
+                        image: <Ruler className="w-8 h-8 text-blue-500" />,
+                        feature: "Progressão de Adaptação Rápida (> 50%)",
+                        details: "Músculos e tendões têm alto potencial de readaptação. Na fase crônica ou persistente sem dor limitante, pode-se iniciar transição gradual para calçados com menor interferência (índice > 50%).",
+                        color: "bg-blue-50 border-blue-200 text-blue-900"
+                    };
+                }
+            }
+            // 3. FÁSCIA PLANTAR E PERIÓSTEO (Canelite Medial etc)
+            else if (type === "plantar_fasciitis") {
+                if (status === "acute") {
+                    rec = {
+                        text: "Fase Aguda: Fasciite Plantar",
+                        image: <Activity className="w-8 h-8 text-rose-500" />,
+                        feature: "Estrutural (< 40%) | Stack Alto & Rigidez Longitudinal",
+                        details: "Nesta fase restritiva, busque solados mais rígidos que dificultam a flexão dos dedos (reduz tensão na fáscia) e suportes de arco maiores. Proteção mecânica é fundamental.",
+                        color: "bg-rose-50 border-rose-200 text-rose-900"
+                    };
+                } else {
+                    rec = {
+                        text: "Fase Persistente: Fáscia / Periostite",
+                        image: <Footprints className="w-8 h-8 text-cyan-500" />,
+                        feature: "Adaptação Lenta (> 50%)",
+                        details: "Tecido fascial e ósseo (periósteo) adaptam-se lentamente. Na fase crônica, a transição para calçados mais minimalistas pode focar em reduzir impacto, mas a transição deve ser muito mais lenta e cautelosa.",
+                        color: "bg-cyan-50 border-cyan-200 text-cyan-900"
+                    };
+                }
+            }
+            // 4. METATARSALGIA, NEUROMA, FRATURAS DE ESTRESSE E JOANETE (Hallux)
+            else if (type === "stress_fracture") {
+                if (status === "acute") {
+                    rec = {
+                        text: "Fase Aguda: Dor no Antepé / Fraturas",
+                        image: <Bone className="w-8 h-8 text-red-600" />,
+                        feature: "Maximalista Rígido (< 40%) | Maior Amortecimento",
+                        details: "Recomendação fortíssima de Tênis Maximalista (Stack Alto) e PERFIL TOTALMENTE RÍGIDO (Sola tipo \"Berço\"/Rocker). O objetivo é isolar completamente a base dos dedos na decolagem.",
+                        color: "bg-red-50 border-red-200 text-red-900"
+                    };
+                } else {
+                    rec = {
+                        text: "Fase Persistente: Metatarsalgia Crônica e Neuromas",
+                        image: <AlertCircle className="w-8 h-8 text-red-500" />,
+                        feature: "Baixo Potencial de Adaptação (< 60%)",
+                        details: "Mesmo na fase crônica, essas patologias (Neuromas, Artrose) respondem mal à cargas mecânicas diretas. Manter índice Minimalista menor, privilegiar bicos muito largos e sola com maior rigidez.",
+                        color: "bg-red-50 border-red-200 text-red-900"
+                    };
+                }
             }
         }
         return rec;
-    }, [shoeVals]);
+    }, [JSON.stringify(shoeVals)]);
 
     return (
         <AccordionItem
@@ -338,7 +379,7 @@ export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, orga
 
                 <div className="space-y-1">
                     <FormLabel className="text-blue-900 text-xs font-bold uppercase tracking-wider">1. Localização / Tipo de Lesão</FormLabel>
-                    <Select onValueChange={v => form.setValue("shoe.injuryType", v)}>
+                    <Select onValueChange={v => form.setValue("shoe.injuryType", v)} value={shoeVals?.injuryType || "none"}>
                         <SelectTrigger className="bg-white border-blue-200 h-10 shadow-sm w-full">
                             <SelectValue placeholder="Selecione a patologia..." />
                         </SelectTrigger>
@@ -355,7 +396,7 @@ export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, orga
                 <div className="p-4 bg-slate-50/50 border border-slate-100 rounded-xl grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1">
                         <FormLabel className="text-[10px] font-bold uppercase text-slate-500">Estado da Lesão</FormLabel>
-                        <Select onValueChange={v => form.setValue("shoe.injuryStatus", v)}>
+                        <Select onValueChange={v => form.setValue("shoe.injuryStatus", v)} value={shoeVals?.injuryStatus || "none"}>
                             <SelectTrigger className="bg-white h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                             <SelectContent position="popper" side="bottom" className="z-[110]">
                                 <SelectItem value="none">Sem Lesão Ativa</SelectItem>
@@ -366,7 +407,7 @@ export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, orga
                     </div>
                     <div className="space-y-1">
                         <FormLabel className="text-[10px] font-bold uppercase text-slate-500">Objetivo</FormLabel>
-                        <Select onValueChange={v => form.setValue("shoe.goals", [v])}>
+                        <Select onValueChange={v => form.setValue("shoe.goals", [v])} value={shoeVals?.goals?.[0] || "pain_reduction"}>
                             <SelectTrigger className="bg-white h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                             <SelectContent position="popper" side="bottom" className="z-[110]">
                                 <SelectItem value="pain_reduction">Conforto / Menos Dor</SelectItem>
@@ -376,7 +417,7 @@ export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, orga
                     </div>
                     <div className="space-y-1">
                         <FormLabel className="text-[10px] font-bold uppercase text-slate-500">Nível</FormLabel>
-                        <Select onValueChange={v => form.setValue("shoe.experience", v)}>
+                        <Select onValueChange={v => form.setValue("shoe.experience", v)} value={shoeVals?.experience || "beginner"}>
                             <SelectTrigger className="bg-white h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                             <SelectContent position="popper" side="bottom" className="z-[110]">
                                 <SelectItem value="beginner">Iniciante</SelectItem>

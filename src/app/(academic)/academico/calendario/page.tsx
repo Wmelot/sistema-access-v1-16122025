@@ -85,7 +85,7 @@ const PRINT_STYLES = (orientation: 'portrait' | 'landscape') => `
   .no-print {
     display: none !important;
   }
-  .lucide, button, .DialogOverlay, .DialogClose {
+  .DialogOverlay, .DialogClose {
     display: none !important;
   }
   body, html, [data-state="open"], div[role="dialog"] {
@@ -126,6 +126,7 @@ interface Assessment {
     points: number;
     type: 'Institucional' | 'Professor' | 'Curso';
     isSubstitutive?: boolean;
+    substitutesId?: string | 'Todas';
 }
 
 
@@ -172,6 +173,8 @@ export default function SyllabusWizard() {
     const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
     const [visibleColumns, setVisibleColumns] = useState<string[]>(['data', 'dia', 'conteudo', 'references', 'atividade', 'pontos']);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [importedEnsinoFile, setImportedEnsinoFile] = useState<string | null>(null);
+    const [importedCalendarioFile, setImportedCalendarioFile] = useState<string | null>(null);
     const printRef = useRef<HTMLDivElement>(null);
 
     // Step 1: Config
@@ -383,6 +386,32 @@ export default function SyllabusWizard() {
         toast.success("Rascunho do cronograma salvo com sucesso!");
     };
 
+    const loadDraft = () => {
+        const d = localStorage.getItem('axiom_syllabus_draft');
+        if (d) {
+            try {
+                const draft = JSON.parse(d);
+                if (draft.courseName) setCourseName(draft.courseName);
+                if (draft.publicSlug) setPublicSlug(draft.publicSlug);
+                if (draft.theoryLocation) setTheoryLocation(draft.theoryLocation);
+                if (draft.practiceLocation) setPracticeLocation(draft.practiceLocation);
+                if (draft.startDate) setStartDate(new Date(draft.startDate));
+                if (draft.endDate) setEndDate(new Date(draft.endDate));
+                if (draft.weekDays) setWeekDays(draft.weekDays);
+                if (draft.assessments) {
+                    setAssessments(draft.assessments.map((a: any) => ({ ...a, date: a.date ? new Date(a.date) : null })));
+                }
+                if (draft.books) setBooks(draft.books);
+                if (draft.topics) setTopics(draft.topics);
+                toast.success("Rascunho carregado com sucesso!");
+            } catch (e) {
+                toast.error("Erro ao carregar o rascunho.");
+            }
+        } else {
+            toast.info("Nenhum rascunho encontrado.");
+        }
+    };
+
     // Handlers Bibliography
     const addBook = () => {
         if (!newBook.title || !newBook.author) return;
@@ -572,6 +601,7 @@ export default function SyllabusWizard() {
 
     const handleImportFromDocument = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files?.length) return;
+        setImportedEnsinoFile(e.target.files[0].name);
         setIsAnalyzing(true);
         // Simulação de IA processando PDF/Word
         setTimeout(() => {
@@ -611,6 +641,9 @@ export default function SyllabusWizard() {
                         <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest mt-1">Gestor Estratégico de Conteúdo Acadêmico</p>
                     </div>
                     <div className="flex gap-4">
+                        <Button onClick={loadDraft} variant="ghost" className="rounded-2xl font-black text-xs uppercase tracking-widest h-12 text-slate-500 hover:text-indigo-600 transition-all">
+                            Carregar Rascunho
+                        </Button>
                         <Button onClick={saveDraft} variant="outline" className="rounded-2xl border-slate-100 font-black text-xs uppercase tracking-widest h-12 hover:border-[#8C132C]/20 hover:bg-[#8C132C]/5 transition-all">
                             <Save size={16} className="mr-2" /> Salvar Rascunho
                         </Button>
@@ -747,13 +780,14 @@ export default function SyllabusWizard() {
                                     <label className="mt-6 border-2 border-dashed border-slate-100 rounded-[32px] p-6 flex flex-col items-center justify-center text-center group hover:border-[#8C132C]/20 transition-all cursor-pointer block">
                                         <input type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => {
                                             if (e.target.files && e.target.files.length > 0) {
+                                                setImportedCalendarioFile(e.target.files[0].name);
                                                 toast.success("Calendário Institucional importado e analisado. Feriados e recessos sincronizados!");
                                             }
                                         }} />
                                         <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 mb-3 group-hover:bg-[#8C132C]/10 group-hover:text-[#8C132C] transition-all">
                                             <Upload size={20} />
                                         </div>
-                                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Calendário Institucional</span>
+                                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{importedCalendarioFile || "Calendário Institucional"}</span>
                                         <p className="text-[9px] text-slate-300 font-bold mt-1">PDF ou Excel (Feriados e Recessos)</p>
                                     </label>
                                 </div>
@@ -829,6 +863,22 @@ export default function SyllabusWizard() {
                                                                 />
                                                                 <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Prova Substitutiva</span>
                                                             </label>
+                                                            {ass.isSubstitutive && (
+                                                                <>
+                                                                    <div className="h-3 w-px bg-slate-200 mx-1" />
+                                                                    <Select value={ass.substitutesId || "Todas"} onValueChange={(v) => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, substitutesId: v } : a))}>
+                                                                        <SelectTrigger className="h-6 text-[8px] font-black uppercase px-2 py-0 border-slate-200 text-amber-600 bg-amber-50 w-auto shadow-none">
+                                                                            <SelectValue placeholder="..." />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent className="z-[110]">
+                                                                            <SelectItem value="Todas"><span className="text-[10px] uppercase font-bold text-slate-600 tracking-widest">Todas / Final</span></SelectItem>
+                                                                            {assessments.filter(a => !a.isSubstitutive).map(a => (
+                                                                                <SelectItem key={a.id} value={a.id}><span className="text-[10px] uppercase font-bold text-slate-600">{a.name || 'Sem nome'}</span></SelectItem>
+                                                                            ))}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                </>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <div className="w-44">
@@ -860,9 +910,9 @@ export default function SyllabusWizard() {
                                     <div className="flex gap-4">
                                         <label className="cursor-pointer">
                                             <Input type="file" accept=".pdf,.doc,.docx" onChange={handleImportFromDocument} className="hidden" />
-                                            <Button variant="outline" className="h-14 rounded-2xl border-[#8C132C]/20 text-[#8C132C] font-black uppercase text-[10px] tracking-widest px-8 hover:bg-[#8C132C]/5 flex items-center gap-2">
+                                            <Button variant="outline" className="h-14 rounded-2xl border-[#8C132C]/20 text-[#8C132C] font-black uppercase text-[10px] tracking-widest px-8 hover:bg-[#8C132C]/5 flex items-center gap-2 pointer-events-none">
                                                 {isAnalyzing ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" /> : <Sparkles size={18} />}
-                                                Carregar Word/PDF (IA)
+                                                {importedEnsinoFile || "Carregar Word/PDF (IA)"}
                                             </Button>
                                         </label>
                                     </div>
