@@ -6,7 +6,7 @@
 # ==============================================================================
 
 # 1. Configurações
-DB_URL="postgresql://postgres:0xw8SnQc09fHn7S4@db.robptuukezhqvtasjyhz.supabase.co:5432/postgres"
+DB_URL="postgresql://postgres.robptuukezhqvtasjyhz:0xw8SnQc09fHn7S4@aws-0-sa-east-1.pooler.supabase.com:5432/postgres"
 BACKUP_DIR="/Users/wmelo/Axiom/backups"
 DATE=$(date +%Y-%m-%d_%H-%M-%S)
 FILE_NAME="access_backup_$DATE.sql"

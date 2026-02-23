@@ -26,7 +26,8 @@ import {
     FileText,
     Tag,
     Megaphone,
-    Shield
+    Shield,
+    Activity
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -173,9 +174,10 @@ export function SidebarContent({
                         { href: `${dashboardPrefix}/prices`, icon: Tag, label: "Tabela de Preços", perm: 'sidebar.prices.view' },
                         { href: `${dashboardPrefix}/settings?tab=users`, icon: Users, label: "Usuários", perm: 'sidebar.users.view' },
                         { href: `${dashboardPrefix}/settings/communication`, icon: MessageCircle, label: "WhatsApp", perm: 'sidebar.whatsapp.view', feature: 'whatsapp_integration' },
+                        isMaster && { href: `${dashboardPrefix}/radar-propulsao`, icon: Activity, label: "Radar Propulsão", perm: 'sidebar.home.view', className: "text-[#0052cc]" },
                         { type: 'widget', label: "Lembretes", component: ReminderWidget }
-                    ]
-                        .sort((a, b) => {
+                    ].filter(Boolean)
+                        .sort((a: any, b: any) => {
                             if (a.label === "Tela Inicial") return -1;
                             if (b.label === "Tela Inicial") return 1;
                             return a.label.localeCompare(b.label);
