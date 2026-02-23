@@ -34,16 +34,16 @@ export function parseFeegowText(text: string): Partial<PalmilhaFormValues> {
         }
     };
 
-    // Helper to extract a single number after a label
     const extractNum = (label: string) => {
-        const regex = new RegExp(`${label}\\s*[:\\s]\\s*(-?\\d+[.,]?\\d*)`, 'i');
+        const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`${escapedLabel}\\s*(?::\\s*|\\r?\\n)\\s*(-?\\d+[.,]?\\d*)`, 'i');
         const match = text.match(regex);
         return match ? parseFloat(match[1].replace(',', '.')) : undefined;
     };
 
-    // Helper to extract text status (e.g., Normal, Reduzida)
     const extractStatus = (label: string) => {
-        const regex = new RegExp(`${label}\\s*[:\\s]\\s*([^\\n\\r<]+)`, 'i');
+        const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`${escapedLabel}\\s*(?::\\s*|\\r?\\n)\\s*([^\\n\\r<]+)`, 'i');
         const match = text.match(regex);
         return match ? match[1].trim() : undefined;
     };
@@ -156,7 +156,12 @@ export function parseFeegowText(text: string): Partial<PalmilhaFormValues> {
 
     // 4. CALCADO
     data.calcado.modelo = extractStatus('Calçado que Utiliza') || extractStatus('Tênis');
-    data.calcado.tamanho = extractStatus('Número do Calçado') || extractStatus('Numeração');
+    data.calcado.tamanho = String(extractNum('Número do Calçado') || extractStatus('Número do Calçado') || extractStatus('Numeração') || "");
+
+    const sportsText = extractStatus('Atividade Física Regular');
+    if (sportsText) {
+        data.anamnese.historico_esportivo.atividades = sportsText.split(';').map(s => s.trim()).filter(Boolean);
+    }
 
     // Clean up empty objects
     Object.keys(data.exame_fisico).forEach(key => {
