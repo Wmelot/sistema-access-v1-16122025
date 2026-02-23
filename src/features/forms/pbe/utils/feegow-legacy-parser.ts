@@ -18,13 +18,15 @@ export function parseFeegowToLegacyForm(text: string): any {
     };
 
     const extractNum = (label: string) => {
-        const regex = new RegExp(`${label}\\s*[:\\s]\\s*(-?\\d+[.,]?\\d*)`, 'i');
+        const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`${escapedLabel}\\s*(?::\\s*|\\r?\\n)\\s*(-?\\d+[.,]?\\d*)`, 'i');
         const match = text.match(regex);
         return match ? parseFloat(match[1].replace(',', '.')) : undefined;
     };
 
     const extractStatus = (label: string) => {
-        const regex = new RegExp(`${label}\\s*[:\\s]\\s*([^\\n\\r<]+)`, 'i');
+        const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`${escapedLabel}\\s*(?::\\s*|\\r?\\n)\\s*([^\\n\\r<]+)`, 'i');
         const match = text.match(regex);
         return match ? match[1].trim() : undefined;
     };
@@ -102,13 +104,18 @@ export function parseFeegowToLegacyForm(text: string): any {
 
     // Single Squat
     data.tests.single_squat.pelvic_drop_left = extractStatus('Queda Pélvica E') || "no";
-    data.tests.single_squat.pelvic_drop_right = extractStatus('Queda Pélvica D') || "no";
+    data.tests.single_squat.pelvic_drop_right = extractStatus('Queda Pélvica D') || extractStatus('Queda Pélvica') || "no";
     data.tests.single_squat.valgus_left = extractStatus('Valgo Dinâmico E') || "no";
-    data.tests.single_squat.valgus_right = extractStatus('Valgo Dinâmico') || "no";
+    data.tests.single_squat.valgus_right = extractStatus('Valgo Dinâmico D') || extractStatus('Valgo Dinâmico') || "no";
 
     // Shoez
     data.shoe.type = extractStatus('Calçado que Utiliza');
-    data.postural.shoeSize = extractStatus('Número do Calçado');
+    data.postural.shoeSize = String(extractNum('Número do Calçado') || extractStatus('Número do Calçado') || "");
+
+    const sportsText = extractStatus('Atividade Física Regular');
+    if (sportsText) {
+        data.sports = sportsText.split(';').map(s => s.trim()).filter(Boolean);
+    }
 
     return data;
 }
