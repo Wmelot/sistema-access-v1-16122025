@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { addDays } from "date-fns"
 import { sendMessage, getWhatsappConfig } from "@/app/dashboard/[slug]/settings/communication/actions"
@@ -38,7 +38,6 @@ export async function registerInsoleDelivery(rawInput: any) {
         // 2. Trava de Segurança (Check de Org/Paciente)
         const { userId, organizationId } = await validateAccess(patientId, 'patient', slug);
 
-        const { createAdminClient } = await import("@/lib/supabase/server");
         const adminSupabase = await createAdminClient();
 
         // 3. Processamento de Datas
