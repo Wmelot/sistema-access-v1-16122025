@@ -42,6 +42,7 @@ import BiomechanicsInsoleForm from "@/features/forms/pbe/components/Biomechanics
 import DiabeticFootForm from "@/features/forms/pbe/components/DiabeticFootForm"
 import { ConceptPBEForm } from "@/features/forms/pbe/components/ConceptPBEForm"
 import PalmilhaFormV3 from "@/features/forms/palmilha-biomecanica/components/PalmilhaFormV3"
+import Palmilha5Form from "@/features/forms/palmilha-5/components/Palmilha5Form"
 import FisioterapiaEvolutionForm from "@/features/forms/clinical-evolution/components/FisioterapiaEvolutionForm"
 import { UltimatePBEForm } from "@/features/forms/pbe/components/UltimatePBEForm"
 import AdvancedSmartAssessment from "@/features/forms/smart-assessment/components/AdvancedSmartAssessment"
@@ -506,7 +507,7 @@ export function AttendanceClient({
 
 
 
-        if (newTemplateId === SMART_ASSESSMENT_ID || newTemplateId === WOMENS_HEALTH_ID || newTemplateId === PALMILHA_V3_ID || newTemplate?.title?.includes('Palmilha')) {
+        if (newTemplateId === SMART_ASSESSMENT_ID || newTemplateId === WOMENS_HEALTH_ID || newTemplateId === PALMILHA_V3_ID || newTemplateId === 'palmilha-5' || newTemplate?.title?.includes('Palmilha')) {
             newRecordType = 'assessment'
         }
 
@@ -845,7 +846,8 @@ export function AttendanceClient({
                                                     <SelectGroup>
                                                         <Separator className="my-1" />
                                                         <div className="px-2 py-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest">Modelos de Palmilha</div>
-                                                        <SelectItem value={PALMILHA_V3_ID} className="py-2.5 text-violet-700 font-bold bg-violet-50/50 cursor-pointer">Palmilha Biomecânica V3 (NOVO)</SelectItem>
+                                                        <SelectItem value="palmilha-5" className="py-2.5 text-blue-700 font-bold bg-blue-50/50 cursor-pointer">Palmilha 5.0 (EVOLUÍDA)</SelectItem>
+                                                        <SelectItem value={PALMILHA_V3_ID} className="py-2.5 text-violet-700 font-bold bg-violet-50/50 cursor-pointer">Palmilha Biomecânica V3</SelectItem>
                                                         <SelectItem value={PALMILHA_ORIGINAL_ID} className="py-2.5 text-indigo-900 cursor-pointer font-medium">Palmilha Biomecânica (Original)</SelectItem>
                                                         {filteredTemplates
                                                             .filter(t => t.id !== PALMILHA_V3_ID && t.id !== PALMILHA_ORIGINAL_ID)
@@ -1080,6 +1082,15 @@ export function AttendanceClient({
                                                 patientId={patient.id}
                                                 attendanceId={appointment.id}
                                                 onSave={handlePhysicalAssessmentSave}
+                                            />
+                                        ) : (selectedTemplateId === 'palmilha-5') ? (
+                                            <Palmilha5Form
+                                                initialData={currentRecord?.content}
+                                                patientId={patient.id}
+                                                onSave={handlePhysicalAssessmentSave}
+                                                patient={patient}
+                                                organization={(appointment as any)?.organizations || {}}
+                                                professional={appointment?.profiles}
                                             />
                                         ) : (selectedTemplateId === PALMILHA_V3_ID) ? (
 
