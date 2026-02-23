@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { calculateRadarData } from "@/utils/clinical-references";
 import { calculateMinimalismIndex, calculateSmartRecommendation } from "@/features/forms/pbe/utils/biomechanics-calculations";
+import { getShoeRecommendationFlow } from "@/features/forms/palmilha-5/components/accordions/ShoeAccordion";
 import Image from "next/image";
 import { calculateActivityLevel } from "@/utils/pbe-calculations";
 import { COLOR_LEFT_FOOT, COLOR_RIGHT_FOOT, COLOR_REF_LINE } from "@/utils/report-constants";
@@ -227,6 +228,17 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
 
     const finalShoeRec = useMemo(() => {
         if (shoeRec) return shoeRec;
+
+        if (vals.shoe && vals.shoe.isInjured !== undefined) {
+            const flow = getShoeRecommendationFlow(vals.shoe);
+            return {
+                text: flow.text,
+                image: flow.image,
+                feature: flow.feature,
+                desc: flow.details
+            };
+        }
+
         const res = calculateSmartRecommendation(vals.patientProfile || {}, vals.painPoints || {});
         return {
             text: res.description.split('.')[0] + '.',

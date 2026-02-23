@@ -412,7 +412,7 @@ export default function Palmilha5SandboxPage() {
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-[400px] p-3 shadow-xl border-2 overflow-visible" align="start">
-                                        <Command className="rounded-lg border shadow-sm overflow-visible">
+                                        <Command className="rounded-lg border shadow-sm overflow-visible" shouldFilter={false}>
                                             <div className="p-2 border-b overflow-visible">
                                                 <CommandInput
                                                     placeholder="Buscar por nome..."
@@ -421,10 +421,10 @@ export default function Palmilha5SandboxPage() {
                                                 />
                                             </div>
                                             <CommandList>
-                                                <CommandEmpty>Nenhum paciente encontrado.</CommandEmpty>
+                                                <CommandEmpty>{searchQuery.length < 2 ? "Digite pelo menos 2 letras..." : "Nenhum paciente encontrado."}</CommandEmpty>
                                                 <CommandGroup>
                                                     {patients.map(p => (
-                                                        <CommandItem key={p.id} value={`${p.id} ${p.name}`} onSelect={() => {
+                                                        <CommandItem key={p.id} value={`${p.id} ${p.name} ${formatPhoneDisplay(p.phone || '')}`} onSelect={() => {
                                                             setSelectedPatient(p);
                                                             setOpenCombobox(false);
                                                         }}>

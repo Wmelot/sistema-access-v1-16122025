@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-// @ts-ignore
-import pdfParse from "pdf-parse";
+import { PDFParse } from 'pdf-parse';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
@@ -25,15 +24,17 @@ export async function POST(req: NextRequest) {
             const buffer = Buffer.from(arrayBuffer);
 
             if (file.name.toLowerCase().endsWith(".pdf")) {
-                const data = await pdfParse(buffer);
-                combinedText += `\n--- Arquivo: ${file.name} ---\n${data.text}\n`;
+                const parser = new PDFParse({ data: buffer });
+                const result = await parser.getText();
+                await parser.destroy();
+                combinedText += `\n--- Arquivo: ${file.name} ---\n${result.text}\n`;
             } else {
                 combinedText += `\n--- Arquivo: ${file.name} ---\n${buffer.toString("utf-8")}\n`;
             }
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
         const prompt = `
 ATUE COMO UM ASSISTENTE DE DESIGN INSTRUACIONAL E GESTOR ACADÊMICO.

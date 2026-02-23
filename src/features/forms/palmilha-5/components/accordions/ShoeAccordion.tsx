@@ -4,7 +4,7 @@ import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/
 import { Footprints, BookOpen, Search, Youtube, Info, Database, Loader2, Zap, ThumbsUp, Activity, Ruler, Bone, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
@@ -71,6 +71,80 @@ interface ShoeAccordionProps {
     organizationId?: string;
 }
 
+export const getShoeRecommendationFlow = (shoeVals: any) => {
+    const exp = shoeVals?.experience || "recreational";
+    const isInjured = shoeVals?.isInjured === "true" || shoeVals?.isInjured === true;
+    const injuryStatus = shoeVals?.injuryStatus || "acute";
+    const injuryLoc = shoeVals?.injuryLocation || "achilles";
+    const perfGoal = shoeVals?.perfGoal || "satisfied";
+    const seasonPhase = shoeVals?.seasonPhase || "lasting";
+
+    let rec = {
+        text: "Prescrição Baseada em Conforto",
+        image: <Footprints className="w-8 h-8 text-slate-400" />,
+        feature: "Manter o calçado atual se confortável",
+        details: "Preencha os campos para visualizar a recomendação técnica automática baseada na árvore de decisão da The Running Clinic.",
+        color: "bg-slate-50 border-slate-200 text-slate-700"
+    };
+
+    if (isInjured) {
+        if (injuryStatus === "acute") {
+            if (injuryLoc === "anterior") {
+                rec = { text: "Lesão Aguda: Perna Anterior, Joelho ou Acima", image: <Activity className="w-8 h-8 text-amber-500" />, feature: "Minimalista (> 60%)", details: "Perna anterior ou joelho: recomendado transferir a carga mecânica. Busque maior Índice Minimalista.", color: "bg-amber-50 border-amber-200 text-amber-900" };
+            } else if (injuryLoc === "achilles") {
+                rec = { text: "Lesão Aguda: Tendão de Aquiles ou Panturrilha", image: <AlertCircle className="w-8 h-8 text-orange-500" />, feature: "Proteção / Maximalista (< 50%)", details: "Maior Stack Height (Espessura) e Maior Amortecimento para reduzir imediata tensão na perna posterior.", color: "bg-orange-50 border-orange-200 text-orange-900" };
+            } else if (injuryLoc === "metatarsal") {
+                rec = { text: "Lesão Aguda: Metatarsalgia ou Fratura por Estresse", image: <Bone className="w-8 h-8 text-red-500" />, feature: "Rocker / Estruturado (< 40%)", details: "Maior Stack Height, Maior Amortecimento e Maior Rigidez Longitudinal (Placa/Rocker) para isolar os metatarsos.", color: "bg-red-50 border-red-200 text-red-900" };
+            } else if (injuryLoc === "tibialis") {
+                rec = { text: "Lesão Aguda: Tibial Posterior / Canelite", image: <Activity className="w-8 h-8 text-rose-500" />, feature: "Estrutural (< 50%)", details: "Maior Stack Height e Controle de Movimento (Motion Control).", color: "bg-rose-50 border-rose-200 text-rose-900" };
+            } else if (injuryLoc === "plantar") {
+                rec = { text: "Lesão Aguda: Fasciopatia Plantar", image: <Footprints className="w-8 h-8 text-rose-600" />, feature: "Estruturado (< 40%)", details: "Maior Stack Height, Maior Suporte de Arco e Maior Rigidez Longitudinal.", color: "bg-rose-50 border-rose-200 text-rose-900" };
+            } else if (injuryLoc === "compartment") {
+                rec = { text: "Lesão Aguda: Síndrome Compartimental Post.", image: <Activity className="w-8 h-8 text-amber-600" />, feature: "Proteção (< 50%)", details: "Maior Stack Height e Maior Amortecimento.", color: "bg-amber-50 border-amber-200 text-amber-900" };
+            }
+        } else {
+            if (injuryLoc === "anterior") {
+                rec = { text: "Lesão Persistente: Perna Anterior ou Joelho", image: <Activity className="w-8 h-8 text-green-500" />, feature: "Altamente Minimalista (> 70%)", details: "Adaptação recomendada para redução crônica de impacto no joelho.", color: "bg-green-50 border-green-200 text-green-900" };
+            } else if (injuryLoc === "muscle_tendon" || injuryLoc === "achilles" || injuryLoc === "compartment") {
+                rec = { text: "Lesão Persistente: Músculo ou Tendão", image: <Zap className="w-8 h-8 text-blue-500" />, feature: "Rápida Adaptação (> 50%)", details: "Tecidos com alto potencial de adaptação rápida. Progredir para calçados mais minimalistas.", color: "bg-blue-50 border-blue-200 text-blue-900" };
+            } else if (injuryLoc === "fascia_bone" || injuryLoc === "tibialis" || injuryLoc === "plantar" || injuryLoc === "metatarsal") {
+                rec = { text: "Lesão Persistente: Fáscia, Periósteo ou Osso", image: <Ruler className="w-8 h-8 text-cyan-500" />, feature: "Adaptação Lenta (> 50%)", details: "Alto potencial, mas para uma adaptação mais lenta (transição gradual e cautelosa).", color: "bg-cyan-50 border-cyan-200 text-cyan-900" };
+            } else if (injuryLoc === "neuroma_arthrosis") {
+                rec = { text: "Lesão Persistente: Neuroma, Artrose, Metatarsalgia", image: <AlertCircle className="w-8 h-8 text-red-500" />, feature: "Baixo Potencial (< 60%)", details: "Baixo potencial anatômico para adaptação à carga. Mantenha suporte.", color: "bg-red-50 border-red-200 text-red-900" };
+            } else if (injuryLoc === "toe_hallux") {
+                rec = { text: "Lesão Persistente: Dedos (Hallux Valgus/Rigidus)", image: <Bone className="w-8 h-8 text-orange-600" />, feature: "Ajuste Anatômico (< 80%)", details: "Ajuste anatômico largo e MAIOR rigidez longitudinal.", color: "bg-orange-50 border-orange-200 text-orange-900" };
+            }
+        }
+    } else {
+        if (exp === "beginner") {
+            if (injuryLoc === "none") {
+                rec = { text: "Iniciante: Sem Histórico de Lesão", image: <ThumbsUp className="w-8 h-8 text-indigo-500" />, feature: "Transição Sugerida (> 70%)", details: "Almejar maior índice minimalista a longo prazo com integração gradual para garantir adaptação sem dor.", color: "bg-indigo-50 border-indigo-200 text-indigo-900" };
+            } else if (injuryLoc === "history_anterior") {
+                rec = { text: "Iniciante: Com Histórico (Joelho/Anterior)", image: <Activity className="w-8 h-8 text-emerald-500" />, feature: "Transição Sugerida (> 70%)", details: "Integrar gradualmente novos tênis minimalistas na rotina.", color: "bg-emerald-50 border-emerald-200 text-emerald-900" };
+            } else if (injuryLoc === "history_posterior") {
+                rec = { text: "Iniciante: Com Histórico (Perna Posteior/Pé)", image: <AlertCircle className="w-8 h-8 text-amber-500" />, feature: "Cuidado na Transição (> 40%)", details: "Devido ao histórico no tendão/pé, mantenha perfil estruturado com cautela na transição minimalista.", color: "bg-amber-50 border-amber-200 text-amber-900" };
+            }
+        } else if (exp === "competitive") {
+            if (seasonPhase === "beginning") {
+                rec = { text: "Competitivo: Início de Temporada", image: <Zap className="w-8 h-8 text-violet-500" />, feature: "Leveza (> 50%)", details: "Quanto mais leve, melhor. Use tênis de performance na maioria das sessões.", color: "bg-violet-50 border-violet-200 text-violet-900" };
+            } else if (seasonPhase === "lasting") {
+                rec = { text: "Competitivo: Durante a Temporada", image: <Zap className="w-8 h-8 text-purple-600" />, feature: "Manutenção (> 50%)", details: "Evite mudanças bruscas de hábitos. O atleta pode adaptar para tênis de performance integrando gradualmente durante os treinos.", color: "bg-purple-50 border-purple-200 text-purple-900" };
+            } else if (seasonPhase === "off") {
+                rec = { text: "Competitivo: Off-Season", image: <ThumbsUp className="w-8 h-8 text-blue-500" />, feature: "Repouso Mecânico (> 70%)", details: "Use tênis de performance e minimalistas em corridas curtas de distância.", color: "bg-blue-50 border-blue-200 text-blue-900" };
+            }
+        } else {
+            if (perfGoal === "satisfied") {
+                rec = { text: "Recreacional: Satisfeito com Performance", image: <ThumbsUp className="w-8 h-8 text-emerald-500" />, feature: "Sem Mudança de Hábitos", details: "A regra de ouro neste cenário é NÃO MUDAR radicalmente a tecnologia do tênis atual.", color: "bg-emerald-50 border-emerald-200 text-emerald-900" };
+            } else if (perfGoal === "improve_efficient") {
+                rec = { text: "Recreacional: Melhorar Performance (Eficiente)", image: <Activity className="w-8 h-8 text-blue-500" />, feature: "Treinar Performance (> 50%)", details: "Mecânica eficiente (Cadência > 170). Use em todas as sessões: quanto mais leve melhor.", color: "bg-blue-50 border-blue-200 text-blue-900" };
+            } else if (perfGoal === "improve_inefficient") {
+                rec = { text: "Recreacional: Melhorar Performance (Ineficiente)", image: <AlertCircle className="w-8 h-8 text-indigo-500" />, feature: "Treinar Performance (> 50%)", details: "Mecânica menos eficiente (Cadência < 160, desgaste no calcanhar). Use em todas as sessões: quanto mais leve melhor.", color: "bg-indigo-50 border-indigo-200 text-indigo-900" };
+            }
+        }
+    }
+    return rec;
+};
+
 export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, organizationId }: ShoeAccordionProps) {
     const form = useFormContext();
     const [searchOpen, setSearchOpen] = useState(false);
@@ -114,11 +188,7 @@ export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, orga
     };
 
     const shoeVals = form.watch("shoe");
-
-    const minIndexResult = useMemo(() => {
-        if (!shoeVals) return 0;
-        return calculateMinimalistIndex(shoeVals);
-    }, [shoeVals]);
+    const minIndexResult = calculateMinimalistIndex(shoeVals || {});
 
     async function handleSaveNewShoe() {
         const modelName = form.getValues("shoe.model");
@@ -159,143 +229,7 @@ export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, orga
         }
     }
 
-    const shoeRecommendations = useMemo(() => {
-        const type = shoeVals?.injuryType || "none";
-        const status = shoeVals?.injuryStatus || "none";
-        const isPerformance = shoeVals?.goals?.includes("performance");
-        const exp = shoeVals?.experience || "amateur";
-
-        let rec = {
-            text: "Prescrição Baseada em Conforto",
-            image: <Footprints className="w-8 h-8 text-slate-400" />,
-            feature: "Manter o calçado atual se confortável",
-            details: "Preencha os campos para visualizar a recomendação técnica automática baseada na árvore de decisão da The Running Clinic.",
-            color: "bg-slate-50 border-slate-200 text-slate-700"
-        };
-
-
-        if (status === "none" || type === "none") {
-            // NOT INJURED PATH (FLOWCHART: RIGHT SIDE)
-            if (exp === "beginner") {
-                rec = {
-                    text: "Iniciantes (< 6 Meses)",
-                    image: <ThumbsUp className="w-8 h-8 text-indigo-500" />,
-                    feature: "Transição Gradual (> 70% Índice Minimalista)",
-                    details: "Para corredores iniciais, o objetivo de atingir maior Índice Minimalista é possível a longo prazo. O foco é garantir a adaptação mecânica aos poucos, integrando novos calçados progressivamente sem gerar dor.",
-                    color: "bg-indigo-50 border-indigo-200 text-indigo-900"
-                };
-            } else if (exp === "elite" && isPerformance) {
-                rec = {
-                    text: "Competitivo / Performance Base (Elite)",
-                    image: <Zap className="w-8 h-8 text-violet-500" />,
-                    feature: "Período de Base (> 50%) | Off-Season (> 70%)",
-                    details: "Use calçados mais leves na maioria dos treinos. Evite mudanças bruscas de hábitos. Em períodos Off-Season, em treinos curtos, o índice pode superar >70%.",
-                    color: "bg-violet-50 border-violet-200 text-violet-900"
-                };
-            } else if (isPerformance) {
-                rec = {
-                    text: "Objetivando Performance (Amador)",
-                    image: <Zap className="w-8 h-8 text-blue-500" />,
-                    feature: "Minimalista (> 50%)",
-                    details: "A literatura sugere que tênis mais leves e flexíveis melhoram a economia de corrida. Reduzir gradativamente o nível tecnológico do tênis para melhorar performance. Escolha Minimalista (> 50%).",
-                    color: "bg-blue-50 border-blue-200 text-blue-900"
-                };
-            } else {
-                rec = {
-                    text: "Recreacional / Prevenção e Correção",
-                    image: <ThumbsUp className="w-8 h-8 text-emerald-500" />,
-                    feature: "Sem Mudança de Hábitos",
-                    details: "Satisfeito com o desempenho e sem dores: a regra de ouro é NÃO MUDAR radicalmente de tênis para evitar lesões adaptativas de transição.",
-                    color: "bg-emerald-50 border-emerald-200 text-emerald-900"
-                };
-            }
-        } else {
-            // INJURED PATH (FLOWCHART: LEFT STRIPES)
-            // Lógica divide por patologia e considera se é Aguda ou Crônica.
-
-            // 1. JOELHO / PERNA ANTERIOR (PFPS)
-            if (type === "pfps") {
-                if (status === "acute") {
-                    rec = {
-                        text: "Fase Aguda: Joelho / Perna Anterior",
-                        image: <Activity className="w-8 h-8 text-amber-500" />,
-                        feature: "Perfil Minimalista (> 60%)",
-                        details: "Para dor aguda no joelho (Patelofemoral / Tibial Anterior), recomenda-se reduzir a estrutura do calçado para diminuir a sobrecarga nas articulações altas, transferindo parte da carga para a panturrilha.",
-                        color: "bg-amber-50 border-amber-200 text-amber-900"
-                    };
-                } else {
-                    rec = {
-                        text: "Fase Persistente: Joelho / Perna Anterior",
-                        image: <Activity className="w-8 h-8 text-green-500" />,
-                        feature: "Perfil Minimalista (> 70%)",
-                        details: "Em casos crônicos do joelho, tênis extremamente flexíveis e com drop zero encorajam aumento de cadência, reduzindo significativamente o impacto patelofemoral (adaptação rápida esperada).",
-                        color: "bg-green-50 border-green-200 text-green-900"
-                    };
-                }
-            }
-            // 2. TENDÃO DE AQUILES E PANTURRILHA
-            else if (type === "achilles") {
-                if (status === "acute") {
-                    rec = {
-                        text: "Fase Aguda: Tendinopatia de Aquiles",
-                        image: <AlertCircle className="w-8 h-8 text-orange-500" />,
-                        feature: "Proteção / Maximalista (< 50%) | Stack & Drop Altos",
-                        details: "O paciente necessita de amortecimento, DROP ELEVADO e sola com maior espessura (Stack Height maior) para reduzir imediatamente a tensão muscular na perna durante a fase inflamatória.",
-                        color: "bg-orange-50 border-orange-200 text-orange-900"
-                    };
-                } else {
-                    rec = {
-                        text: "Fase Persistente: Adaptação de Aquiles",
-                        image: <Ruler className="w-8 h-8 text-blue-500" />,
-                        feature: "Progressão de Adaptação Rápida (> 50%)",
-                        details: "Músculos e tendões têm alto potencial de readaptação. Na fase crônica ou persistente sem dor limitante, pode-se iniciar transição gradual para calçados com menor interferência (índice > 50%).",
-                        color: "bg-blue-50 border-blue-200 text-blue-900"
-                    };
-                }
-            }
-            // 3. FÁSCIA PLANTAR E PERIÓSTEO (Canelite Medial etc)
-            else if (type === "plantar_fasciitis") {
-                if (status === "acute") {
-                    rec = {
-                        text: "Fase Aguda: Fasciite Plantar",
-                        image: <Activity className="w-8 h-8 text-rose-500" />,
-                        feature: "Estrutural (< 40%) | Stack Alto & Rigidez Longitudinal",
-                        details: "Nesta fase restritiva, busque solados mais rígidos que dificultam a flexão dos dedos (reduz tensão na fáscia) e suportes de arco maiores. Proteção mecânica é fundamental.",
-                        color: "bg-rose-50 border-rose-200 text-rose-900"
-                    };
-                } else {
-                    rec = {
-                        text: "Fase Persistente: Fáscia / Periostite",
-                        image: <Footprints className="w-8 h-8 text-cyan-500" />,
-                        feature: "Adaptação Lenta (> 50%)",
-                        details: "Tecido fascial e ósseo (periósteo) adaptam-se lentamente. Na fase crônica, a transição para calçados mais minimalistas pode focar em reduzir impacto, mas a transição deve ser muito mais lenta e cautelosa.",
-                        color: "bg-cyan-50 border-cyan-200 text-cyan-900"
-                    };
-                }
-            }
-            // 4. METATARSALGIA, NEUROMA, FRATURAS DE ESTRESSE E JOANETE (Hallux)
-            else if (type === "stress_fracture") {
-                if (status === "acute") {
-                    rec = {
-                        text: "Fase Aguda: Dor no Antepé / Fraturas",
-                        image: <Bone className="w-8 h-8 text-red-600" />,
-                        feature: "Maximalista Rígido (< 40%) | Maior Amortecimento",
-                        details: "Recomendação fortíssima de Tênis Maximalista (Stack Alto) e PERFIL TOTALMENTE RÍGIDO (Sola tipo \"Berço\"/Rocker). O objetivo é isolar completamente a base dos dedos na decolagem.",
-                        color: "bg-red-50 border-red-200 text-red-900"
-                    };
-                } else {
-                    rec = {
-                        text: "Fase Persistente: Metatarsalgia Crônica e Neuromas",
-                        image: <AlertCircle className="w-8 h-8 text-red-500" />,
-                        feature: "Baixo Potencial de Adaptação (< 60%)",
-                        details: "Mesmo na fase crônica, essas patologias (Neuromas, Artrose) respondem mal à cargas mecânicas diretas. Manter índice Minimalista menor, privilegiar bicos muito largos e sola com maior rigidez.",
-                        color: "bg-red-50 border-red-200 text-red-900"
-                    };
-                }
-            }
-        }
-        return rec;
-    }, [JSON.stringify(shoeVals)]);
+    const shoeRecommendations = useMemo(() => getShoeRecommendationFlow(shoeVals), [JSON.stringify(shoeVals)]);
 
     return (
         <AccordionItem
@@ -377,54 +311,121 @@ export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, orga
                     </Popover>
                 </div>
 
-                <div className="space-y-1">
-                    <FormLabel className="text-blue-900 text-xs font-bold uppercase tracking-wider">1. Localização / Tipo de Lesão</FormLabel>
-                    <Select onValueChange={v => form.setValue("shoe.injuryType", v)} value={shoeVals?.injuryType || "none"}>
-                        <SelectTrigger className="bg-white border-blue-200 h-10 shadow-sm w-full">
-                            <SelectValue placeholder="Selecione a patologia..." />
-                        </SelectTrigger>
-                        <SelectContent position="popper" side="bottom" className="z-[110]">
-                            <SelectItem value="achilles">Tendinopatia de Aquiles / Panturrilha</SelectItem>
-                            <SelectItem value="pfps">Dor Patelofemoral (Joelho)</SelectItem>
-                            <SelectItem value="stress_fracture">Fratura por Estresse / Metatarsalgia</SelectItem>
-                            <SelectItem value="plantar_fasciitis">Fasciíte Plantar</SelectItem>
-                            <SelectItem value="none">Prevenção / Outros</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+                <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <FormLabel className="text-blue-900 text-[10px] font-bold uppercase tracking-wider">A) Nível de Experiência</FormLabel>
+                            <Select onValueChange={v => form.setValue("shoe.experience", v)} value={shoeVals?.experience || "recreational"}>
+                                <SelectTrigger className="bg-white border-blue-200 h-10 shadow-sm w-full font-semibold">
+                                    <SelectValue placeholder="Selecione o nível..." />
+                                </SelectTrigger>
+                                <SelectContent position="popper" side="bottom" className="z-[110]">
+                                    <SelectItem value="beginner">Iniciante (&lt; 6 meses)</SelectItem>
+                                    <SelectItem value="recreational">Recreacional (&gt; 6 meses)</SelectItem>
+                                    <SelectItem value="competitive">Competitivo (Foco em Performance)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                <div className="p-4 bg-slate-50/50 border border-slate-100 rounded-xl grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                        <FormLabel className="text-[10px] font-bold uppercase text-slate-500">Estado da Lesão</FormLabel>
-                        <Select onValueChange={v => form.setValue("shoe.injuryStatus", v)} value={shoeVals?.injuryStatus || "none"}>
-                            <SelectTrigger className="bg-white h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                            <SelectContent position="popper" side="bottom" className="z-[110]">
-                                <SelectItem value="none">Sem Lesão Ativa</SelectItem>
-                                <SelectItem value="acute">Fase Aguda (Recente)</SelectItem>
-                                <SelectItem value="chronic">Fase Crônica ({'>'} 3 meses)</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div className="space-y-1">
+                            <FormLabel className="text-blue-900 text-[10px] font-bold uppercase tracking-wider">B) Paciente está Lesionado?</FormLabel>
+                            <Select onValueChange={v => form.setValue("shoe.isInjured", v)} value={shoeVals?.isInjured || "false"}>
+                                <SelectTrigger className="bg-white border-blue-200 h-10 shadow-sm w-full font-semibold">
+                                    <SelectValue placeholder="Selecione..." />
+                                </SelectTrigger>
+                                <SelectContent position="popper" side="bottom" className="z-[110]">
+                                    <SelectItem value="true">SIM (Lesionado / Com Dor)</SelectItem>
+                                    <SelectItem value="false">NÃO (Sem Lesão Atual)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
-                    <div className="space-y-1">
-                        <FormLabel className="text-[10px] font-bold uppercase text-slate-500">Objetivo</FormLabel>
-                        <Select onValueChange={v => form.setValue("shoe.goals", [v])} value={shoeVals?.goals?.[0] || "pain_reduction"}>
-                            <SelectTrigger className="bg-white h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                            <SelectContent position="popper" side="bottom" className="z-[110]">
-                                <SelectItem value="pain_reduction">Conforto / Menos Dor</SelectItem>
-                                <SelectItem value="performance">Performance / Velocidade</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-1">
-                        <FormLabel className="text-[10px] font-bold uppercase text-slate-500">Nível</FormLabel>
-                        <Select onValueChange={v => form.setValue("shoe.experience", v)} value={shoeVals?.experience || "beginner"}>
-                            <SelectTrigger className="bg-white h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                            <SelectContent position="popper" side="bottom" className="z-[110]">
-                                <SelectItem value="beginner">Iniciante</SelectItem>
-                                <SelectItem value="amateur">Amador</SelectItem>
-                                <SelectItem value="elite">Elite</SelectItem>
-                            </SelectContent>
-                        </Select>
+
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-1 gap-4">
+                        {shoeVals?.isInjured === "true" ? (
+                            <>
+                                <div className="space-y-1">
+                                    <FormLabel className="text-slate-600 text-[10px] font-bold uppercase">Estado da Lesão Atual</FormLabel>
+                                    <Select onValueChange={v => form.setValue("shoe.injuryStatus", v)} value={shoeVals?.injuryStatus || "acute"}>
+                                        <SelectTrigger className="bg-white h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                        <SelectContent position="popper" side="bottom" className="z-[110]">
+                                            <SelectItem value="acute">Dor Aguda / Recente (&lt; 6 Semanas)</SelectItem>
+                                            <SelectItem value="chronic">Dor Persistente (&gt; 6 Semanas)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1">
+                                    <FormLabel className="text-slate-600 text-[10px] font-bold uppercase">Tipo / Localização da Lesão</FormLabel>
+                                    <Select onValueChange={v => form.setValue("shoe.injuryLocation", v)} value={shoeVals?.injuryLocation || "anterior"}>
+                                        <SelectTrigger className="bg-white h-9"><SelectValue placeholder="Selecione a patologia..." /></SelectTrigger>
+                                        <SelectContent position="popper" side="bottom" className="z-[110]">
+                                            {shoeVals?.injuryStatus === "acute" ? (
+                                                <SelectGroup>
+                                                    <SelectLabel>Fase Aguda (&lt; 6 Semanas)</SelectLabel>
+                                                    <SelectItem value="anterior">Perna Anterior, Joelho ou Acima</SelectItem>
+                                                    <SelectItem value="achilles">Tendão de Aquiles ou Panturrilha</SelectItem>
+                                                    <SelectItem value="metatarsal">Metatarsalgia ou Fratura por Estresse</SelectItem>
+                                                    <SelectItem value="tibialis">Tendinopatia Tibial Posterior ou Canelite</SelectItem>
+                                                    <SelectItem value="plantar">Fasciopatia Plantar</SelectItem>
+                                                    <SelectItem value="compartment">Síndrome do Compartimento Posterior</SelectItem>
+                                                </SelectGroup>
+                                            ) : (
+                                                <SelectGroup>
+                                                    <SelectLabel>Fase Persistente (&gt; 6 Semanas)</SelectLabel>
+                                                    <SelectItem value="anterior">Perna Anterior, Joelho ou Acima</SelectItem>
+                                                    <SelectItem value="muscle_tendon">Lesões Musculares ou Tendíneas</SelectItem>
+                                                    <SelectItem value="fascia_bone">Lesão na Fáscia, Periósteo ou Osso</SelectItem>
+                                                    <SelectItem value="neuroma_arthrosis">Neuroma, Metatarsalgia, Dor no Calcanhar ou Osteoartrite</SelectItem>
+                                                    <SelectItem value="toe_hallux">Lesões nos Dedos (Hallux Valgus/Rigidus)</SelectItem>
+                                                </SelectGroup>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                {shoeVals?.experience === "beginner" && (
+                                    <div className="space-y-1">
+                                        <FormLabel className="text-slate-600 text-[10px] font-bold uppercase">Histórico Prévio (Prevenção)</FormLabel>
+                                        <Select onValueChange={v => form.setValue("shoe.injuryLocation", v)} value={shoeVals?.injuryLocation || "none"}>
+                                            <SelectTrigger className="bg-white h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                            <SelectContent position="popper" side="bottom" className="z-[110]">
+                                                <SelectItem value="none">Sem Histórico de Lesão</SelectItem>
+                                                <SelectItem value="history_anterior">Histórico de Lesão em Perna Anterior/Joelho</SelectItem>
+                                                <SelectItem value="history_posterior">Histórico de Lesão em Perna Posterior/Pé</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+                                {(shoeVals?.experience === "recreational" || !shoeVals?.experience) && (
+                                    <div className="space-y-1">
+                                        <FormLabel className="text-slate-600 text-[10px] font-bold uppercase">Objetivo e Mecânica (Recreacional)</FormLabel>
+                                        <Select onValueChange={v => form.setValue("shoe.perfGoal", v)} value={shoeVals?.perfGoal || "satisfied"}>
+                                            <SelectTrigger className="bg-white h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                            <SelectContent position="popper" side="bottom" className="z-[110]">
+                                                <SelectItem value="satisfied">Satisfeito com a Performance Atual</SelectItem>
+                                                <SelectItem value="improve_efficient">Melhorar Performance (Mecânica Eficiente - Cadência &gt; 170)</SelectItem>
+                                                <SelectItem value="improve_inefficient">Melhorar Performance (Mecânica Ineficiente - Cadência &lt; 160)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+                                {shoeVals?.experience === "competitive" && (
+                                    <div className="space-y-1">
+                                        <FormLabel className="text-slate-600 text-[10px] font-bold uppercase">Fase da Temporada (Competitivo)</FormLabel>
+                                        <Select onValueChange={v => form.setValue("shoe.seasonPhase", v)} value={shoeVals?.seasonPhase || "beginning"}>
+                                            <SelectTrigger className="bg-white h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                            <SelectContent position="popper" side="bottom" className="z-[110]">
+                                                <SelectItem value="beginning">Beginning of Season (Início)</SelectItem>
+                                                <SelectItem value="lasting">Lasting Season (Durante a Temporada)</SelectItem>
+                                                <SelectItem value="off">Off Season (Fora de Temporada)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </div>
                 </div>
 

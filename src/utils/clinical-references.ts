@@ -167,24 +167,25 @@ export const calculateMinimalistIndex = (vals: { weight: any, drop: any, stack: 
     const s = Number(vals?.stack);
     const fl = Number(vals?.flex_long) || 0;
     const ft = Number(vals?.flex_tors) || 0;
-    const stab = Number(vals?.stability); // 0-5 (INVERSO)
+    const stab = Number(vals?.stability);
 
-    // Apenas calcula se tivermos dados numéricos válidos para peso, drop e stack
-    // (Flex e Estabilidade assumem 0 se vazio, mas W/D/S são cruciais)
-    const hasWeight = !isNaN(w) && w > 0;
-    const hasDrop = !isNaN(d);
-    const hasStack = !isNaN(s) && s > 0;
+    const hasWeight = vals?.weight !== undefined && vals?.weight !== "";
+    const hasDrop = vals?.drop !== undefined && vals?.drop !== "";
+    const hasStack = vals?.stack !== undefined && vals?.stack !== "";
+    const hasStab = vals?.stability !== undefined && vals?.stability !== "";
 
-    // Se não tiver pelo menos o Peso preenchido, retorna 0 para não mostrar dados parciais errados
-    if (!hasWeight) return 0;
+    // Retorna 0 se os três inputs principais estiverem completamente vazios
+    if (!hasWeight && !hasDrop && !hasStack) return 0;
 
     // 1. Peso (Máx 5 pts)
-    if (w < 170) score += 5;
-    else if (w < 250) score += 3;
-    else score += 1;
+    if (hasWeight && !isNaN(w)) {
+        if (w < 170) score += 5;
+        else if (w < 250) score += 3;
+        else score += 1;
+    }
 
     // 2. Drop (Máx 5 pts)
-    if (hasDrop) {
+    if (hasDrop && !isNaN(d)) {
         if (d === 0) score += 5;
         else if (d <= 4) score += 4;
         else if (d <= 8) score += 2;
@@ -192,22 +193,18 @@ export const calculateMinimalistIndex = (vals: { weight: any, drop: any, stack: 
     }
 
     // 3. Stack Height (Máx 5 pts)
-    if (hasStack) {
+    if (hasStack && !isNaN(s)) {
         if (s < 15) score += 5;
         else if (s < 25) score += 3;
         else score += 1;
     }
 
     // 4. Flexibilidade (Máx 10 pts somados)
-    // Flex Long (0-2.5) * 2 = Max 5
     score += fl * 2;
-    // Flex Tors (0-2.5) * 2 = Max 5
     score += ft * 2;
 
     // 5. Estabilidade (Máx 5 pts) - Quanto MENOS estabilidade, MAIS minimalista
-    // Se stab vem vazio (undefined/NaN), assumimos que não tem estabilidade tecnológica (score 5)
-    // OU assumimos neutro? Vamos assumir 0 (score 5) se não informado, ou manter a lógica anterior de (5 - val)
-    const stabVal = isNaN(stab) ? 0 : stab;
+    const stabVal = hasStab && !isNaN(stab) ? stab : 0;
     score += (5 - stabVal);
 
     // Cálculo Final: (Score / 30) * 100
