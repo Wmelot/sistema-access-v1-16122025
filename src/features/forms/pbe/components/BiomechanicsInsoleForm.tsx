@@ -760,15 +760,13 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
     const fpiLeftVals = useWatch({ control: form.control, name: "postural.fpi_left" });
     const fpiRightVals = useWatch({ control: form.control, name: "postural.fpi_right" });
 
-    const fpiData = useMemo(() => {
-        const l = calculateFpiScore(fpiLeftVals);
-        const r = calculateFpiScore(fpiRightVals);
+    const l = calculateFpiScore(fpiLeftVals);
+    const r = calculateFpiScore(fpiRightVals);
 
-        return {
-            left: { s: l.score, l: l.status, c: l.color, desc: l.description },
-            right: { s: r.score, l: r.status, c: r.color, desc: r.description }
-        };
-    }, [fpiLeftVals, fpiRightVals]);
+    const fpiData = {
+        left: { s: l.score, l: l.status, c: l.color, desc: l.description },
+        right: { s: r.score, l: r.status, c: r.color, desc: r.description }
+    };
 
     // 3. Matemática do Radar - OTIMIZADA COM DEBOUNCE
     const allWatchedValues = useWatch({ control: form.control });
