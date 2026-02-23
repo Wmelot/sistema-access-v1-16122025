@@ -381,11 +381,11 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
                                 form={form}
                                 data={form.getValues()}
                                 patientId={patientId}
-                                patientName={form.watch("patient.name") || initialData?.patient?.name || "Paciente"}
-                                patientEmail={form.watch("patient.email") || initialData?.patient?.email}
-                                patientPhone={form.watch("patient.phone") || initialData?.patient?.phone}
+                                patientName={patient?.name || form.watch("patient.name") || initialData?.patient?.name || "Paciente"}
+                                patientEmail={patient?.email || form.watch("patient.email") || initialData?.patient?.email}
+                                patientPhone={patient?.phone || form.watch("patient.phone") || initialData?.patient?.phone}
                                 openSection={openSection}
-                                patient={initialData?.patient}
+                                patient={patient || initialData?.patient}
                                 professional={professional}
                             />
                         </Accordion>

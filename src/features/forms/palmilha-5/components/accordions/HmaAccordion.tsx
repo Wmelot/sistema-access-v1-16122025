@@ -49,15 +49,6 @@ export function HmaAccordion({ openSection, isSectionFilled, setFeegowImportOpen
                         <FormLabel>Queixa Principal (QP)</FormLabel>
                         <Input {...form.register('hma.qp')} className="bg-white" placeholder="Motivo principal do comparecimento a clínica..." />
                     </div>
-                    <Button
-                        type="button"
-                        onClick={() => setFeegowImportOpen(true)}
-                        variant="outline"
-                        className="mt-6 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 font-bold px-4 rounded-xl flex items-center gap-2 h-10 shadow-sm transition-all active:scale-95"
-                    >
-                        <Database className="w-4 h-4" />
-                        Sincronizar Feegow
-                    </Button>
                 </div>
                 <div className="space-y-2">
                     <FormLabel>História da Moléstia Atual (HMA)</FormLabel>

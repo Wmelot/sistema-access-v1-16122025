@@ -34,6 +34,7 @@ interface HistoryAccordionProps {
 // Extracted ComboboxSelector from BiomechanicsInsoleForm
 const ComboboxSelector = ({ value, onChange, database, placeholder = "Buscar...", autoFocus, onCommit }: { value: string, onChange: (v: string) => void, database: string[], placeholder?: string, autoFocus?: boolean, onCommit?: () => void }) => {
     const [open, setOpen] = React.useState(false);
+    const [inputValue, setInputValue] = React.useState(""); // [NEW] Track input
 
     React.useEffect(() => {
         if (autoFocus) {
@@ -54,12 +55,44 @@ const ComboboxSelector = ({ value, onChange, database, placeholder = "Buscar..."
                     <CommandInput
                         placeholder="Digite para buscar..."
                         className="h-9 border-none focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={inputValue}
+                        onValueChange={setInputValue}
                     />
                     <CommandList>
                         <CommandEmpty>
-                            <div className="p-2 text-xs text-slate-500 text-center">Para adicionar novo, digite abaixo 👇</div>
+                            <div className="p-2 text-xs text-slate-500 text-center">
+                                {inputValue ? (
+                                    <Button
+                                        variant="ghost"
+                                        className="w-full text-indigo-600 font-bold justify-start"
+                                        onClick={() => {
+                                            onChange(inputValue.toUpperCase());
+                                            setOpen(false);
+                                            if (onCommit) onCommit();
+                                        }}
+                                    >
+                                        <Plus className="mr-2 h-4 w-4" /> Adicionar "{inputValue}"
+                                    </Button>
+                                ) : (
+                                    "Para adicionar novo, digite acima 👇"
+                                )}
+                            </div>
                         </CommandEmpty>
                         <CommandGroup heading="Sugestões Populares" className="max-h-[200px] overflow-auto">
+                            {inputValue && !database.some(d => d.toLowerCase() === inputValue.toLowerCase()) && (
+                                <CommandItem
+                                    value={inputValue}
+                                    onSelect={() => {
+                                        onChange(inputValue.toUpperCase());
+                                        setOpen(false);
+                                        if (onCommit) onCommit();
+                                    }}
+                                    className="text-indigo-600 font-bold bg-indigo-50/50 mb-1"
+                                >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Adicionar "{inputValue}"
+                                </CommandItem>
+                            )}
                             {database.map((item) => (
                                 <CommandItem
                                     key={item}
