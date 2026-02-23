@@ -50,10 +50,16 @@ export function calculateActivityLevel(weight: number, sports: any[]) {
 
 // --- CÁLCULO DE FPI-6 (FOOT POSTURE INDEX) ---
 export function calculateFpiScore(values: any) {
-    if (!values) return { score: 0, status: 'Neutro', color: 'bg-green-500' };
+    if (!values || typeof values !== 'object') return { score: 0, status: 'Neutro', color: 'bg-green-500', description: 'Alinhamento fisiológico com excelente distribuição de carga.' };
 
     // Soma os valores de -2 a +2
-    const score = Object.values(values).reduce((acc: number, curr: any) => acc + (Number(curr) || 0), 0);
+    const score = Object.values(values).reduce((acc: number, curr: any) => {
+        let v = 0;
+        if (typeof curr === 'string' || typeof curr === 'number') {
+            v = Number(curr);
+        }
+        return acc + (isNaN(v) ? 0 : v);
+    }, 0);
 
     let status = "Neutro";
     let color = "bg-green-500";
