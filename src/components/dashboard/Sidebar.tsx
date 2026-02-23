@@ -27,7 +27,8 @@ import {
     Tag,
     Megaphone,
     Shield,
-    Activity
+    Activity,
+    FileSignature
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -174,7 +175,8 @@ export function SidebarContent({
                         { href: `${dashboardPrefix}/prices`, icon: Tag, label: "Tabela de Preços", perm: 'sidebar.prices.view' },
                         { href: `${dashboardPrefix}/settings?tab=users`, icon: Users, label: "Usuários", perm: 'sidebar.users.view' },
                         { href: `${dashboardPrefix}/settings/communication`, icon: MessageCircle, label: "WhatsApp", perm: 'sidebar.whatsapp.view', feature: 'whatsapp_integration' },
-                        isMaster && { href: `${dashboardPrefix}/radar-propulsao`, icon: Activity, label: "Radar Propulsão", perm: 'sidebar.home.view', className: "text-[#0052cc]" },
+                        (isMaster || isAdmin) && { href: `${dashboardPrefix}/radar-propulsao`, icon: Activity, label: "Radar Propulsão", perm: 'sidebar.home.view', className: "text-[#0052cc]" },
+                        { href: `${dashboardPrefix}/test-form`, icon: FileSignature, label: "Sandbox / PBE", perm: 'sidebar.forms.view' },
                         { type: 'widget', label: "Lembretes", component: ReminderWidget }
                     ].filter(Boolean)
                         .sort((a: any, b: any) => {

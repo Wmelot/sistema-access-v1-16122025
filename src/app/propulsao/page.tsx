@@ -19,6 +19,7 @@ interface Partner {
     coords: { lat: number, lng: number };
     agenda_id: string;
     distance: number;
+    min_advance: number;
 }
 
 export default function PropulsaoPage() {
@@ -434,7 +435,14 @@ export default function PropulsaoPage() {
                                                         disabled={(date) => {
                                                             const today = new Date();
                                                             today.setHours(0, 0, 0, 0);
-                                                            return date < today || date.getDay() === 0;
+
+                                                            // Calcular a data mínima permitida com a antecedência do parceiro selecionado
+                                                            const minDate = new Date(today);
+                                                            const advanceDays = selectedPartner?.min_advance || 0;
+                                                            minDate.setDate(minDate.getDate() + advanceDays);
+
+                                                            // Desabilita domingos ou dias anteriores ao mínimo permitido
+                                                            return date < minDate || date.getDay() === 0;
                                                         }}
                                                         locale={ptBR}
                                                     />

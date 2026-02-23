@@ -72,6 +72,7 @@ export async function GET(request: Request) {
                     cep: prof.cep,
                     coords: { lat: pLat, lng: pLng },
                     agenda_id: prof.id,
+                    min_advance: prof.min_advance_booking_days || 0,
                     distance: distance !== null ? parseFloat(distance.toFixed(1)) : null
                 });
             }
