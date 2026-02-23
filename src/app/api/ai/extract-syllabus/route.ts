@@ -17,6 +17,8 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Nenhum arquivo enviado" }, { status: 400 });
         }
 
+        const locationStr = formData.get("location") as string || "Localidade Desconhecida";
+
         let combinedText = "";
 
         for (const file of files) {
@@ -50,6 +52,9 @@ FORMATO ESTRITO DE RESPOSTA (RETORNE APENAS JSON VÁLIDO):
   "courseName": "Nome da Disciplina Encontrado",
   "startDate": "YYYY-MM-DD" (se encontrado no calendário, senão null),
   "endDate": "YYYY-MM-DD" (se encontrado, senão null),
+  "holidays": [
+      { "date": "YYYY-MM-DD", "desc": "Carnaval" }
+  ],
   "books": [
      { "id": "b1", "title": "Bases da Fisiologia", "author": "Guyton", "type": "Básico" },
      { "id": "b2", "title": "Artigo Complementar XYZ", "author": "Vários", "type": "Complementar" }
@@ -68,6 +73,9 @@ FORMATO ESTRITO DE RESPOSTA (RETORNE APENAS JSON VÁLIDO):
 }
 
 Se os tópicos não tiverem aulas definidas, estime de modo que a soma totalize em torno de 40 a 80 aulas depedendo do curso. Resuma a ementa de forma detalhada, e associe aleatoriamente uma bibliografia.
+
+ATENÇÃO: Extraia todos os Feriados presentes. Caso as datas explícitas de feriados (incluindo recessos emendados) não estejam no PDF, deduza-os baseando-se no calendário nacional e feriados locais da região informada a seguir.
+REGIONALIDADE/LOCALIDADE PARA FERIADOS: ${locationStr}
 
 TEXTO EXTRAÍDO DOS ARQUIVOS:
 ${combinedText.substring(0, 80000)}

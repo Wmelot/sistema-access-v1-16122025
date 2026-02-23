@@ -68,6 +68,14 @@ const PRINT_STYLES = (orientation: 'portrait' | 'landscape') => `
   .no-print {
     display: none !important;
   }
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  .print-avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
 }
 `;
 
@@ -152,19 +160,23 @@ export default function SyllabusWizard() {
     const [drafts, setDrafts] = useState<{ id: string, name: string, date: string, data: any }[]>([]);
     const printRef = useRef<HTMLDivElement>(null);
 
-    // Initialize drafts from localStorage
+    // Carrega rascunhos salvos no Supabase ao iniciar
     useEffect(() => {
-        const saved = localStorage.getItem('axiom_syllabus_drafts');
-        if (saved) {
+        const fetchDrafts = async () => {
             try {
-                setDrafts(JSON.parse(saved));
-            } catch (e) {
-                setDrafts([]);
+                const res = await fetch('/api/academic/drafts');
+                const data = await res.json();
+                if (data.drafts) {
+                    setDrafts(data.drafts);
+                }
+            } catch (err) {
+                console.error("Failed to load drafts", err);
             }
-        }
+        };
+        fetchDrafts();
     }, []);
 
-    const saveDraft = (name: string = "") => {
+    const saveDraft = async (name: string = "") => {
         const draftData = {
             courseName,
             publicSlug,
@@ -187,15 +199,31 @@ export default function SyllabusWizard() {
 
         const updatedDrafts = [newDraft, ...drafts];
         setDrafts(updatedDrafts);
-        localStorage.setItem('axiom_syllabus_drafts', JSON.stringify(updatedDrafts));
-        toast.success("Rascunho salvo com sucesso na sua biblioteca!");
+
+        toast.promise(fetch('/api/academic/drafts', {
+            method: 'POST',
+            body: JSON.stringify({ drafts: updatedDrafts }),
+            headers: { 'Content-Type': 'application/json' }
+        }), {
+            loading: 'Salvando suas modificações...',
+            success: 'Rascunho salvo com sucesso na sua nuvem!',
+            error: 'Não foi possível persistir as alterações.'
+        });
     };
 
-    const deleteDraft = (id: string) => {
+    const deleteDraft = async (id: string) => {
         const updated = drafts.filter(d => d.id !== id);
         setDrafts(updated);
-        localStorage.setItem('axiom_syllabus_drafts', JSON.stringify(updated));
-        toast.success("Rascunho removido.");
+
+        toast.promise(fetch('/api/academic/drafts', {
+            method: 'POST',
+            body: JSON.stringify({ drafts: updated }),
+            headers: { 'Content-Type': 'application/json' }
+        }), {
+            loading: 'Excluindo rascunho...',
+            success: 'Rascunho removido permanentemente.',
+            error: 'Ocorreu um erro ao excluir.'
+        });
     };
 
     const loadDraft = (draft: any) => {
@@ -223,6 +251,7 @@ export default function SyllabusWizard() {
     const [practiceLocation, setPracticeLocation] = useState('Laboratório de Cinesio - Bloco B');
     const [startDate, setStartDate] = useState<Date>(new Date(2026, 1, 1));
     const [endDate, setEndDate] = useState<Date>(new Date(2026, 5, 30));
+    const [locationCity, setLocationCity] = useState('Belo Horizonte, MG');
     const [weekDays, setWeekDays] = useState<{ day: string, start: string, end: string }[]>([
         { day: '2', start: '19:00', end: '20:40' },
         { day: '4', start: '19:00', end: '20:40' }
@@ -335,6 +364,14 @@ export default function SyllabusWizard() {
         return false;
     };
 
+    const isTopicDateDisabled = (date: Date) => {
+        if (isDateDisabled(date)) return true;
+        const dateStr = date.toISOString().split('T')[0];
+        // Não permite chocar conteúdo didático solto em data de prova
+        if (assessments.some(a => a.date && new Date(a.date).toISOString().split('T')[0] === dateStr)) return true;
+        return false;
+    };
+
     // Step 2: Bibliography
     const [books, setBooks] = useState<Book[]>([
         { id: 'b1', title: 'Tratado de Fisioterapia Traumato-Ortopédica', author: 'Dutton', type: 'Básico' },
@@ -400,7 +437,9 @@ export default function SyllabusWizard() {
         let current = new Date(start);
         const activeDays = weekDays.map(w => w.day);
 
-        let topicProgressHours = 0; // Renomeado de topicIdx para refletir horas
+        const unpinnedTopicsState = topics
+            .filter(t => !t.date)
+            .map(t => ({ ...t, remainingHours: t.classesNeeded }));
 
         while (current <= end) {
             const jsDayNum = current.getDay();
@@ -464,45 +503,14 @@ export default function SyllabusWizard() {
                             bibliographyIds: pinnedTopic.bibliographyIds
                         });
                     } else {
-                        // Lógica de distribuição fluída por HORAS
-                        const unpinnedtopics = topics.filter(t => !t.date);
+                        // Lógica de distribuição fluída por HORAS (Tetris)
+                        let dayHoursRemaining = classDuration;
+                        let nothingScheduled = true;
 
-                        // Encontra o tópico atual baseado no que já foi preenchido no schedule
-                        // Contamos quantas horas de tópicos já colocamos
-                        let hoursUsedSoFar = 0;
-                        schedule.forEach(item => {
-                            if (item.type === 'topic') {
-                                // Verifica se o conteúdo do item é um tópico não pinado
-                                const topicRef = topics.find(t => t.title === item.content);
-                                if (topicRef && !topicRef.date) {
-                                    // Pega a duração daquela aula específica baseada no horário
-                                    const [itemDay, itemMonth] = item.date.split('/');
-                                    const year = new Date(startDate).getFullYear();
-                                    const itemDate = new Date(year, parseInt(itemMonth) - 1, parseInt(itemDay));
-                                    const itemJsDay = itemDate.getDay() === 0 ? '7' : itemDate.getDay().toString();
-                                    const config = weekDays.find(w => w.day === itemJsDay);
+                        while (dayHoursRemaining > 0.1 && unpinnedTopicsState.length > 0) {
+                            const currentTopic = unpinnedTopicsState[0];
+                            const hoursAllocated = Math.min(dayHoursRemaining, currentTopic.remainingHours);
 
-                                    if (config) {
-                                        const [h1_i, m1_i] = config.start.split(':').map(Number);
-                                        const [h2_i, m2_i] = config.end.split(':').map(Number);
-                                        hoursUsedSoFar += (h2_i * 60 + m2_i - (h1_i * 60 + m1_i)) / 50;
-                                    }
-                                }
-                            }
-                        });
-
-                        // Localiza qual tópico da lista deve estar sendo dado agora
-                        let accumulated = 0;
-                        let currentTopic = null;
-                        for (const ut of unpinnedtopics) {
-                            accumulated += ut.classesNeeded;
-                            if (accumulated > hoursUsedSoFar) {
-                                currentTopic = ut;
-                                break;
-                            }
-                        }
-
-                        if (currentTopic) {
                             schedule.push({
                                 date: format(current, 'dd/MM'),
                                 dia: diaSemana,
@@ -510,11 +518,21 @@ export default function SyllabusWizard() {
                                 content: currentTopic.title,
                                 activity: currentTopic.methodology,
                                 points: null,
-                                time: `${dayConfig?.start} - ${dayConfig?.end}`,
+                                time: `${hoursAllocated.toFixed(1)}h aula${hoursAllocated !== classDuration ? ' / Parcial' : ''}`,
                                 isPractical: currentTopic.isPractical,
                                 bibliographyIds: currentTopic.bibliographyIds
                             });
-                        } else {
+
+                            currentTopic.remainingHours -= hoursAllocated;
+                            dayHoursRemaining -= hoursAllocated;
+                            nothingScheduled = false;
+
+                            if (currentTopic.remainingHours <= 0.1) {
+                                unpinnedTopicsState.shift();
+                            }
+                        }
+
+                        if (nothingScheduled) {
                             schedule.push({
                                 date: format(current, 'dd/MM'),
                                 dia: diaSemana,
@@ -874,6 +892,7 @@ export default function SyllabusWizard() {
             uploadedFiles.forEach(uf => {
                 if (uf.file) formData.append('files', uf.file);
             });
+            formData.append('location', locationCity);
 
             const response = await fetch('/api/ai/extract-syllabus', {
                 method: 'POST',
@@ -952,9 +971,13 @@ export default function SyllabusWizard() {
                 { id: 'a-re', name: 'Reavaliação / Substitutiva', date: null, points: 30, type: 'Institucional', isSubstitutive: true }
             ];
 
-            setBooks(aiBooks);
-            setTopics(aiTopics);
-            setCourseName(aiCourseName);
+            if (data.holidays && Array.isArray(data.holidays)) {
+                setHolidays(data.holidays);
+            }
+
+            setBooks(parsedBooks);
+            setTopics(parsedTopics);
+            if (data.courseName) setCourseName(data.courseName);
 
             // Lógica de Sugestão de Datas baseada nas Datas Finais do Estado
             const start = data.startDate ? new Date(startDate.getTime()) : startDate;
@@ -1044,9 +1067,14 @@ export default function SyllabusWizard() {
                                             <Label className="text-[10px] font-black uppercase text-slate-400 px-1">Sala de Aula (Teórica)</Label>
                                             <Input value={theoryLocation} onChange={e => setTheoryLocation(e.target.value)} placeholder="Ex: Sala 202" className="rounded-2xl bg-slate-50 border-none font-bold h-12" />
                                         </div>
-                                        <div className="space-y-2 col-span-2">
+                                        <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase text-slate-400 px-1">Laboratório / Local (Prática)</Label>
                                             <Input value={practiceLocation} onChange={e => setPracticeLocation(e.target.value)} placeholder="Ex: Lab de Cinesio" className="rounded-2xl bg-slate-50 border-none font-bold h-12" />
+                                        </div>
+                                        <div className="space-y-2 col-span-2">
+                                            <Label className="text-[10px] font-black uppercase text-slate-400 px-1">Unidade / Cidade da Instituição</Label>
+                                            <Input value={locationCity} onChange={e => setLocationCity(e.target.value)} placeholder="Ex: Belo Horizonte, MG" className="rounded-2xl bg-slate-50 border-none font-bold h-12" />
+                                            <p className="text-[9px] font-medium text-slate-400 px-2 leading-tight">Isto permite que a IA detecte os feriados da sua região automaticamente.</p>
                                         </div>
                                     </div>
 
@@ -1239,7 +1267,11 @@ export default function SyllabusWizard() {
                                             </div>
 
                                             <div className="grid gap-3 max-h-[400px] overflow-y-auto pr-2 no-scrollbar">
-                                                {assessments.map(ass => (
+                                                {[...assessments].sort((a, b) => {
+                                                    if (!a.date) return 1;
+                                                    if (!b.date) return -1;
+                                                    return new Date(a.date).getTime() - new Date(b.date).getTime();
+                                                }).map(ass => (
                                                     <motion.div layout key={ass.id} className="bg-slate-50/50 p-4 rounded-[24px] flex flex-col gap-3 group border border-slate-100/50 hover:bg-white hover:shadow-lg transition-all border-l-4 border-l-[#8C132C]">
                                                         <div className="flex items-center gap-4">
                                                             <div className="flex-1 min-w-0">
@@ -1589,7 +1621,7 @@ export default function SyllabusWizard() {
                                                                                         onSelect={(d) => updateTopic(topic.id, { date: d })}
                                                                                         initialFocus
                                                                                         locale={ptBR}
-                                                                                        disabled={(date) => isDateDisabled(date)}
+                                                                                        disabled={(date) => isTopicDateDisabled(date)}
                                                                                     />
                                                                                     {topic.date && (
                                                                                         <div className="p-2 border-t border-slate-50 text-center">
@@ -2211,7 +2243,7 @@ export default function SyllabusWizard() {
                                                         </td>
                                                     )}
                                                     {visibleColumns.includes('conteudo') && (
-                                                        <td className="px-6 py-5">
+                                                        <td className="px-6 py-5 relative">
                                                             <div className="flex items-center gap-2 mb-0.5">
                                                                 <span className={cn(
                                                                     "text-[13px] font-black",
@@ -2225,12 +2257,20 @@ export default function SyllabusWizard() {
                                                             <div className="text-[9px] font-bold text-slate-300 uppercase shrink-0">
                                                                 {row.time}
                                                             </div>
+                                                            {/* Only show estimated date warning if it's actually an unpinned topic */}
+                                                            {row.type === 'topic' && (topics.find(t => t.title === row.content)?.date == null) && (
+                                                                <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all">
+                                                                    <span className="bg-slate-100 text-slate-400 text-[8px] font-black uppercase px-2 py-1 rounded-md">
+                                                                        Data Calculada Automaticamente
+                                                                    </span>
+                                                                </div>
+                                                            )}
                                                         </td>
                                                     )}
                                                     {visibleColumns.includes('references') && (
                                                         <td className="px-6 py-5">
                                                             <div className="flex flex-col gap-1">
-                                                                {row.bibliographyIds?.map(bid => {
+                                                                {row.bibliographyIds?.map((bid: string) => {
                                                                     const book = books.find(b => b.id === bid);
                                                                     return book ? (
                                                                         <div key={bid} className="text-[9px] font-bold text-slate-500 flex items-start gap-1">
@@ -2274,19 +2314,27 @@ export default function SyllabusWizard() {
                             </section>
 
                             {/* Detalhes de Avaliação e Regras */}
-                            <section className="mt-12 grid grid-cols-2 gap-10">
+                            <section className="mt-12 grid grid-cols-2 gap-10 print-avoid-break">
                                 <div className="space-y-6">
                                     <h3 className="text-lg font-black text-slate-800 flex items-center gap-3">
                                         <Award className="text-[#8C132C]" size={20} /> Composição de Notas
                                     </h3>
                                     <div className="p-8 bg-slate-50 rounded-[32px] space-y-4 border border-slate-100">
-                                        {assessments.filter((a) => !a.isSubstitutive).map((a) => (
-                                            <div key={a.id} className="flex justify-between items-center pb-4 border-b border-slate-200/50">
-                                                <span className="text-xs font-bold text-slate-500">{a.name}</span>
-                                                <span className="text-sm font-black text-slate-800">{a.points} pts</span>
-                                            </div>
-                                        ))}
-                                        <div className="mt-6 pt-6 border-t-2 border-slate-200 flex justify-between items-center">
+                                        <div className="space-y-4 pt-4">
+                                            {[...assessments].sort((a, b) => {
+                                                if (!a.date) return 1;
+                                                if (!b.date) return -1;
+                                                return new Date(a.date).getTime() - new Date(b.date).getTime();
+                                            }).map(ass => (
+                                                <div key={ass.id} className="flex justify-between items-center py-4 border-b border-slate-100 last:border-0">
+                                                    <span className="text-sm font-bold text-slate-600 flex items-center gap-3">
+                                                        {ass.name}
+                                                        {ass.date && <span className="bg-[#8C132C]/10 text-[#8C132C] text-[9px] px-2 py-1 rounded-md uppercase font-black tracking-widest">{format(new Date(ass.date), 'dd/MM')}</span>}
+                                                    </span>
+                                                    <span className="text-lg font-black text-[#363636]">{ass.points} pts</span>
+                                                </div>
+                                            ))}
+                                        </div>    <div className="mt-6 pt-6 border-t-2 border-slate-200 flex justify-between items-center">
                                             <span className="text-xs font-black text-[#8C132C] uppercase tracking-widest">Total da Disciplina</span>
                                             <span className="text-2xl font-black text-[#8C132C]">{totalPoints} pts</span>
                                         </div>
