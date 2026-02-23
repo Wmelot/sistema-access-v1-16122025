@@ -44,7 +44,9 @@ import { ptBR } from 'date-fns/locale';
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
+    SelectLabel,
     SelectTrigger,
     SelectValue
 } from '@/components/ui/select';
@@ -1570,6 +1572,50 @@ export default function SyllabusWizard() {
                                     </div>
                                 </div>
 
+                                {/* EXAMS QUICK EDIT BAR */}
+                                {assessments.length > 0 && (
+                                    <div className="mb-6 space-y-3 bg-[#8C132C]/5 p-6 rounded-3xl border border-[#8C132C]/10">
+                                        <div className="flex items-center justify-between">
+                                            <Label className="text-[10px] font-black uppercase text-[#8C132C] tracking-widest flex items-center gap-2">
+                                                <Award size={14} /> Ajuste Rápido de Provas e Avaliações
+                                            </Label>
+                                            <p className="text-[9px] text-slate-500 font-bold max-w-sm text-right">
+                                                As datas bloqueiam os dias no cronograma fluído. Você pode editá-las aqui sem voltar à tela anterior.
+                                            </p>
+                                        </div>
+                                        <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
+                                            {[...assessments].sort((a, b) => (a.date ? new Date(a.date).getTime() : 0) - (b.date ? new Date(b.date).getTime() : 0)).map(ass => (
+                                                <div key={ass.id} className="min-w-[220px] bg-white border border-[#8C132C]/20 rounded-2xl p-4 shadow-sm relative group shrink-0 border-l-4 border-l-[#8C132C] transition-all hover:shadow-md hover:border-[#8C132C]/40">
+                                                    <div className="text-[11px] font-black text-[#363636] mb-3 pr-8 truncate" title={ass.name}>{ass.name}</div>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <button className={cn(
+                                                                "h-8 w-full rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase transition-colors border",
+                                                                ass.date ? "bg-[#8C132C]/5 text-[#8C132C] border-[#8C132C]/20 hover:bg-[#8C132C]/10" : "bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100"
+                                                            )}>
+                                                                <CalendarIcon size={12} />
+                                                                {ass.date ? format(new Date(ass.date), 'dd/MM/yyyy') : 'Definir Data'}
+                                                            </button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-auto p-0 rounded-3xl border-none shadow-2xl">
+                                                            <Calendar
+                                                                mode="single"
+                                                                selected={ass.date ? new Date(ass.date) : undefined}
+                                                                onSelect={(d) => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, date: d || null } : a))}
+                                                                locale={ptBR}
+                                                                disabled={(date) => isDateDisabled(date)}
+                                                            />
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                    <div className="absolute top-4 right-4 text-[9px] font-black text-white bg-[#8C132C] px-2 py-0.5 rounded-md">
+                                                        {ass.points} pt
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 <DragDropContext onDragEnd={onDragEnd}>
                                     <Droppable droppableId="topics-list" isCombineEnabled>
                                         {(provided) => (
@@ -1663,19 +1709,19 @@ export default function SyllabusWizard() {
                                                                         {/* METHODOLOGY SELECTOR & COACH */}
                                                                         <div className="flex items-center gap-2">
                                                                             <div className="relative group/method">
-                                                                                <div className="h-9 px-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-[9px] font-black text-slate-400 uppercase cursor-pointer hover:bg-slate-100 transition-all">
-                                                                                    {topic.methodology || 'Metodologia'}
-                                                                                </div>
-                                                                                <Select onValueChange={(val) => updateTopic(topic.id, { methodology: val })}>
-                                                                                    <SelectTrigger className="absolute inset-0 opacity-0 cursor-pointer">
-                                                                                        <SelectValue />
+                                                                                <Select value={topic.methodology} onValueChange={(val) => updateTopic(topic.id, { methodology: val })}>
+                                                                                    <SelectTrigger className="h-9 px-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-[9px] font-black text-slate-500 uppercase cursor-pointer hover:bg-slate-100 transition-all min-w-[120px] focus:ring-0">
+                                                                                        <SelectValue placeholder="Metodologia" />
                                                                                     </SelectTrigger>
-                                                                                    <SelectContent>
-                                                                                        {Object.keys(METHODOLOGY_GUIDE).map(m => (
-                                                                                            <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>
-                                                                                        ))}
-                                                                                        <SelectItem value="Seminário" className="font-bold">Seminário</SelectItem>
-                                                                                        <SelectItem value="Gamificação" className="font-bold">Gamificação</SelectItem>
+                                                                                    <SelectContent className="rounded-2xl border-none shadow-xl">
+                                                                                        <SelectGroup>
+                                                                                            <SelectLabel className="text-[10px] font-black text-slate-400 uppercase">Tipos de Aula</SelectLabel>
+                                                                                            {Object.keys(METHODOLOGY_GUIDE).map(m => (
+                                                                                                <SelectItem key={m} value={m} className="font-bold text-xs cursor-pointer">{m}</SelectItem>
+                                                                                            ))}
+                                                                                            <SelectItem value="Seminário" className="font-bold text-xs cursor-pointer">Seminário</SelectItem>
+                                                                                            <SelectItem value="Gamificação" className="font-bold text-xs cursor-pointer">Gamificação</SelectItem>
+                                                                                        </SelectGroup>
                                                                                     </SelectContent>
                                                                                 </Select>
                                                                             </div>
@@ -1723,58 +1769,53 @@ export default function SyllabusWizard() {
                                                                             )}
                                                                         </div>
 
-                                                                        {/* RESOURCES SELECTOR */}
+                                                                        {/* RESOURCES MULTI-SELECT POPOVER */}
                                                                         <div className="relative group/resources">
-                                                                            <div className="flex -space-x-2 cursor-pointer">
-                                                                                {topic.resources.length > 0 ? (
-                                                                                    <div className="h-8 px-3 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[9px] font-black text-slate-500 uppercase">
-                                                                                        {topic.resources.length} Recursos
+                                                                            <Popover>
+                                                                                <PopoverTrigger asChild>
+                                                                                    <button className="h-9 px-4 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-[9px] font-black text-slate-500 uppercase hover:bg-slate-100 transition-all cursor-pointer">
+                                                                                        {topic.resources.length > 0 ? `${topic.resources.length} Recursos` : <span className="flex items-center gap-1.5"><LayoutDashboard size={12} /> Adicionar Recursos</span>}
+                                                                                    </button>
+                                                                                </PopoverTrigger>
+                                                                                <PopoverContent className="w-56 p-4 rounded-3xl border-none shadow-2xl space-y-3">
+                                                                                    <div className="text-[10px] font-black uppercase text-slate-400 border-b border-slate-50 pb-2">Selecione os Recursos</div>
+                                                                                    <div className="grid gap-2">
+                                                                                        {['Projetor', 'Esqueleto', 'Macas', 'Modelos 3D', 'Software', 'Artigos Impressos', 'Instrumentos Avaliação'].map(r => (
+                                                                                            <label key={r} className="flex items-center gap-3 cursor-pointer p-1.5 hover:bg-slate-50 rounded-lg transition-colors">
+                                                                                                <Checkbox
+                                                                                                    checked={topic.resources.includes(r)}
+                                                                                                    onCheckedChange={(c) => {
+                                                                                                        const updated = c ? [...topic.resources, r] : topic.resources.filter(x => x !== r);
+                                                                                                        updateTopic(topic.id, { resources: updated });
+                                                                                                    }}
+                                                                                                    className="data-[state=checked]:bg-[#8C132C] data-[state=checked]:border-[#8C132C]"
+                                                                                                />
+                                                                                                <span className="text-[11px] font-bold text-slate-600">{r}</span>
+                                                                                            </label>
+                                                                                        ))}
                                                                                     </div>
-                                                                                ) : (
-                                                                                    <div className="text-slate-200 hover:text-[#8C132C] p-2" title="Add Recursos Didáticos">
-                                                                                        <LayoutDashboard size={18} />
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
-                                                                            <Select
-                                                                                onValueChange={(val) => {
-                                                                                    const updated = topic.resources.includes(val)
-                                                                                        ? topic.resources.filter(r => r !== val)
-                                                                                        : [...topic.resources, val];
-                                                                                    updateTopic(topic.id, { resources: updated });
-                                                                                }}
-                                                                            >
-                                                                                <SelectTrigger className="absolute inset-0 opacity-0 bg-transparent border-none cursor-pointer">
-                                                                                    <SelectValue />
-                                                                                </SelectTrigger>
-                                                                                <SelectContent>
-                                                                                    {['Projetor', 'Esqueleto', 'Macas', 'Modelos 3D', 'Software', 'Artigos Impressos', 'Instrumentos Avaliação'].map(r => (
-                                                                                        <SelectItem key={r} value={r} className="font-bold">
-                                                                                            {topic.resources.includes(r) && "✓ "} {r}
-                                                                                        </SelectItem>
-                                                                                    ))}
-                                                                                </SelectContent>
-                                                                            </Select>
+                                                                                </PopoverContent>
+                                                                            </Popover>
                                                                         </div>
 
                                                                         <Popover>
                                                                             <PopoverTrigger asChild>
-                                                                                <div className="flex -space-x-2 cursor-pointer items-center">
+                                                                                <button className="flex -space-x-2 cursor-pointer items-center border-none bg-transparent hover:opacity-80 transition-opacity focus:outline-none">
                                                                                     {topic.bibliographyIds.length > 0 ? (
                                                                                         topic.bibliographyIds.map(bid => {
                                                                                             const b = books.find(book => book.id === bid);
                                                                                             return (
-                                                                                                <div key={bid} className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center shadow-sm hover:z-10 transition-all hover:scale-110" title={b?.title}>
+                                                                                                <div key={bid} className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center shadow-sm hover:z-10 transition-transform relative" title={b?.title}>
                                                                                                     <BookOpen size={14} className="text-slate-400" />
                                                                                                 </div>
                                                                                             );
                                                                                         })
                                                                                     ) : (
-                                                                                        <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 hover:text-[#8C132C] transition-all hover:bg-[#8C132C]/5" title="Vincular Referência">
+                                                                                        <div className="w-9 h-9 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-300 hover:text-[#8C132C] hover:bg-[#8C132C]/5 transition-all" title="Vincular Referência">
                                                                                             <BookOpen size={16} />
                                                                                         </div>
                                                                                     )}
-                                                                                </div>
+                                                                                </button>
                                                                             </PopoverTrigger>
                                                                             <PopoverContent className="w-80 p-6 rounded-[32px] border-none shadow-2xl bg-white space-y-4">
                                                                                 <div className="flex items-center justify-between mb-2">
