@@ -115,6 +115,15 @@ export default async function RecordPage({
         }
     }
 
+    // [NEW] Fix native Palmilha 5
+    if (!(record as any).template && record.template_id === 'palmilha-5') {
+        (record as any).template = {
+            id: 'palmilha-5',
+            title: 'Palmilha 5.0 (EVOLUÍDA)',
+            fields: []
+        }
+    }
+
     // 6. [NEW] Enforce 24h Rule for editing
     const createdAt = new Date(record.created_at)
     const now = new Date()
@@ -131,6 +140,8 @@ export default async function RecordPage({
     // ROBUST DETECTION for Palmilha V3
     const isPalmilhaV3 = resolvedTemplateId === 'fde183ad-1c20-4d6c-9efb-89d08f483cf2' ||
         (record.content?.isV3 === true);
+
+    const isPalmilha5 = resolvedTemplateId === 'palmilha-5';
 
     const isPalmilhaOriginal = !isPalmilhaV3 && (
         resolvedTemplateId === '13fa2f92-41fa-462f-aa7e-5407d619dd94' ||
@@ -164,7 +175,7 @@ export default async function RecordPage({
 
     const isBackup = finalTemplate.title === 'Backup Feegow' || finalTemplate.id === 'e0000000-0000-0000-0000-000000000002';
 
-    const isClinicalEvolution = record.content?._record_type !== 'assessment' && !isPalmilhaV3 && !isPalmilhaOriginal && !isWomensHealth && !isAdvancedPhysical && !isConceptPBE && !isUltimatePBE && !isSmartWizard && !isDiabeticFoot && !isBackup && (
+    const isClinicalEvolution = record.content?._record_type !== 'assessment' && !isPalmilha5 && !isPalmilhaV3 && !isPalmilhaOriginal && !isWomensHealth && !isAdvancedPhysical && !isConceptPBE && !isUltimatePBE && !isSmartWizard && !isDiabeticFoot && !isBackup && (
         resolvedTemplateId === CLINICAL_EVOLUTION_ID ||
         finalTemplate.title?.toLowerCase().includes('evolução clínica') ||
         finalTemplate.title?.toLowerCase() === 'evolução inteligente' ||
@@ -181,6 +192,7 @@ export default async function RecordPage({
             isReadOnly={effectiveIsReadOnly}
             validAppointmentId={validAppointmentId}
             finalTemplate={finalTemplate}
+            isPalmilha5={isPalmilha5}
             isPalmilhaV3={isPalmilhaV3}
             isPalmilhaOriginal={isPalmilhaOriginal}
             isWomensHealth={isWomensHealth}

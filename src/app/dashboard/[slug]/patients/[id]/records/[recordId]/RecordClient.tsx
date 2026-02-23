@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { FormRenderer } from '@/components/forms/FormRenderer'
 import PalmilhaFormV3 from '@/features/forms/palmilha-biomecanica/components/PalmilhaFormV3'
+import Palmilha5Form from '@/features/forms/palmilha-5/components/Palmilha5Form'
 import { WomensHealthForm } from '@/features/forms/womens-health/components/WomensHealthForm'
 import { AdvancedPhysicalForm } from '@/features/forms/pbe/components/AdvancedPhysicalForm'
 import ConceptPBEForm from '@/features/forms/pbe/components/ConceptPBEForm'
@@ -26,6 +27,7 @@ interface RecordClientProps {
     isReadOnly: boolean;
     validAppointmentId?: string;
     finalTemplate: any;
+    isPalmilha5: boolean;
     isPalmilhaV3: boolean;
     isPalmilhaOriginal: boolean;
     isWomensHealth: boolean;
@@ -47,6 +49,7 @@ export function RecordClient({
     isReadOnly,
     validAppointmentId,
     finalTemplate,
+    isPalmilha5,
     isPalmilhaV3,
     isPalmilhaOriginal,
     isWomensHealth,
@@ -106,7 +109,20 @@ export function RecordClient({
                     </div>
                 </div>
             )}
-            {isPalmilhaV3 ? (
+            {isPalmilha5 ? (
+                <div className="max-w-[1600px] mx-auto">
+                    <Palmilha5Form
+                        patientId={id}
+                        initialData={record.content}
+                        patient={patientData}
+                        organization={organization}
+                        professional={professional}
+                        readonly={isReadOnly}
+                        onSave={handleSave}
+                        isImported={false}
+                    />
+                </div>
+            ) : isPalmilhaV3 ? (
                 <div className="max-w-[1600px] mx-auto">
                     <PalmilhaFormV3
                         patientId={id}
