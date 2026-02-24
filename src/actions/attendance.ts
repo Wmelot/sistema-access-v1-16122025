@@ -240,10 +240,24 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, msg: "Unauthorized" }
 
-    // [FIX] Convert empty strings to null to avoid "invalid input syntax for type uuid"
-    // [FIX] Convert empty strings or non-UUIDs to null to avoid database errors
+    // [FIX] Map system template IDs to fixed logic-safe UUIDs
+    const SYSTEM_UUID_MAP: Record<string, string> = {
+        'palmilha-5': 'e0000000-0000-0000-0000-000000000005',
+        'system-physical-assessment': 'e0000000-0000-0000-0000-000000000002',
+        'womens_health_system': 'e0000000-0000-0000-0000-000000000003',
+        'clinical_evolution_system': 'e0000000-0000-0000-0000-000000000004',
+        'ultimate_pbe_system': 'e0000000-0000-0000-0000-000000000006',
+        'tree_wizard_system': 'e0000000-0000-0000-0000-000000000007',
+        'pbe_concept_system': 'e0000000-0000-0000-0000-000000000008',
+        'diabetic_foot_system': 'e0000000-0000-0000-0000-000000000009',
+    };
+
     const toUUID = (id: any) => {
         if (typeof id !== 'string' || id.trim() === "") return null;
+
+        // If it's a known system template string, map it to our custom UUID
+        if (SYSTEM_UUID_MAP[id]) return SYSTEM_UUID_MAP[id];
+
         // Basic UUID regex check
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         return uuidRegex.test(id) ? id : null;

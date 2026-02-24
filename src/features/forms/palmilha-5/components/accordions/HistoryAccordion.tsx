@@ -3,6 +3,7 @@ import { useFormContext, useFieldArray } from "react-hook-form";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -171,7 +172,13 @@ export function HistoryAccordion({ openSection, isSectionFilled, sectionStyle }:
                                             <span className="text-[10px] font-bold text-slate-400 uppercase">Nome do Medicamento</span>
                                             <MedicationCombobox
                                                 value={medName}
-                                                onChange={(val) => form.setValue(`history.meds.${index}.name` as any, val)}
+                                                onChange={(val) => {
+                                                    form.setValue(`history.meds.${index}.name` as any, val);
+                                                    // Auto-populate description if found
+                                                    if (MED_DESCRIPTIONS[val]) {
+                                                        form.setValue(`history.meds.${index}.description` as any, MED_DESCRIPTIONS[val]);
+                                                    }
+                                                }}
                                                 autoFocus={index === medFields.length - 1 && !medName}
                                                 onCommit={() => document.getElementById(`history.meds.${index}.dose`)?.focus()}
                                             />
@@ -183,12 +190,6 @@ export function HistoryAccordion({ openSection, isSectionFilled, sectionStyle }:
                                                 {...form.register(`history.meds.${index}.dose` as any)}
                                                 className="bg-white h-9"
                                                 placeholder="miligramas"
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Tab' && !e.shiftKey) {
-                                                        e.preventDefault();
-                                                        document.getElementById('add-med-btn')?.focus();
-                                                    }
-                                                }}
                                             />
                                         </div>
                                         <Button
@@ -207,18 +208,18 @@ export function HistoryAccordion({ openSection, isSectionFilled, sectionStyle }:
                                         </Button>
                                     </div>
 
-                                    {/* Bloco de Informação Farmacológica (Full Width abaixo) */}
-                                    {description && (
-                                        <Alert className="bg-blue-50 border-blue-100 py-2 mt-2">
-                                            <InfoIcon className="h-4 w-4 text-blue-600" />
-                                            <div className="flex flex-col items-start text-left">
-                                                <AlertTitle className="text-xs font-bold text-blue-800 mb-0.5">Informação Farmacológica</AlertTitle>
-                                                <AlertDescription className="text-[10px] text-blue-700 leading-tight">
-                                                    {description}
-                                                </AlertDescription>
-                                            </div>
-                                        </Alert>
-                                    )}
+                                    {/* Bloco de Informação Farmacológica (Editável) */}
+                                    <div className="mt-2 pl-4 border-l-2 border-blue-200">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <InfoIcon className="h-3 w-3 text-blue-600" />
+                                            <span className="text-[10px] font-bold text-blue-800 uppercase">Informação Farmacológica</span>
+                                        </div>
+                                        <Textarea
+                                            {...form.register(`history.meds.${index}.description` as any)}
+                                            placeholder="Descreva a ação do medicamento ou observações importantes..."
+                                            className="min-h-[40px] text-[10px] py-1.5 bg-blue-50/30 border-blue-100 focus:bg-white transition-colors"
+                                        />
+                                    </div>
                                 </div>
                             );
                         })}

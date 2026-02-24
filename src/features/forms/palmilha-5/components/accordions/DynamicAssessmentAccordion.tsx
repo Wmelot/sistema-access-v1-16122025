@@ -150,9 +150,9 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                                 <ResponsiveContainer width="100%" height="100%">
                                     <LineChart
                                         data={[
-                                            { name: 'Resp. Carga', e: Number(form.watch("tests.dfi.0.left")) || 0, d: Number(form.watch("tests.dfi.0.right")) || 0, ref: 1 },
-                                            { name: 'Apoio Médio', e: Number(form.watch("tests.dfi.1.left")) || 0, d: Number(form.watch("tests.dfi.1.right")) || 0, ref: -2 },
-                                            { name: 'Impulsão', e: Number(form.watch("tests.dfi.2.left")) || 0, d: Number(form.watch("tests.dfi.2.right")) || 0, ref: 2 }
+                                            { name: '1 RC', e: Number(form.watch("tests.dfi.0.left")) || 0, d: Number(form.watch("tests.dfi.0.right")) || 0, ref: 1 },
+                                            { name: '0 AM', e: Number(form.watch("tests.dfi.1.left")) || 0, d: Number(form.watch("tests.dfi.1.right")) || 0, ref: 0 },
+                                            { name: '0 FI', e: Number(form.watch("tests.dfi.2.left")) || 0, d: Number(form.watch("tests.dfi.2.right")) || 0, ref: 0 }
                                         ]}
                                         margin={{ top: 20, right: 20, bottom: 5, left: 0 }}
                                     >
@@ -303,7 +303,7 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                             <span className="text-[10px] font-black uppercase flex items-center gap-2 text-blue-700 tracking-widest"><Footprints className="w-4 h-4 text-blue-500" /> Cinemática Perna Esquerda</span>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <PasteUploadZone
-                                    label="Contato Inicial (RC)"
+                                    label="Respota à Carga (RC)"
                                     value={form.watch("tests.gait_photos.left.initial")}
                                     onChange={(v) => form.setValue("tests.gait_photos.left.initial", v)}
                                     className="aspect-[3/4] w-full object-cover"
@@ -315,7 +315,7 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                                     className="aspect-[3/4] w-full object-cover"
                                 />
                                 <PasteUploadZone
-                                    label="Fase de Impulsão (TO)"
+                                    label="Fase de Impulsão (FI)"
                                     value={form.watch("tests.gait_photos.left.terminal")}
                                     onChange={(v) => form.setValue("tests.gait_photos.left.terminal", v)}
                                     className="aspect-[3/4] w-full object-cover"
@@ -328,7 +328,7 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                             <span className="text-[10px] font-black uppercase flex items-center gap-2 text-green-700 tracking-widest"><Footprints className="w-4 h-4 text-green-500" /> Cinemática Perna Direita</span>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <PasteUploadZone
-                                    label="Contato Inicial (RC)"
+                                    label="Resposta à Carga (RC)"
                                     value={form.watch("tests.gait_photos.right.initial")}
                                     onChange={(v) => form.setValue("tests.gait_photos.right.initial", v)}
                                     className="aspect-[3/4] w-full object-cover"
@@ -340,7 +340,7 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                                     className="aspect-[3/4] w-full object-cover"
                                 />
                                 <PasteUploadZone
-                                    label="Fase de Impulsão (TO)"
+                                    label="Fase de Impulsão (FI)"
                                     value={form.watch("tests.gait_photos.right.terminal")}
                                     onChange={(v) => form.setValue("tests.gait_photos.right.terminal", v)}
                                     className="aspect-[3/4] w-full object-cover"

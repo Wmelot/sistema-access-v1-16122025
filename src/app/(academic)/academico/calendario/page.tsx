@@ -105,9 +105,11 @@ interface Assessment {
     name: string;
     date: Date | null;
     points: number;
-    type: 'Institucional' | 'Professor' | 'Curso';
+    type: 'Individual' | 'Dupla' | 'Prática' | 'Teórica';
     isSubstitutive?: boolean;
     substitutesIds?: string[];
+    classesNeeded: number; // Nova carga horária para provas
+    content?: string;      // Conteúdo editável da prova
 }
 
 
@@ -147,6 +149,7 @@ const METHODOLOGY_GUIDE: Record<string, { desc: string, activities: string[], li
 
 export default function SyllabusWizard() {
     const [step, setStep] = useState(1);
+    const [timelineOrder, setTimelineOrder] = useState<{ id: string, type: 'topic' | 'assessment' }[]>([]);
     const [completedTopicIds, setCompletedTopicIds] = useState<string[]>([]);
     const [viewMode, setViewMode] = useState<'professor' | 'student'>('professor');
     const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -189,7 +192,10 @@ export default function SyllabusWizard() {
             weekDays,
             assessments,
             books,
-            topics
+            topics,
+            holidays,
+            locationCity,
+            selectedLogo
         };
 
         const newDraft = {
@@ -228,20 +234,38 @@ export default function SyllabusWizard() {
         });
     };
 
+    const parseSafeDate = (dateStr: string) => {
+        if (!dateStr) return null;
+        if (dateStr.includes('T')) return new Date(dateStr);
+        return new Date(dateStr + 'T12:00:00');
+    };
+
     const loadDraft = (draft: any) => {
         const data = draft.data;
         if (data.courseName) setCourseName(data.courseName);
         if (data.publicSlug) setPublicSlug(data.publicSlug);
         if (data.theoryLocation) setTheoryLocation(data.theoryLocation);
         if (data.practiceLocation) setPracticeLocation(data.practiceLocation);
-        if (data.startDate) setStartDate(new Date(data.startDate));
-        if (data.endDate) setEndDate(new Date(data.endDate));
+
+        const sDate = parseSafeDate(data.startDate);
+        if (sDate) setStartDate(sDate);
+
+        const eDate = parseSafeDate(data.endDate);
+        if (eDate) setEndDate(eDate);
+
         if (data.weekDays) setWeekDays(data.weekDays);
         if (data.assessments) {
-            setAssessments(data.assessments.map((a: any) => ({ ...a, date: a.date ? new Date(a.date) : null })));
+            setAssessments(data.assessments.map((a: any) => ({
+                ...a,
+                date: a.date ? parseSafeDate(a.date) : null
+            })));
         }
         if (data.books) setBooks(data.books);
         if (data.topics) setTopics(data.topics);
+        if (data.holidays) setHolidays(data.holidays);
+        if (data.locationCity) setLocationCity(data.locationCity);
+        if (data.selectedLogo) setSelectedLogo(data.selectedLogo);
+        setIsSynced(true);
         setShowDraftsModal(false);
         toast.success(`Rascunho "${draft.name}" carregado com sucesso!`);
     };
@@ -284,8 +308,8 @@ export default function SyllabusWizard() {
     }, [courseName, startDate]);
 
     const [assessments, setAssessments] = useState<Assessment[]>([
-        { id: 'a1', name: 'Atividades Avaliativas', date: null, points: 70, type: 'Professor' },
-        { id: 'a2', name: 'Avaliação Global', date: null, points: 30, type: 'Institucional' }
+        { id: 'a1', name: 'Atividades Avaliativas', date: null, points: 70, type: 'Teórica', classesNeeded: 2, content: '' },
+        { id: 'a2', name: 'Avaliação Global', date: null, points: 30, type: 'Teórica', classesNeeded: 2, content: '' }
     ]);
     const totalPoints = assessments.reduce((acc, a) => acc + (a.isSubstitutive ? 0 : a.points), 0);
 
@@ -429,134 +453,218 @@ export default function SyllabusWizard() {
         setTotalNeededHours(totalNeededHoursCalc);
     }, [startDate, endDate, weekDays, holidays, topics]);
 
+    // Sincroniza timelineOrder com topics e assessments
+    useEffect(() => {
+        const currentIds = timelineOrder.map(i => i.id);
+        const newItems = [...timelineOrder];
+        let hasChanges = false;
+
+        topics.forEach(t => {
+            if (!currentIds.includes(t.id)) {
+                newItems.push({ id: t.id, type: 'topic' });
+                hasChanges = true;
+            }
+        });
+
+        assessments.forEach(a => {
+            if (!currentIds.includes(a.id)) {
+                newItems.push({ id: a.id, type: 'assessment' });
+                hasChanges = true;
+            }
+        });
+
+        const allValidIds = [...topics.map(t => t.id), ...assessments.map(a => a.id)];
+        const filteredItems = newItems.filter(item => allValidIds.includes(item.id));
+
+        if (filteredItems.length !== timelineOrder.length || hasChanges) {
+            setTimelineOrder(filteredItems);
+        }
+    }, [topics, assessments, timelineOrder.length]);
+
     const isOverflow = totalNeededHours > availableHours + 0.1;
 
-    const generateFullSchedule = () => {
-        if (!startDate || !endDate) return [];
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+    const fullSchedule = React.useMemo(() => {
         const schedule: any[] = [];
-        let current = new Date(start);
-        const activeDays = weekDays.map(w => w.day);
+        let current = startDate ? new Date(startDate) : new Date();
+        const end = endDate ? new Date(endDate) : new Date();
 
-        const unpinnedTopicsState = topics
-            .filter(t => !t.date)
-            .map(t => ({ ...t, remainingHours: t.classesNeeded }));
+        if (!startDate || !endDate || isNaN(current.getTime()) || isNaN(end.getTime())) return [];
+
+        let fluidItemsPool = timelineOrder
+            .map(item => {
+                if (item.type === 'topic') {
+                    const topic = topics.find(t => t.id === item.id);
+                    if (topic && !topic.date) {
+                        return { ...item, remainingHours: Number(topic.classesNeeded) || 2, title: topic.title };
+                    }
+                } else {
+                    const assessment = assessments.find(a => a.id === item.id);
+                    if (assessment && !assessment.date) {
+                        return { ...item, remainingHours: Number(assessment.classesNeeded) || 2, name: assessment.name };
+                    }
+                }
+                return null;
+            })
+            .filter(Boolean) as any[];
 
         while (current <= end) {
+            const dateStr = format(current, 'yyyy-MM-dd');
             const jsDayNum = current.getDay();
-            const jsDay = jsDayNum === 0 ? '7' : jsDayNum.toString();
+            const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            const diaSemana = dayNames[jsDayNum];
+            const jsDay = jsDayNum === 0 ? '7' : jsDayNum.toString(); // Convert to '1'-'7' for weekDays array
 
-            if (activeDays.includes(jsDay)) {
-                const dateStr = current.toISOString().split('T')[0];
-                const holiday = holidays.find(h => h.date === dateStr);
-                const dayConfig = weekDays.find(w => w.day === jsDay);
+            const dayConfig = weekDays.find(w => w.day === jsDay);
+            const holiday = holidays.find(h => h.date === dateStr);
 
-                // Cálculo de duração desta aula específica
-                const [h1, m1] = (dayConfig?.start || "00:00").split(':').map(Number);
-                const [h2, m2] = (dayConfig?.end || "00:00").split(':').map(Number);
-                const classDuration = (h2 * 60 + m2 - (h1 * 60 + m1)) / 50; // hora-aula PUC
+            const calculateDuration = (start: string, end: string) => {
+                const [h1, m1] = start.split(':').map(Number);
+                const [h2, m2] = end.split(':').map(Number);
+                return (h2 * 60 + m2 - (h1 * 60 + m1)) / 50; // Usando hora-aula de 50min padrão PUC
+            };
 
-                const assessment = assessments.find(a => {
-                    if (!a.date) return false;
-                    const aDate = new Date(a.date);
-                    return aDate.toISOString().split('T')[0] === dateStr;
+            const classDuration = dayConfig ? calculateDuration(dayConfig.start, dayConfig.end) : 0;
+
+            if (holiday) {
+                schedule.push({
+                    date: format(current, 'dd/MM'),
+                    dia: diaSemana,
+                    type: 'holiday',
+                    content: holiday.desc, // Changed from holiday.name to holiday.desc based on existing structure
+                    activity: 'Recesso Escolar',
+                    time: '-',
+                    bibliographyIds: []
                 });
+            } else if (dayConfig) {
+                // Prioridade 1: Avaliações Pinadas
+                const pinnedAssessment = assessments.find(a => a.date && format(new Date(a.date), 'yyyy-MM-dd') === dateStr);
+                // Prioridade 2: Tópicos Pinados
+                const pinnedTopic = topics.find(t => t.date && format(new Date(t.date), 'yyyy-MM-dd') === dateStr);
 
-                const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-                const diaSemana = dayNames[jsDayNum];
+                if (pinnedAssessment) {
+                    const indexInTimeline = timelineOrder.findIndex(i => i.id === pinnedAssessment.id);
+                    const autoContentArr = timelineOrder.slice(0, indexInTimeline)
+                        .filter(i => i.type === 'topic')
+                        .map(i => topics.find(t => t.id === i.id)?.title)
+                        .filter(Boolean);
+                    const autoContent = autoContentArr.length > 0 ? `Cobre: ${autoContentArr.join(', ')}` : '';
 
-                if (holiday) {
-                    schedule.push({
-                        date: format(current, 'dd/MM'),
-                        dia: diaSemana,
-                        type: 'holiday',
-                        content: holiday.desc,
-                        activity: 'Recesso Escolar',
-                        points: null,
-                        time: `${dayConfig?.start} - ${dayConfig?.end}`,
-                        bibliographyIds: []
-                    });
-                } else if (assessment) {
                     schedule.push({
                         date: format(current, 'dd/MM'),
                         dia: diaSemana,
                         type: 'assessment',
-                        content: assessment.name,
-                        activity: 'Avaliação ' + assessment.type,
-                        points: assessment.points,
+                        content: pinnedAssessment.name,
+                        subContent: pinnedAssessment.content || autoContent,
+                        activity: 'Avaliação ' + pinnedAssessment.type,
+                        points: pinnedAssessment.points,
                         time: `${dayConfig?.start} - ${dayConfig?.end}`,
                         bibliographyIds: []
                     });
+                } else if (pinnedTopic) {
+                    schedule.push({
+                        date: format(current, 'dd/MM'),
+                        dia: diaSemana,
+                        type: 'topic',
+                        content: pinnedTopic.title,
+                        activity: pinnedTopic.methodology,
+                        points: null,
+                        time: `${dayConfig?.start} - ${dayConfig?.end}`,
+                        isPractical: pinnedTopic.isPractical,
+                        bibliographyIds: pinnedTopic.bibliographyIds
+                    });
                 } else {
-                    // Procura por tópico pinado
-                    const pinnedTopic = topics.find(t => t.date && format(new Date(t.date), 'yyyy-MM-dd') === dateStr);
+                    // Alocação Fluída
+                    let dayHoursRemaining = classDuration;
+                    let nothingScheduled = true;
 
-                    if (pinnedTopic) {
+                    while (dayHoursRemaining > 0.1 && fluidItemsPool.length > 0) {
+                        const currentItem = fluidItemsPool[0];
+
+                        if (currentItem.type === 'assessment') {
+                            const assessment = assessments.find(a => a.id === currentItem.id);
+                            if (!assessment) { fluidItemsPool.shift(); continue; }
+
+                            const hoursAllocated = Math.min(dayHoursRemaining, currentItem.remainingHours);
+                            const isPartial = hoursAllocated < currentItem.remainingHours;
+
+                            const indexInTimeline = timelineOrder.findIndex(i => i.id === currentItem.id);
+                            const autoContentArr = timelineOrder.slice(0, indexInTimeline)
+                                .filter(i => i.type === 'topic')
+                                .map(i => topics.find(t => t.id === i.id)?.title)
+                                .filter(Boolean);
+                            const autoContent = autoContentArr.length > 0 ? `Cobre: ${autoContentArr.join(', ')}` : '';
+
+                            schedule.push({
+                                instanceId: `${currentItem.id}-${currentItem.occurrence || 0}-${dateStr}`,
+                                id: currentItem.id,
+                                date: format(current, 'dd/MM'),
+                                dateFull: dateStr,
+                                dia: diaSemana,
+                                type: 'assessment',
+                                content: assessment.name + (isPartial ? ' (Parte)' : ''),
+                                subContent: assessment.content || autoContent,
+                                activity: 'Avaliação ' + assessment.type,
+                                points: assessment.points,
+                                time: `${dayConfig?.start} - ${dayConfig?.end}`,
+                                duration: hoursAllocated,
+                                bibliographyIds: []
+                            });
+                            currentItem.remainingHours -= hoursAllocated;
+                            currentItem.occurrence = (currentItem.occurrence || 0) + 1;
+                            dayHoursRemaining -= hoursAllocated;
+                            if (currentItem.remainingHours <= 0.1) fluidItemsPool.shift();
+                            nothingScheduled = false;
+                        } else if (currentItem.type === 'topic') {
+                            // Tópico
+                            const topic = topics.find(t => t.id === currentItem.id);
+                            if (!topic) { fluidItemsPool.shift(); continue; }
+
+                            const hoursAllocated = Math.min(dayHoursRemaining, currentItem.remainingHours);
+                            const isPartial = hoursAllocated < (topics.find(t => t.id === currentItem.id)?.classesNeeded || 0);
+
+                            schedule.push({
+                                instanceId: `${currentItem.id}-${currentItem.occurrence || 0}-${dateStr}`,
+                                id: currentItem.id,
+                                date: format(current, 'dd/MM'),
+                                dateFull: dateStr,
+                                dia: diaSemana,
+                                type: 'topic',
+                                content: topic.title + (isPartial ? ' (Parte)' : ''),
+                                activity: topic.methodology,
+                                points: null,
+                                time: `${dayConfig?.start} - ${dayConfig?.end}`,
+                                duration: hoursAllocated,
+                                isPractical: topic.isPractical,
+                                bibliographyIds: topic.bibliographyIds
+                            });
+
+                            currentItem.remainingHours -= hoursAllocated;
+                            currentItem.occurrence = (currentItem.occurrence || 0) + 1;
+                            dayHoursRemaining -= hoursAllocated;
+                            if (currentItem.remainingHours <= 0.1) fluidItemsPool.shift();
+                            nothingScheduled = false;
+                        }
+                    }
+
+                    if (nothingScheduled) {
                         schedule.push({
                             date: format(current, 'dd/MM'),
                             dia: diaSemana,
-                            type: 'topic',
-                            content: pinnedTopic.title,
-                            activity: pinnedTopic.methodology,
-                            points: null,
-                            time: `${dayConfig?.start} - ${dayConfig?.end}`,
-                            isPractical: pinnedTopic.isPractical,
-                            bibliographyIds: pinnedTopic.bibliographyIds
+                            type: 'empty',
+                            content: 'Data disponível / Planejamento',
+                            time: `${dayConfig?.start} - ${dayConfig?.end}`
                         });
-                    } else {
-                        // Lógica de distribuição fluída por HORAS (Tetris)
-                        let dayHoursRemaining = classDuration;
-                        let nothingScheduled = true;
-
-                        while (dayHoursRemaining > 0.1 && unpinnedTopicsState.length > 0) {
-                            const currentTopic = unpinnedTopicsState[0];
-                            const hoursAllocated = Math.min(dayHoursRemaining, currentTopic.remainingHours);
-
-                            schedule.push({
-                                date: format(current, 'dd/MM'),
-                                dia: diaSemana,
-                                type: 'topic',
-                                content: currentTopic.title,
-                                activity: currentTopic.methodology,
-                                points: null,
-                                time: `${hoursAllocated.toFixed(1)}h aula${hoursAllocated !== classDuration ? ' / Parcial' : ''}`,
-                                isPractical: currentTopic.isPractical,
-                                bibliographyIds: currentTopic.bibliographyIds
-                            });
-
-                            currentTopic.remainingHours -= hoursAllocated;
-                            dayHoursRemaining -= hoursAllocated;
-                            nothingScheduled = false;
-
-                            if (currentTopic.remainingHours <= 0.1) {
-                                unpinnedTopicsState.shift();
-                            }
-                        }
-
-                        if (nothingScheduled) {
-                            schedule.push({
-                                date: format(current, 'dd/MM'),
-                                dia: diaSemana,
-                                type: 'empty',
-                                content: 'Planejamento em Aberto',
-                                activity: '---',
-                                points: null,
-                                time: `${dayConfig?.start} - ${dayConfig?.end}`,
-                                bibliographyIds: []
-                            });
-                        }
                     }
                 }
             }
-            current.setDate(current.getDate() + 1);
+            current = new Date(current.getTime() + 86400000);
         }
         return schedule;
-    };
+    }, [startDate, endDate, weekDays, topics, assessments, timelineOrder]);
 
+    const generateFullSchedule = () => fullSchedule;
 
-
-    // Handlers Bibliography
+    // Handlers
     const addBook = () => {
         if (!newBook.title || !newBook.author) return;
         setBooks([...books, { ...newBook, id: Math.random().toString(36).substr(2, 9) }]);
@@ -565,17 +673,16 @@ export default function SyllabusWizard() {
 
     const removeBook = (id: string) => {
         setBooks(books.filter(b => b.id !== id));
-        // Also remove from topics
         setTopics(topics.map(t => ({
             ...t,
             bibliographyIds: t.bibliographyIds.filter(bid => bid !== id)
         })));
     };
 
-    // Handlers Topics
     const addTopic = () => {
+        const newId = Math.random().toString(36).substr(2, 9);
         setTopics([...topics, {
-            id: Math.random().toString(36).substr(2, 9),
+            id: newId,
             title: '',
             classesNeeded: 1,
             bibliographyIds: [],
@@ -589,16 +696,12 @@ export default function SyllabusWizard() {
         const isPhysio = courseName.toLowerCase().includes('fisio');
         const suggestedTopics: Topic[] = isPhysio ? [
             { id: 'ai1', title: 'Bases da Biofísica Aplicada', classesNeeded: 2, bibliographyIds: [], isPractical: false, resources: ['Projetor'], methodology: 'Aula Invertida' },
-            { id: 'ai2', title: 'Anatomia Palpatória de MMSS', classesNeeded: 4, bibliographyIds: [], isPractical: true, resources: ['Modelos 3D'], methodology: 'Estudo de Caso' },
-            { id: 'ai3', title: 'Cinesiologia Assistida', classesNeeded: 2, bibliographyIds: [], isPractical: true, resources: ['Instrumentos'], methodology: 'Demonstração Prática' },
-            { id: 'ai4', title: 'Semiologia do Joelho e Tornozelo', classesNeeded: 4, bibliographyIds: [], isPractical: true, resources: ['Macas'], methodology: 'Problematização (PBL)' }
+            { id: 'ai2', title: 'Anatomia Palpatória de MMSS', classesNeeded: 4, bibliographyIds: [], isPractical: true, resources: ['Modelos 3D'], methodology: 'Estudo de Caso' }
         ] : [
-            { id: 'ai1', title: 'Fundamentos e Contextualização', classesNeeded: 2, bibliographyIds: [], isPractical: false, resources: ['Projetor'], methodology: 'Aula Dialogada' },
-            { id: 'ai2', title: 'Metodologias e Práticas Nível I', classesNeeded: 4, bibliographyIds: [], isPractical: true, resources: [], methodology: 'PBL' }
+            { id: 'ai1', title: 'Fundamentos', classesNeeded: 2, bibliographyIds: [], isPractical: false, resources: ['Projetor'], methodology: 'Aula Dialogada' }
         ];
-
         setTopics([...topics, ...suggestedTopics]);
-        toast.success("IA: Sugestões de conteúdo inseridas com sucesso!");
+        toast.success("IA: Sugestões inseridas!");
     };
 
     const updateTopic = (id: string, updates: Partial<Topic>) => {
@@ -607,417 +710,164 @@ export default function SyllabusWizard() {
 
     const removeTopic = (id: string) => {
         setTopics(topics.filter(t => t.id !== id));
+        setTimelineOrder(timelineOrder.filter(item => item.id !== id));
+    };
+
+    const removeAssessment = (id: string) => {
+        setAssessments(assessments.filter(a => a.id !== id));
+        setTimelineOrder(timelineOrder.filter(item => item.id !== id));
     };
 
     const onDragEnd = (result: any) => {
-        const { destination, source, combine } = result;
-
-        // Handle Topic Merging (Combine)
-        if (combine) {
-            const newTopics = Array.from(topics);
-            const sourceIndex = source.index;
-            const targetId = combine.draggableId;
-            const targetIndex = newTopics.findIndex(t => t.id === targetId);
-
-            if (targetIndex !== -1) {
-                const sourceTopic = newTopics[sourceIndex];
-                const targetTopic = newTopics[targetIndex];
-
-                // Merge logic
-                targetTopic.title = `${targetTopic.title} & ${sourceTopic.title}`;
-                targetTopic.classesNeeded += sourceTopic.classesNeeded;
-                targetTopic.resources = Array.from(new Set([...targetTopic.resources, ...sourceTopic.resources]));
-                targetTopic.bibliographyIds = Array.from(new Set([...targetTopic.bibliographyIds, ...sourceTopic.bibliographyIds]));
-
-                newTopics.splice(sourceIndex, 1);
-                setTopics(newTopics);
-                toast.success(`Tópicos mesclados: ${targetTopic.title}`);
-                return;
-            }
-        }
-
+        const { destination, source } = result;
         if (!destination) return;
-        const items = Array.from(topics);
-        const [reorderedItem] = items.splice(source.index, 1);
-        items.splice(destination.index, 0, reorderedItem);
-        setTopics(items);
+
+        // Reordena o cronograma completo (excluindo feriados)
+        const scheduleItems = fullSchedule.filter((s: any) => s.type !== 'holiday');
+        const [reorderedItem] = scheduleItems.splice(source.index, 1);
+        scheduleItems.splice(destination.index, 0, reorderedItem);
+
+        // Gera a nova timelineOrder baseada na sequência física do cronograma
+        // Isso transforma a timeline em uma lista de sessões/instâncias
+        const newTimeline = scheduleItems.map((item: any) => ({
+            id: item.id,
+            type: item.type as 'topic' | 'assessment'
+        }));
+
+        setTimelineOrder(newTimeline);
     };
 
-    // UI Modules
-    const StepIndicator = () => (
-        <div className="flex items-center justify-center mb-12 gap-4">
-            {[1, 2, 3, 4].map(i => (
-                <div key={i} className="flex items-center">
-                    <div className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center font-black text-sm transition-all",
-                        step === i ? "bg-[#8C132C] text-white scale-110 shadow-lg shadow-[#8C132C]/20" :
-                            step > i ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-400"
-                    )}>
-                        {step > i ? <CheckCircle2 size={18} /> :
-                            i === 4 ? <Sparkles size={16} /> : i}
-                    </div>
-                    {i < 4 && <div className={cn("w-14 h-1 mx-2 rounded-full", step > i ? "bg-emerald-500" : "bg-slate-100")} />}
-                </div>
-            ))}
-            {/* AI REALLOCATION MODAL */}
-            <Dialog open={showReallocateModal} onOpenChange={setShowReallocateModal}>
-                <DialogContent className="max-w-[95vw] w-[95vw] rounded-[40px] p-10 border-none shadow-[0_30px_100px_rgba(0,0,0,0.1)] max-h-[92vh] overflow-hidden flex flex-col">
-                    <div className="space-y-8 overflow-y-auto pr-2 custom-scrollbar">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 rounded-[20px] bg-amber-50 flex items-center justify-center text-amber-500">
-                                    <Sparkles size={28} />
-                                </div>
-                                <div>
-                                    <DialogTitle className="text-2xl font-black text-slate-800">Ajuste Estratégico de Carga Horária</DialogTitle>
-                                    <DialogDescription className="font-bold text-slate-400 text-lg">
-                                        Total Atual: <span className="text-[#8C132C]">{totalNeededHours}h</span> | Disponível no Semestre: <span className="text-emerald-600">{availableHours.toFixed(1)}h</span>
-                                    </DialogDescription>
-                                </div>
-                            </div>
-                            <div className={cn(
-                                "px-8 py-4 rounded-3xl font-black text-sm uppercase transition-all",
-                                Object.values(proposedHours).reduce((a, b) => a + b, 0) > availableHours ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"
-                            )}>
-                                Total Ajustado: {Object.values(proposedHours).reduce((a, b) => a + b, 0)}h / {availableHours.toFixed(0)}h
-                            </div>
-                        </div>
-
-                        <div className="bg-slate-50 rounded-[32px] p-8 space-y-6 border border-slate-100">
-                            <h4 className="text-[11px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
-                                <Info size={16} /> Ajuste a carga horária de cada tópico para caber no seu calendário
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                {topics.map(t => (
-                                    <div key={t.id} className="flex flex-col p-6 bg-white rounded-3xl border border-slate-100 shadow-sm hover:border-[#8C132C]/20 transition-all group">
-                                        <div className="text-[10px] font-black text-slate-400 uppercase mb-3 truncate">{t.title}</div>
-                                        <div className="flex items-center justify-between gap-4 mt-auto">
-                                            <div>
-                                                <div className="text-[9px] font-bold text-slate-300 uppercase">Original</div>
-                                                <div className="text-base font-black text-slate-400 line-through">{t.classesNeeded}h</div>
-                                            </div>
-                                            <div className="flex-1 max-w-[120px]">
-                                                <div className="text-[9px] font-black text-[#8C132C] uppercase mb-1">Ajustar</div>
-                                                <div className="relative">
-                                                    <Input
-                                                        type="number"
-                                                        value={proposedHours[t.id] || 0}
-                                                        onChange={(e) => setProposedHours({ ...proposedHours, [t.id]: parseInt(e.target.value) || 0 })}
-                                                        className="h-12 rounded-2xl bg-slate-50 border-none font-black text-center text-xl pr-8 focus:ring-2 focus:ring-[#8C132C]/20 transition-all"
-                                                    />
-                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black opacity-20">H</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="flex gap-6">
-                            <Button
-                                variant="outline"
-                                onClick={() => setShowReallocateModal(false)}
-                                className="flex-1 h-16 rounded-3xl font-black text-sm uppercase tracking-widest border-slate-200 hover:bg-slate-50"
-                            >
-                                Descartar Alterações
-                            </Button>
-                            <Button
-                                onClick={() => {
-                                    const updated = topics.map(t => ({
-                                        ...t,
-                                        classesNeeded: proposedHours[t.id] || t.classesNeeded
-                                    }));
-                                    setTopics(updated);
-                                    setShowReallocateModal(false);
-                                    toast.success("Axiom IA: Cargas horárias atualizadas com sucesso!");
-                                }}
-                                className="flex-1 h-16 rounded-3xl bg-[#8C132C] hover:bg-[#6c0f22] text-white font-black text-sm uppercase tracking-widest shadow-2xl shadow-[#8C132C]/30"
-                            >
-                                Aplicar Ajustes ao Cronograma
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-        </div>
-    );
     const toggleTopicCompletion = (id: string) => {
         setCompletedTopicIds(prev =>
             prev.includes(id) ? prev.filter(tid => tid !== id) : [...prev, id]
         );
-        if (!completedTopicIds.includes(id)) {
-            toast.success("Aula marcada como concluída! Progresso atualizado.");
-        }
     };
+
     const handlePrint = useReactToPrint({
         contentRef: printRef,
         documentTitle: `Cronograma-${publicSlug}`,
     });
 
     const handleExportSyllabus = () => {
-        const data = {
-            courseName,
-            publicSlug,
-            theoryLocation,
-            practiceLocation,
-            startDate,
-            endDate,
-            weekDays,
-            assessments,
-            books,
-            topics: topics.map(t => ({ ...t, id: t.id.startsWith('import-') ? t.id : `import-${t.id}` }))
-        };
+        const data = { courseName, publicSlug, theoryLocation, practiceLocation, startDate, endDate, weekDays, assessments, books, topics };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `cronograma-${publicSlug}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        toast.success("Dossiê exportado com sucesso!");
+        const a = document.createElement('a'); a.href = url; a.download = `cronograma-${publicSlug}.json`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        toast.success("Exportado!");
     };
 
     const handleImportSyllabus = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (!files || files.length === 0) return;
-
-        let combinedCourseName = courseName;
-        let combinedPublicSlug = publicSlug;
-        let combinedTheoryLocation = theoryLocation;
-        let combinedPracticeLocation = practiceLocation;
-        let combinedWeekDays = weekDays;
-
-        let newAssessments: Assessment[] = [];
-        let newBooks: Book[] = [];
-        let newTopics: Topic[] = [];
-
-        let successCount = 0;
-        let errorCount = 0;
-
-        const processFile = (file: File) => {
-            return new Promise<void>((resolve) => {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    try {
-                        const data = JSON.parse(event.target?.result as string);
-                        if (data.courseName) combinedCourseName = data.courseName;
-                        if (data.publicSlug) combinedPublicSlug = data.publicSlug + '-copia';
-                        if (data.theoryLocation) combinedTheoryLocation = data.theoryLocation;
-                        if (data.practiceLocation) combinedPracticeLocation = data.practiceLocation;
-                        if (data.weekDays) combinedWeekDays = data.weekDays;
-
-                        if (data.assessments) {
-                            newAssessments = [...newAssessments, ...data.assessments.map((a: any) => ({ ...a, date: a.date ? new Date(a.date) : null }))];
-                        }
-                        if (data.books) newBooks = [...newBooks, ...data.books];
-                        if (data.topics) newTopics = [...newTopics, ...data.topics];
-
-                        successCount++;
-                    } catch (err) {
-                        errorCount++;
-                    }
-                    resolve();
-                };
-                reader.readAsText(file);
-            });
+        const files = e.target.files; if (!files) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = JSON.parse(event.target?.result as string);
+                if (data.courseName) setCourseName(data.courseName);
+                if (data.assessments) setAssessments(data.assessments);
+                if (data.topics) setTopics(data.topics);
+                toast.success("Importado!");
+            } catch (err) { toast.error("Erro!"); }
         };
-
-        Promise.all(Array.from(files).map(processFile)).then(() => {
-            if (successCount > 0) {
-                setCourseName(combinedCourseName);
-                setPublicSlug(combinedPublicSlug);
-                setTheoryLocation(combinedTheoryLocation);
-                setPracticeLocation(combinedPracticeLocation);
-                setWeekDays(combinedWeekDays);
-
-                if (newAssessments.length > 0) setAssessments(newAssessments);
-                if (newBooks.length > 0) setBooks(newBooks);
-                if (newTopics.length > 0) setTopics(newTopics);
-
-                toast.success(`${successCount} dossiê(s) importado(s)! Conteúdo mesclado com sucesso.`);
-            }
-            if (errorCount > 0) {
-                toast.error(`Erro ao importar ${errorCount} arquivo(s). Formato inválido.`);
-            }
-        }).finally(() => {
-            e.target.value = '';
-        });
+        reader.readAsText(files[0]);
     };
+
     const handleAutoLinkBibliography = (topicId: string) => {
-        const topic = topics.find(t => t.id === topicId);
-        if (!topic) return;
-        const matchedIds = books
-            .filter(b => {
-                const words = topic.title.toLowerCase().split(' ');
-                return words.some(w => w.length > 4 && b.title.toLowerCase().includes(w));
-            })
-            .map(b => b.id);
-        if (matchedIds.length > 0) {
-            updateTopic(topicId, { bibliographyIds: Array.from(new Set([...topic.bibliographyIds, ...matchedIds])) });
-            toast.success(`IA: Encontramos ${matchedIds.length} referências relacionadas!`);
-        } else {
-            toast.info("IA: Nenhuma referência direta encontrada na biblioteca.");
-        }
+        const topic = topics.find(t => t.id === topicId); if (!topic) return;
+        const matchedIds = books.filter(b => b.title.toLowerCase().includes(topic.title.toLowerCase().split(' ')[0])).map(b => b.id);
+        if (matchedIds.length > 0) updateTopic(topicId, { bibliographyIds: matchedIds });
     };
 
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => setSelectedLogo(e.target?.result as string);
+        const file = e.target.files?.[0]; if (file) {
+            const reader = new FileReader(); reader.onload = (e) => setSelectedLogo(e.target?.result as string);
             reader.readAsDataURL(file);
         }
     };
 
     const handleImportFromDocument = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files?.length) return;
-        const newFiles = Array.from(e.target.files).map(f => ({
-            name: f.name,
-            type: f.type || 'Documento',
-            file: f
-        }));
+        const newFiles = Array.from(e.target.files).map(f => ({ name: f.name, type: f.type || 'Documento', file: f }));
         setUploadedFiles([...uploadedFiles, ...newFiles]);
-        setIsSynced(false);
-        e.target.value = ''; // Permite subir o mesmo arquivo se deletado
-        toast.success(`${newFiles.length} arquivo(s) adicionado(s) à fila de análise.`);
+        setIsSynced(false); toast.success("Arquivo adicionado!");
     };
 
     const handleRunAIAnalysis = async () => {
+        if (uploadedFiles.length === 0) return;
         setIsAnalyzing(true);
-        toast.info("Axiom AI: Lendo e interpretando os documentos oficiais...");
-
         try {
             const formData = new FormData();
-            uploadedFiles.forEach(uf => {
-                if (uf.file) formData.append('files', uf.file);
+            uploadedFiles.forEach(f => {
+                if (f.file) formData.append("files", f.file);
             });
-            formData.append('location', locationCity);
+            formData.append("location", locationCity);
 
-            const response = await fetch('/api/ai/extract-syllabus', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) {
-                const err = await response.json();
-                toast.error(`Erro na IA: ${err.error || 'Falha ao analisar'}`);
-                setIsAnalyzing(false);
-                return;
-            }
-
-            const data = await response.json();
-
-            // Set Data
-            setCourseName(data.courseName || "Nova Disciplina");
-
-            if (data.startDate) {
-                // Parse date in UTC ignoring timezone shifts
-                const [y, m, d] = data.startDate.split('-');
-                if (y && m && d) setStartDate(new Date(parseInt(y), parseInt(m) - 1, parseInt(d)));
-            }
-
-            if (data.endDate) {
-                const [y, m, d] = data.endDate.split('-');
-                if (y && m && d) setEndDate(new Date(parseInt(y), parseInt(m) - 1, parseInt(d)));
-            }
-
-            const bookIdMap: Record<string, string> = {};
-
-            // Normalizando bibliografia com IDs seguros
-            const parsedBooks: Book[] = (data.books || []).map((b: any, index: number) => {
-                const newId = `b_ai_${index}`;
-                if (b.id) bookIdMap[b.id] = newId;
-                return {
-                    id: newId,
-                    title: b.title || "Obra Desconhecida",
-                    author: b.author || "Autor Omitido",
-                    type: (['Básico', 'Complementar'].includes(b.type)) ? b.type : 'Básico'
-                };
+            const res = await fetch("/api/ai/extract-syllabus", {
+                method: "POST",
+                body: formData,
             });
 
-            setBooks(parsedBooks);
+            if (!res.ok) throw new Error("Falha na análise");
+            const data = await res.json();
 
-            // Mapeando topicos e gerando referências cruzadas
-            const parsedTopics: Topic[] = (data.topics || []).map((t: any, index: number) => ({
-                id: `t_ai_${index}`,
-                title: t.title || "Tópico Não Especificado",
-                classesNeeded: t.classesNeeded || 2,
-                bibliographyIds: t.bibliographyIds ?
-                    t.bibliographyIds.map((bid: string) => bookIdMap[bid] || parsedBooks[0]?.id).filter(Boolean) : [],
-                isPractical: !!t.isPractical,
-                resources: t.resources || ['Projetor'],
-                methodology: t.methodology || 'Aula Dialogada'
-            }));
-
-            // If some topics lack bibliography, force assign
-            parsedTopics.forEach(pt => {
-                if (pt.bibliographyIds.length === 0 && parsedBooks.length > 0) {
-                    pt.bibliographyIds.push(parsedBooks[0].id);
-                }
-            });
-
-            setTopics(parsedTopics);
-
-            // Avaliações base padrão da PUC (se não houver extração forte)
-
-            const aiAssessments: Assessment[] = [
-                { id: 'a-p1', name: 'Prova Teórica 1', date: null, points: 20, type: 'Professor' },
-                { id: 'a-pp', name: 'Prova Prática', date: null, points: 15, type: 'Professor' },
-                { id: 'a-p2', name: 'Prova Teórica 2', date: null, points: 20, type: 'Professor' },
-                { id: 'a-pt', name: 'Pontos de Participação (Práticas)', date: null, points: 5, type: 'Professor' },
-                { id: 'a-ti', name: 'Trabalho Interdisciplinar (TI)', date: null, points: 10, type: 'Curso' },
-                { id: 'a-fg', name: 'Prova Final (Global)', date: null, points: 30, type: 'Institucional' },
-                { id: 'a-re', name: 'Reavaliação / Substitutiva', date: null, points: 30, type: 'Institucional', isSubstitutive: true }
-            ];
-
-            if (data.holidays && Array.isArray(data.holidays)) {
-                setHolidays(data.holidays);
-            }
-
-            setBooks(parsedBooks);
-            setTopics(parsedTopics);
             if (data.courseName) setCourseName(data.courseName);
 
-            // Lógica de Sugestão de Datas baseada nas Datas Finais do Estado
-            const start = data.startDate ? new Date(startDate.getTime()) : startDate;
-            const end = data.endDate ? new Date(endDate.getTime()) : endDate;
-            const activeDays = weekDays.map(w => w.day);
-            const global = aiAssessments.find(a => a.name.toLowerCase().includes('global'));
-            const sub = aiAssessments.find(a => a.isSubstitutive);
+            const sDate = parseSafeDate(data.startDate);
+            if (sDate) setStartDate(sDate);
 
-            if (global) {
-                let target = new Date(end);
-                target.setDate(target.getDate() - 7);
-                global.date = findNearestClassDay(target, activeDays);
+            const eDate = parseSafeDate(data.endDate);
+            if (eDate) setEndDate(eDate);
+
+            if (data.books) setBooks(data.books);
+            if (data.topics) setTopics(data.topics);
+            if (data.assessments) {
+                const processedAssessments = data.assessments.map((a: any) => ({
+                    ...a,
+                    id: a.id || `a-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                    date: a.date ? parseSafeDate(a.date) : null,
+                    classesNeeded: a.classesNeeded || 2,
+                    content: a.content || ''
+                }));
+                setAssessments(processedAssessments);
+                // Reconstrói a timelineOrder para incluir as novas avaliações
+                const newTimeline = [
+                    ...data.topics.map((t: any) => ({ id: t.id, type: 'topic' })),
+                    ...processedAssessments.map((a: any) => ({ id: a.id, type: 'assessment' }))
+                ];
+                setTimelineOrder(newTimeline);
             }
-            if (sub) {
-                let target = new Date(end);
-                target.setDate(target.getDate() - 2);
-                sub.date = findNearestClassDay(target, activeDays);
-            }
+            if (data.holidays) setHolidays(data.holidays);
 
-            // Atribui datas para as Provas Teóricas e Práticas
-            const regulars = aiAssessments.filter(a => !a.isSubstitutive && !a.name.toLowerCase().includes('global') && a.name.includes('Prova'));
-            const interval = (end.getTime() - start.getTime()) / (regulars.length + 2);
-            regulars.forEach((a, i) => {
-                const target = new Date(start.getTime() + interval * (i + 1));
-                a.date = findNearestClassDay(target, activeDays);
-            });
-
-            setAssessments(aiAssessments);
-
-            setIsAnalyzing(false);
             setIsSynced(true);
-            toast.success("IA: Leitura concluída! Cronograma estruturado baseado no seu documento.");
-        } catch (error) {
-            console.error(error);
-            toast.error("Erro geral na requisição AI.");
+
+            if (data.unclearDates) {
+                toast.warning("IA: As datas do semestre podem estar imprecisas por haver múltiplas opções no arquivo. Por favor, confira os campos de Início e Término.");
+            } else {
+                toast.success("IA: Cronograma e avaliações sincronizados com sucesso!");
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error("Erro ao analisar documentos.");
+        } finally {
             setIsAnalyzing(false);
         }
     };
+
+    const StepIndicator = () => (
+        <div className="flex items-center justify-center mb-12 gap-4">
+            {[1, 2, 3, 4].map(i => (
+                <div key={i} className="flex items-center">
+                    <div className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center font-black text-sm",
+                        step === i ? "bg-[#8C132C] text-white" : step > i ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-400"
+                    )}>
+                        {step > i ? <CheckCircle2 size={18} /> : i}
+                    </div>
+                    {i < 4 && <div className={cn("w-14 h-1 mx-2", step > i ? "bg-emerald-500" : "bg-slate-100")} />}
+                </div>
+            ))}
+        </div>
+    );
 
     return (
         <>
@@ -1265,7 +1115,20 @@ export default function SyllabusWizard() {
                                                     <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Atividades Avaliativas</Label>
                                                     <p className="text-[9px] text-slate-400 font-medium">Provas, Trabalhos e Seminários.</p>
                                                 </div>
-                                                <Button size="sm" variant="ghost" className="bg-[#8C132C]/10 text-[#8C132C] hover:bg-[#8C132C] hover:text-white rounded-xl font-black text-[10px] uppercase h-9 px-4 transition-all" onClick={() => setAssessments([...assessments, { id: Date.now().toString(), name: 'Nova Atividade', date: null, points: 0, type: 'Professor' }])}>+ Adicionar</Button>
+                                                <Button size="sm" variant="ghost" className="bg-[#8C132C]/10 text-[#8C132C] hover:bg-[#8C132C] hover:text-white rounded-xl font-black text-[10px] uppercase h-9 px-4 transition-all" onClick={() => {
+                                                    const newId = Date.now().toString();
+                                                    const newAssessment: Assessment = {
+                                                        id: newId,
+                                                        name: 'Nova Atividade',
+                                                        date: null,
+                                                        points: 0,
+                                                        type: 'Individual',
+                                                        classesNeeded: 2,
+                                                        content: ''
+                                                    };
+                                                    setAssessments([...assessments, newAssessment]);
+                                                    setTimelineOrder([...timelineOrder, { id: newId, type: 'assessment' }]);
+                                                }}>+ Adicionar</Button>
                                             </div>
 
                                             <div className="grid gap-3 max-h-[400px] overflow-y-auto pr-2 no-scrollbar">
@@ -1284,9 +1147,10 @@ export default function SyllabusWizard() {
                                                                             <SelectValue />
                                                                         </SelectTrigger>
                                                                         <SelectContent className="rounded-xl border-none shadow-2xl">
-                                                                            <SelectItem value="Institucional">Institucional</SelectItem>
-                                                                            <SelectItem value="Professor">Professor</SelectItem>
-                                                                            <SelectItem value="Curso">Curso</SelectItem>
+                                                                            <SelectItem value="Individual">Individual</SelectItem>
+                                                                            <SelectItem value="Dupla">Dupla</SelectItem>
+                                                                            <SelectItem value="Prática">Prática</SelectItem>
+                                                                            <SelectItem value="Teórica">Teórica</SelectItem>
                                                                         </SelectContent>
                                                                     </Select>
                                                                     {ass.isSubstitutive && <Badge className="text-[7px] font-black bg-amber-500 text-white h-4 border-none">SUBST.</Badge>}
@@ -1302,7 +1166,7 @@ export default function SyllabusWizard() {
                                                                     />
                                                                     <span className="absolute -right-1 -top-1 bg-[#8C132C] text-white text-[6px] font-black px-1 rounded-full">PTS</span>
                                                                 </div>
-                                                                <button onClick={() => setAssessments(assessments.filter(a => a.id !== ass.id))} className="text-slate-300 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100 p-1">
+                                                                <button onClick={() => removeAssessment(ass.id)} className="text-slate-300 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100 p-1">
                                                                     <Trash2 size={14} />
                                                                 </button>
                                                             </div>
@@ -1555,11 +1419,11 @@ export default function SyllabusWizard() {
                                 )}
 
                                 <div className="flex items-center justify-between mb-2 px-6">
-                                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Plano de Ensino (Sequência Didática)</Label>
+                                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Plano de Ensino (Cronograma de Aulas)</Label>
                                     <div className="flex items-center gap-4">
                                         <div className="flex items-center gap-2 text-xs font-bold bg-slate-100 p-2 rounded-lg">
-                                            <span className="text-slate-500 uppercase">Carga Horária:</span>
-                                            <span className={cn(isOverflow ? "text-red-500" : "text-emerald-500")}>
+                                            <span className="text-slate-500 uppercase text-[9px]">Carga:</span>
+                                            <span className={cn("text-[10px]", isOverflow ? "text-red-500" : "text-emerald-500")}>
                                                 {totalNeededHours}h / {availableHours.toFixed(1)}h
                                             </span>
                                         </div>
@@ -1572,337 +1436,98 @@ export default function SyllabusWizard() {
                                     </div>
                                 </div>
 
-                                {/* EXAMS QUICK EDIT BAR */}
-                                {assessments.length > 0 && (
-                                    <div className="mb-6 space-y-3 bg-[#8C132C]/5 p-6 rounded-3xl border border-[#8C132C]/10">
-                                        <div className="flex items-center justify-between">
-                                            <Label className="text-[10px] font-black uppercase text-[#8C132C] tracking-widest flex items-center gap-2">
-                                                <Award size={14} /> Ajuste Rápido de Provas e Avaliações
-                                            </Label>
-                                            <p className="text-[9px] text-slate-500 font-bold max-w-sm text-right">
-                                                As datas bloqueiam os dias no cronograma fluído. Você pode editá-las aqui sem voltar à tela anterior.
-                                            </p>
-                                        </div>
-                                        <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
-                                            {[...assessments].sort((a, b) => (a.date ? new Date(a.date).getTime() : 0) - (b.date ? new Date(b.date).getTime() : 0)).map(ass => (
-                                                <div key={ass.id} className="min-w-[220px] bg-white border border-[#8C132C]/20 rounded-2xl p-4 shadow-sm relative group shrink-0 border-l-4 border-l-[#8C132C] transition-all hover:shadow-md hover:border-[#8C132C]/40">
-                                                    <div className="text-[11px] font-black text-[#363636] mb-3 pr-8 truncate" title={ass.name}>{ass.name}</div>
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <button className={cn(
-                                                                "h-8 w-full rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase transition-colors border",
-                                                                ass.date ? "bg-[#8C132C]/5 text-[#8C132C] border-[#8C132C]/20 hover:bg-[#8C132C]/10" : "bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100"
-                                                            )}>
-                                                                <CalendarIcon size={12} />
-                                                                {ass.date ? format(new Date(ass.date), 'dd/MM/yyyy') : 'Definir Data'}
-                                                            </button>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-auto p-0 rounded-3xl border-none shadow-2xl">
-                                                            <Calendar
-                                                                mode="single"
-                                                                selected={ass.date ? new Date(ass.date) : undefined}
-                                                                onSelect={(d) => setAssessments(assessments.map(a => a.id === ass.id ? { ...a, date: d || null } : a))}
-                                                                locale={ptBR}
-                                                                disabled={(date) => isDateDisabled(date)}
-                                                            />
-                                                        </PopoverContent>
-                                                    </Popover>
-                                                    <div className="absolute top-4 right-4 text-[9px] font-black text-white bg-[#8C132C] px-2 py-0.5 rounded-md">
-                                                        {ass.points} pt
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
+                                <div className="space-y-4">
+                                    <DragDropContext onDragEnd={onDragEnd}>
+                                        <Droppable droppableId="timeline">
+                                            {(provided) => (
+                                                <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
+                                                    {fullSchedule.filter((s: any) => s.type !== 'holiday').map((item: any, index: number) => {
+                                                        const isAssessment = item.type === 'assessment';
+                                                        const topic = !isAssessment ? topics.find(t => t.id === item.id) : null;
+                                                        const assessment = isAssessment ? assessments.find(a => a.id === item.id) : null;
 
-                                <DragDropContext onDragEnd={onDragEnd}>
-                                    <Droppable droppableId="topics-list" isCombineEnabled>
-                                        {(provided) => (
-                                            <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4 pb-12">
-                                                {topics.map((topic, index) => (
-                                                    <Draggable key={topic.id} draggableId={topic.id} index={index}>
-                                                        {(provided, snapshot) => (
-                                                            <div
-                                                                ref={provided.innerRef}
-                                                                {...provided.draggableProps}
-                                                                className={cn(
-                                                                    "bg-white rounded-[32px] p-1 border-2 transition-all shadow-sm",
-                                                                    snapshot.isDragging ? "border-[#8C132C] shadow-2xl scale-102 z-50 ring-4 ring-[#8C132C]/5" : "border-transparent hover:border-slate-100"
-                                                                )}
-                                                            >
-                                                                <div className="flex items-center gap-4 p-4">
-                                                                    <div {...provided.dragHandleProps} className="text-slate-300 hover:text-slate-400 p-2">
-                                                                        <GripVertical size={20} />
-                                                                    </div>
-                                                                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black text-slate-400 text-xs">
-                                                                        {index + 1}
-                                                                    </div>
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <Input
-                                                                            value={topic.title}
-                                                                            onChange={e => updateTopic(topic.id, { title: e.target.value })}
-                                                                            placeholder="Título do Tópico ou Conteudo da Aula"
-                                                                            className="bg-transparent border-none font-bold text-slate-700 h-9 text-sm focus:ring-0 placeholder:text-slate-300 focus:bg-slate-50/50 rounded-xl px-4 w-full"
-                                                                        />
-                                                                        <div className="flex items-center gap-3 px-4 mt-1">
-                                                                            {/* Date Selection / Estimation */}
-                                                                            <Popover>
-                                                                                <PopoverTrigger asChild>
-                                                                                    <button className={cn(
-                                                                                        "flex items-center gap-1.5 text-[8px] font-black uppercase transition-all px-2 py-0.5 rounded-md",
-                                                                                        topic.date ? "bg-[#8C132C]/10 text-[#8C132C]" : "text-slate-300 hover:text-slate-400"
-                                                                                    )}>
-                                                                                        <Clock size={10} />
-                                                                                        {topic.date
-                                                                                            ? `Fixado: ${format(new Date(topic.date), 'dd/MM')}`
-                                                                                            : `Estimado: ${generateFullSchedule().find(s => s.content === topic.title)?.date || '---'}`
-                                                                                        }
-                                                                                    </button>
-                                                                                </PopoverTrigger>
-                                                                                <PopoverContent className="w-auto p-0 rounded-3xl border-none shadow-2xl">
-                                                                                    <Calendar
-                                                                                        mode="single"
-                                                                                        selected={topic.date ? new Date(topic.date) : undefined}
-                                                                                        onSelect={(d) => updateTopic(topic.id, { date: d })}
-                                                                                        initialFocus
-                                                                                        locale={ptBR}
-                                                                                        disabled={(date) => isTopicDateDisabled(date)}
-                                                                                    />
-                                                                                    {topic.date && (
-                                                                                        <div className="p-2 border-t border-slate-50 text-center">
-                                                                                            <button
-                                                                                                onClick={() => updateTopic(topic.id, { date: null })}
-                                                                                                className="text-[8px] font-black uppercase text-red-500 hover:text-red-600"
-                                                                                            >
-                                                                                                Remover Data Fixa
-                                                                                            </button>
-                                                                                        </div>
-                                                                                    )}
-                                                                                </PopoverContent>
-                                                                            </Popover>
-
-                                                                            <div className="flex items-center gap-1">
-                                                                                <div className="w-1 h-1 rounded-full bg-slate-200" />
-                                                                                <span className="text-[8px] font-black text-slate-300 uppercase">Carga: {topic.classesNeeded}h</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-6">
-                                                                        {/* PRACTICAL TOGGLE & CONFLICT ALERT */}
-                                                                        <div className="flex flex-col items-center gap-1 group/conflict relative">
-                                                                            <button
-                                                                                onClick={() => updateTopic(topic.id, { isPractical: !topic.isPractical })}
-                                                                                className={cn(
-                                                                                    "px-4 h-9 rounded-xl font-black text-[9px] uppercase transition-all flex items-center gap-2",
-                                                                                    topic.isPractical ? "bg-emerald-50 text-emerald-600 ring-2 ring-emerald-500/20" : "bg-slate-50 text-slate-400"
-                                                                                )}
-                                                                            >
-                                                                                {topic.isPractical ? 'Prática' : 'Teórica'}
-                                                                            </button>
-                                                                            {topic.isPractical && !practiceLocation && (
-                                                                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-bounce shadow-sm" title="Falta definir local de aula prática no Passo 1" />
-                                                                            )}
-                                                                        </div>
-
-                                                                        {/* METHODOLOGY SELECTOR & COACH */}
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className="relative group/method">
-                                                                                <Select value={topic.methodology} onValueChange={(val) => updateTopic(topic.id, { methodology: val })}>
-                                                                                    <SelectTrigger className="h-9 px-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-[9px] font-black text-slate-500 uppercase cursor-pointer hover:bg-slate-100 transition-all min-w-[120px] focus:ring-0">
-                                                                                        <SelectValue placeholder="Metodologia" />
-                                                                                    </SelectTrigger>
-                                                                                    <SelectContent className="rounded-2xl border-none shadow-xl">
-                                                                                        <SelectGroup>
-                                                                                            <SelectLabel className="text-[10px] font-black text-slate-400 uppercase">Tipos de Aula</SelectLabel>
-                                                                                            {Object.keys(METHODOLOGY_GUIDE).map(m => (
-                                                                                                <SelectItem key={m} value={m} className="font-bold text-xs cursor-pointer">{m}</SelectItem>
-                                                                                            ))}
-                                                                                            <SelectItem value="Seminário" className="font-bold text-xs cursor-pointer">Seminário</SelectItem>
-                                                                                            <SelectItem value="Gamificação" className="font-bold text-xs cursor-pointer">Gamificação</SelectItem>
-                                                                                        </SelectGroup>
-                                                                                    </SelectContent>
-                                                                                </Select>
+                                                        return (
+                                                            <Draggable key={item.instanceId} draggableId={item.instanceId} index={index}>
+                                                                {(provided, snapshot) => (
+                                                                    <div
+                                                                        ref={provided.innerRef}
+                                                                        {...provided.draggableProps}
+                                                                        className={cn(
+                                                                            "group relative transition-all duration-300",
+                                                                            snapshot.isDragging ? "z-50 scale-102 rotate-1" : ""
+                                                                        )}
+                                                                    >
+                                                                        <Card className={cn(
+                                                                            "p-6 rounded-[32px] border-none shadow-sm flex items-center gap-6 transition-all hover:shadow-xl hover:translate-x-2 group-hover:bg-slate-50/50",
+                                                                            isAssessment ? "bg-amber-50/30 border-l-8 border-amber-400" : "bg-white",
+                                                                            snapshot.isDragging ? "shadow-2xl ring-2 ring-[#8C132C]/10 bg-white" : ""
+                                                                        )}>
+                                                                            {/* DRAG HANDLE */}
+                                                                            <div {...provided.dragHandleProps} className="text-slate-200 hover:text-slate-400 transition-colors p-2 cursor-grab active:cursor-grabbing">
+                                                                                <GripVertical size={20} />
                                                                             </div>
 
-                                                                            {/* Pedagogical Coach Popover */}
-                                                                            {topic.methodology && METHODOLOGY_GUIDE[topic.methodology] && (
-                                                                                <Popover>
-                                                                                    <PopoverTrigger asChild>
-                                                                                        <button className="w-7 h-7 rounded-lg bg-[#8C132C]/10 text-[#8C132C] flex items-center justify-center transition-all hover:bg-[#8C132C] hover:text-white">
-                                                                                            <Sparkles size={12} />
-                                                                                        </button>
-                                                                                    </PopoverTrigger>
-                                                                                    <PopoverContent className="w-80 p-6 rounded-[32px] border-none shadow-2xl bg-white space-y-4">
-                                                                                        <div className="space-y-1">
-                                                                                            <h4 className="text-sm font-black text-[#8C132C] flex items-center gap-2 uppercase tracking-tight">
-                                                                                                <Sparkles size={14} /> Professor Coach: {topic.methodology}
-                                                                                            </h4>
-                                                                                            <p className="text-[11px] text-slate-500 leading-relaxed italic">{METHODOLOGY_GUIDE[topic.methodology].desc}</p>
-                                                                                        </div>
+                                                                            {/* DATE BADGE */}
+                                                                            <div className="flex flex-col items-center min-w-[60px]">
+                                                                                <div className={cn(
+                                                                                    "w-12 h-12 rounded-2xl flex flex-col items-center justify-center mb-1 transition-all",
+                                                                                    isAssessment ? "bg-amber-100 text-amber-700" : "bg-[#8C132C]/5 text-[#8C132C]"
+                                                                                )}>
+                                                                                    <span className="text-[12px] font-black leading-none">{item.date.split('/')[0]}</span>
+                                                                                    <span className="text-[8px] font-black uppercase opacity-60">
+                                                                                        {item.date.split('/')[1] === '01' ? 'Jan' : item.date.split('/')[1] === '02' ? 'Fev' : item.date.split('/')[1] === '03' ? 'Mar' : item.date.split('/')[1] === '04' ? 'Abr' : item.date.split('/')[1] === '05' ? 'Mai' : item.date.split('/')[1] === '06' ? 'Jun' : item.date.split('/')[1] === '07' ? 'Jul' : item.date.split('/')[1] === '08' ? 'Ago' : item.date.split('/')[1] === '09' ? 'Set' : item.date.split('/')[1] === '10' ? 'Out' : item.date.split('/')[1] === '11' ? 'Nov' : 'Dez'}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <span className="text-[9px] font-black uppercase text-slate-300 tracking-tighter">{item.dia}</span>
+                                                                            </div>
 
-                                                                                        <div className="space-y-2">
-                                                                                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Ideias de Atividades</span>
-                                                                                            <div className="grid gap-2">
-                                                                                                {METHODOLOGY_GUIDE[topic.methodology].activities.map((act, i) => (
-                                                                                                    <div key={i} className="bg-slate-50 p-3 rounded-2xl text-[10px] font-bold text-slate-700 flex items-start gap-2 border border-slate-100">
-                                                                                                        <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center text-[8px] text-[#8C132C] shadow-sm flex-shrink-0">{i + 1}</div>
-                                                                                                        {act}
-                                                                                                    </div>
-                                                                                                ))}
-                                                                                            </div>
-                                                                                        </div>
-
-                                                                                        <div className="pt-2 border-t border-slate-50">
-                                                                                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2 block">Links Úteis</span>
-                                                                                            <div className="flex flex-wrap gap-2">
-                                                                                                {METHODOLOGY_GUIDE[topic.methodology].links.map((link, i) => (
-                                                                                                    <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 rounded-xl bg-[#8C132C]/5 text-[#8C132C] text-[9px] font-black uppercase hover:bg-[#8C132C] hover:text-white transition-all">
-                                                                                                        {link.label}
-                                                                                                    </a>
-                                                                                                ))}
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </PopoverContent>
-                                                                                </Popover>
-                                                                            )}
-                                                                        </div>
-
-                                                                        {/* RESOURCES MULTI-SELECT POPOVER */}
-                                                                        <div className="relative group/resources">
-                                                                            <Popover>
-                                                                                <PopoverTrigger asChild>
-                                                                                    <button className="h-9 px-4 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-[9px] font-black text-slate-500 uppercase hover:bg-slate-100 transition-all cursor-pointer">
-                                                                                        {topic.resources.length > 0 ? `${topic.resources.length} Recursos` : <span className="flex items-center gap-1.5"><LayoutDashboard size={12} /> Adicionar Recursos</span>}
-                                                                                    </button>
-                                                                                </PopoverTrigger>
-                                                                                <PopoverContent className="w-56 p-4 rounded-3xl border-none shadow-2xl space-y-3">
-                                                                                    <div className="text-[10px] font-black uppercase text-slate-400 border-b border-slate-50 pb-2">Selecione os Recursos</div>
-                                                                                    <div className="grid gap-2">
-                                                                                        {['Projetor', 'Esqueleto', 'Macas', 'Modelos 3D', 'Software', 'Artigos Impressos', 'Instrumentos Avaliação'].map(r => (
-                                                                                            <label key={r} className="flex items-center gap-3 cursor-pointer p-1.5 hover:bg-slate-50 rounded-lg transition-colors">
-                                                                                                <Checkbox
-                                                                                                    checked={topic.resources.includes(r)}
-                                                                                                    onCheckedChange={(c) => {
-                                                                                                        const updated = c ? [...topic.resources, r] : topic.resources.filter(x => x !== r);
-                                                                                                        updateTopic(topic.id, { resources: updated });
-                                                                                                    }}
-                                                                                                    className="data-[state=checked]:bg-[#8C132C] data-[state=checked]:border-[#8C132C]"
-                                                                                                />
-                                                                                                <span className="text-[11px] font-bold text-slate-600">{r}</span>
-                                                                                            </label>
-                                                                                        ))}
+                                                                            {/* CONTENT */}
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <div className="flex items-center gap-3 mb-1">
+                                                                                    {isAssessment && <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-none text-[8px] font-black rounded-lg h-4 px-1.5">AVALIAÇÃO</Badge>}
+                                                                                    <h4 className={cn("text-base font-black truncate tracking-tight", isAssessment ? "text-amber-800" : "text-slate-800")}>
+                                                                                        {item.content}
+                                                                                    </h4>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-4 text-slate-400 text-[10px] font-bold">
+                                                                                    <div className="flex items-center gap-1">
+                                                                                        <Clock size={12} className="opacity-40" />
+                                                                                        <span>{item.time}</span>
                                                                                     </div>
-                                                                                </PopoverContent>
-                                                                            </Popover>
-                                                                        </div>
-
-                                                                        <Popover>
-                                                                            <PopoverTrigger asChild>
-                                                                                <button className="flex -space-x-2 cursor-pointer items-center border-none bg-transparent hover:opacity-80 transition-opacity focus:outline-none">
-                                                                                    {topic.bibliographyIds.length > 0 ? (
-                                                                                        topic.bibliographyIds.map(bid => {
-                                                                                            const b = books.find(book => book.id === bid);
-                                                                                            return (
-                                                                                                <div key={bid} className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center shadow-sm hover:z-10 transition-transform relative" title={b?.title}>
-                                                                                                    <BookOpen size={14} className="text-slate-400" />
-                                                                                                </div>
-                                                                                            );
-                                                                                        })
-                                                                                    ) : (
-                                                                                        <div className="w-9 h-9 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-300 hover:text-[#8C132C] hover:bg-[#8C132C]/5 transition-all" title="Vincular Referência">
-                                                                                            <BookOpen size={16} />
-                                                                                        </div>
+                                                                                    <Badge variant="outline" className="border-slate-100 text-slate-400 text-[8px] h-4 font-black uppercase rounded-md">
+                                                                                        {item.activity}
+                                                                                    </Badge>
+                                                                                    {isAssessment && assessment && (
+                                                                                        <span className="text-amber-600 font-black">{assessment.points} PTS</span>
                                                                                     )}
+                                                                                </div>
+                                                                            </div>
+
+                                                                            {/* QUICK ACTIONS */}
+                                                                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                                <button
+                                                                                    onClick={() => isAssessment ? removeAssessment(item.id) : removeTopic(item.id)}
+                                                                                    className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                                                                    title="Remover Tópico Inteiro"
+                                                                                >
+                                                                                    <Trash2 size={18} />
                                                                                 </button>
-                                                                            </PopoverTrigger>
-                                                                            <PopoverContent className="w-80 p-6 rounded-[32px] border-none shadow-2xl bg-white space-y-4">
-                                                                                <div className="flex items-center justify-between mb-2">
-                                                                                    <h4 className="text-[10px] font-black uppercase text-slate-400">Referências da Aula</h4>
-                                                                                    <Button
-                                                                                        variant="ghost"
-                                                                                        size="sm"
-                                                                                        onClick={() => handleAutoLinkBibliography(topic.id)}
-                                                                                        className="h-7 rounded-lg text-[9px] font-black uppercase text-[#8C132C] hover:bg-[#8C132C]/10 gap-1.5"
-                                                                                    >
-                                                                                        <Sparkles size={10} /> Vincular IA
-                                                                                    </Button>
-                                                                                </div>
-                                                                                <div className="grid gap-2 max-h-64 overflow-y-auto pr-2 no-scrollbar">
-                                                                                    {books.map(book => (
-                                                                                        <button
-                                                                                            key={book.id}
-                                                                                            onClick={() => {
-                                                                                                const updated = topic.bibliographyIds.includes(book.id)
-                                                                                                    ? topic.bibliographyIds.filter(id => id !== book.id)
-                                                                                                    : [...topic.bibliographyIds, book.id];
-                                                                                                updateTopic(topic.id, { bibliographyIds: updated });
-                                                                                            }}
-                                                                                            className={cn(
-                                                                                                "flex items-center gap-4 p-4 rounded-2xl text-left transition-all border group/item",
-                                                                                                topic.bibliographyIds.includes(book.id)
-                                                                                                    ? "bg-[#8C132C]/5 border-[#8C132C]/20"
-                                                                                                    : "bg-white border-slate-50 hover:bg-slate-50"
-                                                                                            )}
-                                                                                        >
-                                                                                            <div className={cn(
-                                                                                                "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                                                                                                topic.bibliographyIds.includes(book.id) ? "bg-[#8C132C] border-[#8C132C]" : "bg-white border-slate-200"
-                                                                                            )}>
-                                                                                                {topic.bibliographyIds.includes(book.id) && <CheckCircle2 size={12} className="text-white" />}
-                                                                                            </div>
-                                                                                            <div className="flex-1 overflow-hidden">
-                                                                                                <div className="text-[11px] font-black text-slate-700 truncate">{book.title}</div>
-                                                                                                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">{book.author} • {book.type}</div>
-                                                                                            </div>
-                                                                                        </button>
-                                                                                    ))}
-                                                                                    {books.length === 0 && (
-                                                                                        <div className="py-10 text-center space-y-3">
-                                                                                            <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto text-slate-200">
-                                                                                                <Library size={24} />
-                                                                                            </div>
-                                                                                            <p className="text-[10px] font-bold text-slate-400">Nenhum livro cadastrado no Passo 2.</p>
-                                                                                        </div>
-                                                                                    )}
-                                                                                </div>
-                                                                            </PopoverContent>
-                                                                        </Popover>
-
-                                                                        <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-2xl border border-slate-100/50">
-                                                                            <button
-                                                                                onClick={() => updateTopic(topic.id, { classesNeeded: Math.max(1, topic.classesNeeded - 1) })}
-                                                                                className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-slate-400 hover:text-[#8C132C] shadow-sm transition-all"
-                                                                            >
-                                                                                -
-                                                                            </button>
-                                                                            <span className="w-8 text-center font-black text-xs text-[#8C132C]">{topic.classesNeeded}h</span>
-                                                                            <button
-                                                                                onClick={() => updateTopic(topic.id, { classesNeeded: topic.classesNeeded + 1 })}
-                                                                                className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-slate-400 hover:text-[#8C132C] shadow-sm transition-all"
-                                                                            >
-                                                                                +
-                                                                            </button>
-                                                                        </div>
-
-                                                                        <button onClick={() => removeTopic(topic.id)} className="p-2 text-slate-200 hover:text-red-400 transition-colors">
-                                                                            <Trash2 size={18} />
-                                                                        </button>
+                                                                            </div>
+                                                                        </Card>
                                                                     </div>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </Draggable>
-                                                ))}
-                                                {provided.placeholder}
-                                            </div>
-                                        )}
-                                    </Droppable>
-                                </DragDropContext>
+                                                                )}
+                                                            </Draggable>
+                                                        );
+                                                    })}
+                                                    {provided.placeholder}
+                                                </div>
+                                            )}
+                                        </Droppable>
+                                    </DragDropContext>
+                                </div>
 
                                 <div className="flex justify-between items-center pt-8 border-t border-slate-50">
-                                    <Button onClick={() => setStep(2)} variant="ghost" className="h-14 rounded-2xl px-10 font-black uppercase tracking-widest text-slate-400">
+                                    <Button onClick={() => setStep(2)} variant="ghost" className="h-14 rounded-2xl px-10 font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all">
                                         <ChevronLeft size={18} className="mr-2" /> Voltar
                                     </Button>
                                     <Button disabled={isOverflow} onClick={() => setStep(4)} className="bg-emerald-600 hover:bg-emerald-700 h-16 rounded-[28px] px-12 font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20">
@@ -1910,218 +1535,223 @@ export default function SyllabusWizard() {
                                     </Button>
                                 </div>
                             </motion.div>
-                        )}
+                        )
+                    }
 
-                    {step === 4 && (
-                        <motion.div key="step4" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-10 pb-40">
-                            {/* HEADBOARD - VIEW MODE SELECTOR */}
-                            <div className="bg-white p-2 rounded-[32px] shadow-xl shadow-slate-200/50 flex gap-2 w-fit mx-auto border border-slate-50">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => setViewMode('professor')}
-                                    className={cn(
-                                        "rounded-[24px] px-8 h-12 font-black text-[10px] uppercase transition-all",
-                                        viewMode === 'professor' ? "bg-[#8C132C] text-white shadow-lg shadow-[#8C132C]/20" : "text-slate-400 hover:bg-slate-50"
-                                    )}
-                                >
-                                    Modo Professor (Gestão)
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => setViewMode('student')}
-                                    className={cn(
-                                        "rounded-[24px] px-8 h-12 font-black text-[10px] uppercase transition-all",
-                                        viewMode === 'student' ? "bg-[#8C132C] text-white shadow-lg shadow-[#8C132C]/20" : "text-slate-400 hover:bg-slate-50"
-                                    )}
-                                >
-                                    Modo Aluno (Consulta)
-                                </Button>
-                            </div>
-
-                            <div className="grid grid-cols-12 gap-8">
-                                {/* LEFT: PROGRESS & INFO */}
-                                <div className="col-span-4 space-y-6">
-                                    <Card className="p-8 rounded-[44px] border-none shadow-2xl bg-[#363636] text-white overflow-hidden relative">
-                                        <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-3xl" />
-                                        <h3 className="text-sm font-black uppercase tracking-widest opacity-50 mb-6">Progresso do Semestre</h3>
-                                        <div className="flex items-end gap-4 mb-2">
-                                            <span className="text-6xl font-black">{Math.round((completedTopicIds.length / topics.length) * 100)}%</span>
-                                            <span className="text-xs font-bold opacity-40 pb-3 uppercase">Concluído</span>
-                                        </div>
-                                        <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
-                                            <motion.div
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${(completedTopicIds.length / topics.length) * 100}%` }}
-                                                className="h-full bg-emerald-400 shadow-[0_0_20px_#10b981]"
-                                            />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4 mt-8 pt-8 border-t border-white/10">
-                                            <div>
-                                                <div className="text-[9px] font-black uppercase opacity-40">Aulas Dadas</div>
-                                                <div className="text-xl font-black">{completedTopicIds.length}</div>
-                                            </div>
-                                            <div>
-                                                <div className="text-[9px] font-black uppercase opacity-40">Restantes</div>
-                                                <div className="text-xl font-black">{topics.length - completedTopicIds.length}</div>
-                                            </div>
-                                        </div>
-                                    </Card>
-
-                                    <Card className="p-8 rounded-[44px] border-none shadow-xl bg-white border border-slate-50 space-y-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-2xl bg-[#8C132C]/5 flex items-center justify-center text-[#8C132C]"><LinkIcon size={20} /></div>
-                                            <div>
-                                                <h4 className="text-sm font-black text-slate-700">Link de Acesso Acadêmico</h4>
-                                                <p className="text-[10px] font-bold text-slate-400">Compartilhe com seus alunos</p>
-                                            </div>
-                                        </div>
-                                        <div className="bg-slate-50 p-4 rounded-2xl flex items-center justify-between border border-slate-100">
-                                            <code className="text-[10px] font-bold text-[#8C132C] truncate pr-4">axiom.ai/c/{publicSlug}</code>
-                                            <Button variant="ghost" size="sm" className="h-8 rounded-lg bg-white shadow-sm font-black text-[9px] uppercase px-3" onClick={() => {
-                                                navigator.clipboard.writeText(`https://axiom.ai/c/${publicSlug}`);
-                                                toast.success("Link copiado!");
-                                            }}>Copiar</Button>
-                                        </div>
-                                    </Card>
+                    {
+                        step === 4 && (
+                            <motion.div key="step4" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-10 pb-40">
+                                {/* HEADBOARD - VIEW MODE SELECTOR */}
+                                <div className="bg-white p-2 rounded-[32px] shadow-xl shadow-slate-200/50 flex gap-2 w-fit mx-auto border border-slate-50">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => setViewMode('professor')}
+                                        className={cn(
+                                            "rounded-[24px] px-8 h-12 font-black text-[10px] uppercase transition-all",
+                                            viewMode === 'professor' ? "bg-[#8C132C] text-white shadow-lg shadow-[#8C132C]/20" : "text-slate-400 hover:bg-slate-50"
+                                        )}
+                                    >
+                                        Modo Professor (Gestão)
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => setViewMode('student')}
+                                        className={cn(
+                                            "rounded-[24px] px-8 h-12 font-black text-[10px] uppercase transition-all",
+                                            viewMode === 'student' ? "bg-[#8C132C] text-white shadow-lg shadow-[#8C132C]/20" : "text-slate-400 hover:bg-slate-50"
+                                        )}
+                                    >
+                                        Modo Aluno (Consulta)
+                                    </Button>
                                 </div>
 
-                                {/* RIGHT: INTERACTIVE SCHEDULE LOG */}
-                                <div className="col-span-8 space-y-4">
-                                    <div className="flex justify-between items-center px-4">
-                                        <h3 className="text-lg font-black text-slate-700">Diário de Classe Digital</h3>
-                                        <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[9px] uppercase tracking-widest px-4 py-1.5">Semestre Ativo</Badge>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        {topics.map((topic, index) => {
-                                            const isDone = completedTopicIds.includes(topic.id);
-                                            return (
+                                <div className="grid grid-cols-12 gap-8">
+                                    {/* LEFT: PROGRESS & INFO */}
+                                    <div className="col-span-4 space-y-6">
+                                        <Card className="p-8 rounded-[44px] border-none shadow-2xl bg-[#363636] text-white overflow-hidden relative">
+                                            <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-3xl" />
+                                            <h3 className="text-sm font-black uppercase tracking-widest opacity-50 mb-6">Progresso do Semestre</h3>
+                                            <div className="flex items-end gap-4 mb-2">
+                                                <span className="text-6xl font-black">{Math.round((completedTopicIds.length / topics.length) * 100)}%</span>
+                                                <span className="text-xs font-bold opacity-40 pb-3 uppercase">Concluído</span>
+                                            </div>
+                                            <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
                                                 <motion.div
-                                                    layout
-                                                    key={topic.id}
-                                                    className={cn(
-                                                        "bg-white p-5 rounded-[36px] border-2 transition-all flex items-center gap-5 group",
-                                                        isDone ? "border-emerald-100 opacity-60 grayscale-[0.5]" : "border-slate-50 shadow-sm hover:border-[#8C132C]/20"
-                                                    )}
-                                                >
-                                                    {viewMode === 'professor' && (
-                                                        <button
-                                                            onClick={() => toggleTopicCompletion(topic.id)}
-                                                            className={cn(
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${(completedTopicIds.length / topics.length) * 100}%` }}
+                                                    className="h-full bg-emerald-400 shadow-[0_0_20px_#10b981]"
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4 mt-8 pt-8 border-t border-white/10">
+                                                <div>
+                                                    <div className="text-[9px] font-black uppercase opacity-40">Aulas Dadas</div>
+                                                    <div className="text-xl font-black">{completedTopicIds.length}</div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-[9px] font-black uppercase opacity-40">Restantes</div>
+                                                    <div className="text-xl font-black">{topics.length - completedTopicIds.length}</div>
+                                                </div>
+                                            </div>
+                                        </Card>
+
+                                        <Card className="p-8 rounded-[44px] border-none shadow-xl bg-white border border-slate-50 space-y-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-2xl bg-[#8C132C]/5 flex items-center justify-center text-[#8C132C]"><LinkIcon size={20} /></div>
+                                                <div>
+                                                    <h4 className="text-sm font-black text-slate-700">Link de Acesso Acadêmico</h4>
+                                                    <p className="text-[10px] font-bold text-slate-400">Compartilhe com seus alunos</p>
+                                                </div>
+                                            </div>
+                                            <div className="bg-slate-50 p-4 rounded-2xl flex items-center justify-between border border-slate-100">
+                                                <code className="text-[10px] font-bold text-[#8C132C] truncate pr-4">axiom.ai/c/{publicSlug}</code>
+                                                <Button variant="ghost" size="sm" className="h-8 rounded-lg bg-white shadow-sm font-black text-[9px] uppercase px-3" onClick={() => {
+                                                    navigator.clipboard.writeText(`https://axiom.ai/c/${publicSlug}`);
+                                                    toast.success("Link copiado!");
+                                                }}>Copiar</Button>
+                                            </div>
+                                        </Card>
+                                    </div>
+
+                                    {/* RIGHT: INTERACTIVE SCHEDULE LOG */}
+                                    <div className="col-span-8 space-y-4">
+                                        <div className="flex justify-between items-center px-4">
+                                            <h3 className="text-lg font-black text-slate-700">Diário de Classe Digital</h3>
+                                            <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[9px] uppercase tracking-widest px-4 py-1.5">Semestre Ativo</Badge>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            {topics.map((topic, index) => {
+                                                const isDone = completedTopicIds.includes(topic.id);
+                                                return (
+                                                    <motion.div
+                                                        layout
+                                                        key={topic.id}
+                                                        className={cn(
+                                                            "bg-white p-5 rounded-[36px] border-2 transition-all flex items-center gap-5 group",
+                                                            isDone ? "border-emerald-100 opacity-60 grayscale-[0.5]" : "border-slate-50 shadow-sm hover:border-[#8C132C]/20"
+                                                        )}
+                                                    >
+                                                        {viewMode === 'professor' && (
+                                                            <button
+                                                                onClick={() => toggleTopicCompletion(topic.id)}
+                                                                className={cn(
+                                                                    "w-12 h-12 rounded-2xl flex items-center justify-center transition-all border-2",
+                                                                    isDone ? "bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200" : "bg-white border-slate-100 text-slate-200 group-hover:border-[#8C132C]/30"
+                                                                )}
+                                                            >
+                                                                <Check size={24} strokeWidth={4} />
+                                                            </button>
+                                                        )}
+
+                                                        {viewMode === 'student' && (
+                                                            <div className={cn(
                                                                 "w-12 h-12 rounded-2xl flex items-center justify-center transition-all border-2",
-                                                                isDone ? "bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200" : "bg-white border-slate-100 text-slate-200 group-hover:border-[#8C132C]/30"
-                                                            )}
-                                                        >
-                                                            <Check size={24} strokeWidth={4} />
-                                                        </button>
-                                                    )}
-
-                                                    {viewMode === 'student' && (
-                                                        <div className={cn(
-                                                            "w-12 h-12 rounded-2xl flex items-center justify-center transition-all border-2",
-                                                            isDone ? "bg-emerald-50 border-emerald-100 text-emerald-500" : "bg-slate-50 border-transparent text-slate-300"
-                                                        )}>
-                                                            {isDone ? <CheckCircle2 size={24} /> : <div className="text-xs font-black">{index + 1}</div>}
-                                                        </div>
-                                                    )}
-
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-3 mb-0.5">
-                                                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Aula {index + 1}</span>
-                                                            {topic.isPractical && <Badge className="bg-blue-50 text-blue-500 text-[8px] font-black uppercase px-2 py-0 border-none">Prática</Badge>}
-                                                        </div>
-                                                        <h4 className={cn("text-base font-black transition-all", isDone ? "text-slate-400 line-through" : "text-slate-700")}>
-                                                            {topic.title}
-                                                        </h4>
-                                                        <div className="flex items-center gap-4 mt-2">
-                                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                                                                <Clock size={12} className="opacity-50" /> {topic.classesNeeded}h
+                                                                isDone ? "bg-emerald-50 border-emerald-100 text-emerald-500" : "bg-slate-50 border-transparent text-slate-300"
+                                                            )}>
+                                                                {isDone ? <CheckCircle2 size={24} /> : <div className="text-xs font-black">{index + 1}</div>}
                                                             </div>
-                                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                                                                <Sparkles size={12} className="opacity-50" /> {topic.methodology}
-                                                            </div>
-                                                            <div className="flex -space-x-2 ml-2">
-                                                                {topic.bibliographyIds.map(bid => (
-                                                                    <div key={bid} className="w-5 h-5 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[8px] text-slate-400 font-bold" title="Livro">B</div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                        )}
 
-                                                    {!isDone && (
-                                                        <Popover>
-                                                            <PopoverTrigger asChild>
-                                                                <Button variant="ghost" className="w-10 h-10 rounded-xl p-0 hover:bg-[#8C132C]/5 text-slate-300 hover:text-[#8C132C]"><Info size={20} /></Button>
-                                                            </PopoverTrigger>
-                                                            <PopoverContent className="w-64 p-5 rounded-[28px] border-none shadow-2xl space-y-3">
-                                                                <h5 className="font-black text-xs text-[#8C132C] uppercase tracking-tight">Recursos da Aula</h5>
-                                                                <div className="flex flex-wrap gap-1.5">
-                                                                    {topic.resources.map(r => <Badge key={r} variant="outline" className="text-[9px] font-bold border-slate-100">{r}</Badge>)}
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center gap-3 mb-0.5">
+                                                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Aula {index + 1}</span>
+                                                                {topic.isPractical && <Badge className="bg-blue-50 text-blue-500 text-[8px] font-black uppercase px-2 py-0 border-none">Prática</Badge>}
+                                                            </div>
+                                                            <h4 className={cn("text-base font-black transition-all", isDone ? "text-slate-400 line-through" : "text-slate-700")}>
+                                                                {topic.title}
+                                                            </h4>
+                                                            <div className="flex items-center gap-4 mt-2">
+                                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                                                    <Clock size={12} className="opacity-50" /> {topic.classesNeeded}h
                                                                 </div>
-                                                                <div className="pt-2">
-                                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Localização</p>
-                                                                    <p className="text-[11px] font-black text-slate-600">{topic.isPractical ? practiceLocation : theoryLocation}</p>
+                                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                                                    <Sparkles size={12} className="opacity-50" /> {topic.methodology}
                                                                 </div>
-                                                            </PopoverContent>
-                                                        </Popover>
-                                                    )}
-                                                </motion.div>
-                                            );
-                                        })}
+                                                                <div className="flex -space-x-2 ml-2">
+                                                                    {topic.bibliographyIds.map(bid => (
+                                                                        <div key={bid} className="w-5 h-5 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[8px] text-slate-400 font-bold" title="Livro">B</div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {!isDone && (
+                                                            <Popover>
+                                                                <PopoverTrigger asChild>
+                                                                    <Button variant="ghost" className="w-10 h-10 rounded-xl p-0 hover:bg-[#8C132C]/5 text-slate-300 hover:text-[#8C132C]"><Info size={20} /></Button>
+                                                                </PopoverTrigger>
+                                                                <PopoverContent className="w-64 p-5 rounded-[28px] border-none shadow-2xl space-y-3">
+                                                                    <h5 className="font-black text-xs text-[#8C132C] uppercase tracking-tight">Recursos da Aula</h5>
+                                                                    <div className="flex flex-wrap gap-1.5">
+                                                                        {topic.resources.map(r => <Badge key={r} variant="outline" className="text-[9px] font-bold border-slate-100">{r}</Badge>)}
+                                                                    </div>
+                                                                    <div className="pt-2">
+                                                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Localização</p>
+                                                                        <p className="text-[11px] font-black text-slate-600">{topic.isPractical ? practiceLocation : theoryLocation}</p>
+                                                                    </div>
+                                                                </PopoverContent>
+                                                            </Popover>
+                                                        )}
+                                                    </motion.div>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div className="fixed bottom-10 right-10 flex gap-4">
-                                <Button
-                                    onClick={() => setStep(3)}
-                                    className="h-16 rounded-[32px] px-8 bg-white border-2 border-slate-100 text-slate-400 font-black uppercase text-[10px] tracking-widest shadow-xl hover:bg-slate-50 transition-all"
-                                >
-                                    <ChevronLeft size={18} className="mr-2" /> Voltar para Edição
-                                </Button>
-                                <Button
-                                    onClick={() => toast.success("Cronograma arquivado com sucesso!")}
-                                    className="h-16 rounded-[32px] px-10 bg-[#363636] font-black uppercase text-xs tracking-widest shadow-2xl transition-all hover:scale-105 active:scale-95"
-                                >
-                                    Finalizar Semestre
-                                </Button>
-                            </div>
+                                <div className="fixed bottom-10 right-10 flex gap-4">
+                                    <Button
+                                        onClick={() => setStep(3)}
+                                        className="h-16 rounded-[32px] px-8 bg-white border-2 border-slate-100 text-slate-400 font-black uppercase text-[10px] tracking-widest shadow-xl hover:bg-slate-50 transition-all"
+                                    >
+                                        <ChevronLeft size={18} className="mr-2" /> Voltar para Edição
+                                    </Button>
+                                    <Button
+                                        onClick={() => toast.success("Cronograma arquivado com sucesso!")}
+                                        className="h-16 rounded-[32px] px-10 bg-[#363636] font-black uppercase text-xs tracking-widest shadow-2xl transition-all hover:scale-105 active:scale-95"
+                                    >
+                                        Finalizar Semestre
+                                    </Button>
+                                </div>
 
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                            </motion.div>
+                        )
+                    }
+                </AnimatePresence >
 
                 {/* FLOATING STATUS INFO */}
-                {step === 3 && (
-                    <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50">
-                        <div className={cn(
-                            "px-8 py-4 rounded-full shadow-2xl flex items-center gap-6 backdrop-blur-xl border transition-all",
-                            isOverflow ? "bg-red-500/90 border-red-400 text-white" : "bg-[#363636]/90 border-white/10 text-slate-100"
-                        )}>
-                            <div className="flex items-center gap-3 border-r border-white/10 pr-6">
-                                <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_#10b981]" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">Calendário Ativo</span>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <div className="text-[11px] font-bold">Aulas: {totalNeededHours} / {availableHours.toFixed(0)}h</div>
-                                {totalPoints !== 100 && (
-                                    <div className="flex items-center gap-2 bg-red-400/20 px-3 py-1 rounded-full text-[9px] font-black uppercase text-red-200">
-                                        <AlertTriangle size={12} /> Pontos: {totalPoints}/100
-                                    </div>
-                                )}
-                                {isOverflow ? (
-                                    <div className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-[9px] font-black uppercase">
-                                        <AlertTriangle size={12} /> Estouro: {(totalNeededHours - availableHours).toFixed(1)}h
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-2 bg-emerald-500/20 px-3 py-1 rounded-full text-[9px] font-black uppercase text-emerald-300">
-                                        <CheckCircle2 size={12} /> Espaço OK
-                                    </div>
-                                )}
+                {
+                    step === 3 && (
+                        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50">
+                            <div className={cn(
+                                "px-8 py-4 rounded-full shadow-2xl flex items-center gap-6 backdrop-blur-xl border transition-all",
+                                isOverflow ? "bg-red-500/90 border-red-400 text-white" : "bg-[#363636]/90 border-white/10 text-slate-100"
+                            )}>
+                                <div className="flex items-center gap-3 border-r border-white/10 pr-6">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_#10b981]" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Calendário Ativo</span>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <div className="text-[11px] font-bold">Aulas: {totalNeededHours} / {availableHours.toFixed(0)}h</div>
+                                    {totalPoints !== 100 && (
+                                        <div className="flex items-center gap-2 bg-red-400/20 px-3 py-1 rounded-full text-[9px] font-black uppercase text-red-200">
+                                            <AlertTriangle size={12} /> Pontos: {totalPoints}/100
+                                        </div>
+                                    )}
+                                    {isOverflow ? (
+                                        <div className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-[9px] font-black uppercase">
+                                            <AlertTriangle size={12} /> Estouro: {(totalNeededHours - availableHours).toFixed(1)}h
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2 bg-emerald-500/20 px-3 py-1 rounded-full text-[9px] font-black uppercase text-emerald-300">
+                                            <CheckCircle2 size={12} /> Espaço OK
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )
+                }
 
             </div >
 
@@ -2285,15 +1915,22 @@ export default function SyllabusWizard() {
                                                     )}
                                                     {visibleColumns.includes('conteudo') && (
                                                         <td className="px-6 py-5 relative">
-                                                            <div className="flex items-center gap-2 mb-0.5">
-                                                                <span className={cn(
-                                                                    "text-[13px] font-black",
-                                                                    row.type === 'holiday' ? "text-red-400 italic" : "text-slate-800",
-                                                                    row.type === 'assessment' && "text-[#8C132C]"
-                                                                )}>
-                                                                    {row.content}
-                                                                </span>
-                                                                {row.isPractical && <Badge className="bg-blue-400 text-white border-none text-[8px] font-black px-1.5 py-0 shadow-sm shadow-blue-200">PRÁTICA</Badge>}
+                                                            <div className="flex flex-col">
+                                                                <div className="flex items-center gap-2 mb-0.5">
+                                                                    <span className={cn(
+                                                                        "text-[13px] font-black",
+                                                                        row.type === 'holiday' ? "text-red-400 italic" : "text-slate-800",
+                                                                        row.type === 'assessment' && "text-[#8C132C]"
+                                                                    )}>
+                                                                        {row.content}
+                                                                    </span>
+                                                                    {row.isPractical && <Badge className="bg-blue-400 text-white border-none text-[8px] font-black px-1.5 py-0 shadow-sm shadow-blue-200">PRÁTICA</Badge>}
+                                                                </div>
+                                                                {row.subContent && (
+                                                                    <div className="text-[10px] font-bold text-[#8C132C]/60 italic mb-1 uppercase tracking-tight">
+                                                                        {row.subContent}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                             <div className="text-[9px] font-bold text-slate-300 uppercase shrink-0">
                                                                 {row.time}
@@ -2418,7 +2055,7 @@ export default function SyllabusWizard() {
             </Dialog >
 
             {/* Conflict Resolution Modal */}
-            <Dialog open={showConflictModal} onOpenChange={setShowConflictModal}>
+            < Dialog open={showConflictModal} onOpenChange={setShowConflictModal} >
                 <DialogContent className="max-w-[600px] rounded-[48px] p-10 border-none shadow-2xl">
                     <DialogHeader>
                         <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-3xl flex items-center justify-center mb-6">
@@ -2464,7 +2101,7 @@ export default function SyllabusWizard() {
                         </button>
                     </div>
                 </DialogContent>
-            </Dialog>
+            </Dialog >
 
             <Dialog open={showDraftsModal} onOpenChange={setShowDraftsModal} >
                 <DialogContent className="max-w-[800px] rounded-[48px] p-10 border-none shadow-2xl">

@@ -22,15 +22,11 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
     console.log("🚀 [sendOrderToPropulsao] INICIANDO ENVIO...");
 
     try {
-        // Obter o e-mail do usuário ATIVO (logado no Axiom)
         const context = await getSecurityContext().catch(() => null);
         const activeUserEmail = context?.userEmail || professionalData?.email || "contato@axiom.com";
 
         const AXION_TOKEN = (process.env.AXION_TOKEN || "").trim();
         const PUBLIC_KEY_PEM_RAW = (process.env.PROPULSAO_PUBLIC_KEY || "").trim();
-
-        console.log("   -> E-mail Profissional (Ativo):", activeUserEmail);
-        console.log("   -> Token Configurado:", AXION_TOKEN.length > 0 ? "Sim" : "Não");
 
         if (!AXION_TOKEN) {
             return { success: false, error: "Token de autenticação (AXION_TOKEN) não configurado." };
@@ -41,22 +37,22 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             publicKeyPem = getStrictPublicKey(PUBLIC_KEY_PEM_RAW);
             if (!publicKeyPem || publicKeyPem.length < 50) throw new Error("Chave pública inválida ou ausente.");
         } catch (e: any) {
-            console.error("❌ Erro ao processar chave pública:", e.message);
             return { success: false, error: "Chave pública da Propulsão é inválida." };
         }
 
-        const dataMs = Date.now();
+        // Ajuste de Timezone: Se estivermos perto da meia-noite UTC, o servidor pode registrar o dia seguinte.
+        // Forçamos o timestamp para o momento atual.
+        const now = new Date();
+        const timestamp = Math.floor(now.getTime() / 1000);
 
-        // 1. Dados Sensíveis (Padrão AXIOM) - Importante usar Nome real e E-mail ativo
+        // 1. Dados Sensíveis (Padrão AXIOM)
         const sensitiveData = {
-            timestamp: Math.floor(dataMs / 1000),
-            Email_paciente: (patientData.email || "contato@axiom.com").toLowerCase(),
+            timestamp: timestamp,
+            Email_paciente: (patientData.email || "").toLowerCase(),
             IdFisio: [activeUserEmail.toLowerCase()],
             LocalPedido: "AXIOM",
-            Nome_Paciente: (patientData.nome || "PACIENTE TESTE").toUpperCase()
+            Nome_Paciente: (patientData.nome || "").toUpperCase()
         };
-
-        console.log("   -> Payload Paciente:", sensitiveData.Nome_Paciente);
 
         // 2. Criptografia node-forge
         let base64Payload;
@@ -82,67 +78,50 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
         };
 
         const mapFlex = (f: string) => {
-            if (!f) return "Flexível";
-            if (f.includes("Rígido")) return "Rigido";
-            if (f.includes("Semirrígido") || f.includes("Semi")) return "Semi-Flexível";
-            return "Flexível";
+            if (!f) return "Flexivel";
+            const t = f.toLowerCase();
+            if (t.includes("rígido") || t.includes("rigido")) return "Rigido";
+            return "Flexivel";
         };
 
         const extractDegree = (s: string) => {
             if (!s || s.includes("Sem correção") || s === "0" || s.includes("Neutro")) return "0";
+            const digits = s.match(/\d+/);
+            if (!digits) return "0";
 
-            const matchDeg = s.match(/\| (.*) graus/);
-            if (matchDeg) {
-                return matchDeg[1].replace(/[^0-9-]/g, "").replace("-", "");
-            }
-
-            const matchParen = s.match(/\((\d+)º\)/);
-            if (matchParen) {
-                return matchParen[1];
-            }
-
-            return "0";
+            // Supinação é NEGATIVO no sistema biomecânico (geralmente)
+            const isNegative = s.toLowerCase().includes("negativo") || s.toLowerCase().includes("supinação") || s.toLowerCase().includes("supinacao");
+            return isNegative ? `-${digits[0]}` : digits[0];
         };
 
-        const mapBarra = (pads: any) => {
-            if (pads?.['Gota']) return "Gota";
-            if (pads?.['Barra']) return "Sim";
-            return "Não";
-        };
-
-        const mapAbsorcao = (a: string) => {
-            if (!a) return "0";
-            if (a.includes("Absorção")) return "Sim";
-            if (a.includes("inteira")) return "Inteira";
-            return "0";
-        };
-
-        // 3. Info
+        // 3. Info - Enviando chaves em Duplicidade (CamelCase e lowercase) para garantir captura pelo dashboard
         const info = {
-            Cobertura: orderData.general?.cobertura ? orderData.general.cobertura.split('(')[0].trim() : "EVA AZUL",
-            Numeracao: Math.round(Number(orderData.general?.tamanho) || 40),
+            Cobertura: (orderData.general?.cobertura || "EVA Azul").replace(/\s/g, ""),
+            Numeracao: Number(orderData.general?.tamanho) || 40,
             ladoPedido: "DireitoEsquerdo",
             PrecoPedido: Number(orderData.totalPrice) || 190.00,
             Produto: orderData.general?.produto || "Slim",
             observacoesCompra: orderData.reportText || "",
-            PontosGerados: 0,
+            PontosGerados: 10,
 
-            Nome_indicacao: professionalData?.nome || "Fisio",
-            Contato_indicacao: professionalData?.address || "Endereço Externo",
+            Nome_indicacao: professionalData?.nome || "Fisioterapeuta",
+            Contato_indicacao: professionalData?.address || "Axiom",
 
-            Absorcao_dir: mapAbsorcao(orderData.rightFoot?.absorcao || ""),
-            Absorcao_esq: mapAbsorcao(orderData.leftFoot?.absorcao || ""),
+            // Biomecânica - Padrão CamelCase (conforme doc)
+            Absorcao_dir: orderData.rightFoot?.absorcao?.includes("Absorção") ? "Sim" : "0",
+            Absorcao_esq: orderData.leftFoot?.absorcao?.includes("Absorção") ? "Sim" : "0",
 
             Antepe_Dir: extractDegree(orderData.rightFoot?.antepe || ""),
             Antepe_Esq: extractDegree(orderData.leftFoot?.antepe || ""),
             Retrope_Dir: extractDegree(orderData.rightFoot?.retrope || ""),
             Retrope_Esq: extractDegree(orderData.leftFoot?.retrope || ""),
 
-            Barra_Dir: mapBarra(orderData.rightFoot?.pads),
-            Barra_Esq: mapBarra(orderData.leftFoot?.pads),
+            Barra_Dir: orderData.rightFoot?.pads?.['Barra'] ? "Barra" : "0",
+            Barra_Esq: orderData.leftFoot?.pads?.['Barra'] ? "Barra" : "0",
+            Gota_perda: !!orderData.rightFoot?.pads?.['Gota'] || !!orderData.leftFoot?.pads?.['Gota'],
 
-            Elevacao_Dir: orderData.rightFoot?.elevacao === "Nenhuma" ? "0" : extractDegree(orderData.rightFoot?.elevacao || "0"),
-            Elevacao_Esq: orderData.leftFoot?.elevacao === "Nenhuma" ? "0" : extractDegree(orderData.leftFoot?.elevacao || "0"),
+            Elevacao_Dir: (orderData.rightFoot?.elevacao === "Nenhuma" || !orderData.rightFoot?.elevacao) ? "0" : extractDegree(orderData.rightFoot?.elevacao),
+            Elevacao_Esq: (orderData.leftFoot?.elevacao === "Nenhuma" || !orderData.leftFoot?.elevacao) ? "0" : extractDegree(orderData.leftFoot?.elevacao),
 
             Arco_Dir: mapArco(orderData.rightFoot?.arco || ""),
             Arco_Esq: mapArco(orderData.leftFoot?.arco || ""),
@@ -150,21 +129,33 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             SuporteArco_dir: mapFlex(orderData.rightFoot?.flexibilidade || ""),
             SuporteArco_esq: mapFlex(orderData.leftFoot?.flexibilidade || ""),
 
-            Alivio1_dir: orderData.rightFoot?.pads?.['Alívio 1º Metatarso'] ? "Sim" : "",
-            Alivio1_esq: orderData.leftFoot?.pads?.['Alívio 1º Metatarso'] ? "Sim" : "",
-            Alivio23_dir: orderData.rightFoot?.pads?.['Alívio 2/3º Metatarso'] ? "Sim" : "",
-            Alivio23_esq: orderData.leftFoot?.pads?.['Alívio 2/3º Metatarso'] ? "Sim" : "",
-            Alivio45_dir: orderData.rightFoot?.pads?.['Alívio 4/5º Metatarso'] ? "Sim" : "",
-            Alivio45_esq: orderData.leftFoot?.pads?.['Alívio 4/5º Metatarso'] ? "Sim" : "",
+            // Alívios
+            Alivio1_dir: orderData.rightFoot?.pads?.['Alívio 1º Metatarso'] ? "1º Met." : "0",
+            Alivio1_esq: orderData.leftFoot?.pads?.['Alívio 1º Metatarso'] ? "1º Met." : "0",
+            Alivio23_dir: orderData.rightFoot?.pads?.['Alívio 2/3º Metatarso'] ? " 2º/3º Met." : "0",
+            Alivio23_esq: orderData.leftFoot?.pads?.['Alívio 2/3º Metatarso'] ? " 2º/3º Met." : "0",
+            Alivio45_dir: orderData.rightFoot?.pads?.['Alívio 4/5º Metatarso'] ? " 4º/5º Met." : "0",
+            Alivio45_esq: orderData.leftFoot?.pads?.['Alívio 4/5º Metatarso'] ? " 4º/5º Met." : "0",
 
-            Borda_Dir: orderData.rightFoot?.borda || "Sem Borda",
-            Borda_Esq: orderData.leftFoot?.borda || "Sem Borda",
+            Borda_Dir: orderData.rightFoot?.borda?.includes("Borda") ? "Borda" : "0",
+            Borda_Esq: orderData.leftFoot?.borda?.includes("Borda") ? "Borda" : "0",
+
+            // Fallback Lowercase para garantir exibição no Dashboard
+            antepe_dir: extractDegree(orderData.rightFoot?.antepe || ""),
+            antepe_esq: extractDegree(orderData.leftFoot?.antepe || ""),
+            retrope_dir: extractDegree(orderData.rightFoot?.retrope || ""),
+            retrope_esq: extractDegree(orderData.leftFoot?.retrope || ""),
+            arco_dir: mapArco(orderData.rightFoot?.arco || ""),
+            arco_esq: mapArco(orderData.leftFoot?.arco || ""),
+            barra_dir: orderData.rightFoot?.pads?.['Barra'] ? "Barra" : "0",
+            barra_esq: orderData.leftFoot?.pads?.['Barra'] ? "Barra" : "0",
+            elevacao_dir: (orderData.rightFoot?.elevacao === "Nenhuma" || !orderData.rightFoot?.elevacao) ? "0" : extractDegree(orderData.rightFoot?.elevacao),
+            elevacao_esq: (orderData.leftFoot?.elevacao === "Nenhuma" || !orderData.leftFoot?.elevacao) ? "0" : extractDegree(orderData.leftFoot?.elevacao),
 
             fileE: orderData.fileE || "UExhY2Vob2xkZXI=",
             fileD: orderData.fileD || "UExhY2Vob2xkZXI="
         };
 
-        // 4. Envio
         const headers = {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${AXION_TOKEN}`,
@@ -179,28 +170,27 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
         });
 
         const resText = await response.text();
-        console.log(`   -> Resposta da API (${response.status}):`, resText);
-
         let orderNumber = undefined;
         try {
             const resJson = JSON.parse(resText);
-            // Captura flexível de vários campos possíveis para o número do pedido
             orderNumber = resJson.orderNumber || resJson.order || resJson.id || resJson.pedido || resJson.number;
-
-            // Se não encontrou no JSON processado, mas o texto contém algo como "Pedido #12345"
-            if (!orderNumber && resText.includes("#")) {
-                const match = resText.match(/#(\d+-\d+|\d+)/);
-                if (match) orderNumber = match[1];
-            }
         } catch (e) {
-            // Se não for JSON, tenta via Regex no texto puro
             const match = resText.match(/#(\d+-\d+|\d+)/);
             if (match) orderNumber = match[1];
         }
 
         if (response.ok) {
-            console.log("✅ SUCESSO! Número do Pedido:", orderNumber);
-            return { success: true, message: "Pedido enviado com sucesso!", orderNumber };
+            const syncedOrderNumber = await syncOrderNumberFromFirebase(
+                (patientData.nome || "").toUpperCase(),
+                activeUserEmail.toLowerCase()
+            );
+
+            return {
+                success: true,
+                message: "Pedido enviado com sucesso!",
+                orderNumber: syncedOrderNumber || orderNumber,
+                synced: !!syncedOrderNumber
+            };
         }
 
         return { success: false, error: `Erro ${response.status}: ${resText || 'Falha no processamento'}` };
@@ -208,5 +198,38 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
     } catch (error: any) {
         console.error("🔥 EXCEÇÃO em sendOrderToPropulsao:", error);
         return { success: false, error: "Falha interna: " + (error.message || "Erro desconhecido") };
+    }
+}
+
+async function syncOrderNumberFromFirebase(pacienteNome: string, fisioEmail: string) {
+    try {
+        const { getPropulsaoAuth, getPropulsaoDb } = await import("@/lib/integrations/propulsao");
+        const { signInWithEmailAndPassword } = await import("firebase/auth");
+        const { collection, query, where, orderBy, limit, getDocs } = await import("firebase/firestore");
+
+        const auth = getPropulsaoAuth();
+        const db = getPropulsaoDb();
+
+        await signInWithEmailAndPassword(auth, 'wmelot@gmail.com', 'Wmelo@123');
+
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            const q = query(
+                collection(db, "PEDIDOS"),
+                where("Nome_Paciente", "==", pacienteNome),
+                where("IdFisio", "array-contains", fisioEmail.toLowerCase()),
+                orderBy("dataStamp", "desc"),
+                limit(1)
+            );
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                const doc = querySnapshot.docs[0];
+                const data = doc.data();
+                return data.N_Pedido || data.id;
+            }
+            if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+        return null;
+    } catch (error: any) {
+        return null;
     }
 }

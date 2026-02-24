@@ -1023,67 +1023,7 @@ export function AttendanceClient({
                                             </DialogContent>
                                         </Dialog>
 
-                                        {(selectedTemplateId === PHYSICAL_ASSESSMENT_ID || selectedTemplate?.title === 'Avaliação Física Avançada') ? (
-                                            <AdvancedPhysicalForm
-                                                initialData={currentRecord?.content}
-                                                patientId={patient.id}
-                                                onSave={handlePhysicalAssessmentSave}
-                                                hideHeader
-                                                hideButtons
-                                            />
-                                        ) : (selectedTemplateId === TREE_WIZARD_ID) ? (
-                                            <AdvancedSmartAssessment
-                                                initialData={currentRecord?.content}
-                                                patientId={patient.id}
-                                                onSave={handlePhysicalAssessmentSave}
-                                            />
-                                        ) : (selectedTemplateId === ULTIMATE_PBE_ID) ? (
-                                            <UltimatePBEForm
-                                                initialData={currentRecord?.content}
-                                                patientId={patient.id}
-                                                onSave={handlePhysicalAssessmentSave}
-                                                patient={patient}
-                                                professional={appointment?.profiles}
-                                            />
-                                        ) : (selectedTemplateId === SMART_ASSESSMENT_ID) ? (
-                                            <SmartPBEForm
-                                                initialData={currentRecord?.content}
-                                                patientId={patient.id}
-                                                onSave={handlePhysicalAssessmentSave}
-                                                hideHeader
-                                                hideButtons
-                                            />
-                                        ) : (selectedTemplateId === 'pbe_concept_system') ? (
-                                            <ConceptPBEForm
-                                                initialData={currentRecord?.content}
-                                                patientId={patient.id}
-                                                onSave={handlePhysicalAssessmentSave}
-                                                hideHeader
-                                                hideButtons
-                                            />
-                                        ) : (selectedTemplateId === 'womens_health_system') ? (
-                                            <WomensHealthForm
-                                                initialData={currentRecord?.content}
-                                                patientId={patient.id}
-                                                onSave={handlePhysicalAssessmentSave}
-                                                hideHeader
-                                                hideButtons
-                                            />
-                                        ) : (selectedTemplateId === 'diabetic_foot_system') ? (
-                                            <DiabeticFootForm
-                                                initialData={currentRecord?.content}
-                                                patientId={patient.id}
-                                                onSave={handlePhysicalAssessmentSave}
-                                                hideHeader
-                                            />
-                                        ) : (selectedTemplateId === CLINICAL_EVOLUTION_ID || selectedTemplateId === 'e0000000-0000-0000-0000-000000000001' || selectedTemplate?.title?.toLowerCase().includes('evolução')) ? (
-                                            <FisioterapiaEvolutionForm
-                                                initialData={currentRecord?.content}
-                                                patientId={patient.id}
-                                                attendanceId={appointment.id}
-                                                onSave={handlePhysicalAssessmentSave}
-                                            />
-                                        ) : (selectedTemplateId === 'palmilha-5') ? (
+                                        {(selectedTemplateId === 'palmilha-5' || selectedTemplateId === 'e0000000-0000-0000-0000-000000000005') ? (
                                             <Palmilha5Form
                                                 initialData={currentRecord?.content}
                                                 patientId={patient.id}
@@ -1093,18 +1033,67 @@ export function AttendanceClient({
                                                 professional={appointment?.profiles}
                                             />
                                         ) : (selectedTemplateId === PALMILHA_V3_ID) ? (
-
                                             <PalmilhaFormV3
-                                                initialData={currentRecord?.content}
                                                 patientId={patient.id}
+                                                initialData={currentRecord?.content}
+                                                patient={patient}
+                                                onSave={handlePhysicalAssessmentSave}
+                                            />
+                                        ) : (selectedTemplateId === WOMENS_HEALTH_ID || selectedTemplateId === 'e0000000-0000-0000-0000-000000000003') ? (
+                                            <WomensHealthForm
+                                                patientId={patient.id}
+                                                initialData={currentRecord?.content}
+                                                onSave={handlePhysicalAssessmentSave}
+                                            />
+                                        ) : (selectedTemplateId === PHYSICAL_ASSESSMENT_ID || selectedTemplateId === 'e0000000-0000-0000-0000-000000000002') ? (
+                                            <AdvancedPhysicalForm
+                                                patientId={patient.id}
+                                                initialData={currentRecord?.content}
+                                                onSave={handlePhysicalAssessmentSave}
+                                            />
+                                        ) : (selectedTemplateId === CLINICAL_EVOLUTION_ID || selectedTemplateId === 'e0000000-0000-0000-0000-000000000004' || selectedTemplateId === SYSTEM_EVOLUTION_ID) ? (
+                                            <div className="max-w-[1200px] mx-auto w-full">
+                                                <FisioterapiaEvolutionForm
+                                                    patientId={patient.id}
+                                                    initialData={currentRecord?.content}
+                                                    onSave={handlePhysicalAssessmentSave}
+                                                />
+                                            </div>
+                                        ) : (selectedTemplateId === SMART_ASSESSMENT_ID) ? (
+                                            <SmartPBEForm
+                                                patientId={patient.id}
+                                                initialData={currentRecord?.content}
+                                                onSave={handlePhysicalAssessmentSave}
+                                            />
+                                        ) : (selectedTemplateId === ULTIMATE_PBE_ID || selectedTemplateId === 'e0000000-0000-0000-0000-000000000006') ? (
+                                            <UltimatePBEForm
+                                                patientId={patient.id}
+                                                initialData={currentRecord?.content}
                                                 onSave={handlePhysicalAssessmentSave}
                                                 patient={patient}
-                                                organization={(appointment as any)?.organizations || {}}
                                                 professional={appointment?.profiles}
                                             />
-                                        ) : (
-                                            selectedTemplateId === PALMILHA_ORIGINAL_ID || selectedTemplate?.title?.toLowerCase().includes('palmilha')
-                                        ) ? (
+                                        ) : (selectedTemplateId === TREE_WIZARD_ID || selectedTemplateId === 'e0000000-0000-0000-0000-000000000007') ? (
+                                            <AdvancedSmartAssessment
+                                                patientId={patient.id}
+                                                initialData={currentRecord?.content}
+                                                onSave={handlePhysicalAssessmentSave}
+                                            />
+                                        ) : (selectedTemplateId === 'pbe_concept_system' || selectedTemplateId === 'e0000000-0000-0000-0000-000000000008') ? (
+                                            <ConceptPBEForm
+                                                patientId={patient.id}
+                                                initialData={currentRecord?.content}
+                                                onSave={handlePhysicalAssessmentSave}
+                                            />
+                                        ) : (selectedTemplateId === 'diabetic_foot_system' || selectedTemplateId === 'e0000000-0000-0000-0000-000000000009') ? (
+                                            <DiabeticFootForm
+                                                patientId={patient.id}
+                                                initialData={currentRecord?.content}
+                                                onSave={handlePhysicalAssessmentSave}
+                                                patient={patient}
+                                                hideHeader
+                                            />
+                                        ) : (selectedTemplateId === PALMILHA_ORIGINAL_ID || selectedTemplate?.title?.toLowerCase().includes('palmilha')) ? (
                                             <BiomechanicsInsoleForm
                                                 patientId={patient.id}
                                                 initialData={currentRecord?.content}

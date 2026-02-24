@@ -141,7 +141,7 @@ export default async function RecordPage({
     const isPalmilhaV3 = resolvedTemplateId === 'fde183ad-1c20-4d6c-9efb-89d08f483cf2' ||
         (record.content?.isV3 === true);
 
-    const isPalmilha5 = resolvedTemplateId === 'palmilha-5';
+    const isPalmilha5 = resolvedTemplateId === 'palmilha-5' || resolvedTemplateId === 'e0000000-0000-0000-0000-000000000005';
 
     const isPalmilhaOriginal = !isPalmilhaV3 && (
         resolvedTemplateId === '13fa2f92-41fa-462f-aa7e-5407d619dd94' ||
@@ -150,26 +150,32 @@ export default async function RecordPage({
     );
 
     const isWomensHealth = resolvedTemplateId === 'womens_health_system' ||
+        resolvedTemplateId === 'e0000000-0000-0000-0000-000000000003' ||
         finalTemplate.title?.toLowerCase().includes('saúde da mulher') ||
         (record.content?.obstetric !== undefined)
 
     const isAdvancedPhysical = resolvedTemplateId === 'system-physical-assessment' ||
+        resolvedTemplateId === 'e0000000-0000-0000-0000-000000000002' ||
         resolvedTemplateId === 'f33bb240-c1be-4201-adf2-e5a59229d056' ||
         finalTemplate.title?.toLowerCase().includes('avaliação física avançada') ||
         (record.content?.antro !== undefined)
 
     const isConceptPBE = resolvedTemplateId === 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c' ||
+        resolvedTemplateId === 'e0000000-0000-0000-0000-000000000008' ||
         finalTemplate.title?.toLowerCase().includes('pbe') ||
         (record.content?.anamnesis !== undefined && record.content?.physicalExam !== undefined);
 
     const isUltimatePBE = resolvedTemplateId === 'ultimate_pbe_system' ||
+        resolvedTemplateId === 'e0000000-0000-0000-0000-000000000006' ||
         finalTemplate.title?.toLowerCase().includes('ultimate pbe');
 
     const isSmartWizard = resolvedTemplateId === 'tree_wizard_system' ||
+        resolvedTemplateId === 'e0000000-0000-0000-0000-000000000007' ||
         finalTemplate.title?.toLowerCase().includes('wizard') ||
         finalTemplate.title?.toLowerCase().includes('inteligente');
 
     const isDiabeticFoot = resolvedTemplateId === 'diabetic_foot_system' ||
+        resolvedTemplateId === 'e0000000-0000-0000-0000-000000000009' ||
         finalTemplate.title?.toLowerCase().includes('pé diabético') ||
         finalTemplate.title?.toLowerCase().includes('pé insensível');
 

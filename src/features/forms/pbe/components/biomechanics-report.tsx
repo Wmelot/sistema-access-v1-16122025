@@ -172,15 +172,40 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
     const p = vals.postural || {};
     const hma = vals.hma || {};
 
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
+
+    // [NEW] Set document title for PDF filename
+    useEffect(() => {
+        if (open && mounted) {
+            const oldTitle = document.title;
+            const patientName = patient?.name || vals.patientName || "Paciente";
+            const date = new Date().toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' });
+            document.title = `Relatório - ${patientName} ${date}`;
+            return () => {
+                document.title = oldTitle;
+            };
+        }
+    }, [open, mounted, patient, vals.patientName]);
+
+    if (!mounted) return null;
+
+    const prof = useMemo(() => {
+        const p = Array.isArray(professional) ? professional[0] : professional;
+        return p || {};
+    }, [professional]);
+
     // 1. Radar Data
     const radarChartData = useMemo(() => calculateRadarData(vals), [vals]);
 
     // 2. Dynamic Data (for LineChart)
-    // 2. Dynamic Data (for LineChart)
     const dfiData = [
-        { name: 'RC', e: t?.dfi?.[0]?.left || 0, d: t?.dfi?.[0]?.right || 0, normal: 1 },
-        { name: 'AM', e: t?.dfi?.[1]?.left || 0, d: t?.dfi?.[1]?.right || 0, normal: -2 },
-        { name: 'FI', e: t?.dfi?.[2]?.left || 0, d: t?.dfi?.[2]?.right || 0, normal: 2 }
+        { name: '1 RC', e: t?.dfi?.[0]?.left || 0, d: t?.dfi?.[0]?.right || 0, normal: 1 },
+        { name: '0 AM', e: t?.dfi?.[1]?.left || 0, d: t?.dfi?.[1]?.right || 0, normal: 0 },
+        { name: '0 FI', e: t?.dfi?.[2]?.left || 0, d: t?.dfi?.[2]?.right || 0, normal: 0 }
     ];
 
     // 3. Logic for automated insights
@@ -301,14 +326,6 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
         setVisibleSections(newState);
     };
 
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => {
-        setMounted(true);
-        return () => setMounted(false);
-    }, []);
-
-    if (!mounted) return null;
-
     return createPortal(
         <div id="report-wrapper" className="fixed inset-0 z-[2147483647] bg-white flex flex-col animate-in fade-in duration-300 print:static print:h-auto print:overflow-visible overflow-hidden">
             {/* TOOLBAR */}
@@ -345,7 +362,7 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                                 </div>
                                             ) : (
                                                 <div className="w-16 h-16 bg-blue-900 rounded-2xl flex items-center justify-center text-white font-black text-3xl print-color-adjust">
-                                                    {organization?.name?.[0] || organizationName?.[0] || professional?.name?.[0] || "A"}
+                                                    {organization?.name?.[0] || organizationName?.[0] || prof?.name?.[0] || "A"}
                                                 </div>
                                             )}
                                             <div>
@@ -592,7 +609,7 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                                 </div>
 
                                                 {t?.single_squat?.photo_left && (
-                                                    <div className="aspect-[3/4] bg-slate-100 rounded-xl border border-slate-200 relative overflow-hidden shadow-lg">
+                                                    <div className="h-64 bg-slate-100 rounded-xl border border-slate-200 relative overflow-hidden shadow-lg">
                                                         <Image src={t.single_squat.photo_left} alt="Single Squat" fill className="object-contain" unoptimized priority />
                                                     </div>
                                                 )}
@@ -626,7 +643,7 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                                 </div>
 
                                                 {t?.single_squat?.photo_right && (
-                                                    <div className="aspect-[3/4] bg-slate-100 rounded-xl border border-slate-200 relative overflow-hidden shadow-lg">
+                                                    <div className="h-64 bg-slate-100 rounded-xl border border-slate-200 relative overflow-hidden shadow-lg">
                                                         <Image src={t.single_squat.photo_right} alt="Single Squat" fill className="object-contain" unoptimized priority />
                                                     </div>
                                                 )}
@@ -758,20 +775,20 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
 
                                                 {/* ASSINATURA ACOPLADA */}
                                                 <div className="pt-8 border-t border-slate-100 flex flex-col items-center">
-                                                    {professional?.digital_signature_url ? (
+                                                    {prof?.digital_signature_url ? (
                                                         <div className="h-20 w-48 relative  mb-2">
-                                                            <Image src={professional.digital_signature_url} alt="Assinatura" fill className="object-contain" unoptimized priority />
+                                                            <Image src={prof.digital_signature_url} alt="Assinatura" fill className="object-contain" unoptimized priority />
                                                         </div>
                                                     ) : (
                                                         <div className="h-16 w-64 border-b-2 border-slate-200 mb-2"></div>
                                                     )}
                                                     <h4 className="font-extrabold text-slate-900 uppercase text-sm tracking-tight mb-1">
-                                                        {professional?.full_name || professional?.name || "Dr. Fisioterapeuta"}
+                                                        {prof?.full_name || prof?.name || "Dr. Fisioterapeuta"}
                                                     </h4>
                                                     <div className="flex gap-4 text-[9px] text-slate-400 font-bold uppercase">
-                                                        <span>{professional?.council_type || "CREFITO"}: {professional?.council_number || professional?.crefito || "---"}</span>
+                                                        <span>{prof?.council_type || "CREFITO"}: {prof?.council_number || prof?.crefito || "---"}</span>
                                                         <span>|</span>
-                                                        <span>{professional?.phone || "BIOMECÂNICA CLÍNICA"}</span>
+                                                        <span>{prof?.phone || "BIOMECÂNICA CLÍNICA"}</span>
                                                     </div>
                                                 </div>
                                             </div>

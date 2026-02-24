@@ -20,11 +20,13 @@ export async function GET() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('dashboard_settings')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
+
+        if (profileError) throw profileError;
 
         const drafts = profile?.dashboard_settings?.syllabus_drafts || [];
         return NextResponse.json({ drafts });
@@ -54,11 +56,13 @@ export async function POST(request: Request) {
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         // Fetch current settings to preserve other keys
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('dashboard_settings')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
+
+        if (profileError) throw profileError;
 
         const currentSettings = profile?.dashboard_settings || {};
         const newSettings = { ...currentSettings, syllabus_drafts: drafts };

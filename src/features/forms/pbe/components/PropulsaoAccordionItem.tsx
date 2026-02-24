@@ -265,22 +265,26 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
         // 1. Introduction
         parts.push("Indicação de órteses plantares (palmilhas) desenhadas para distribuir melhor a pressão na planta dos pés e controlar o movimento do arco plantar.")
 
-        // 2. Corrections
-        const feet = [{ side: 'esquerdo', conf: leftFoot }, { side: 'direito', conf: rightFoot }]
-        const correctionsList: string[] = []
-
-        feet.forEach(({ side, conf }) => {
+        // 2. Corrections (Refatorado para melhor gramática e menos repetição)
+        const getCorrectionDetails = (conf: any) => {
             const ret = getCorrectionType(conf.retrope)
             const ant = getCorrectionType(conf.antepe)
-            if (ret || ant) {
-                let text = `Para o pé ${side}, a palmilha conta com correções biomecânicas`
-                let details: string[] = []
-                if (ret) details.push(`para controle de ${ret} no retropé`)
-                if (ant) details.push(`para controle de ${ant} no antepé`)
-                correctionsList.push(`${text} ${details.join(" e ")}.`)
-            }
-        })
-        if (correctionsList.length > 0) parts.push(correctionsList.join(" "))
+            if (!ret && !ant) return null
+            let details: string[] = []
+            if (ret) details.push(`controle de ${ret} no retropé`)
+            if (ant) details.push(`controle de ${ant} no antepé`)
+            return details.join(" e ")
+        }
+
+        const leftDetails = getCorrectionDetails(leftFoot)
+        const rightDetails = getCorrectionDetails(rightFoot)
+
+        if (leftDetails && rightDetails && leftDetails === rightDetails) {
+            parts.push(`Para ambos os pés, foram aplicadas correções biomecânicas visando o ${leftDetails}.`)
+        } else {
+            if (leftDetails) parts.push(`Para o pé esquerdo, a órtese inclui ${leftDetails}.`)
+            if (rightDetails) parts.push(`Para o pé direito, foram incorporadas correções para o ${rightDetails}.`)
+        }
 
         // 3. Elevation
         if ((leftFoot.elevacao !== 'Nenhuma' && leftFoot.elevacao !== '0') || (rightFoot.elevacao !== 'Nenhuma' && rightFoot.elevacao !== '0')) {
