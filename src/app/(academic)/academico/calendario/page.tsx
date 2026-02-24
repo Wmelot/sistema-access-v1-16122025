@@ -61,22 +61,36 @@ import { Printer, Download, Palette, Layout, ShieldCheck, FileSignature, Award }
 import { useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 
-const PRINT_STYLES = (orientation: 'portrait' | 'landscape') => `
+const PRINT_STYLES = (orientation: 'portrait' | 'landscape', fontSize: 'small' | 'medium' | 'large') => `
 @media print {
   @page {
     size: A4 ${orientation};
-    margin: 10mm;
+    margin: 0mm !important;
+  }
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-area {
+    padding: 15mm !important;
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    min-height: 100vh !important;
+    zoom: ${fontSize === 'small' ? '0.75' : fontSize === 'medium' ? '0.85' : '1.0'};
   }
   .no-print {
     display: none !important;
   }
-  tr {
+  .break-inside-avoid {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
-  .print-avoid-break {
+  header, section, footer {
+    display: block !important;
     page-break-inside: avoid !important;
-    break-inside: avoid !important;
   }
 }
 `;
@@ -147,6 +161,23 @@ const METHODOLOGY_GUIDE: Record<string, { desc: string, activities: string[], li
     }
 };
 
+const RESOURCE_OPTIONS = [
+    'Projetor Multimedia',
+    'Lousa / Quadro Branco',
+    'Artigos Científicos (PDF)',
+    'Macas de Atendimento',
+    'Esqueleto Humano Articulado',
+    'Modelos Anatômicos 3D',
+    'Slides Interativos e Mentímetro',
+    'Laboratório de Informática / Tablets',
+    'Vídeos de Demonstração Clínica',
+    'Plataformas de Avaliação Digital',
+    'Equipamentos de Eletrotermoterapia',
+    'Simuladores de Realidade Virtual',
+    'Materiais de Consumo (Atadura, Algodão)',
+    'Prontuários de Casos Clínicos Reais'
+];
+
 export default function SyllabusWizard() {
     const [step, setStep] = useState(1);
     const [timelineOrder, setTimelineOrder] = useState<{ id: string, type: 'topic' | 'assessment' }[]>([]);
@@ -155,6 +186,7 @@ export default function SyllabusWizard() {
     const [showPreviewModal, setShowPreviewModal] = useState(false);
     const [selectedTemplate, setSelectedTemplate] = useState(1);
     const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
+    const [printFontSize, setPrintFontSize] = useState<'small' | 'medium' | 'large'>('large');
     const [isSynced, setIsSynced] = useState(false);
     const [visibleColumns, setVisibleColumns] = useState<string[]>(['data', 'dia', 'conteudo', 'references', 'atividade', 'pontos']);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -453,197 +485,181 @@ export default function SyllabusWizard() {
         setTotalNeededHours(totalNeededHoursCalc);
     }, [startDate, endDate, weekDays, holidays, topics]);
 
-    // Sincroniza timelineOrder com topics e assessments
+    // Sincroniza timelineOrder para garantir que existam instâncias suficientes para a carga horária
     useEffect(() => {
-        const currentIds = timelineOrder.map(i => i.id);
-        const newItems = [...timelineOrder];
-        let hasChanges = false;
+        setTimelineOrder(prev => {
+            const newItems = [...prev];
+            let hasChanges = false;
 
-        topics.forEach(t => {
-            if (!currentIds.includes(t.id)) {
-                newItems.push({ id: t.id, type: 'topic' });
+            // Remover órfãos
+            const allValidIds = [...topics.map(t => t.id), ...assessments.map(a => a.id)];
+            const filtered = newItems.filter(item => allValidIds.includes(item.id));
+            if (filtered.length !== newItems.length) {
+                newItems.length = 0;
+                newItems.push(...filtered);
                 hasChanges = true;
             }
+
+            // Adicionar instâncias faltantes
+            topics.forEach(t => {
+                const currentCount = newItems.filter(i => i.id === t.id).length;
+                const neededCount = Math.max(1, Math.ceil(t.classesNeeded / 2));
+                if (currentCount < neededCount) {
+                    for (let i = 0; i < neededCount - currentCount; i++) {
+                        newItems.push({ id: t.id, type: 'topic' });
+                    }
+                    hasChanges = true;
+                }
+            });
+
+            assessments.forEach(a => {
+                const currentCount = newItems.filter(i => i.id === a.id).length;
+                const neededCount = Math.max(1, Math.ceil(a.classesNeeded / 2));
+                if (currentCount < neededCount) {
+                    for (let i = 0; i < neededCount - currentCount; i++) {
+                        newItems.push({ id: a.id, type: 'assessment' });
+                    }
+                    hasChanges = true;
+                }
+            });
+
+            return hasChanges ? newItems : prev;
         });
-
-        assessments.forEach(a => {
-            if (!currentIds.includes(a.id)) {
-                newItems.push({ id: a.id, type: 'assessment' });
-                hasChanges = true;
-            }
-        });
-
-        const allValidIds = [...topics.map(t => t.id), ...assessments.map(a => a.id)];
-        const filteredItems = newItems.filter(item => allValidIds.includes(item.id));
-
-        if (filteredItems.length !== timelineOrder.length || hasChanges) {
-            setTimelineOrder(filteredItems);
-        }
-    }, [topics, assessments, timelineOrder.length]);
+    }, [topics, assessments]);
 
     const isOverflow = totalNeededHours > availableHours + 0.1;
 
     const fullSchedule = React.useMemo(() => {
         const schedule: any[] = [];
-        let current = startDate ? new Date(startDate) : new Date();
-        const end = endDate ? new Date(endDate) : new Date();
+        if (!startDate || !endDate) return [];
+        let current = new Date(startDate);
+        const end = new Date(endDate);
 
-        if (!startDate || !endDate || isNaN(current.getTime()) || isNaN(end.getTime())) return [];
-
-        let fluidItemsPool = timelineOrder
-            .map(item => {
-                if (item.type === 'topic') {
-                    const topic = topics.find(t => t.id === item.id);
-                    if (topic && !topic.date) {
-                        return { ...item, remainingHours: Number(topic.classesNeeded) || 2, title: topic.title };
-                    }
-                } else {
-                    const assessment = assessments.find(a => a.id === item.id);
-                    if (assessment && !assessment.date) {
-                        return { ...item, remainingHours: Number(assessment.classesNeeded) || 2, name: assessment.name };
-                    }
-                }
-                return null;
-            })
-            .filter(Boolean) as any[];
+        const consumedHours: { [id: string]: number } = {};
+        let timelineIndex = 0;
 
         while (current <= end) {
             const dateStr = format(current, 'yyyy-MM-dd');
             const jsDayNum = current.getDay();
-            const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-            const diaSemana = dayNames[jsDayNum];
-            const jsDay = jsDayNum === 0 ? '7' : jsDayNum.toString(); // Convert to '1'-'7' for weekDays array
+            const diaSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][jsDayNum];
+            const jsDay = jsDayNum === 0 ? '7' : jsDayNum.toString();
 
             const dayConfig = weekDays.find(w => w.day === jsDay);
             const holiday = holidays.find(h => h.date === dateStr);
-
-            const calculateDuration = (start: string, end: string) => {
-                const [h1, m1] = start.split(':').map(Number);
-                const [h2, m2] = end.split(':').map(Number);
-                return (h2 * 60 + m2 - (h1 * 60 + m1)) / 50; // Usando hora-aula de 50min padrão PUC
-            };
-
-            const classDuration = dayConfig ? calculateDuration(dayConfig.start, dayConfig.end) : 0;
 
             if (holiday) {
                 schedule.push({
                     date: format(current, 'dd/MM'),
                     dia: diaSemana,
                     type: 'holiday',
-                    content: holiday.desc, // Changed from holiday.name to holiday.desc based on existing structure
+                    content: holiday.desc,
                     activity: 'Recesso Escolar',
                     time: '-',
                     bibliographyIds: []
                 });
             } else if (dayConfig) {
-                // Prioridade 1: Avaliações Pinadas
+                const calculateDuration = (start: string, end: string) => {
+                    const [h1, m1] = start.split(':').map(Number);
+                    const [h2, m2] = end.split(':').map(Number);
+                    return (h2 * 60 + m2 - (h1 * 60 + m1)) / 50;
+                };
+                const classDuration = calculateDuration(dayConfig.start, dayConfig.end);
+
                 const pinnedAssessment = assessments.find(a => a.date && format(new Date(a.date), 'yyyy-MM-dd') === dateStr);
-                // Prioridade 2: Tópicos Pinados
                 const pinnedTopic = topics.find(t => t.date && format(new Date(t.date), 'yyyy-MM-dd') === dateStr);
 
                 if (pinnedAssessment) {
-                    const indexInTimeline = timelineOrder.findIndex(i => i.id === pinnedAssessment.id);
-                    const autoContentArr = timelineOrder.slice(0, indexInTimeline)
+                    const localTimelineIndex = timelineOrder.findIndex(i => i.id === pinnedAssessment.id);
+                    const autoContentArr = timelineOrder.slice(0, localTimelineIndex)
                         .filter(i => i.type === 'topic')
                         .map(i => topics.find(t => t.id === i.id)?.title)
                         .filter(Boolean);
-                    const autoContent = autoContentArr.length > 0 ? `Cobre: ${autoContentArr.join(', ')}` : '';
+                    const autoSuggested = autoContentArr.length > 0 ? `Cobre: ${autoContentArr.join(', ')}` : '';
 
                     schedule.push({
+                        instanceId: `p-ass-${pinnedAssessment.id}-${dateStr}`,
+                        id: pinnedAssessment.id,
                         date: format(current, 'dd/MM'),
                         dia: diaSemana,
                         type: 'assessment',
                         content: pinnedAssessment.name,
-                        subContent: pinnedAssessment.content || autoContent,
+                        subContent: pinnedAssessment.content || autoSuggested,
                         activity: 'Avaliação ' + pinnedAssessment.type,
                         points: pinnedAssessment.points,
-                        time: `${dayConfig?.start} - ${dayConfig?.end}`,
+                        time: `${dayConfig.start} - ${dayConfig.end}`,
+                        duration: classDuration,
                         bibliographyIds: []
                     });
                 } else if (pinnedTopic) {
                     schedule.push({
+                        instanceId: `p-top-${pinnedTopic.id}-${dateStr}`,
+                        id: pinnedTopic.id,
                         date: format(current, 'dd/MM'),
                         dia: diaSemana,
                         type: 'topic',
                         content: pinnedTopic.title,
                         activity: pinnedTopic.methodology,
-                        points: null,
-                        time: `${dayConfig?.start} - ${dayConfig?.end}`,
+                        time: `${dayConfig.start} - ${dayConfig.end}`,
+                        duration: classDuration,
                         isPractical: pinnedTopic.isPractical,
                         bibliographyIds: pinnedTopic.bibliographyIds
                     });
                 } else {
-                    // Alocação Fluída
                     let dayHoursRemaining = classDuration;
                     let nothingScheduled = true;
 
-                    while (dayHoursRemaining > 0.1 && fluidItemsPool.length > 0) {
-                        const currentItem = fluidItemsPool[0];
+                    while (dayHoursRemaining > 0.1 && timelineIndex < timelineOrder.length) {
+                        const item = timelineOrder[timelineIndex];
+                        const source = item.type === 'topic' ? topics.find(t => t.id === item.id) : assessments.find(a => a.id === item.id);
 
-                        if (currentItem.type === 'assessment') {
-                            const assessment = assessments.find(a => a.id === currentItem.id);
-                            if (!assessment) { fluidItemsPool.shift(); continue; }
+                        if (!source) {
+                            timelineIndex++;
+                            continue;
+                        }
 
-                            const hoursAllocated = Math.min(dayHoursRemaining, currentItem.remainingHours);
-                            const isPartial = hoursAllocated < currentItem.remainingHours;
+                        const totalHours = source.classesNeeded;
+                        const consumed = consumedHours[item.id] || 0;
+                        const remaining = totalHours - consumed;
 
-                            const indexInTimeline = timelineOrder.findIndex(i => i.id === currentItem.id);
-                            const autoContentArr = timelineOrder.slice(0, indexInTimeline)
+                        if (remaining <= 0) {
+                            timelineIndex++;
+                            continue;
+                        }
+
+                        const allocated = Math.min(dayHoursRemaining, remaining);
+                        const isPartial = allocated < totalHours;
+
+                        // Auto content for regular (fluid) assessments
+                        let currentSubContent = '';
+                        if (item.type === 'assessment') {
+                            const assSource = source as Assessment;
+                            const autoContentArr = timelineOrder.slice(0, timelineIndex)
                                 .filter(i => i.type === 'topic')
                                 .map(i => topics.find(t => t.id === i.id)?.title)
                                 .filter(Boolean);
-                            const autoContent = autoContentArr.length > 0 ? `Cobre: ${autoContentArr.join(', ')}` : '';
-
-                            schedule.push({
-                                instanceId: `${currentItem.id}-${currentItem.occurrence || 0}-${dateStr}`,
-                                id: currentItem.id,
-                                date: format(current, 'dd/MM'),
-                                dateFull: dateStr,
-                                dia: diaSemana,
-                                type: 'assessment',
-                                content: assessment.name + (isPartial ? ' (Parte)' : ''),
-                                subContent: assessment.content || autoContent,
-                                activity: 'Avaliação ' + assessment.type,
-                                points: assessment.points,
-                                time: `${dayConfig?.start} - ${dayConfig?.end}`,
-                                duration: hoursAllocated,
-                                bibliographyIds: []
-                            });
-                            currentItem.remainingHours -= hoursAllocated;
-                            currentItem.occurrence = (currentItem.occurrence || 0) + 1;
-                            dayHoursRemaining -= hoursAllocated;
-                            if (currentItem.remainingHours <= 0.1) fluidItemsPool.shift();
-                            nothingScheduled = false;
-                        } else if (currentItem.type === 'topic') {
-                            // Tópico
-                            const topic = topics.find(t => t.id === currentItem.id);
-                            if (!topic) { fluidItemsPool.shift(); continue; }
-
-                            const hoursAllocated = Math.min(dayHoursRemaining, currentItem.remainingHours);
-                            const isPartial = hoursAllocated < (topics.find(t => t.id === currentItem.id)?.classesNeeded || 0);
-
-                            schedule.push({
-                                instanceId: `${currentItem.id}-${currentItem.occurrence || 0}-${dateStr}`,
-                                id: currentItem.id,
-                                date: format(current, 'dd/MM'),
-                                dateFull: dateStr,
-                                dia: diaSemana,
-                                type: 'topic',
-                                content: topic.title + (isPartial ? ' (Parte)' : ''),
-                                activity: topic.methodology,
-                                points: null,
-                                time: `${dayConfig?.start} - ${dayConfig?.end}`,
-                                duration: hoursAllocated,
-                                isPractical: topic.isPractical,
-                                bibliographyIds: topic.bibliographyIds
-                            });
-
-                            currentItem.remainingHours -= hoursAllocated;
-                            currentItem.occurrence = (currentItem.occurrence || 0) + 1;
-                            dayHoursRemaining -= hoursAllocated;
-                            if (currentItem.remainingHours <= 0.1) fluidItemsPool.shift();
-                            nothingScheduled = false;
+                            currentSubContent = assSource.content || (autoContentArr.length > 0 ? `Conteúdo: ${autoContentArr.join(', ')}` : '');
                         }
+
+                        schedule.push({
+                            instanceId: `${item.id}-${timelineIndex}-${dateStr}`,
+                            id: item.id,
+                            date: format(current, 'dd/MM'),
+                            dia: diaSemana,
+                            type: item.type,
+                            content: (item.type === 'topic' ? (source as Topic).title : (source as Assessment).name) + (isPartial ? ' (Parte)' : ''),
+                            activity: item.type === 'topic' ? (source as Topic).methodology : 'Avaliação ' + (source as Assessment).type,
+                            subContent: currentSubContent,
+                            points: item.type === 'topic' ? null : (source as Assessment).points,
+                            time: `${dayConfig.start} - ${dayConfig.end}`,
+                            duration: allocated,
+                            isPractical: item.type === 'topic' ? (source as Topic).isPractical : false,
+                            bibliographyIds: item.type === 'topic' ? (source as Topic).bibliographyIds : []
+                        });
+
+                        consumedHours[item.id] = consumed + allocated;
+                        dayHoursRemaining -= allocated;
+                        nothingScheduled = false;
+                        timelineIndex++;
                     }
 
                     if (nothingScheduled) {
@@ -652,7 +668,7 @@ export default function SyllabusWizard() {
                             dia: diaSemana,
                             type: 'empty',
                             content: 'Data disponível / Planejamento',
-                            time: `${dayConfig?.start} - ${dayConfig?.end}`
+                            time: `${dayConfig.start} - ${dayConfig.end}`
                         });
                     }
                 }
@@ -660,7 +676,7 @@ export default function SyllabusWizard() {
             current = new Date(current.getTime() + 86400000);
         }
         return schedule;
-    }, [startDate, endDate, weekDays, topics, assessments, timelineOrder]);
+    }, [startDate, endDate, weekDays, topics, assessments, timelineOrder, holidays]);
 
     const generateFullSchedule = () => fullSchedule;
 
@@ -708,33 +724,37 @@ export default function SyllabusWizard() {
         setTopics(topics.map(t => t.id === id ? { ...t, ...updates } : t));
     };
 
+    const updateAssessment = (id: string, updates: Partial<Assessment>) => {
+        setAssessments(assessments.map(a => a.id === id ? { ...a, ...updates } : a));
+    };
+
     const removeTopic = (id: string) => {
         setTopics(topics.filter(t => t.id !== id));
-        setTimelineOrder(timelineOrder.filter(item => item.id !== id));
+        setTimelineOrder(timelineOrder.filter(i => i.id !== id));
     };
 
     const removeAssessment = (id: string) => {
         setAssessments(assessments.filter(a => a.id !== id));
-        setTimelineOrder(timelineOrder.filter(item => item.id !== id));
+        setTimelineOrder(timelineOrder.filter(i => i.id !== id));
     };
 
     const onDragEnd = (result: any) => {
-        const { destination, source } = result;
+        const { source, destination } = result;
         if (!destination) return;
+        if (source.index === destination.index) return;
 
-        // Reordena o cronograma completo (excluindo feriados)
-        const scheduleItems = fullSchedule.filter((s: any) => s.type !== 'holiday');
-        const [reorderedItem] = scheduleItems.splice(source.index, 1);
-        scheduleItems.splice(destination.index, 0, reorderedItem);
+        const scheduleItems = fullSchedule.filter((s: any) => s.type !== 'holiday' && s.type !== 'empty');
+        const items = Array.from(scheduleItems);
+        const [reorderedItem] = items.splice(source.index, 1);
+        items.splice(destination.index, 0, reorderedItem);
 
-        // Gera a nova timelineOrder baseada na sequência física do cronograma
-        // Isso transforma a timeline em uma lista de sessões/instâncias
-        const newTimeline = scheduleItems.map((item: any) => ({
+        const newTimeline = items.map((item: any) => ({
             id: item.id,
             type: item.type as 'topic' | 'assessment'
         }));
 
         setTimelineOrder(newTimeline);
+        toast.success("Sequência didática reorganizada!");
     };
 
     const toggleTopicCompletion = (id: string) => {
@@ -818,6 +838,7 @@ export default function SyllabusWizard() {
             const eDate = parseSafeDate(data.endDate);
             if (eDate) setEndDate(eDate);
 
+            if (data.courseName) setCourseName(data.courseName);
             if (data.books) setBooks(data.books);
             if (data.topics) setTopics(data.topics);
             if (data.assessments) {
@@ -872,7 +893,7 @@ export default function SyllabusWizard() {
     return (
         <>
             <div className="min-h-screen bg-[#FDFDFD] p-8 max-w-6xl mx-auto font-sans">
-                <style>{PRINT_STYLES(orientation)}</style>
+                {/* Style moved to printRef to ensure it's captured during printing */}
                 <div className="flex items-center justify-between mb-12">
                     <div>
                         <h1 className="text-3xl font-black text-[#363636] tracking-tight">Design de Cronograma 2.0</h1>
@@ -1436,84 +1457,291 @@ export default function SyllabusWizard() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-4">
+                                <div className="space-y-1">
                                     <DragDropContext onDragEnd={onDragEnd}>
                                         <Droppable droppableId="timeline">
                                             {(provided) => (
-                                                <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
-                                                    {fullSchedule.filter((s: any) => s.type !== 'holiday').map((item: any, index: number) => {
+                                                <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
+                                                    {fullSchedule.map((item: any, index: number) => {
                                                         const isAssessment = item.type === 'assessment';
-                                                        const topic = !isAssessment ? topics.find(t => t.id === item.id) : null;
-                                                        const assessment = isAssessment ? assessments.find(a => a.id === item.id) : null;
+                                                        const isEmpty = item.type === 'empty';
+                                                        const isHoliday = item.type === 'holiday';
+
+                                                        if (isHoliday) {
+                                                            return (
+                                                                <div key={`holiday-${index}`} className="flex items-center gap-4 bg-slate-50/50 px-8 py-4 rounded-[32px] border border-dashed border-slate-200 opacity-60">
+                                                                    <div className="flex items-center gap-3 min-w-[100px]">
+                                                                        <div className="w-10 h-10 rounded-xl flex flex-col items-center justify-center font-black text-slate-400 bg-slate-100">
+                                                                            <span className="text-xs leading-none">{item.date.split('/')[0]}</span>
+                                                                            <span className="text-[8px] uppercase opacity-60">
+                                                                                {format(new Date(2026, parseInt(item.date.split('/')[1]) - 1, 1), 'MMM', { locale: ptBR })}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-[9px] font-black uppercase text-slate-400 leading-none mb-1">{item.dia}</span>
+                                                                            <span className="text-[8px] font-bold text-slate-300 uppercase tracking-tighter">FERIADO</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest">{item.content}</h4>
+                                                                    </div>
+                                                                    <div className="bg-slate-100 px-3 py-1 rounded-full text-[8px] font-black text-slate-400 uppercase">Recesso Escolar</div>
+                                                                </div>
+                                                            );
+                                                        }
+
+                                                        const logicalIndex = fullSchedule.slice(0, index).filter((s: any) => s.type !== 'holiday' && s.type !== 'empty').length;
 
                                                         return (
-                                                            <Draggable key={item.instanceId} draggableId={item.instanceId} index={index}>
+                                                            <Draggable key={item.instanceId || `empty-${index}`} draggableId={item.instanceId || `empty-${index}`} index={logicalIndex} isDragDisabled={isEmpty}>
                                                                 {(provided, snapshot) => (
                                                                     <div
                                                                         ref={provided.innerRef}
                                                                         {...provided.draggableProps}
                                                                         className={cn(
-                                                                            "group relative transition-all duration-300",
-                                                                            snapshot.isDragging ? "z-50 scale-102 rotate-1" : ""
+                                                                            "relative group transition-all",
+                                                                            snapshot.isDragging ? "z-50" : ""
                                                                         )}
                                                                     >
-                                                                        <Card className={cn(
-                                                                            "p-6 rounded-[32px] border-none shadow-sm flex items-center gap-6 transition-all hover:shadow-xl hover:translate-x-2 group-hover:bg-slate-50/50",
-                                                                            isAssessment ? "bg-amber-50/30 border-l-8 border-amber-400" : "bg-white",
-                                                                            snapshot.isDragging ? "shadow-2xl ring-2 ring-[#8C132C]/10 bg-white" : ""
+                                                                        <div className={cn(
+                                                                            "flex items-center gap-4 bg-white px-8 py-6 rounded-[32px] border transition-all",
+                                                                            isAssessment ? "border-amber-200 bg-amber-50/30 shadow-sm" :
+                                                                                isEmpty ? "border-dashed border-slate-100 opacity-50" : "border-slate-50",
+                                                                            snapshot.isDragging ? "shadow-2xl border-[#8C132C]/30 scale-[1.02] bg-white" : "hover:border-slate-200 hover:shadow-lg"
                                                                         )}>
-                                                                            {/* DRAG HANDLE */}
-                                                                            <div {...provided.dragHandleProps} className="text-slate-200 hover:text-slate-400 transition-colors p-2 cursor-grab active:cursor-grabbing">
-                                                                                <GripVertical size={20} />
-                                                                            </div>
+                                                                            {!isEmpty && (
+                                                                                <div {...provided.dragHandleProps} className="text-slate-200 hover:text-slate-400 p-1 cursor-grab active:cursor-grabbing">
+                                                                                    <GripVertical size={18} />
+                                                                                </div>
+                                                                            )}
 
-                                                                            {/* DATE BADGE */}
-                                                                            <div className="flex flex-col items-center min-w-[60px]">
+                                                                            <div className="flex items-center gap-3 min-w-[100px]">
                                                                                 <div className={cn(
-                                                                                    "w-12 h-12 rounded-2xl flex flex-col items-center justify-center mb-1 transition-all",
-                                                                                    isAssessment ? "bg-amber-100 text-amber-700" : "bg-[#8C132C]/5 text-[#8C132C]"
+                                                                                    "w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-black transition-all shadow-sm",
+                                                                                    isAssessment ? "text-amber-600 bg-amber-100" :
+                                                                                        isEmpty ? "text-slate-300 bg-slate-50" : "text-[#8C132C] bg-[#8C132C]/5"
                                                                                 )}>
-                                                                                    <span className="text-[12px] font-black leading-none">{item.date.split('/')[0]}</span>
-                                                                                    <span className="text-[8px] font-black uppercase opacity-60">
-                                                                                        {item.date.split('/')[1] === '01' ? 'Jan' : item.date.split('/')[1] === '02' ? 'Fev' : item.date.split('/')[1] === '03' ? 'Mar' : item.date.split('/')[1] === '04' ? 'Abr' : item.date.split('/')[1] === '05' ? 'Mai' : item.date.split('/')[1] === '06' ? 'Jun' : item.date.split('/')[1] === '07' ? 'Jul' : item.date.split('/')[1] === '08' ? 'Ago' : item.date.split('/')[1] === '09' ? 'Set' : item.date.split('/')[1] === '10' ? 'Out' : item.date.split('/')[1] === '11' ? 'Nov' : 'Dez'}
+                                                                                    <span className="text-sm leading-none">{item.date.split('/')[0]}</span>
+                                                                                    <span className="text-[9px] uppercase opacity-60">
+                                                                                        {format(new Date(2026, parseInt(item.date.split('/')[1]) - 1, 1), 'MMM', { locale: ptBR })}
                                                                                     </span>
                                                                                 </div>
-                                                                                <span className="text-[9px] font-black uppercase text-slate-300 tracking-tighter">{item.dia}</span>
+                                                                                <div className="flex flex-col">
+                                                                                    <span className="text-[10px] font-black uppercase text-slate-400 leading-none mb-1">{item.dia}</span>
+                                                                                    <span className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">{item.time}</span>
+                                                                                </div>
                                                                             </div>
 
-                                                                            {/* CONTENT */}
                                                                             <div className="flex-1 min-w-0">
-                                                                                <div className="flex items-center gap-3 mb-1">
-                                                                                    {isAssessment && <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-none text-[8px] font-black rounded-lg h-4 px-1.5">AVALIAÇÃO</Badge>}
-                                                                                    <h4 className={cn("text-base font-black truncate tracking-tight", isAssessment ? "text-amber-800" : "text-slate-800")}>
-                                                                                        {item.content}
-                                                                                    </h4>
-                                                                                </div>
-                                                                                <div className="flex items-center gap-4 text-slate-400 text-[10px] font-bold">
-                                                                                    <div className="flex items-center gap-1">
-                                                                                        <Clock size={12} className="opacity-40" />
-                                                                                        <span>{item.time}</span>
-                                                                                    </div>
-                                                                                    <Badge variant="outline" className="border-slate-100 text-slate-400 text-[8px] h-4 font-black uppercase rounded-md">
-                                                                                        {item.activity}
-                                                                                    </Badge>
-                                                                                    {isAssessment && assessment && (
-                                                                                        <span className="text-amber-600 font-black">{assessment.points} PTS</span>
+                                                                                <div className="flex items-center gap-3 mb-2">
+                                                                                    {!isEmpty && (
+                                                                                        <button
+                                                                                            onClick={() => {
+                                                                                                if (isAssessment) {
+                                                                                                    const types: Assessment['type'][] = ['Teórica', 'Prática', 'Individual', 'Dupla'];
+                                                                                                    const current = assessments.find(a => a.id === item.id)?.type || 'Teórica';
+                                                                                                    const next = types[(types.indexOf(current) + 1) % types.length];
+                                                                                                    updateAssessment(item.id, { type: next });
+                                                                                                } else {
+                                                                                                    updateTopic(item.id, { isPractical: !item.isPractical });
+                                                                                                }
+                                                                                            }}
+                                                                                            className={cn(
+                                                                                                "text-[9px] font-black px-2.5 py-1 rounded-lg uppercase transition-all shrink-0 border-none",
+                                                                                                isAssessment ? "bg-amber-100 text-amber-700 hover:bg-amber-200 shadow-sm" :
+                                                                                                    item.isPractical ? "bg-blue-50 text-blue-600 hover:bg-blue-100" : "bg-slate-50 text-slate-400 hover:bg-slate-100"
+                                                                                            )}
+                                                                                        >
+                                                                                            {isAssessment ? (assessments.find(a => a.id === item.id)?.type || 'AVALIAÇÃO') : (item.isPractical ? 'Prática' : 'Teórica')}
+                                                                                        </button>
+                                                                                    )}
+
+                                                                                    <Input
+                                                                                        value={isAssessment ? assessments.find(a => a.id === item.id)?.name : topics.find(t => t.id === item.id)?.title}
+                                                                                        onChange={(e) => {
+                                                                                            if (isAssessment) updateAssessment(item.id, { name: e.target.value });
+                                                                                            else updateTopic(item.id, { title: e.target.value });
+                                                                                        }}
+                                                                                        placeholder={isEmpty ? "Espaço Vago" : "Título do Tópico ou Conteúdo Acadêmico"}
+                                                                                        className={cn(
+                                                                                            "flex-1 bg-transparent border-none font-black h-8 text-base focus:ring-0 p-0 shadow-none placeholder:text-slate-200",
+                                                                                            isEmpty ? "text-slate-200 italic font-medium" : "text-slate-700"
+                                                                                        )}
+                                                                                    />
+
+                                                                                    {!isEmpty && !isAssessment && (
+                                                                                        <Popover>
+                                                                                            <PopoverTrigger asChild>
+                                                                                                <button className={cn(
+                                                                                                    "w-8 h-8 rounded-xl flex items-center justify-center transition-all",
+                                                                                                    (topics.find(t => t.id === item.id)?.bibliographyIds.length || 0) > 0
+                                                                                                        ? "bg-[#8C132C] text-white shadow-lg shadow-[#8C132C]/20"
+                                                                                                        : "bg-slate-50 text-slate-300 hover:bg-slate-100 hover:text-[#8C132C]"
+                                                                                                )}>
+                                                                                                    <Library size={16} />
+                                                                                                </button>
+                                                                                            </PopoverTrigger>
+                                                                                            <PopoverContent className="w-80 p-0 rounded-3xl border-none shadow-2xl overflow-hidden">
+                                                                                                <div className="p-4 bg-slate-50 border-b border-slate-100">
+                                                                                                    <h5 className="text-[10px] font-black uppercase tracking-widest text-[#8C132C]">Referências Indicadas</h5>
+                                                                                                    <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase">Selecione os livros para este tópico</p>
+                                                                                                </div>
+                                                                                                <div className="p-2 max-h-[300px] overflow-y-auto no-scrollbar">
+                                                                                                    {books.map(book => (
+                                                                                                        <div key={book.id} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-2xl transition-colors cursor-pointer group">
+                                                                                                            <Checkbox
+                                                                                                                id={`book-${item.id}-${book.id}`}
+                                                                                                                checked={topics.find(t => t.id === item.id)?.bibliographyIds.includes(book.id)}
+                                                                                                                onCheckedChange={(checked) => {
+                                                                                                                    const currentIds = topics.find(t => t.id === item.id)?.bibliographyIds || [];
+                                                                                                                    const newIds = checked
+                                                                                                                        ? [...currentIds, book.id]
+                                                                                                                        : currentIds.filter(id => id !== book.id);
+                                                                                                                    updateTopic(item.id, { bibliographyIds: newIds });
+                                                                                                                }}
+                                                                                                                className="rounded-md border-slate-200 data-[state=checked]:bg-[#8C132C] data-[state=checked]:border-[#8C132C]"
+                                                                                                            />
+                                                                                                            <Label htmlFor={`book-${item.id}-${book.id}`} className="flex-1 cursor-pointer">
+                                                                                                                <div className="text-[11px] font-black text-slate-700 leading-tight group-hover:text-[#8C132C] transition-colors">{book.title}</div>
+                                                                                                                <div className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">{book.author}</div>
+                                                                                                            </Label>
+                                                                                                        </div>
+                                                                                                    ))}
+                                                                                                    {books.length === 0 && (
+                                                                                                        <div className="py-8 text-center text-slate-300 text-[10px] font-black uppercase">Nenhum livro cadastrado no Passo 2</div>
+                                                                                                    )}
+                                                                                                </div>
+                                                                                            </PopoverContent>
+                                                                                        </Popover>
                                                                                     )}
                                                                                 </div>
+
+                                                                                {!isEmpty && (
+                                                                                    <div className="flex items-center gap-8 mt-2 tracking-tight">
+                                                                                        {/* Carga Horária */}
+                                                                                        <div className="flex items-center gap-2 group/carga">
+                                                                                            <span className="text-[10px] font-black text-slate-300 uppercase shrink-0">Carga:</span>
+                                                                                            <div className="flex items-center gap-1 bg-slate-50 rounded-xl px-3 py-1 border border-slate-100 group-hover/carga:border-[#8C132C]/20 transition-all shadow-sm">
+                                                                                                <Input
+                                                                                                    type="number"
+                                                                                                    value={isAssessment ? assessments.find(a => a.id === item.id)?.classesNeeded : topics.find(t => t.id === item.id)?.classesNeeded}
+                                                                                                    onChange={(e) => {
+                                                                                                        const val = parseInt(e.target.value) || 0;
+                                                                                                        if (isAssessment) updateAssessment(item.id, { classesNeeded: val });
+                                                                                                        else updateTopic(item.id, { classesNeeded: val });
+                                                                                                    }}
+                                                                                                    className="w-10 h-5 text-[11px] font-black p-0 text-center bg-transparent border-none focus:ring-0 shadow-none text-[#8C132C]"
+                                                                                                />
+                                                                                                <span className="text-[10px] font-black text-slate-400">HORAS</span>
+                                                                                            </div>
+                                                                                        </div>
+
+                                                                                        {isAssessment ? (
+                                                                                            <div className="flex-1 flex items-center gap-3">
+                                                                                                <span className="text-[10px] font-black text-amber-600 uppercase shrink-0">Conteúdo:</span>
+                                                                                                <Input
+                                                                                                    value={assessments.find(a => a.id === item.id)?.content || ''}
+                                                                                                    onChange={(e) => updateAssessment(item.id, { content: e.target.value })}
+                                                                                                    placeholder={item.subContent}
+                                                                                                    className="h-9 text-[11px] bg-amber-100/10 border-amber-200/50 focus:ring-amber-200 text-slate-600 font-bold rounded-xl px-4 flex-1 shadow-none transition-all focus:bg-white"
+                                                                                                />
+                                                                                            </div>
+                                                                                        ) : (
+                                                                                            <>
+                                                                                                {/* Metodologia */}
+                                                                                                <div className="flex items-center gap-2">
+                                                                                                    <span className="text-[10px] font-black text-slate-300 uppercase shrink-0">Método:</span>
+                                                                                                    <Select
+                                                                                                        value={item.activity}
+                                                                                                        onValueChange={(val) => updateTopic(item.id, { methodology: val })}
+                                                                                                    >
+                                                                                                        <SelectTrigger className="h-8 text-[10px] font-black border-none bg-slate-50 rounded-xl px-3 w-[180px] focus:ring-2 focus:ring-[#8C132C]/5 shadow-sm hover:bg-slate-100 transition-all">
+                                                                                                            <SelectValue />
+                                                                                                        </SelectTrigger>
+                                                                                                        <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                                                                                            {Object.keys(METHODOLOGY_GUIDE).map(m => (
+                                                                                                                <SelectItem key={m} value={m} className="text-[11px] font-bold">{m}</SelectItem>
+                                                                                                            ))}
+                                                                                                            <SelectItem value="Prática Clínica" className="text-[11px] font-bold">Prática Clínica</SelectItem>
+                                                                                                        </SelectContent>
+                                                                                                    </Select>
+                                                                                                </div>
+
+                                                                                                {/* Recursos Multi-select */}
+                                                                                                <div className="flex items-center gap-2 flex-1">
+                                                                                                    <span className="text-[10px] font-black text-slate-300 uppercase shrink-0">Recursos:</span>
+                                                                                                    <Popover>
+                                                                                                        <PopoverTrigger asChild>
+                                                                                                            <button className="h-8 flex-1 bg-slate-50 hover:bg-slate-100 rounded-xl px-3 flex items-center justify-between transition-all border border-transparent hover:border-slate-200">
+                                                                                                                <div className="flex gap-1 overflow-hidden">
+                                                                                                                    {(topics.find(t => t.id === item.id)?.resources || []).length > 0 ? (
+                                                                                                                        (topics.find(t => t.id === item.id)?.resources || []).slice(0, 2).map(r => (
+                                                                                                                            <Badge key={r} variant="outline" className="text-[8px] font-black uppercase px-2 py-0 h-4 bg-white border-slate-200 text-slate-500 whitespace-nowrap">{r}</Badge>
+                                                                                                                        ))
+                                                                                                                    ) : (
+                                                                                                                        <span className="text-[10px] font-bold text-slate-300 uppercase">Selecionar recursos...</span>
+                                                                                                                    )}
+                                                                                                                    {(topics.find(t => t.id === item.id)?.resources || []).length > 2 && (
+                                                                                                                        <span className="text-[8px] font-black text-slate-400">+{topics.find(t => t.id === item.id)!.resources.length - 2}</span>
+                                                                                                                    )}
+                                                                                                                </div>
+                                                                                                                <ChevronRight size={12} className="text-slate-300 ml-2" />
+                                                                                                            </button>
+                                                                                                        </PopoverTrigger>
+                                                                                                        <PopoverContent className="w-64 p-0 rounded-3xl border-none shadow-2xl overflow-hidden">
+                                                                                                            <div className="p-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                                                                                                                <span className="text-[9px] font-black uppercase tracking-widest text-[#8C132C]">Recursos Didáticos</span>
+                                                                                                            </div>
+                                                                                                            <div className="p-2 max-h-[300px] overflow-y-auto no-scrollbar">
+                                                                                                                {RESOURCE_OPTIONS.map(opt => (
+                                                                                                                    <div key={opt} className="flex items-center gap-3 p-2.5 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer group">
+                                                                                                                        <Checkbox
+                                                                                                                            id={`res-${item.id}-${opt}`}
+                                                                                                                            checked={topics.find(t => t.id === item.id)?.resources.includes(opt)}
+                                                                                                                            onCheckedChange={(checked) => {
+                                                                                                                                const current = topics.find(t => t.id === item.id)?.resources || [];
+                                                                                                                                const newVal = checked ? [...current, opt] : current.filter(r => r !== opt);
+                                                                                                                                updateTopic(item.id, { resources: newVal });
+                                                                                                                            }}
+                                                                                                                            className="rounded border-slate-200 data-[state=checked]:bg-[#8C132C] data-[state=checked]:border-[#8C132C]"
+                                                                                                                        />
+                                                                                                                        <Label htmlFor={`res-${item.id}-${opt}`} className="text-[10px] font-bold text-slate-600 cursor-pointer flex-1 group-hover:text-[#8C132C]">
+                                                                                                                            {opt}
+                                                                                                                        </Label>
+                                                                                                                    </div>
+                                                                                                                ))}
+                                                                                                            </div>
+                                                                                                        </PopoverContent>
+                                                                                                    </Popover>
+                                                                                                </div>
+                                                                                            </>
+                                                                                        )}
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
 
-                                                                            {/* QUICK ACTIONS */}
-                                                                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                                <button
-                                                                                    onClick={() => isAssessment ? removeAssessment(item.id) : removeTopic(item.id)}
-                                                                                    className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                                                                                    title="Remover Tópico Inteiro"
-                                                                                >
-                                                                                    <Trash2 size={18} />
-                                                                                </button>
+                                                                            <div className="flex items-center gap-4 shrink-0">
+                                                                                {isAssessment && (
+                                                                                    <div className="flex items-center gap-1 bg-amber-100 px-3 py-1.5 rounded-2xl border border-amber-200 shadow-sm">
+                                                                                        <Input
+                                                                                            type="number"
+                                                                                            value={assessments.find(a => a.id === item.id)?.points}
+                                                                                            onChange={(e) => updateAssessment(item.id, { points: parseInt(e.target.value) || 0 })}
+                                                                                            className="w-10 h-6 text-[12px] font-black p-0 text-center bg-transparent border-none focus:ring-0 shadow-none text-amber-700"
+                                                                                        />
+                                                                                        <span className="text-[9px] font-black text-amber-700 uppercase tracking-widest">PTS</span>
+                                                                                    </div>
+                                                                                )}
+                                                                                {!isEmpty && (
+                                                                                    <button
+                                                                                        onClick={() => isAssessment ? removeAssessment(item.id) : removeTopic(item.id)}
+                                                                                        className="w-12 h-12 rounded-[20px] flex items-center justify-center text-slate-200 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
+                                                                                    >
+                                                                                        <Trash2 size={20} />
+                                                                                    </button>
+                                                                                )}
                                                                             </div>
-                                                                        </Card>
+                                                                        </div>
                                                                     </div>
                                                                 )}
                                                             </Draggable>
@@ -1526,7 +1754,8 @@ export default function SyllabusWizard() {
                                     </DragDropContext>
                                 </div>
 
-                                <div className="flex justify-between items-center pt-8 border-t border-slate-50">
+
+                                <div className="flex justify-between items-center pt-10 border-t border-slate-100">
                                     <Button onClick={() => setStep(2)} variant="ghost" className="h-14 rounded-2xl px-10 font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all">
                                         <ChevronLeft size={18} className="mr-2" /> Voltar
                                     </Button>
@@ -1619,75 +1848,70 @@ export default function SyllabusWizard() {
                                             <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[9px] uppercase tracking-widest px-4 py-1.5">Semestre Ativo</Badge>
                                         </div>
 
-                                        <div className="space-y-3">
-                                            {topics.map((topic, index) => {
-                                                const isDone = completedTopicIds.includes(topic.id);
+                                        <div className="space-y-4">
+                                            {fullSchedule.filter((s: any) => s.type !== 'holiday' && s.type !== 'empty').map((item, index) => {
+                                                const isDone = completedTopicIds.includes(item.id);
+                                                const isAssessment = item.type === 'assessment';
+
                                                 return (
                                                     <motion.div
                                                         layout
-                                                        key={topic.id}
+                                                        key={`${item.id}-${index}`}
                                                         className={cn(
-                                                            "bg-white p-5 rounded-[36px] border-2 transition-all flex items-center gap-5 group",
-                                                            isDone ? "border-emerald-100 opacity-60 grayscale-[0.5]" : "border-slate-50 shadow-sm hover:border-[#8C132C]/20"
+                                                            "bg-white p-4 rounded-2xl border-2 transition-all flex items-center gap-4 group",
+                                                            isDone ? "border-emerald-100 opacity-60" : "border-slate-50 shadow-sm hover:border-[#8C132C]/20 hover:shadow-lg"
                                                         )}
                                                     >
                                                         {viewMode === 'professor' && (
                                                             <button
-                                                                onClick={() => toggleTopicCompletion(topic.id)}
+                                                                onClick={() => toggleTopicCompletion(item.id)}
                                                                 className={cn(
-                                                                    "w-12 h-12 rounded-2xl flex items-center justify-center transition-all border-2",
+                                                                    "w-10 h-10 rounded-xl flex items-center justify-center transition-all border-2 shrink-0",
                                                                     isDone ? "bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200" : "bg-white border-slate-100 text-slate-200 group-hover:border-[#8C132C]/30"
                                                                 )}
                                                             >
-                                                                <Check size={24} strokeWidth={4} />
+                                                                <Check size={20} strokeWidth={4} />
                                                             </button>
-                                                        )}
-
-                                                        {viewMode === 'student' && (
-                                                            <div className={cn(
-                                                                "w-12 h-12 rounded-2xl flex items-center justify-center transition-all border-2",
-                                                                isDone ? "bg-emerald-50 border-emerald-100 text-emerald-500" : "bg-slate-50 border-transparent text-slate-300"
-                                                            )}>
-                                                                {isDone ? <CheckCircle2 size={24} /> : <div className="text-xs font-black">{index + 1}</div>}
-                                                            </div>
                                                         )}
 
                                                         <div className="flex-1">
                                                             <div className="flex items-center gap-3 mb-0.5">
-                                                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Aula {index + 1}</span>
-                                                                {topic.isPractical && <Badge className="bg-blue-50 text-blue-500 text-[8px] font-black uppercase px-2 py-0 border-none">Prática</Badge>}
+                                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.date} • {item.dia}</span>
+                                                                {isAssessment && <Badge className="bg-amber-500 text-white text-[8px] font-black uppercase px-2 py-0 border-none">Avaliação</Badge>}
+                                                                {item.isPractical && <Badge className="bg-blue-50 text-blue-500 text-[8px] font-black uppercase px-2 py-0 border-none">Prática</Badge>}
                                                             </div>
-                                                            <h4 className={cn("text-base font-black transition-all", isDone ? "text-slate-400 line-through" : "text-slate-700")}>
-                                                                {topic.title}
+                                                            <h4 className={cn("text-base font-black transition-all", isDone ? "text-slate-400 line-through" : "text-slate-800")}>
+                                                                {item.content}
                                                             </h4>
+                                                            {isAssessment && item.subContent && (
+                                                                <p className="text-[10px] text-amber-600 font-bold mt-1 line-clamp-1">{item.subContent}</p>
+                                                            )}
                                                             <div className="flex items-center gap-4 mt-2">
                                                                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                                                                    <Clock size={12} className="opacity-50" /> {topic.classesNeeded}h
+                                                                    <Clock size={12} className="opacity-50" /> {item.time}
                                                                 </div>
-                                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                                                                    <Sparkles size={12} className="opacity-50" /> {topic.methodology}
-                                                                </div>
-                                                                <div className="flex -space-x-2 ml-2">
-                                                                    {topic.bibliographyIds.map(bid => (
-                                                                        <div key={bid} className="w-5 h-5 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[8px] text-slate-400 font-bold" title="Livro">B</div>
-                                                                    ))}
+                                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                                                                    <Sparkles size={12} className="opacity-50" /> {item.activity}
                                                                 </div>
                                                             </div>
                                                         </div>
 
-                                                        {!isDone && (
+                                                        {!isDone && !isAssessment && (
                                                             <Popover>
                                                                 <PopoverTrigger asChild>
                                                                     <Button variant="ghost" className="w-10 h-10 rounded-xl p-0 hover:bg-[#8C132C]/5 text-slate-300 hover:text-[#8C132C]"><Info size={20} /></Button>
                                                                 </PopoverTrigger>
                                                                 <PopoverContent className="w-64 p-5 rounded-[28px] border-none shadow-2xl space-y-3">
-                                                                    <h5 className="font-black text-xs text-[#8C132C] uppercase tracking-tight">Recursos da Aula</h5>
+                                                                    <h5 className="font-black text-xs text-[#8C132C] uppercase tracking-tight">Referência Sugerida</h5>
                                                                     <div className="flex flex-wrap gap-1.5">
-                                                                        {topic.resources.map(r => <Badge key={r} variant="outline" className="text-[9px] font-bold border-slate-100">{r}</Badge>)}
+                                                                        {item.bibliographyIds?.map((bid: string) => {
+                                                                            const book = books.find(b => b.id === bid);
+                                                                            return book ? <Badge key={bid} variant="outline" className="text-[9px] font-bold border-slate-100">{book.title}</Badge> : null;
+                                                                        })}
                                                                     </div>
                                                                     <div className="pt-2">
                                                                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Localização</p>
-                                                                        <p className="text-[11px] font-black text-slate-600">{topic.isPractical ? practiceLocation : theoryLocation}</p>
+                                                                        <p className="text-[11px] font-black text-slate-600">{item.isPractical ? practiceLocation : theoryLocation}</p>
                                                                     </div>
                                                                 </PopoverContent>
                                                             </Popover>
@@ -1787,6 +2011,30 @@ export default function SyllabusWizard() {
                                 </button>
                             ))}
                         </div>
+                        <div className="h-10 w-px bg-slate-100 mx-2 no-print" />
+
+                        <div className="flex bg-slate-50 p-1 rounded-2xl no-print">
+                            {[
+                                { id: 'small', label: 'P', size: 'text-[9px]' },
+                                { id: 'medium', label: 'M', size: 'text-[11px]' },
+                                { id: 'large', label: 'G', size: 'text-[13px]' }
+                            ].map(fs => (
+                                <button
+                                    key={fs.id}
+                                    onClick={() => setPrintFontSize(fs.id as any)}
+                                    className={cn(
+                                        "w-10 h-10 rounded-xl flex items-center justify-center font-black transition-all",
+                                        printFontSize === fs.id ? "bg-white text-[#8C132C] shadow-sm" : "text-slate-300 hover:text-slate-500"
+                                    )}
+                                    title={`Fonte ${fs.label}`}
+                                >
+                                    {fs.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="h-10 w-px bg-slate-100 mx-2 no-print" />
+
                         <div className="flex bg-slate-100 p-1.5 rounded-2xl">
                             <button
                                 onClick={() => setOrientation('portrait')}
@@ -1819,15 +2067,18 @@ export default function SyllabusWizard() {
                     </div>
 
                     {/* Área de Preview com Templates - SIMULAÇÃO A4 */}
-                    <div className="flex-1 overflow-y-auto p-4 sm:p-12 bg-slate-200/40 flex justify-center no-scrollbar scroll-smooth">
+                    <div className="flex-1 overflow-y-auto p-12 bg-slate-400/20 flex justify-center scroll-smooth backdrop-blur-sm">
                         <div ref={printRef} className={cn(
-                            "bg-white shadow-[0_30px_60px_rgba(0,0,0,0.1)] transition-all duration-500 relative print-area",
-                            orientation === 'portrait' ? "w-[210mm] min-h-[297mm] p-16" : "w-[297mm] min-h-[210mm] p-12",
-                            selectedTemplate === 1 && "rounded-sm border-t-[16px] border-[#8C132C]",
-                            selectedTemplate === 2 && "rounded-none border-[1px] border-slate-200 font-serif",
-                            selectedTemplate === 3 && "rounded-[40px] px-20 border-none shadow-none",
-                            selectedTemplate === 4 && "bg-[#FDFDFD] border-l-[30px] border-[#363636]"
-                        )}>
+                            "bg-white shadow-[0_40px_100px_rgba(0,0,0,0.2)] relative print-area border border-slate-100 flex flex-col h-auto mb-20",
+                            orientation === 'portrait' ? "w-[210mm] min-h-[297mm] p-[16mm] sm:p-[20mm]" : "w-[297mm] min-h-[210mm] p-[12mm] sm:p-[15mm]",
+                            selectedTemplate === 1 && "border-t-[20px] border-[#8C132C]",
+                            selectedTemplate === 2 && "font-serif border-[1px] border-slate-200",
+                            selectedTemplate === 3 && "rounded-[48px] px-24 border-none shadow-2xl",
+                            selectedTemplate === 4 && "border-l-[40px] border-[#363636]"
+                        )} style={{
+                            zoom: printFontSize === 'small' ? 0.75 : printFontSize === 'medium' ? 0.85 : 1
+                        }}>
+                            <style>{PRINT_STYLES(orientation, printFontSize)}</style>
                             {/* Watermark Mockup */}
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] pointer-events-none rotate-45 text-[150px] font-black whitespace-nowrap">
                                 AXIOM PORTAL
@@ -1884,110 +2135,113 @@ export default function SyllabusWizard() {
                                     <CalendarIcon className="text-[#8C132C]" size={24} /> Cronograma de Atividades do Semestre
                                 </h3>
 
-                                <div className="rounded-[32px] border border-slate-100 overflow-hidden bg-white shadow-sm">
-                                    <table className="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr className="bg-slate-50 border-b border-slate-100">
-                                                {visibleColumns.includes('data') && <th className="px-6 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest w-20">Data</th>}
-                                                {visibleColumns.includes('dia') && <th className="px-6 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest w-20">Dia</th>}
-                                                {visibleColumns.includes('conteudo') && <th className="px-6 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest">Conteúdo / Tópico</th>}
-                                                {visibleColumns.includes('references') && <th className="px-6 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest w-48">Referências</th>}
-                                                {visibleColumns.includes('atividade') && <th className="px-6 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest w-64">Atividade / Avaliação</th>}
-                                                {visibleColumns.includes('pontos') && <th className="px-6 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest w-24 text-center">Pontos</th>}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {generateFullSchedule().map((row, idx) => (
-                                                <tr key={idx} className={cn(
-                                                    "border-b border-slate-50 last:border-none hover:bg-slate-50/30 transition-colors",
-                                                    row.type === 'holiday' && "bg-red-50/50",
-                                                    row.isPractical && "bg-blue-50/5 border-l-4 border-blue-400/30"
-                                                )}>
-                                                    {visibleColumns.includes('data') && (
-                                                        <td className="px-6 py-5">
-                                                            <div className="text-[11px] font-black text-slate-700">{row.date}</div>
-                                                        </td>
+                                <div className="space-y-4">
+                                    {generateFullSchedule().map((row, idx) => (
+                                        <div key={idx} className={cn(
+                                            "rounded-[32px] border border-slate-100 p-8 bg-white transition-all break-inside-avoid shadow-sm flex gap-8 relative",
+                                            row.type === 'holiday' && "bg-red-50/20 border-red-100/50 opacity-80",
+                                            row.type === 'assessment' && "border-amber-200 bg-amber-50/10 shadow-lg shadow-amber-500/5",
+                                            row.isPractical && "border-l-[12px] border-l-blue-400/20"
+                                        )}>
+                                            {/* Left: Date & Time Display */}
+                                            {(visibleColumns.includes('data') || visibleColumns.includes('dia')) && (
+                                                <div className="w-24 shrink-0 flex flex-col items-center justify-start py-1">
+                                                    <div className={cn(
+                                                        "w-16 h-16 rounded-2xl flex flex-col items-center justify-center font-black transition-all mb-2 shadow-sm",
+                                                        row.type === 'assessment' ? "text-amber-600 bg-amber-100" :
+                                                            row.type === 'holiday' ? "text-red-400 bg-red-100" : "text-slate-700 bg-slate-50"
+                                                    )}>
+                                                        <span className="text-lg leading-none">{row.date.split('/')[0]}</span>
+                                                        <span className="text-[10px] uppercase opacity-60">
+                                                            {format(new Date(2026, parseInt(row.date.split('/')[1]) - 1, 1), 'MMM', { locale: ptBR })}
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{row.dia}</span>
+                                                        <div className="text-[9px] font-bold text-slate-300 mt-1 uppercase">{row.time}</div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Center: Contents & Details */}
+                                            <div className="flex-1 space-y-4 min-w-0">
+                                                <div className="space-y-1.5">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <h4 className={cn(
+                                                            "text-[18px] font-black leading-tight",
+                                                            row.type === 'holiday' ? "text-red-400 italic" : "text-slate-800",
+                                                            row.type === 'assessment' && "text-[#8C132C]"
+                                                        )}>
+                                                            {row.content}
+                                                        </h4>
+                                                        {row.isPractical && <Badge className="bg-blue-400 text-white border-none text-[8px] font-black px-2 py-0">AULA PRÁTICA</Badge>}
+                                                        {row.type === 'assessment' && <Badge className="bg-amber-500 text-white border-none text-[8px] font-black px-2 py-0">AVALIAÇÃO</Badge>}
+                                                    </div>
+                                                    {row.subContent && (
+                                                        <div className="text-[11px] font-bold text-[#8C132C]/60 italic uppercase tracking-tight flex items-center gap-2">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-[#8C132C]/20" />
+                                                            {row.subContent}
+                                                        </div>
                                                     )}
-                                                    {visibleColumns.includes('dia') && (
-                                                        <td className="px-6 py-5">
-                                                            <div className="text-[11px] font-bold text-slate-400 uppercase">{row.dia}</div>
-                                                        </td>
-                                                    )}
-                                                    {visibleColumns.includes('conteudo') && (
-                                                        <td className="px-6 py-5 relative">
-                                                            <div className="flex flex-col">
-                                                                <div className="flex items-center gap-2 mb-0.5">
-                                                                    <span className={cn(
-                                                                        "text-[13px] font-black",
-                                                                        row.type === 'holiday' ? "text-red-400 italic" : "text-slate-800",
-                                                                        row.type === 'assessment' && "text-[#8C132C]"
-                                                                    )}>
-                                                                        {row.content}
-                                                                    </span>
-                                                                    {row.isPractical && <Badge className="bg-blue-400 text-white border-none text-[8px] font-black px-1.5 py-0 shadow-sm shadow-blue-200">PRÁTICA</Badge>}
-                                                                </div>
-                                                                {row.subContent && (
-                                                                    <div className="text-[10px] font-bold text-[#8C132C]/60 italic mb-1 uppercase tracking-tight">
-                                                                        {row.subContent}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                            <div className="text-[9px] font-bold text-slate-300 uppercase shrink-0">
-                                                                {row.time}
-                                                            </div>
-                                                            {/* Only show estimated date warning if it's actually an unpinned topic */}
-                                                            {row.type === 'topic' && (topics.find(t => t.title === row.content)?.date == null) && (
-                                                                <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all">
-                                                                    <span className="bg-slate-100 text-slate-400 text-[8px] font-black uppercase px-2 py-1 rounded-md">
-                                                                        Data Calculada Automaticamente
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                        </td>
-                                                    )}
-                                                    {visibleColumns.includes('references') && (
-                                                        <td className="px-6 py-5">
-                                                            <div className="flex flex-col gap-1">
-                                                                {row.bibliographyIds?.map((bid: string) => {
-                                                                    const book = books.find(b => b.id === bid);
-                                                                    return book ? (
-                                                                        <div key={bid} className="text-[9px] font-bold text-slate-500 flex items-start gap-1">
-                                                                            <span className="text-[#8C132C]">•</span> {book.title} ({book.author})
+                                                </div>
+
+                                                {visibleColumns.includes('references') && row.bibliographyIds?.length > 0 && (
+                                                    <div className="pt-4 border-t border-slate-50 space-y-2">
+                                                        <div className="text-[9px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                                                            <Library size={12} /> Referências Bibliográficas
+                                                        </div>
+                                                        <div className="grid grid-cols-1 gap-1.5">
+                                                            {row.bibliographyIds.map((bid: string) => {
+                                                                const book = books.find(b => b.id === bid);
+                                                                return book ? (
+                                                                    <div key={bid} className="text-[10px] font-bold text-slate-500 flex items-start gap-2 bg-slate-50/50 p-2 rounded-xl border border-slate-100/50">
+                                                                        <span className="text-[#8C132C] mt-0.5">•</span>
+                                                                        <div>
+                                                                            <span className="text-slate-700 font-black">{book.title}</span>
+                                                                            <span className="text-slate-400 ml-2 italic">({book.author})</span>
                                                                         </div>
-                                                                    ) : null;
-                                                                })}
-                                                                {!row.bibliographyIds?.length && row.type !== 'holiday' && (
-                                                                    <span className="text-[9px] text-slate-200 font-bold italic">Nenhuma ref. vinculada</span>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                    )}
-                                                    {visibleColumns.includes('atividade') && (
-                                                        <td className="px-6 py-5">
-                                                            <div className={cn(
-                                                                "text-[10px] font-bold",
-                                                                row.type === 'assessment' ? "text-[#8C132C] font-black uppercase tracking-tighter" : "text-slate-500",
-                                                                row.type === 'holiday' && "text-red-300"
-                                                            )}>
-                                                                {row.activity}
-                                                            </div>
-                                                        </td>
-                                                    )}
-                                                    {visibleColumns.includes('pontos') && (
-                                                        <td className="px-6 py-5 text-center">
-                                                            {row.points ? (
-                                                                <div className="text-[11px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg inline-block">
-                                                                    {row.points.toFixed(1)}
+                                                                    </div>
+                                                                ) : null;
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Right: Activity & Scoring */}
+                                            {(visibleColumns.includes('atividade') || visibleColumns.includes('pontos')) && (
+                                                <div className="w-48 text-right flex flex-col justify-between py-1 border-l border-slate-50 pl-8">
+                                                    <div className="space-y-4">
+                                                        {visibleColumns.includes('atividade') && (
+                                                            <div className="space-y-1">
+                                                                <div className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Atividade</div>
+                                                                <div className={cn(
+                                                                    "text-[12px] font-black uppercase tracking-tight",
+                                                                    row.type === 'assessment' ? "text-[#8C132C]" : "text-slate-600",
+                                                                    row.type === 'holiday' && "text-red-300"
+                                                                )}>
+                                                                    {row.activity}
                                                                 </div>
-                                                            ) : (
-                                                                <div className="text-[11px] font-bold text-slate-200">---</div>
-                                                            )}
-                                                        </td>
+                                                            </div>
+                                                        )}
+
+                                                        {visibleColumns.includes('pontos') && row.points && (
+                                                            <div className="space-y-1">
+                                                                <div className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Pontuação</div>
+                                                                <div className="text-xl font-black text-emerald-600">
+                                                                    {row.points.toFixed(1)} <span className="text-[10px] text-emerald-400">PTS</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {!row.points && row.type !== 'holiday' && (
+                                                        <div className="text-[10px] font-bold text-slate-200 uppercase italic">Atividade Formativa</div>
                                                     )}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
                             </section>
 
@@ -2042,13 +2296,16 @@ export default function SyllabusWizard() {
                             <footer className="mt-20 flex justify-between items-end border-t border-slate-100 pt-10">
                                 <div className="space-y-6">
                                     <div className="w-40 h-px bg-slate-200 mb-2" />
-                                    <div className="text-[8px] font-black uppercase text-slate-400">Assinatura do Coordenador de Curso</div>
+
                                 </div>
                                 <div className="text-right">
-                                    <div className="font-black text-[12px] text-slate-800">AXIOM PORTAL ACADÊMICO</div>
+                                    <div className="font-black text-[12px] text-slate-800">PORTAL ACADÊMICO</div>
                                     <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Gerado digitalmente em {new Date().toLocaleDateString()}</div>
                                 </div>
                             </footer>
+
+                            {/* Botto Spacer to ensure content doesn't touch the edge */}
+                            <div className="h-10 w-full shrink-0" />
                         </div>
                     </div>
                 </DialogContent>
