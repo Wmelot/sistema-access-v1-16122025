@@ -69,7 +69,7 @@ interface SyllabusContextType {
     // Actions
     saveDraft: (name?: string) => Promise<void>;
     deleteDraft: (id: string) => Promise<void>;
-    loadDraft: (draft: any) => void;
+    loadDraft: (draft: any, targetStep?: number) => void;
     suggestExamDates: () => void;
     toggleTopicCompletion: (id: string) => void;
     onDragEnd: (result: any) => void;
@@ -104,6 +104,8 @@ interface SyllabusContextType {
     setShowConflictModal: (s: boolean) => void;
     materializeEmptySlot: (instanceId: string, title: string) => void;
     createNewSyllabus: () => void;
+    pinnedDates: Record<string, string>;
+    pinDate: (instanceId: string, date: string | null) => void;
 }
 
 const SyllabusContext = createContext<SyllabusContextType | undefined>(undefined);
@@ -164,8 +166,20 @@ export function SyllabusProvider({ children }: { children: React.ReactNode }) {
     const [uploadedFiles, setUploadedFiles] = useState<{ name: string, type: string, file?: File }[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [showConflictModal, setShowConflictModal] = useState(false);
+    const [pinnedDates, setPinnedDates] = useState<Record<string, string>>({});
 
-    // Fetch drafts on mount
+    const pinDate = (instanceId: string, date: string | null) => {
+        setPinnedDates(prev => {
+            const next = { ...prev };
+            if (date) next[instanceId] = date;
+            else delete next[instanceId];
+            return next;
+        });
+    };
+
+    const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
+
+    // Fetch drafts on mount + Recover safety backup
     useEffect(() => {
         const fetchDrafts = async () => {
             try {
@@ -177,7 +191,34 @@ export function SyllabusProvider({ children }: { children: React.ReactNode }) {
             }
         };
         fetchDrafts();
+
+        // Safety Recovery
+        const backup = localStorage.getItem('syllabus_backup');
+        if (backup) {
+            try {
+                const { activeDraftId: backupId, ...data } = JSON.parse(backup);
+                toast("Encontramos um progresso não salvo. Deseja recuperar?", {
+                    action: {
+                        label: "Recuperar",
+                        onClick: () => {
+                            loadDraft({ id: backupId, data });
+                            toast.success("Progresso recuperado!");
+                        }
+                    },
+                    duration: 10000
+                });
+            } catch (e) { }
+        }
     }, []);
+
+    // Automatic Backup every 2s of changes
+    useEffect(() => {
+        const data = { activeDraftId, courseName, publicSlug, theoryLocation, practiceLocation, startDate, endDate, weekDays, assessments, books, topics, holidays, locationCity, selectedLogo, completedTopicIds, timelineOrder, pinnedDates };
+        const timeout = setTimeout(() => {
+            localStorage.setItem('syllabus_backup', JSON.stringify(data));
+        }, 2000);
+        return () => clearTimeout(timeout);
+    }, [activeDraftId, courseName, publicSlug, theoryLocation, practiceLocation, startDate, endDate, weekDays, assessments, books, topics, holidays, locationCity, selectedLogo, completedTopicIds, timelineOrder, pinnedDates]);
 
     // AI Helper
     const parseSafeDate = (dateStr: string) => {
@@ -260,7 +301,7 @@ export function SyllabusProvider({ children }: { children: React.ReactNode }) {
             const counts: Record<string, number> = {};
 
             topics.forEach(t => counts[t.id] = Math.max(1, Math.ceil(t.classesNeeded / classDuration)));
-            assessments.forEach(a => counts[a.id] = Math.max(1, Math.ceil(a.classesNeeded / classDuration)));
+            assessments.forEach(a => counts[a.id] = a.classesNeeded === 0 ? 1 : Math.max(1, Math.ceil(a.classesNeeded / classDuration)));
 
             // Remove deleted
             const filtered = newItems.filter(item => item.type === 'empty' || allValidIds.includes(item.id));
@@ -334,109 +375,165 @@ export function SyllabusProvider({ children }: { children: React.ReactNode }) {
         });
     }, [topics, assessments, availableDays, classDuration]);
 
-    const totalNeededHours = topics.reduce((acc, t) => acc + t.classesNeeded, 0);
+    const totalNeededHours = topics.reduce((acc, t) => acc + t.classesNeeded, 0) + assessments.reduce((acc, a) => acc + a.classesNeeded, 0);
     const totalPoints = assessments.reduce((acc, a) => acc + (a.isSubstitutive ? 0 : a.points), 0);
     const isOverflow = totalNeededHours > availableHours + 0.1;
 
     // Full Schedule Memoized
     const fullSchedule = React.useMemo(() => {
-        const schedule: any[] = [];
         if (!startDate || !endDate) return [];
-        let current = new Date(startDate);
-        const end = new Date(endDate);
-        const todayStr = format(new Date(), 'yyyy-MM-dd');
-        const occurrenceCounter: { [day: string]: number } = {};
-        let tIndex = 0;
 
-        while (current <= end) {
-            const dateStr = format(current, 'yyyy-MM-dd');
-            const jsDayStr = (current.getDay() === 0 ? 7 : current.getDay()).toString();
-            const diaSemanaEnum = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'][current.getDay()];
-            const dayConfig = weekDays.find(w => w.day === jsDayStr);
-            const holiday = holidays.find(h => h.date === dateStr);
-            const isPast = dateStr < todayStr && step >= 4;
-
-            if (dayConfig) {
-                occurrenceCounter[jsDayStr] = (occurrenceCounter[jsDayStr] || 0) + 1;
-                if (holiday) {
-                    schedule.push({ date: format(current, 'dd/MM'), dia: diaSemanaEnum, type: 'holiday', content: holiday.desc });
-                } else {
-                    let isActive = true;
-                    if (dayConfig.frequency === 'biweekly' && occurrenceCounter[jsDayStr] % 2 === 0) isActive = false;
-                    if (dayConfig.frequency === 'monthly' && (occurrenceCounter[jsDayStr] - 1) % 4 !== 0) isActive = false;
-
-                    if (isActive) {
-                        if (tIndex < timelineOrder.length) {
-                            const item = timelineOrder[tIndex];
-                            if (item.type === 'empty') {
-                                schedule.push({
-                                    instanceId: item.instanceId,
-                                    date: format(current, 'dd/MM'),
-                                    dia: diaSemanaEnum,
-                                    type: 'empty',
-                                    content: 'Espaço Vago',
-                                    time: `${dayConfig.start} - ${dayConfig.end}`
-                                });
-                            } else {
-                                const source = item.type === 'topic' ? topics.find(t => t.id === item.id) : assessments.find(a => a.id === item.id);
-                                if (source) {
-                                    const occ = timelineOrder.slice(0, tIndex + 1).filter(i => i.id === item.id).length;
-                                    const total = timelineOrder.filter(i => i.id === item.id).length;
-                                    schedule.push({
-                                        instanceId: item.instanceId,
-                                        id: item.id,
-                                        date: format(current, 'dd/MM'),
-                                        dia: diaSemanaEnum,
-                                        type: item.type,
-                                        content: (item.type === 'topic' ? (source as Topic).title : (source as Assessment).name) + (total > 1 ? ` (Parte ${occ})` : ''),
-                                        activity: item.type === 'topic' ? (source as Topic).methodology : 'Avaliação ' + (source as Assessment).type,
-                                        subContent: item.type === 'topic' ? ((source as Topic).isPractical ? 'Aula Prática' : 'Aula Teórica') : (source as Assessment).content,
-                                        points: item.type === 'topic' ? null : (source as Assessment).points,
-                                        time: `${dayConfig.start} - ${dayConfig.end}`,
-                                        duration: classDuration,
-                                        isPractical: item.type === 'topic' ? (source as Topic).isPractical : false,
-                                        bibliographyIds: item.type === 'topic' ? (source as Topic).bibliographyIds : []
-                                    });
-                                }
-                            }
-                            tIndex++;
-                        } else {
-                            // Extra padding for late-generated days
-                            schedule.push({ instanceId: `empty-${dateStr}`, date: format(current, 'dd/MM'), dia: diaSemanaEnum, type: 'empty', content: 'Espaço Vago', time: `${dayConfig.start} - ${dayConfig.end}` });
-                        }
-                    }
+        // 1. Get all potential class days
+        const days: any[] = [];
+        let curr = new Date(startDate);
+        const occurrenceCounter: Record<string, number> = {};
+        while (curr <= endDate) {
+            const dStr = format(curr, 'yyyy-MM-dd');
+            const jsDay = (curr.getDay() === 0 ? 7 : curr.getDay()).toString();
+            const config = weekDays.find(w => w.day === jsDay);
+            const holiday = holidays.find(h => h.date === dStr);
+            if (config && !holiday) {
+                occurrenceCounter[jsDay] = (occurrenceCounter[jsDay] || 0) + 1;
+                let isActive = true;
+                if (config.frequency === 'biweekly' && occurrenceCounter[jsDay] % 2 === 0) isActive = false;
+                if (config.frequency === 'monthly' && (occurrenceCounter[jsDay] - 1) % 4 !== 0) isActive = false;
+                if (isActive) {
+                    days.push({
+                        date: format(curr, 'dd/MM'),
+                        dateStr: dStr,
+                        dia: ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'][curr.getDay()],
+                        config
+                    });
                 }
             }
-            current.setDate(current.getDate() + 1);
+            curr.setDate(curr.getDate() + 1);
         }
 
-        // Add Overflow
-        while (tIndex < timelineOrder.length) {
-            const item = timelineOrder[tIndex];
+        // 2. Map items
+        const schedule: any[] = [];
+        const occupiedDates = new Set<string>();
+
+        // Predetermine which dates are occupied by pinned items (duration > 0)
+        timelineOrder.forEach(item => {
+            if (pinnedDates[item.instanceId]) {
+                const source = item.type === 'topic' ? topics.find(t => t.id === item.id) : assessments.find(a => a.id === item.id);
+                if (source && source.classesNeeded > 0) {
+                    occupiedDates.add(pinnedDates[item.instanceId]);
+                }
+            }
+        });
+
+        let dayIdx = 0;
+        timelineOrder.forEach((item, idx) => {
+            let dateInfo: any;
             const source = item.type === 'topic' ? topics.find(t => t.id === item.id) : assessments.find(a => a.id === item.id);
-            if (source && item.type !== 'empty') {
+            const duration = source?.classesNeeded ?? 0;
+
+            if (pinnedDates[item.instanceId]) {
+                const d = new Date(pinnedDates[item.instanceId] + 'T12:00:00');
+                const jsDay = (d.getDay() === 0 ? 7 : d.getDay()).toString();
+                dateInfo = {
+                    dateStr: pinnedDates[item.instanceId],
+                    date: format(d, 'dd/MM'),
+                    dia: ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'][d.getDay()],
+                    config: weekDays.find(w => w.day === jsDay) || days.find(d => d.dateStr === pinnedDates[item.instanceId])?.config || weekDays[0]
+                };
+            } else {
+                // Automatic flow: find next day that isn't fully occupied
+                while (dayIdx < days.length && occupiedDates.has(days[dayIdx].dateStr)) {
+                    dayIdx++;
+                }
+                if (dayIdx < days.length) {
+                    dateInfo = days[dayIdx];
+                    if (duration > 0) {
+                        dayIdx++;
+                    }
+                } else {
+                    dateInfo = { date: '---', dia: 'EXTRA', dateStr: '9999-99-99', config: null };
+                }
+            }
+
+            if (source || item.type === 'empty') {
+                const occ = timelineOrder.slice(0, idx + 1).filter(i => i.id === item.id).length;
+                const total = timelineOrder.filter(i => i.id === item.id).length;
+
                 schedule.push({
                     instanceId: item.instanceId,
                     id: item.id,
-                    date: '---',
-                    dia: 'EXTRA',
+                    date: dateInfo.date,
+                    dia: dateInfo.dia,
+                    dateStr: dateInfo.dateStr,
                     type: item.type,
-                    isOverflow: true,
-                    content: (item.type === 'topic' ? (source as Topic).title : (source as Assessment).name),
-                    duration: classDuration
+                    content: item.type === 'empty' ? 'Espaço Vago' : ((item.type === 'topic' ? (source as Topic).title : (source as Assessment).name) + (total > 1 ? ` (Parte ${occ})` : '')),
+                    activity: item.type === 'topic' ? (source as Topic).methodology : (source ? 'Avaliação ' + (source as Assessment).type : '-'),
+                    subContent: item.type === 'topic' ? ((source as Topic).isPractical ? 'Aula Prática' : 'Aula Teórica') : (source ? (source as Assessment).content : ''),
+                    points: item.type === 'topic' ? null : (source ? (source as Assessment).points : null),
+                    time: dateInfo.config ? `${dateInfo.config.start} - ${dateInfo.config.end}` : '-',
+                    duration: duration,
+                    isPractical: item.type === 'topic' ? (source as Topic).isPractical : false,
+                    bibliographyIds: item.type === 'topic' ? (source as Topic).bibliographyIds : [],
+                    isPinned: !!pinnedDates[item.instanceId]
                 });
             }
-            tIndex++;
-        }
-        return schedule;
-    }, [startDate, endDate, weekDays, holidays, topics, assessments, timelineOrder, classDuration]);
+        });
 
-    const saveDraft = async (name: string = "") => {
-        const draftData = { courseName, publicSlug, theoryLocation, practiceLocation, startDate, endDate, weekDays, assessments, books, topics, holidays, locationCity, selectedLogo, completedTopicIds, timelineOrder };
-        const newD = { id: Date.now().toString(), name: name || courseName || "Cronograma sem nome", date: new Date().toISOString(), data: draftData };
-        const updated = [newD, ...drafts];
+        // 3. Add Holidays
+        holidays.forEach(h => {
+            const d = new Date(h.date + 'T12:00:00');
+            const startStr = format(startDate, 'yyyy-MM-dd');
+            const endStr = format(endDate, 'yyyy-MM-dd');
+
+            if (h.date >= startStr && h.date <= endStr) {
+                const jsDay = (d.getDay() === 0 ? 7 : d.getDay()).toString();
+                const isClassDay = weekDays.some(w => w.day === jsDay);
+
+                if (isClassDay) {
+                    schedule.push({
+                        date: format(d, 'dd/MM'),
+                        dateStr: h.date,
+                        dia: ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'][d.getDay()],
+                        type: 'holiday',
+                        content: h.desc
+                    });
+                }
+            }
+        });
+
+        // 4. Sort by Date
+        return schedule.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
+    }, [startDate, endDate, weekDays, holidays, topics, assessments, timelineOrder, pinnedDates]);
+
+    const saveDraft = async (name: string = "", silent: boolean = false) => {
+        const finalName = (name || courseName || "Cronograma sem nome").trim();
+        const draftData = { courseName: finalName, publicSlug, theoryLocation, practiceLocation, startDate, endDate, weekDays, assessments, books, topics, holidays, locationCity, selectedLogo, completedTopicIds, timelineOrder, pinnedDates };
+
+        let updated;
+        const exists = activeDraftId && drafts.find(d => d.id === activeDraftId);
+
+        if (exists) {
+            updated = drafts.map(d => d.id === activeDraftId ? { ...d, name: finalName, date: new Date().toISOString(), data: draftData } : d);
+        } else {
+            const newId = Date.now().toString();
+            setActiveDraftId(newId);
+            const newD = { id: newId, name: finalName, date: new Date().toISOString(), data: draftData };
+            updated = [newD, ...drafts];
+        }
+
         setDrafts(updated);
-        toast.promise(fetch('/api/academic/drafts', { method: 'POST', body: JSON.stringify({ drafts: updated }), headers: { 'Content-Type': 'application/json' } }), { loading: 'Salvando...', success: 'Salvo!', error: 'Erro ao salvar' });
+
+        const savePromise = fetch('/api/academic/drafts', {
+            method: 'POST',
+            body: JSON.stringify({ drafts: updated }),
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!silent) {
+            toast.promise(savePromise, {
+                loading: 'Salvando cronograma...',
+                success: `Cronograma "${finalName}" salvo com sucesso!`,
+                error: 'Erro ao persistir no servidor'
+            });
+        }
     };
 
     const deleteDraft = async (id: string) => {
@@ -446,8 +543,9 @@ export function SyllabusProvider({ children }: { children: React.ReactNode }) {
         toast.success("Excluído");
     };
 
-    const loadDraft = (draft: any) => {
+    const loadDraft = (draft: any, targetStep?: number) => {
         const d = draft.data;
+        setActiveDraftId(draft.id || null);
         if (d.courseName) setCourseName(d.courseName);
         if (d.publicSlug) setPublicSlug(d.publicSlug);
         if (d.theoryLocation) setTheoryLocation(d.theoryLocation);
@@ -463,8 +561,10 @@ export function SyllabusProvider({ children }: { children: React.ReactNode }) {
         if (d.selectedLogo) setSelectedLogo(d.selectedLogo);
         if (d.completedTopicIds) setCompletedTopicIds(d.completedTopicIds);
         if (d.timelineOrder) setTimelineOrder(d.timelineOrder);
+        if (d.pinnedDates) setPinnedDates(d.pinnedDates);
         setIsSynced(true);
         setShowDraftsModal(false);
+        if (targetStep) setStep(targetStep);
     };
 
     const suggestExamDates = () => {
@@ -489,7 +589,37 @@ export function SyllabusProvider({ children }: { children: React.ReactNode }) {
         toast.success("Datas sugeridas");
     };
 
-    const toggleTopicCompletion = (id: string) => setCompletedTopicIds(prev => prev.includes(id) ? prev.filter(tid => tid !== id) : [...prev, id]);
+    // Broadcast Channel for Real-time Sync across tabs
+    useEffect(() => {
+        const channel = new BroadcastChannel('syllabus_sync');
+        channel.onmessage = (event) => {
+            const { type, payload } = event.data;
+            if (type === 'SYNC_COMPLETION') {
+                setCompletedTopicIds(payload);
+            }
+        };
+        return () => channel.close();
+    }, []);
+
+    // Auto-save Digital Diary changes
+    useEffect(() => {
+        if (activeDraftId && step === 4) {
+            const timer = setTimeout(() => {
+                saveDraft(courseName, true);
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [completedTopicIds]);
+
+    const toggleTopicCompletion = (instanceId: string) => {
+        setCompletedTopicIds(prev => {
+            const next = prev.includes(instanceId) ? prev.filter(tid => tid !== instanceId) : [...prev, instanceId];
+            const channel = new BroadcastChannel('syllabus_sync');
+            channel.postMessage({ type: 'SYNC_COMPLETION', payload: next });
+            channel.close();
+            return next;
+        });
+    };
 
     const onDragEnd = (result: any) => {
         const { source, destination } = result;
@@ -680,6 +810,7 @@ export function SyllabusProvider({ children }: { children: React.ReactNode }) {
         setTopics([]);
         setAssessments([]);
         setTimelineOrder([]);
+        setPinnedDates({});
         setCompletedTopicIds([]);
         setSelectedLogo(null);
         setIsSynced(false);
@@ -704,7 +835,8 @@ export function SyllabusProvider({ children }: { children: React.ReactNode }) {
             uploadedFiles, setUploadedFiles, isAnalyzing, handleImportFromDocument, handleRunAIAnalysis,
             generateAIContent, reallocateWithIA, showReallocateModal, setShowReallocateModal, addTopic,
             handleExportSyllabus, handleImportSyllabus, printRef, handlePrint,
-            showConflictModal, setShowConflictModal, materializeEmptySlot, createNewSyllabus
+            showConflictModal, setShowConflictModal, materializeEmptySlot, createNewSyllabus,
+            pinnedDates, pinDate
         }}>
             {children}
         </SyllabusContext.Provider>

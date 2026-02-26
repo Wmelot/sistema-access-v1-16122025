@@ -47,7 +47,7 @@ export default function PrintPreview() {
 
     return (
         <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
-            <DialogContent className="max-w-[1400px] sm:max-w-[90vw] rounded-[48px] p-0 border-none overflow-hidden max-h-[96vh] flex flex-col bg-white">
+            <DialogContent className="sm:max-w-[95vw] lg:max-w-[1400px] w-full rounded-[48px] p-0 border-none overflow-hidden max-h-[96vh] flex flex-col bg-white !max-w-[1400px]">
                 {/* Header do Modal */}
                 <div className="bg-[#F8F9FA] px-10 py-6 border-b border-slate-100 flex items-center justify-between shrink-0">
                     <div>

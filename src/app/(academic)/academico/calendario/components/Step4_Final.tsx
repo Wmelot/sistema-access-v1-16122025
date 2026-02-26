@@ -12,7 +12,8 @@ import {
     Sparkles,
     Info,
     Link as LinkIcon,
-    ChevronLeft
+    ChevronLeft,
+    Calendar as CalendarIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSyllabus } from './SyllabusContext';
@@ -33,7 +34,8 @@ export default function Step4_Final() {
         saveDraft
     } = useSyllabus();
 
-    const progressPercent = topics.length > 0 ? Math.round((completedTopicIds.length / topics.length) * 100) : 0;
+    const totalClasses = fullSchedule.filter((s: any) => s.type !== 'holiday' && s.type !== 'empty').length;
+    const progressPercent = totalClasses > 0 ? Math.round((completedTopicIds.length / totalClasses) * 100) : 0;
 
     return (
         <motion.div key="step4" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-10 pb-40">
@@ -85,7 +87,7 @@ export default function Step4_Final() {
                             </div>
                             <div>
                                 <div className="text-[9px] font-black uppercase opacity-40">Restantes</div>
-                                <div className="text-xl font-black">{topics.length - completedTopicIds.length}</div>
+                                <div className="text-xl font-black">{totalClasses - completedTopicIds.length}</div>
                             </div>
                         </div>
                     </Card>
@@ -99,7 +101,9 @@ export default function Step4_Final() {
                             </div>
                         </div>
                         <div className="bg-slate-50 p-4 rounded-2xl flex items-center justify-between border border-slate-100">
-                            <code className="text-[10px] font-black text-[#8C132C] truncate pr-4">axiom.ai/cronograma/{publicSlug}</code>
+                            <code className="text-[10px] font-black text-[#8C132C] truncate pr-4">
+                                {typeof window !== 'undefined' ? window.location.host : 'axiom.ai'}/cronograma/{publicSlug}
+                            </code>
                             <Button variant="ghost" size="sm" className="h-8 rounded-lg bg-white shadow-sm font-black text-[9px] uppercase px-3 hover:bg-[#8C132C] hover:text-white transition-all" onClick={() => {
                                 navigator.clipboard.writeText(`${window.location.origin}/cronograma/${publicSlug}`);
                                 toast.success("Link copiado!");
@@ -116,22 +120,24 @@ export default function Step4_Final() {
                     </div>
 
                     <div className="space-y-4">
-                        {fullSchedule.filter((s: any) => s.type !== 'holiday' && s.type !== 'empty').map((item, index) => {
-                            const isDone = completedTopicIds.includes(item.id);
+                        {fullSchedule.filter((s: any) => s.type !== 'empty').map((item, index) => {
+                            const isDone = completedTopicIds.includes(item.instanceId);
                             const isAssessment = item.type === 'assessment';
+                            const isHoliday = item.type === 'holiday';
 
                             return (
                                 <motion.div
                                     layout
-                                    key={`${item.id}-${index}`}
+                                    key={`${item.id || item.dateStr}-${index}`}
                                     className={cn(
-                                        "bg-white/80 backdrop-blur-sm p-4 rounded-2xl border-2 transition-all flex items-center gap-4 group",
-                                        isDone ? "border-emerald-100 opacity-60" : "border-slate-50 shadow-sm hover:border-[#8C132C]/20 hover:shadow-lg hover:translate-x-1"
+                                        "p-4 rounded-2xl border-2 transition-all flex items-center gap-4 group",
+                                        isHoliday ? "bg-pink-50/50 border-pink-100 shadow-none" : "bg-white/80 backdrop-blur-sm border-slate-50 shadow-sm hover:border-[#8C132C]/20 hover:shadow-lg hover:translate-x-1",
+                                        isDone && !isHoliday ? "border-emerald-100 opacity-60" : ""
                                     )}
                                 >
-                                    {viewMode === 'professor' && (
+                                    {viewMode === 'professor' && !isHoliday && (
                                         <button
-                                            onClick={() => toggleTopicCompletion(item.id)}
+                                            onClick={() => toggleTopicCompletion(item.instanceId)}
                                             className={cn(
                                                 "w-10 h-10 rounded-xl flex items-center justify-center transition-all border-2 shrink-0 animate-in zoom-in-50",
                                                 isDone ? "bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200" : "bg-white border-slate-100 text-slate-200 group-hover:border-[#8C132C]/30"
@@ -141,29 +147,47 @@ export default function Step4_Final() {
                                         </button>
                                     )}
 
+                                    {isHoliday && (
+                                        <div className="w-10 h-10 rounded-xl bg-pink-100 flex items-center justify-center text-pink-500 shrink-0">
+                                            <CalendarIcon size={20} />
+                                        </div>
+                                    )}
+
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-0.5">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.date} • {item.dia}</span>
+                                            <span className={cn("text-[10px] font-black uppercase tracking-widest", isHoliday ? "text-pink-400" : "text-slate-400")}>
+                                                {item.date} • {item.dia}
+                                            </span>
                                             {isAssessment && <Badge className="bg-amber-500 text-white text-[8px] font-black uppercase px-2 py-0 border-none shadow-sm">Avaliação</Badge>}
                                             {item.isPractical && <Badge className="bg-blue-50 text-blue-500 text-[8px] font-black uppercase px-2 py-0 border-none shadow-sm">Prática</Badge>}
+                                            {isHoliday && <Badge className="bg-pink-500 text-white text-[8px] font-black uppercase px-2 py-0 border-none shadow-sm">Feriado / Recesso</Badge>}
                                         </div>
-                                        <h4 className={cn("text-base font-black transition-all", isDone ? "text-slate-400 line-through" : "text-slate-800")}>
+                                        <h4 className={cn(
+                                            "text-base font-black transition-all",
+                                            isDone && !isHoliday ? "text-slate-400 line-through" : "text-slate-800",
+                                            isHoliday ? "text-pink-600/80" : ""
+                                        )}>
                                             {item.content}
                                         </h4>
-                                        {isAssessment && item.subContent && (
-                                            <p className="text-[10px] text-amber-600 font-bold mt-1 line-clamp-1 italic tracking-tight">{item.subContent}</p>
+
+                                        {!isHoliday && (
+                                            <>
+                                                {isAssessment && item.subContent && (
+                                                    <p className="text-[10px] text-amber-600 font-bold mt-1 line-clamp-1 italic tracking-tight">{item.subContent}</p>
+                                                )}
+                                                <div className="flex items-center gap-4 mt-2">
+                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                                        <Clock size={12} className="opacity-50" /> {item.time}
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                                                        <Sparkles size={12} className="opacity-50" /> {item.activity}
+                                                    </div>
+                                                </div>
+                                            </>
                                         )}
-                                        <div className="flex items-center gap-4 mt-2">
-                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                                                <Clock size={12} className="opacity-50" /> {item.time}
-                                            </div>
-                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-                                                <Sparkles size={12} className="opacity-50" /> {item.activity}
-                                            </div>
-                                        </div>
                                     </div>
 
-                                    {!isDone && !isAssessment && (
+                                    {!isDone && !isAssessment && !isHoliday && (
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <Button variant="ghost" className="w-10 h-10 rounded-xl p-0 hover:bg-[#8C132C]/5 text-slate-300 hover:text-[#8C132C] transition-all"><Info size={20} /></Button>
@@ -204,7 +228,7 @@ export default function Step4_Final() {
                     <ChevronLeft size={18} className="mr-2" /> Voltar para Edição
                 </Button>
                 <Button
-                    onClick={() => saveDraft("Diário: " + (new Date().toLocaleDateString()))}
+                    onClick={() => saveDraft()}
                     className="h-16 rounded-[32px] px-10 bg-[#8C132C] font-black uppercase text-xs tracking-[0.2em] text-white shadow-2xl transition-all hover:scale-105 active:scale-95 shadow-[#8C132C]/30"
                 >
                     Salvar Diário & Progresso

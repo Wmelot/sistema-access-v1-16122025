@@ -12,14 +12,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import {
-    Plus,
-    Trash2,
-    Sparkles,
+    ChevronLeft,
+    Pin,
+    PinOff,
+    Calendar as CalendarIcon,
     AlertTriangle,
+    Sparkles,
+    Plus,
     GripVertical,
     Library,
     ChevronRight,
-    ChevronLeft
+    Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -27,6 +30,7 @@ import { useSyllabus } from './SyllabusContext';
 import { cn } from "@/lib/utils";
 import { METHODOLOGY_GUIDE, RESOURCE_OPTIONS } from './types';
 import { Assessment } from './types';
+import { Calendar } from "@/components/ui/calendar";
 
 export default function Step3_Timeline() {
     const {
@@ -43,10 +47,11 @@ export default function Step3_Timeline() {
         updateAssessment,
         updateTopic,
         books,
-        removeAssessment,
         removeTopic,
+        removeAssessment,
         setShowReallocateModal,
-        materializeEmptySlot
+        materializeEmptySlot,
+        pinDate
     } = useSyllabus();
 
     return (
@@ -150,18 +155,53 @@ export default function Step3_Timeline() {
                                                             <GripVertical size={18} />
                                                         </div>
 
-                                                        <div className="flex items-center gap-3 min-w-[100px]">
-                                                            <div className={cn(
-                                                                "w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-black transition-all shadow-sm",
-                                                                item.isOverflow ? "text-red-600 bg-red-100" :
-                                                                    isAssessment ? "text-amber-600 bg-amber-100" :
-                                                                        isEmpty ? "text-slate-300 bg-slate-50" : "text-[#8C132C] bg-[#8C132C]/5"
-                                                            )}>
-                                                                <span className="text-sm leading-none">{item.date === '---' ? '---' : item.date.split('/')[0]}</span>
-                                                                <span className="text-[9px] uppercase opacity-60">
-                                                                    {item.isOverflow ? 'EXT' : (item.date.includes('/') ? format(new Date(2026, parseInt(item.date.split('/')[1]) - 1, 1), 'MMM', { locale: ptBR }) : '---')}
-                                                                </span>
-                                                            </div>
+                                                        <div className="flex items-center gap-3 min-w-[120px]">
+                                                            <Popover>
+                                                                <PopoverTrigger asChild>
+                                                                    <div className={cn(
+                                                                        "w-14 h-14 rounded-2xl flex flex-col items-center justify-center font-black transition-all shadow-sm cursor-pointer hover:ring-2 hover:ring-[#8C132C]/20",
+                                                                        item.isPinned ? "bg-amber-500 text-white shadow-lg shadow-amber-500/20" :
+                                                                            item.isOverflow ? "text-red-600 bg-red-100" :
+                                                                                isAssessment ? "text-amber-600 bg-amber-100" :
+                                                                                    isEmpty ? "text-slate-300 bg-slate-50" : "text-[#8C132C] bg-[#8C132C]/5"
+                                                                    )}>
+                                                                        <span className="text-sm leading-none">{item.date === '---' ? '---' : item.date.split('/')[0]}</span>
+                                                                        <span className="text-[9px] uppercase opacity-80">
+                                                                            {item.isOverflow ? 'EXT' : (item.date.includes('/') ? format(new Date(2026, parseInt(item.date.split('/')[1]) - 1, 1), 'MMM', { locale: ptBR }) : '---')}
+                                                                        </span>
+                                                                        {item.isPinned && <Pin size={8} className="absolute top-1 right-1" />}
+                                                                    </div>
+                                                                </PopoverTrigger>
+                                                                <PopoverContent className="w-auto p-4 rounded-3xl border-none shadow-2xl bg-white" align="start">
+                                                                    <div className="flex items-center justify-between mb-4 px-2">
+                                                                        <div>
+                                                                            <h5 className="text-[10px] font-black uppercase tracking-widest text-[#8C132C]">Data Fixa</h5>
+                                                                            <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Grampear este card numa data</p>
+                                                                        </div>
+                                                                        {item.isPinned && (
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                onClick={() => pinDate(item.instanceId, null)}
+                                                                                className="h-7 px-3 rounded-lg text-red-500 hover:bg-red-50 text-[9px] font-black uppercase"
+                                                                            >
+                                                                                <PinOff size={12} className="mr-1" /> Soltar
+                                                                            </Button>
+                                                                        )}
+                                                                    </div>
+                                                                    <Calendar
+                                                                        mode="single"
+                                                                        selected={item.dateStr && !['overflow', '9999-99-99'].includes(item.dateStr) ? new Date(item.dateStr + 'T12:00:00') : undefined}
+                                                                        defaultMonth={item.dateStr && !['overflow', '9999-99-99'].includes(item.dateStr) ? new Date(item.dateStr + 'T12:00:00') : undefined}
+                                                                        onSelect={(date) => {
+                                                                            if (date) pinDate(item.instanceId, format(date, 'yyyy-MM-dd'));
+                                                                        }}
+                                                                        className="rounded-2xl border border-slate-100"
+                                                                        locale={ptBR}
+                                                                    />
+                                                                </PopoverContent>
+                                                            </Popover>
+
                                                             <div className="flex flex-col">
                                                                 <span className="text-[10px] font-black uppercase text-slate-400 leading-none mb-1">{item.isOverflow ? 'EXCEDENTE' : item.dia}</span>
                                                                 <span className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">{item.time}</span>
@@ -299,7 +339,6 @@ export default function Step3_Timeline() {
                                                                                         {Object.keys(METHODOLOGY_GUIDE).map(m => (
                                                                                             <SelectItem key={m} value={m} className="text-[11px] font-bold">{m}</SelectItem>
                                                                                         ))}
-                                                                                        <SelectItem value="Prática Clínica" className="text-[11px] font-bold">Prática Clínica</SelectItem>
                                                                                     </SelectContent>
                                                                                 </Select>
                                                                             </div>

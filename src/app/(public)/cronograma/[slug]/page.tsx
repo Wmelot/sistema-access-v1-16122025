@@ -37,6 +37,16 @@ export default function StudentSyllabusPage({ params }: { params: { slug: string
             }
         };
         fetchSyllabus();
+
+        // Magic Real-time Sync (via Broadcast Channel)
+        const channel = new BroadcastChannel('syllabus_sync');
+        channel.onmessage = (event) => {
+            const { type, payload } = event.data;
+            if (type === 'SYNC_COMPLETION') {
+                setSyllabus((prev: any) => prev ? { ...prev, completedTopicIds: payload } : prev);
+            }
+        };
+        return () => channel.close();
     }, [params.slug]);
 
     if (loading) {
@@ -58,97 +68,115 @@ export default function StudentSyllabusPage({ params }: { params: { slug: string
         );
     }
 
-    // Reuse scheduling logic (Local implementation for the public page)
+    // Unified scheduling logic ported from SyllabusContext
     const calculateFullSchedule = () => {
-        const { startDate, endDate, weekDays, holidays, topics, assessments, timelineOrder, completedTopicIds = [] } = syllabus;
-        const schedule: any[] = [];
+        const { startDate, endDate, weekDays, holidays, topics, assessments, timelineOrder, pinnedDates = {}, completedTopicIds = [] } = syllabus;
         if (!startDate || !endDate) return [];
-        let current = new Date(startDate);
-        const end = new Date(endDate);
-        const todayStr = format(new Date(), 'yyyy-MM-dd');
 
-        const consumedHours: { [id: string]: number } = {};
-        let tIndex = 0;
-
-        while (current <= end) {
-            const dateStr = format(current, 'yyyy-MM-dd');
-            const jsDayNum = current.getDay();
-            const diaSemanaEnum = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][jsDayNum];
-            const jsDayStr = jsDayNum === 0 ? '7' : jsDayNum.toString();
-            const dayConfig = weekDays.find((w: any) => w.day === jsDayStr);
-            const holiday = (holidays || []).find((h: any) => h.date === dateStr);
-            const isPast = dateStr < todayStr;
-
-            if (holiday && dayConfig) {
-                schedule.push({ date: format(current, 'dd/MM'), dia: diaSemanaEnum, type: 'holiday', content: holiday.desc });
-            } else if (dayConfig) {
-                const [h1, m1] = dayConfig.start.split(':').map(Number);
-                const [h2, m2] = dayConfig.end.split(':').map(Number);
-                const classDuration = (h2 * 60 + m2 - (h1 * 60 + m1)) / 50;
-                let dayHoursRemaining = classDuration;
-                let scheduledOnThisDay = false;
-
-                const pinnedAss = (assessments || []).find((a: any) => a.date && format(new Date(a.date), 'yyyy-MM-dd') === dateStr);
-                const pinnedTop = (topics || []).find((t: any) => t.date && format(new Date(t.date), 'yyyy-MM-dd') === dateStr);
-
-                if (pinnedAss && (!isPast || completedTopicIds.includes(pinnedAss.id))) {
-                    schedule.push({ date: format(current, 'dd/MM'), dia: diaSemanaEnum, type: 'assessment', content: pinnedAss.name, time: `${dayConfig.start}-${dayConfig.end}`, points: pinnedAss.points });
-                    scheduledOnThisDay = true;
-                    dayHoursRemaining = 0;
-                } else if (pinnedTop && (!isPast || completedTopicIds.includes(pinnedTop.id))) {
-                    schedule.push({ date: format(current, 'dd/MM'), dia: diaSemanaEnum, type: 'topic', content: pinnedTop.title, time: `${dayConfig.start}-${dayConfig.end}`, isPractical: pinnedTop.isPractical });
-                    scheduledOnThisDay = true;
-                    dayHoursRemaining = 0;
-                } else {
-                    const order = timelineOrder || topics.map((t: any) => ({ id: t.id, type: 'topic' }));
-                    while (dayHoursRemaining > 0.1 && tIndex < order.length) {
-                        const item = order[tIndex];
-                        const source = item.type === 'topic' ? topics.find((t: any) => t.id === item.id) : assessments.find((a: any) => a.id === item.id);
-                        if (!source) { tIndex++; continue; }
-                        const isDone = completedTopicIds.includes(item.id);
-                        if (isPast && !isDone) break;
-
-                        const total = source.classesNeeded || 2;
-                        const consumed = consumedHours[item.id] || 0;
-                        const remaining = total - consumed;
-                        if (remaining <= 0) { tIndex++; continue; }
-
-                        const allocated = Math.min(dayHoursRemaining, remaining);
-                        schedule.push({
-                            date: format(current, 'dd/MM'),
-                            dia: diaSemanaEnum,
-                            type: item.type,
-                            content: (item.type === 'topic' ? source.title : source.name) + (allocated < remaining ? ' (Parte)' : ''),
-                            time: `${dayConfig.start}-${dayConfig.end}`,
-                            isPractical: source.isPractical || false,
-                            isDone
-                        });
-
-                        consumedHours[item.id] = consumed + allocated;
-                        dayHoursRemaining -= allocated;
-                        scheduledOnThisDay = true;
-                        if (consumedHours[item.id] >= total - 0.1) tIndex++;
-                        else break;
-                    }
-                }
-
-                if (!scheduledOnThisDay) {
-                    schedule.push({
-                        date: format(current, 'dd/MM'),
-                        dia: diaSemanaEnum,
-                        type: isPast ? 'missed' : 'empty',
-                        content: isPast ? 'AULA PENDENTE (Reposição)' : 'Planejamento / Aula Extra',
-                        time: `${dayConfig.start}-${dayConfig.end}`
+        // 1. Get all potential class days
+        const days: any[] = [];
+        let curr = new Date(startDate);
+        const occurrenceCounter: Record<string, number> = {};
+        while (curr <= new Date(endDate)) {
+            const dStr = format(curr, 'yyyy-MM-dd');
+            const jsDay = (curr.getDay() === 0 ? 7 : curr.getDay()).toString();
+            const config = weekDays.find((w: any) => w.day === jsDay);
+            const holiday = (holidays || []).find((h: any) => h.date === dStr);
+            if (config && !holiday) {
+                occurrenceCounter[jsDay] = (occurrenceCounter[jsDay] || 0) + 1;
+                let isActive = true;
+                if (config.frequency === 'biweekly' && occurrenceCounter[jsDay] % 2 === 0) isActive = false;
+                if (config.frequency === 'monthly' && (occurrenceCounter[jsDay] - 1) % 4 !== 0) isActive = false;
+                if (isActive) {
+                    days.push({
+                        date: format(curr, 'dd/MM'),
+                        dateStr: dStr,
+                        dia: ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'][curr.getDay()],
+                        config
                     });
                 }
             }
-            current.setDate(current.getDate() + 1);
+            curr.setDate(curr.getDate() + 1);
         }
-        return schedule;
+
+        // 2. Map items
+        const schedule: any[] = [];
+        const occupiedDates = new Set<string>();
+
+        (timelineOrder || []).forEach((item: any) => {
+            if (pinnedDates[item.instanceId]) {
+                const source = item.type === 'topic' ? topics.find((t: any) => t.id === item.id) : assessments.find((a: any) => a.id === item.id);
+                if (source && (source.classesNeeded > 0 || item.type === 'topic')) {
+                    occupiedDates.add(pinnedDates[item.instanceId]);
+                }
+            }
+        });
+
+        let dayIdx = 0;
+        (timelineOrder || []).forEach((item: any, idx: number) => {
+            let dateInfo: any;
+            const source = item.type === 'topic' ? topics.find((t: any) => t.id === item.id) : assessments.find((a: any) => a.id === item.id);
+            const isDone = completedTopicIds.includes(item.instanceId);
+
+            if (pinnedDates[item.instanceId]) {
+                const d = new Date(pinnedDates[item.instanceId] + 'T12:00:00');
+                const jsDay = (d.getDay() === 0 ? 7 : d.getDay()).toString();
+                dateInfo = {
+                    dateStr: pinnedDates[item.instanceId],
+                    date: format(d, 'dd/MM'),
+                    dia: ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'][d.getDay()],
+                    config: weekDays.find((w: any) => w.day === jsDay) || days.find((d: any) => d.dateStr === pinnedDates[item.instanceId])?.config || weekDays[0]
+                };
+            } else {
+                while (dayIdx < days.length && occupiedDates.has(days[dayIdx].dateStr)) {
+                    dayIdx++;
+                }
+                if (dayIdx < days.length) {
+                    dateInfo = days[dayIdx];
+                    dayIdx++;
+                } else {
+                    dateInfo = { date: '---', dia: 'EXTRA', dateStr: '9999-99-99', config: null };
+                }
+            }
+
+            if (source || item.type === 'empty') {
+                schedule.push({
+                    id: item.id,
+                    date: dateInfo.date,
+                    dia: dateInfo.dia,
+                    dateStr: dateInfo.dateStr,
+                    type: item.type,
+                    content: item.type === 'empty' ? 'Espaço Vago' : (item.type === 'topic' ? source.title : source.name),
+                    activity: item.type === 'topic' ? source.methodology : (source ? 'Avaliação ' + source.type : '-'),
+                    subContent: item.type === 'topic' ? (source.isPractical ? 'Aula Prática' : 'Aula Teórica') : (source ? source.content : ''),
+                    time: dateInfo.config ? `${dateInfo.config.start} - ${dateInfo.config.end}` : '-',
+                    isPractical: item.type === 'topic' ? source.isPractical : false,
+                    isDone
+                });
+            }
+        });
+
+        (holidays || []).forEach((h: any) => {
+            const d = new Date(h.date + 'T12:00:00');
+            const jsDay = (d.getDay() === 0 ? 7 : d.getDay()).toString();
+            const isClassDay = weekDays.some((w: any) => w.day === jsDay);
+
+            if (h.date >= format(new Date(startDate), 'yyyy-MM-dd') && h.date <= format(new Date(endDate), 'yyyy-MM-dd') && isClassDay) {
+                schedule.push({
+                    date: format(d, 'dd/MM'),
+                    dateStr: h.date,
+                    dia: ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'][d.getDay()],
+                    type: 'holiday',
+                    content: h.desc
+                });
+            }
+        });
+
+        return schedule.filter(s => s.type !== 'empty').sort((a, b) => a.dateStr.localeCompare(b.dateStr));
     };
 
     const schedule = calculateFullSchedule();
-    const progressPercent = syllabus.topics?.length > 0 ? Math.round(((syllabus.completedTopicIds?.length || 0) / syllabus.topics.length) * 100) : 0;
+    const progressPercent = schedule.length > 0 ? Math.round(((syllabus.completedTopicIds?.length || 0) / schedule.length) * 100) : 0;
 
     return (
         <div className="min-h-screen bg-[#F8FAFC]">
@@ -160,7 +188,17 @@ export default function StudentSyllabusPage({ params }: { params: { slug: string
                             <BookOpen size={24} />
                         </div>
                         <div className="min-w-0">
-                            <h1 className="text-lg font-black text-slate-800 truncate">{syllabus.courseName}</h1>
+                            <h1 className="text-lg font-black text-slate-800 truncate">
+                                {(() => {
+                                    let name = syllabus.courseName || "";
+                                    if (name.includes(':')) name = name.split(':').slice(1).join(':');
+                                    if (name.includes(' - ')) {
+                                        const parts = name.split(' - ');
+                                        if (/^\d+$/.test(parts[0].trim())) name = parts.slice(1).join(' - ');
+                                    }
+                                    return name.trim();
+                                })()}
+                            </h1>
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cronograma Acadêmico • 2026.1</p>
                         </div>
                     </div>
@@ -233,6 +271,7 @@ export default function StudentSyllabusPage({ params }: { params: { slug: string
                             {schedule.map((item, idx) => {
                                 const isDone = item.isDone;
                                 const isMissed = item.type === 'missed';
+                                const isHoliday = item.type === 'holiday';
 
                                 return (
                                     <motion.div
@@ -241,16 +280,18 @@ export default function StudentSyllabusPage({ params }: { params: { slug: string
                                         transition={{ delay: idx * 0.05 }}
                                         key={idx}
                                         className={cn(
-                                            "bg-white p-6 rounded-[32px] border-2 transition-all flex items-center gap-6 group",
+                                            "p-6 rounded-[32px] border-2 transition-all flex items-center gap-6 group",
+                                            isHoliday ? "bg-pink-50/30 border-pink-100 shadow-none text-pink-900/80" : "bg-white border-transparent shadow-sm hover:shadow-xl hover:translate-x-2",
                                             isDone ? "border-emerald-50 opacity-60" :
-                                                isMissed ? "border-red-50 bg-red-50/10" : "border-transparent shadow-sm hover:shadow-xl hover:translate-x-2"
+                                                isMissed ? "border-red-50 bg-red-50/10" : ""
                                         )}
                                     >
                                         <div className="w-16 shrink-0 text-center">
                                             <div className={cn(
                                                 "w-16 h-16 rounded-2xl flex flex-col items-center justify-center font-black mb-1",
                                                 isDone ? "bg-emerald-500 text-white shadow-lg shadow-emerald-200" :
-                                                    isMissed ? "bg-red-400 text-white" : "bg-slate-50 text-slate-700"
+                                                    isMissed ? "bg-red-400 text-white" :
+                                                        isHoliday ? "bg-pink-100 text-pink-500" : "bg-slate-50 text-slate-700"
                                             )}>
                                                 {isDone ? <CheckCircle2 size={24} /> : (
                                                     <>
@@ -259,7 +300,7 @@ export default function StudentSyllabusPage({ params }: { params: { slug: string
                                                     </>
                                                 )}
                                             </div>
-                                            {!isDone && <p className="text-[8px] font-black text-slate-300 uppercase mt-2">{item.time}</p>}
+                                            {!isDone && !isHoliday && <p className="text-[8px] font-black text-slate-300 uppercase mt-2">{item.time}</p>}
                                         </div>
 
                                         <div className="flex-1 min-w-0">
@@ -267,17 +308,20 @@ export default function StudentSyllabusPage({ params }: { params: { slug: string
                                                 {item.type === 'assessment' && <Badge className="bg-amber-500 text-white text-[8px] font-black uppercase px-2 py-0 border-none">Avaliação</Badge>}
                                                 {item.isPractical && <Badge className="bg-blue-100 text-blue-600 text-[8px] font-black uppercase px-2 py-0 border-none">Aula Prática</Badge>}
                                                 {isMissed && <Badge className="bg-red-100 text-red-500 text-[8px] font-black uppercase px-2 py-0 border-none">Pendente (Não Ministrada)</Badge>}
+                                                {isHoliday && <Badge className="bg-pink-500 text-white text-[8px] font-black uppercase px-2 py-0 border-none">Feriado / Recesso</Badge>}
                                             </div>
                                             <h4 className={cn(
                                                 "text-lg font-black truncate transition-all",
-                                                isDone ? "text-slate-400 line-through" : "text-slate-800"
+                                                isDone ? "text-slate-400 line-through" : isHoliday ? "text-pink-600/80" : "text-slate-800"
                                             )}>
                                                 {item.content}
                                             </h4>
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{item.activity || 'Aula Teórica Magistral'}</p>
+                                            {!isHoliday && (
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{item.activity || 'Aula Teórica Magistral'}</p>
+                                            )}
                                         </div>
 
-                                        {!isDone && !isMissed && (
+                                        {!isDone && !isMissed && !isHoliday && (
                                             <div className="opacity-0 group-hover:opacity-100 transition-all">
                                                 <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300"><ArrowRight size={20} /></div>
                                             </div>

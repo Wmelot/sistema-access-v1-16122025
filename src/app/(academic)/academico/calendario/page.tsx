@@ -27,22 +27,45 @@ function SyllabusWizardContent() {
         saveDraft,
         setShowPreviewModal,
         createNewSyllabus,
-        drafts
+        drafts,
+        courseName,
+        viewMode
     } = useSyllabus();
 
     return (
         <div className="min-h-screen bg-[#FDFDFD] p-8 lg:p-12 font-sans text-slate-900 selection:bg-[#8C132C]/10 selection:text-[#8C132C]">
+            <style jsx global>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: #f8f9fa;
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #8C132C40;
+                    border-radius: 10px;
+                    border: 2px solid #f8f9fa;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #8C132C60;
+                }
+            `}</style>
             <div className="max-w-[1600px] mx-auto space-y-12 animate-in fade-in duration-700">
                 {/* Header Section */}
                 <div className="flex items-center justify-between mb-2">
                     <div>
-                        <h1 className="text-4xl font-black text-[#363636] tracking-tight">Design de Cronograma 2.0</h1>
-                        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.3em] mt-2">Gestor Estratégico de Conteúdo Acadêmico • Axiom Intelligence</p>
+                        <h1 className="text-4xl font-black text-[#363636] tracking-tight">
+                            {step === 4 ? courseName : "Design de Cronograma 2.0"}
+                        </h1>
+                        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.3em] mt-2">
+                            {step === 4 ? (viewMode === 'professor' ? "Diário de Classe e Monitoramento em Tempo Real" : "Portal de Acompanhamento do Aluno") : "Gestor Estratégico de Conteúdo Acadêmico • Axiom Intelligence"}
+                        </p>
                     </div>
                     <div className="flex gap-4">
                         <Button
                             onClick={() => {
-                                if (window.confirm("Deseja iniciar um novo cronograma? Certifique-se de ter salvo o atual como rascunhos primeiro!")) {
+                                if (window.confirm("Deseja iniciar um novo cronograma? Certifique-se de ter salvo o atual nos seus cronogramas primeiro!")) {
                                     createNewSyllabus();
                                 }
                             }}
@@ -56,14 +79,14 @@ function SyllabusWizardContent() {
                             variant="ghost"
                             className="rounded-2xl font-black text-[10px] uppercase tracking-widest h-14 px-8 text-slate-500 hover:text-[#8C132C] transition-all flex items-center gap-2 hover:bg-[#8C132C]/5"
                         >
-                            <BookOpen size={18} /> Meus Rascunhos ({drafts.length})
+                            <BookOpen size={18} /> Meus Cronogramas ({drafts.length})
                         </Button>
                         <Button
                             onClick={() => saveDraft()}
                             variant="outline"
                             className="rounded-2xl border-slate-200 font-black text-[10px] uppercase tracking-widest h-14 px-8 hover:border-[#8C132C]/20 hover:bg-[#8C132C]/5 transition-all"
                         >
-                            <Save size={18} className="mr-2" /> Salvar Rascunho
+                            <Save size={18} className="mr-2" /> Salvar Cronograma
                         </Button>
                         <Button
                             onClick={() => setShowPreviewModal(true)}

@@ -1,88 +1,113 @@
 export interface Book {
-    id: string;
-    title: string;
-    author: string;
-    type: 'Básico' | 'Complementar';
+  id: string;
+  title: string;
+  author: string;
+  type: 'Básico' | 'Complementar';
 }
 
 export interface Topic {
-    id: string;
-    title: string;
-    classesNeeded: number;
-    bibliographyIds: string[];
-    isPractical: boolean;
-    resources: string[];
-    methodology: string;
-    date?: Date | null;
+  id: string;
+  title: string;
+  classesNeeded: number;
+  bibliographyIds: string[];
+  isPractical: boolean;
+  resources: string[];
+  methodology: string;
+  date?: Date | null;
 }
 
 export interface Assessment {
-    id: string;
-    name: string;
-    date: Date | null;
-    points: number;
-    type: 'Individual' | 'Dupla' | 'Prática' | 'Teórica';
-    isSubstitutive?: boolean;
-    substitutesIds?: string[];
-    classesNeeded: number;
-    content?: string;
+  id: string;
+  name: string;
+  date: Date | null;
+  points: number;
+  type: 'Individual' | 'Dupla' | 'Prática' | 'Teórica';
+  isSubstitutive?: boolean;
+  substitutesIds?: string[];
+  classesNeeded: number;
+  content?: string;
 }
 
 export const METHODOLOGY_GUIDE: Record<string, { desc: string, activities: string[], links: { label: string, url: string }[] }> = {
-    'Aula Dialogada': {
-        desc: 'O professor atua como mediador, provocando reflexões a partir do conhecimento prévio do aluno.',
-        activities: ['Mapa mental coletivo no quadro', 'Roda de discussão sobre tema polêmico', 'Debate 360 graus'],
-        links: [{ label: 'Guia Nova Escola', url: 'https://novaescola.org.br' }]
-    },
-    'PBL': {
-        desc: 'Problem-Based Learning: Os alunos aprendem através da resolução cooperativa de problemas complexos e reais.',
-        activities: ['Resolução de caso clínico real', 'Planejamento de tratamento em grupo', 'Simulação de diagnóstico'],
-        links: [{ label: 'Metodologias Ativas USP', url: 'https://eaulas.usp.br' }]
-    },
-    'Sala Invertida': {
-        desc: 'O aluno estuda a teoria em casa (vídeos/textos) e usa o tempo de sala para atividades práticas e dúvidas.',
-        activities: ['Quiz rápido sobre o vídeo prévio', 'Aplicação prática do conteúdo lido', 'Consultoria do professor por grupo'],
-        links: [{ label: 'Flipped Classroom Guide', url: 'https://rtalbert.org' }]
-    },
-    'Gamificação': {
-        desc: 'Uso de elementos de jogos (pontos, rankings, desafios) para engajar e motivar o aprendizado.',
-        activities: ['Competição de Quiz (Kahoot)', 'Missões com recompensas acadêmicas', 'Escape Room de conceitos'],
-        links: [{ label: 'Kahoot Business', url: 'https://kahoot.com' }, { label: 'Quizizz', url: 'https://quizizz.com' }]
-    },
-    'Estudo de Caso': {
-        desc: 'Análise profunda de uma situação específica para aplicar conceitos teóricos na prática profissional.',
-        activities: ['Relatório de intervenção fisioterapêutica', 'Análise de exames reais', 'Dramatização de atendimento'],
-        links: [{ label: 'Harvard Case Method', url: 'https://hbsp.harvard.edu' }]
-    },
-    'Demonstração Prática': {
-        desc: 'O professor executa a técnica enquanto os alunos observam, seguida de prática supervisionada imediata.',
-        activities: ['Técnica de palpação em duplas', 'Manuseio de equipamentos', 'Avaliação postural real'],
-        links: [{ label: 'Physiopedia', url: 'https://www.physio-pedia.com' }]
-    }
+  'Aula Dialogada': {
+    desc: 'O professor atua como mediador, provocando reflexões a partir do conhecimento prévio do aluno.',
+    activities: ['Mapa mental coletivo no quadro', 'Roda de discussão sobre tema polêmico', 'Debate 360 graus'],
+    links: [{ label: 'Guia Nova Escola', url: 'https://novaescola.org.br' }]
+  },
+  'PBL': {
+    desc: 'Problem-Based Learning: Os alunos aprendem através da resolução cooperativa de problemas complexos e reais.',
+    activities: ['Resolução de caso clínico real', 'Planejamento de tratamento em grupo', 'Simulação de diagnóstico'],
+    links: [{ label: 'Metodologias Ativas USP', url: 'https://eaulas.usp.br' }]
+  },
+  'Sala Invertida': {
+    desc: 'O aluno estuda a teoria em casa (vídeos/textos) e usa o tempo de sala para atividades práticas e dúvidas.',
+    activities: ['Quiz rápido sobre o vídeo prévio', 'Aplicação prática do conteúdo lido', 'Consultoria do professor por grupo'],
+    links: [{ label: 'Flipped Classroom Guide', url: 'https://rtalbert.org' }]
+  },
+  'Gamificação': {
+    desc: 'Uso de elementos de jogos (pontos, rankings, desafios) para engajar e motivar o aprendizado.',
+    activities: ['Competição de Quiz (Kahoot)', 'Missões com recompensas acadêmicas', 'Escape Room de conceitos'],
+    links: [{ label: 'Kahoot Business', url: 'https://kahoot.com' }, { label: 'Quizizz', url: 'https://quizizz.com' }]
+  },
+  'Estudo de Caso': {
+    desc: 'Análise profunda de uma situação específica para aplicar conceitos teóricos na prática profissional.',
+    activities: ['Relatório de intervenção fisioterapêutica', 'Análise de exames reais', 'Dramatização de atendimento'],
+    links: [{ label: 'Harvard Case Method', url: 'https://hbsp.harvard.edu' }]
+  },
+  'Demonstração Prática': {
+    desc: 'O professor executa a técnica enquanto os alunos observam, seguida de prática supervisionada imediata.',
+    activities: ['Técnica de palpação em duplas', 'Manuseio de equipamentos', 'Avaliação postural real'],
+    links: [{ label: 'Physiopedia', url: 'https://www.physio-pedia.com' }]
+  },
+  'Grupos de Discussão': {
+    desc: 'Alunos divididos em grupos para debater temas específicos e apresentar conclusões.',
+    activities: ['Debate livre sobre ética profissional', 'Análise crítica de diretrizes', 'Mesa redonda simulada'],
+    links: []
+  },
+  'Seminários': {
+    desc: 'Apresentação formal de temas de pesquisa ou tópicos avançados pelos próprios alunos.',
+    activities: ['Apresentação de artigos', 'Explicação de patologias raras', 'Simpósio interno'],
+    links: []
+  },
+  'Trabalho em Grupo': {
+    desc: 'Atividade colaborativa para construção de conhecimento ou entrega de projeto.',
+    activities: ['Criação de protocolo de tratamento', 'Elaboração de cartilha educativa', 'Projeto de extensão simulado'],
+    links: []
+  },
+  'Prática Clínica': {
+    desc: 'Atendimento direto ou simulado em ambiente ambulatorial.',
+    activities: ['Atendimento supervisionado', 'Preenchimento de prontuário', 'Discussão de conduta imediata'],
+    links: []
+  }
 };
 
 export const RESOURCE_OPTIONS = [
-    'Projetor Multimedia',
-    'Lousa / Quadro Branco',
-    'Artigos Científicos (PDF)',
-    'Macas de Atendimento',
-    'Esqueleto Humano Articulado',
-    'Modelos Anatômicos 3D',
-    'Slides Interativos e Mentímetro',
-    'Laboratório de Informática / Tablets',
-    'Vídeos de Demonstração Clínica',
-    'Plataformas de Avaliação Digital',
-    'Equipamentos de Eletrotermoterapia',
-    'Simuladores de Realidade Virtual',
-    'Materiais de Consumo (Atadura, Algodão)',
-    'Prontuários de Casos Clínicos Reais'
+  'Projetor Multimedia',
+  'Lousa / Quadro Branco',
+  'Artigos Científicos (PDF)',
+  'Macas de Atendimento',
+  'Esqueleto Humano Articulado',
+  'Modelos Anatômicos 3D',
+  'Slides Interativos e Mentímetro',
+  'Laboratório de Informática / Tablets',
+  'Vídeos de Demonstração Clínica',
+  'Plataformas de Avaliação Digital',
+  'Equipamentos de Eletrotermoterapia',
+  'Simuladores de Realidade Virtual',
+  'Materiais de Consumo (Atadura, Algodão)',
+  'Prontuários de Casos Clínicos Reais'
 ];
 
-export const PRINT_STYLES = (orientation: 'portrait' | 'landscape', fontSize: 'small' | 'medium' | 'large') => `
+export const PRINT_STYLES = (orientation: 'portrait' | 'landscape', fontSize: 'small' | 'medium' | 'large') => {
+  const isSmall = fontSize === 'small';
+  const isLarge = fontSize === 'large';
+  const zoom = isSmall ? '0.65' : fontSize === 'medium' ? '0.85' : '1.0';
+
+  return `
 @media print {
   @page {
     size: A4 ${orientation};
-    margin: 0mm !important;
+    margin: 5mm !important;
   }
   body {
     margin: 0 !important;
@@ -91,13 +116,29 @@ export const PRINT_STYLES = (orientation: 'portrait' | 'landscape', fontSize: 's
     print-color-adjust: exact;
   }
   .print-area {
-    padding: 15mm !important;
+    padding: ${isSmall ? '10mm' : '15mm'} !important;
     box-shadow: none !important;
     border: none !important;
     width: 100% !important;
     min-height: 100vh !important;
-    zoom: ${fontSize === 'small' ? '0.75' : fontSize === 'medium' ? '0.85' : '1.0'};
+    zoom: ${zoom};
   }
+
+  ${isSmall ? `
+    .rounded-\\[32px\\] { border-radius: 16px !important; }
+    .p-8 { padding: 1.25rem !important; }
+    .gap-8 { gap: 1rem !important; }
+    .w-24 { width: 4rem !important; }
+    .w-16, .h-16 { width: 3.5rem !important; height: 3.5rem !important; }
+    h4.text-\\[18px\\] { font-size: 15px !important; line-height: 1.2 !important; }
+    h3.text-xl { font-size: 17px !important; padding-bottom: 0.5rem !important; }
+    h1 { font-size: 20px !important; }
+    .space-y-4 { margin-top: 0.5rem !important; margin-bottom: 0.5rem !important; }
+    header { margin-bottom: 1rem !important; }
+    .p-6, .p-8 { padding: 1rem !important; }
+    footer { margin-top: 1rem !important; }
+  ` : ''}
+
   .no-print {
     display: none !important;
   }
@@ -107,7 +148,7 @@ export const PRINT_STYLES = (orientation: 'portrait' | 'landscape', fontSize: 's
   }
   header, section, footer {
     display: block !important;
-    page-break-inside: avoid !important;
   }
 }
 `;
+};
