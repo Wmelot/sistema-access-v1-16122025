@@ -773,10 +773,14 @@ export function SyllabusProvider({ children }: { children: React.ReactNode }) {
     });
 
     const handleExportSyllabus = () => {
-        const data = { courseName, publicSlug, theoryLocation, practiceLocation, startDate, endDate, weekDays, assessments, books, topics };
+        const data = {
+            courseName, publicSlug, theoryLocation, practiceLocation,
+            startDate, endDate, weekDays, assessments, books, topics,
+            holidays, locationCity, timelineOrder, pinnedDates
+        };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = `cronograma-${publicSlug}.json`;
+        const a = document.createElement('a'); a.href = url; a.download = `cronograma-${publicSlug || 'export'}.json`;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         toast.success("Exportado!");
     };
@@ -787,11 +791,24 @@ export function SyllabusProvider({ children }: { children: React.ReactNode }) {
         reader.onload = (event) => {
             try {
                 const data = JSON.parse(event.target?.result as string);
-                if (data.courseName) setCourseName(data.courseName || '');
-                if (data.assessments) setAssessments(data.assessments);
+                if (data.courseName) setCourseName(data.courseName);
+                if (data.publicSlug) setPublicSlug(data.publicSlug);
+                if (data.theoryLocation) setTheoryLocation(data.theoryLocation || '');
+                if (data.practiceLocation) setPracticeLocation(data.practiceLocation || '');
+                if (data.startDate) setStartDate(new Date(data.startDate));
+                if (data.endDate) setEndDate(new Date(data.endDate));
+                if (data.weekDays) setWeekDays(data.weekDays);
+                if (data.locationCity) setLocationCity(data.locationCity || '');
+                if (data.holidays) setHolidays(data.holidays);
+                if (data.books) setBooks(data.books);
                 if (data.topics) setTopics(data.topics);
-                toast.success("Importado!");
-            } catch (err) { toast.error("Erro!"); }
+                if (data.assessments) setAssessments(data.assessments.map((a: any) => ({ ...a, date: a.date ? new Date(a.date) : null })));
+                if (data.timelineOrder) setTimelineOrder(data.timelineOrder);
+                if (data.pinnedDates) setPinnedDates(data.pinnedDates);
+
+                toast.success("Importado com sucesso!");
+                setStep(4);
+            } catch (err) { toast.error("Erro ao importar JSON!"); }
         };
         reader.readAsText(files[0]);
     };

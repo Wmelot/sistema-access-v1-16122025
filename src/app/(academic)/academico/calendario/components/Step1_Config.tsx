@@ -20,6 +20,7 @@ import {
     Trash2,
     Sparkles,
     FileText,
+    FileJson,
     Check,
     ChevronRight,
     Settings2
@@ -48,6 +49,7 @@ export default function Step1_Config() {
         uploadedFiles, setUploadedFiles,
         isAnalyzing,
         handleImportFromDocument,
+        handleImportSyllabus,
         handleRunAIAnalysis,
         isSynced,
         selectedLogo, setSelectedLogo
@@ -451,7 +453,13 @@ export default function Step1_Config() {
                             </Button>
                         )}
 
-                        <div className="grid grid-cols-1 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <label className="cursor-pointer">
+                                <Input type="file" accept=".json" onChange={handleImportSyllabus} className="hidden" />
+                                <div className="bg-slate-800 h-14 rounded-2xl font-black uppercase tracking-widest transition-all hover:scale-105 shadow-xl shadow-slate-800/20 text-white flex items-center justify-center gap-2">
+                                    <FileJson size={18} /> Importar JSON
+                                </div>
+                            </label>
                             <Button onClick={() => setStep(2)} className="bg-[#8C132C] h-14 rounded-2xl font-black uppercase tracking-widest transition-all hover:scale-105 shadow-xl shadow-[#8C132C]/20 w-full">
                                 Próximo Passo <ChevronRight size={18} className="ml-2" />
                             </Button>

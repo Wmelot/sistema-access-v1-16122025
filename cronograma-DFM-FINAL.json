@@ -1,0 +1,420 @@
+{
+    "courseName": "Disfunções do Movimento Humano",
+    "publicSlug": "DFM-2026",
+    "theoryLocation": "Prédio 3 - Sala 409",
+    "practiceLocation": "Laboratório clínica escola",
+    "startDate": "2026-02-09T12:00:00.000Z",
+    "endDate": "2026-07-11T12:00:00.000Z",
+    "weekDays": [
+        {
+            "day": "1",
+            "start": "08:50",
+            "end": "11:30",
+            "frequency": "weekly"
+        }
+    ],
+    "locationCity": "Belo Horizonte",
+    "books": [
+        {
+            "id": "b_ai_0",
+            "title": "Brazilian Journal of Physical Therapy",
+            "author": "Associação Brasileira de Pesquisa e Pós-Graduação em Fisioterapia",
+            "type": "Básico"
+        },
+        {
+            "id": "b_ai_2",
+            "title": "Prática da reabilitação musculoesquelética: princípios e fundamentos científicos",
+            "author": "Magee, David J.; Zachazewski, James E.; Quillen, William S.",
+            "type": "Básico"
+        },
+        {
+            "id": "b_ai_3",
+            "title": "Manual para avaliação musculoesquelética: atlas e vídeo",
+            "author": "Magee, David J; Sueki, Derrick",
+            "type": "Básico"
+        },
+        {
+            "id": "b_ai_4",
+            "title": "Cinesiologia do aparelho musculoesquelético: fundamentos para reabilitação",
+            "author": "Neumann, Donald A.",
+            "type": "Básico"
+        },
+        {
+            "id": "b_ai_6",
+            "title": "Disfunção do movimento humano",
+            "author": "Santos, Elgison da Luz dos",
+            "type": "Complementar"
+        },
+        {
+            "id": "b_ai_10",
+            "title": "Revista Brasileira de Ciência & Movimento",
+            "author": "Ed. Universa",
+            "type": "Complementar"
+        },
+        {
+            "id": "b_ai_11",
+            "title": "Diagnóstico e tratamento das síndromes de disfunção motora",
+            "author": "Sahrmann, Shirley A.",
+            "type": "Complementar"
+        }
+    ],
+    "topics": [
+        {
+            "id": "t1",
+            "title": "Apresentação: Cronograma e critérios de avaliação",
+            "classesNeeded": 2,
+            "bibliographyIds": [
+                "b_ai_2"
+            ],
+            "isPractical": false,
+            "methodology": "Exposição Oral"
+        },
+        {
+            "id": "t2",
+            "title": "Propriedades biomecânicas dos tecidos",
+            "classesNeeded": 2,
+            "bibliographyIds": [
+                "b_ai_4",
+                "b_ai_6"
+            ],
+            "isPractical": false,
+            "methodology": "Aula Dialogada"
+        },
+        {
+            "id": "t3",
+            "title": "Fisiologia Clínica: Adaptação muscular e teoria capacidade vs. demanda",
+            "classesNeeded": 2,
+            "bibliographyIds": [
+                "b_ai_2",
+                "b_ai_10"
+            ],
+            "isPractical": false,
+            "methodology": "Discussão de Artigos"
+        },
+        {
+            "id": "t4",
+            "title": "Cinesiologia: Mecanismos de estabilidade articular",
+            "classesNeeded": 2,
+            "bibliographyIds": [
+                "b_ai_4",
+                "b_ai_11"
+            ],
+            "isPractical": false,
+            "methodology": "Aula Expositiva Interativa"
+        },
+        {
+            "id": "t5",
+            "title": "Disfunções Musculares do Quadrante Inferior",
+            "classesNeeded": 2,
+            "bibliographyIds": [
+                "b_ai_11",
+                "b_ai_2"
+            ],
+            "isPractical": false,
+            "methodology": "Prática Clínica"
+        },
+        {
+            "id": "t6",
+            "title": "Disfunções Musculares do Quadrante Inferior",
+            "classesNeeded": 2,
+            "bibliographyIds": [
+                "b_ai_11",
+                "b_ai_4"
+            ],
+            "isPractical": false,
+            "methodology": "Dramatização de Casos"
+        },
+        {
+            "id": "t7",
+            "title": "Disfunções Musculares do Quadrante Inferior",
+            "classesNeeded": 2,
+            "bibliographyIds": [
+                "b_ai_3",
+                "b_ai_6"
+            ],
+            "isPractical": false,
+            "methodology": "Análise de Movimento por Vídeo"
+        },
+        {
+            "id": "t8",
+            "title": "Disfunções Musculares do Quadrante Inferior",
+            "classesNeeded": 2,
+            "bibliographyIds": [
+                "b_ai_11",
+                "b_ai_2"
+            ],
+            "isPractical": true,
+            "methodology": "Trabalho em Grupo"
+        },
+        {
+            "id": "t9",
+            "title": "Revisão Prova Teórica 1 - Disfunções Musculares do Quadrante Superior",
+            "classesNeeded": 2,
+            "bibliographyIds": [
+                "b_ai_0"
+            ],
+            "isPractical": false,
+            "methodology": "Avaliação Somativa"
+        },
+        {
+            "id": "t10",
+            "title": "Disfunções Musculares do Quadrante Superior",
+            "classesNeeded": 2,
+            "bibliographyIds": [
+                "b_ai_4",
+                "b_ai_11"
+            ],
+            "isPractical": false,
+            "methodology": "PBL (Problem Based Learning)"
+        },
+        {
+            "id": "t11",
+            "title": "Disfunções Musculares do Quadrante Superior",
+            "classesNeeded": 2,
+            "bibliographyIds": [
+                "b_ai_4"
+            ],
+            "isPractical": true,
+            "methodology": "Aula Teórica"
+        },
+        {
+            "id": "t12",
+            "title": "Disfunções Musculares da Coluna Vertebral",
+            "classesNeeded": 2,
+            "bibliographyIds": [
+                "b_ai_11"
+            ],
+            "isPractical": false,
+            "methodology": "Aula Teórica"
+        },
+        {
+            "id": "t13",
+            "title": "Disfunções Musculares da Coluna Vertebral",
+            "classesNeeded": 2,
+            "bibliographyIds": [
+                "b_ai_11"
+            ],
+            "isPractical": false,
+            "methodology": "Aula Teórica"
+        },
+        {
+            "id": "t14",
+            "title": "Disfunções Musculares da Coluna Vertebral",
+            "classesNeeded": 2,
+            "bibliographyIds": [
+                "b_ai_11"
+            ],
+            "isPractical": false,
+            "methodology": "Aula Teórica"
+        },
+        {
+            "id": "t15",
+            "title": "Disfunções Musculares da Coluna Vertebral",
+            "classesNeeded": 2,
+            "bibliographyIds": [
+                "b_ai_11"
+            ],
+            "isPractical": true,
+            "methodology": "Aula Teórica"
+        },
+        {
+            "id": "t16",
+            "title": "Revisão Prova Teórica 2 - Disfunções Musculares da Coluna Vertebral",
+            "classesNeeded": 2,
+            "bibliographyIds": [
+                "b_ai_11"
+            ],
+            "isPractical": false,
+            "methodology": "Aula Teórica"
+        }
+    ],
+    "assessments": [
+        {
+            "id": "a1",
+            "name": "Prova Teórica I",
+            "points": 20,
+            "type": "Teórica",
+            "classesNeeded": 2,
+            "content": "Conteúdo ministrado do início do semestre até a data da prova (Quadrante Inferior)."
+        },
+        {
+            "id": "a2",
+            "name": "Prova Teórica II",
+            "points": 20,
+            "type": "Teórica",
+            "classesNeeded": 2,
+            "content": "Conteúdo focado em Quadrante Superior e Coluna Vertebral."
+        },
+        {
+            "id": "a3",
+            "name": "Prova Prática",
+            "points": 15,
+            "type": "Prática",
+            "classesNeeded": 2,
+            "content": "Avaliação de habilidades práticas e intervenção clínica."
+        },
+        {
+            "id": "a4",
+            "name": "Prova Final",
+            "points": 30,
+            "type": "Institucional",
+            "classesNeeded": 2,
+            "content": "Conteúdo integral da disciplina."
+        },
+        {
+            "id": "a5",
+            "name": "Trabalho Interdisciplinar",
+            "points": 10,
+            "type": "Curso",
+            "classesNeeded": 0,
+            "content": "Atividade transversal integradora."
+        },
+        {
+            "id": "a6",
+            "name": "Participação nas Práticas",
+            "points": 5,
+            "type": "Professor",
+            "classesNeeded": 0,
+            "content": "Engajamento."
+        },
+        {
+            "id": "a7",
+            "name": "Prova Substitutiva",
+            "points": 30,
+            "type": "Professor",
+            "isSubstitutive": true,
+            "classesNeeded": 2,
+            "content": "Reposição."
+        }
+    ],
+    "holidays": [
+        {
+            "date": "2026-02-16",
+            "desc": "Recesso de Carnaval"
+        }
+    ],
+    "timelineOrder": [
+        {
+            "id": "t1",
+            "type": "topic",
+            "instanceId": "ins-t1"
+        },
+        {
+            "id": "t2",
+            "type": "topic",
+            "instanceId": "ins-t2"
+        },
+        {
+            "id": "t3",
+            "type": "topic",
+            "instanceId": "ins-t3"
+        },
+        {
+            "id": "t4",
+            "type": "topic",
+            "instanceId": "ins-t4"
+        },
+        {
+            "id": "t5",
+            "type": "topic",
+            "instanceId": "ins-t5"
+        },
+        {
+            "id": "t6",
+            "type": "topic",
+            "instanceId": "ins-t6"
+        },
+        {
+            "id": "t7",
+            "type": "topic",
+            "instanceId": "ins-t7"
+        },
+        {
+            "id": "t8",
+            "type": "topic",
+            "instanceId": "ins-t8"
+        },
+        {
+            "id": "a1",
+            "type": "assessment",
+            "instanceId": "ins-a1"
+        },
+        {
+            "id": "t9",
+            "type": "topic",
+            "instanceId": "ins-t9"
+        },
+        {
+            "id": "t10",
+            "type": "topic",
+            "instanceId": "ins-t10"
+        },
+        {
+            "id": "t11",
+            "type": "topic",
+            "instanceId": "ins-t11"
+        },
+        {
+            "id": "t12",
+            "type": "topic",
+            "instanceId": "ins-t12"
+        },
+        {
+            "id": "t13",
+            "type": "topic",
+            "instanceId": "ins-t13"
+        },
+        {
+            "id": "t14",
+            "type": "topic",
+            "instanceId": "ins-t14"
+        },
+        {
+            "id": "t15",
+            "type": "topic",
+            "instanceId": "ins-t15"
+        },
+        {
+            "id": "a2",
+            "type": "assessment",
+            "instanceId": "ins-a2"
+        },
+        {
+            "id": "t16",
+            "type": "topic",
+            "instanceId": "ins-t16"
+        },
+        {
+            "id": "a3",
+            "type": "assessment",
+            "instanceId": "ins-a3"
+        },
+        {
+            "id": "a7",
+            "type": "assessment",
+            "instanceId": "ins-a7"
+        }
+    ],
+    "pinnedDates": {
+        "ins-t1": "2026-02-09",
+        "ins-t2": "2026-02-23",
+        "ins-t3": "2026-03-02",
+        "ins-t4": "2026-03-09",
+        "ins-t5": "2026-03-16",
+        "ins-t6": "2026-03-23",
+        "ins-t7": "2026-03-30",
+        "ins-t8": "2026-04-06",
+        "ins-a1": "2026-04-13",
+        "ins-t9": "2026-04-20",
+        "ins-t10": "2026-04-27",
+        "ins-t11": "2026-05-04",
+        "ins-t12": "2026-05-11",
+        "ins-t13": "2026-05-18",
+        "ins-t14": "2026-05-25",
+        "ins-t15": "2026-06-01",
+        "ins-a2": "2026-06-08",
+        "ins-t16": "2026-06-15",
+        "ins-a3": "2026-06-22",
+        "ins-a7": "2026-07-06"
+    }
+}
