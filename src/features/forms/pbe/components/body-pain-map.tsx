@@ -87,7 +87,7 @@ export function BodyPainMap({ painPoints, onChange, customPoints = [], onCustomP
             })
             onChange?.(resetPoints)
             onCustomPointsChange?.([])
-            setShowStandard(true)
+            // setShowStandard(true) // DO NOT force show standard points on clear
             setIsCalibration(false)
             toast.success("Mapa limpo!")
         }

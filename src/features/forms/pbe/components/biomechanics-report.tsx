@@ -191,8 +191,6 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
         }
     }, [open, mounted, patient, vals.patientName]);
 
-    if (!mounted) return null;
-
     const prof = useMemo(() => {
         const p = Array.isArray(professional) ? professional[0] : professional;
         return p || {};
@@ -325,6 +323,8 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
         Object.keys(newState).forEach(k => newState[k] = visible);
         setVisibleSections(newState);
     };
+
+    if (!mounted) return null;
 
     return createPortal(
         <div id="report-wrapper" className="fixed inset-0 z-[2147483647] bg-white flex flex-col animate-in fade-in duration-300 print:static print:h-auto print:overflow-visible overflow-hidden">

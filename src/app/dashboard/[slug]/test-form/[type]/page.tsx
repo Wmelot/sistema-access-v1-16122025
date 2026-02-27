@@ -8,6 +8,7 @@ import SmartPBEForm from "@/features/forms/pbe/components/SmartPBEForm";
 import DiabeticFootForm from "@/features/forms/pbe/components/DiabeticFootForm";
 import UltimatePBEForm from "@/features/forms/pbe/components/UltimatePBEForm";
 import AdvancedSmartAssessment from "@/features/forms/smart-assessment/components/AdvancedSmartAssessment";
+import PBE5Form from "@/features/forms/pbe-5/PBE5Form";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, Save, UserPlus, User, X, FileText, ArrowLeft, ChevronDown, Check, ChevronsUpDown } from "lucide-react";
@@ -93,6 +94,7 @@ export default function GenericSandboxPage() {
             const templateIdMap: Record<string, string> = {
                 'womens-health': 'womens_health_system',
                 'pbe': 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c',
+                'pbe-5': 'pbe_5_system',
                 'physical': 'f33bb240-c1be-4201-adf2-e5a59229d056',
                 'ultimate-pbe': 'ultimate_pbe_system',
                 'diabetic-foot': 'diabetic_foot_system',
@@ -285,6 +287,8 @@ export default function GenericSandboxPage() {
                 return <WomensHealthForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
             case 'pbe':
                 return <SmartPBEForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
+            case 'pbe-5':
+                return <PBE5Form patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
             case 'physical':
                 return <AdvancedPhysicalForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
             case 'ultimate-pbe': // Fusion Form
@@ -330,6 +334,7 @@ export default function GenericSandboxPage() {
                                 <SelectContent className="z-[100]">
                                     <SelectGroup>
                                         <SelectItem value="palmilha">Palmilha Biomecânica</SelectItem>
+                                        <SelectItem value="pbe-5" className="font-black text-blue-600 bg-blue-50">✨ PBE 5.0 (Nova Geração)</SelectItem>
                                         <SelectItem value="physical">Avaliação Física Avançada</SelectItem>
                                         <SelectItem value="pbe">Avaliação PBE (Acordeão Inteligente)</SelectItem>
                                         <SelectItem value="smart-wizard" className="font-bold text-indigo-600 bg-indigo-50">✨ PBE 3.0: Decision Tree Wizard (IA)</SelectItem>

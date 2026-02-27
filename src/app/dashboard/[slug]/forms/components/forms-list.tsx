@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Plus, Pencil, FileText, Settings, Activity, Dumbbell, Brain } from 'lucide-react'
+import { Plus, Pencil, FileText, Settings, Activity, Dumbbell, Brain, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle"
 import { useViewMode } from "@/hooks/use-view-mode"
@@ -46,10 +46,14 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
     const hasPalmilha5 = hasPalmilha; // Always show the Beta/Migration button for Palmilha 5 if Palmilha is allowed
     const hasWomensHealth = customForms.some((f: any) => f.title?.toLowerCase().includes('saúde da mulher'));
     const hasPbe = customForms.some((f: any) => f.title?.toLowerCase().includes('avaliação clínica inteligente') || f.title?.toLowerCase().includes('pbe (inteligente)'));
+    const hasPbe5 = hasPbe; // Always show PBE 5 if PBE is allowed
     const hasUltimate = customForms.some((f: any) => f.title?.toLowerCase().includes('ultimate pbe') || f.title?.toLowerCase().includes('fusão'));
     const hasWizard = customForms.some((f: any) => f.title?.toLowerCase().includes('tree wizard'));
     const hasPhysical = customForms.some((f: any) => f.title?.toLowerCase().includes('física avançada'));
-    const hasDiabetic = customForms.some((f: any) => f.title?.toLowerCase().includes('pé insensível'));
+    const hasDiabetic = customForms.some((f: any) => {
+        const t = f.title?.toLowerCase() || '';
+        return t.includes('pé insensível') || t.includes('pé diabético');
+    });
     const hasEvolution = customForms.some((f: any) => f.title?.toLowerCase().includes('evolução clínica & ia'));
 
     return (
@@ -135,6 +139,44 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
                     <TabsContent value="forms" className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 focus-visible:outline-none">
 
                         {/* SANDBOX CARDS (HARDCODED FORMS) */}
+
+                        {/* PBE 5.0 (BETA) */}
+                        {hasPbe5 && (
+                            <Card className="hover:border-blue-500/50 transition-colors flex flex-col justify-between relative group border-2 border-slate-900 bg-slate-900 overflow-hidden shadow-2xl">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 blur-3xl -z-10 rounded-full mix-blend-screen opacity-50"></div>
+                                <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-cyan-500/20 to-sky-500/20 blur-3xl -z-10 rounded-full mix-blend-screen opacity-50"></div>
+
+                                <div>
+                                    <CardHeader className="pb-2 relative z-10">
+                                        <CardTitle className="text-xl font-bold flex items-center gap-2 text-white">
+                                            <div className="bg-white/10 p-2 rounded-xl border border-white/10 backdrop-blur-md">
+                                                <Activity className="h-5 w-5 text-blue-400" />
+                                            </div>
+                                            PBE 5.0 (V5)
+                                        </CardTitle>
+                                        <CardDescription className="text-slate-400 leading-relaxed pt-2">
+                                            Nova geração de avaliação clínica baseada em evidências. Arquitetura modular, performance extrema e raciocínio clínico assistido.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="relative z-10 pt-2">
+                                        <div className="flex gap-2">
+                                            <Badge className="bg-gradient-to-r from-blue-500 to-indigo-600 border-none text-white uppercase text-[10px] tracking-widest font-black shadow-lg shadow-blue-500/20">
+                                                BETA MODULAR
+                                            </Badge>
+                                            <Badge className="bg-slate-800 text-slate-400 uppercase text-[10px] tracking-widest font-black border-slate-700">Refatoração V5</Badge>
+                                        </div>
+                                    </CardContent>
+                                </div>
+                                <div className="p-6 pt-4 relative z-10">
+                                    <Link href={`/dashboard/${slug}/test-form/pbe-5`} className="w-full" onClick={() => showLoading()}>
+                                        <Button className="w-full bg-white hover:bg-slate-100 text-slate-900 font-black h-12 shadow-xl shadow-black/20 transition-all hover:scale-[1.02] active:scale-95 text-xs tracking-wide">
+                                            <Zap className="mr-2 h-4 w-4 text-blue-600 fill-blue-600" />
+                                            INICIAR TESTES PBE V5
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </Card>
+                        )}
 
                         {/* Palmilha 5.0 (Novo/Beta/Refatoração em andamento) */}
                         {hasPalmilha5 && (
@@ -470,7 +512,7 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
                                     if (lowerTitle.includes('física avançada')) return false;
                                     if (lowerTitle.includes('ultimate pbe')) return false;
                                     if (lowerTitle.includes('tree wizard')) return false;
-                                    if (lowerTitle.includes('pé insensível')) return false;
+                                    if (lowerTitle.includes('pé insensível') || lowerTitle.includes('pé diabético')) return false;
                                     if (lowerTitle.includes('evolução clínica & ia')) return false;
                                 }
                                 return true;
@@ -680,6 +722,7 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
                     {/* HARDCODED SYSTEM FORMS IN LIST VIEW */}
                     {[
                         { id: 'palmilha-5', title: 'Palmilha 5.0 (BETA)', desc: 'Nova versão sendo construída juntos.', href: `/dashboard/${slug}/test-form/palmilha-5`, type: 'system', color: 'indigo', show: hasPalmilha5 },
+                        { id: 'pbe-5', title: 'Avaliação PBE 5.0 (BETA)', desc: 'Nova geração modular de avaliação clínica.', href: `/dashboard/${slug}/test-form/pbe-5`, type: 'system', color: 'blue', show: hasPbe5 },
                         { id: 'palmilha', title: 'Palmilha Biomecânica', desc: 'Avaliação para confecção de palmilhas.', href: `/dashboard/${slug}/test-form`, type: 'system', color: 'indigo', show: hasPalmilha },
                         { id: 'palmilha-v3', title: 'Palmilha Biomecânica V3', desc: 'Nova versão com design premium e relatórios.', href: `/dashboard/${slug}/test-form/palmilha-v3`, type: 'system', color: 'violet', show: hasPalmilhaV3 },
                         { id: 'womens-health', title: 'Saúde da Mulher & Pélvica', desc: 'Avaliação completa de Saúde da Mulher.', href: `/dashboard/${slug}/test-form/womens-health`, type: 'system', color: 'pink', show: hasWomensHealth },
@@ -724,7 +767,7 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
                                 if (lowerTitle.includes('física avançada')) return false;
                                 if (lowerTitle.includes('ultimate pbe')) return false;
                                 if (lowerTitle.includes('tree wizard')) return false;
-                                if (lowerTitle.includes('pé insensível')) return false;
+                                if (lowerTitle.includes('pé insensível') || lowerTitle.includes('pé diabético')) return false;
                                 if (lowerTitle.includes('evolução clínica & ia')) return false;
                             }
                             return true;

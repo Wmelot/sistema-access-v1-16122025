@@ -84,14 +84,21 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             return "Flexivel";
         };
 
-        const extractDegree = (s: string) => {
-            if (!s || s.includes("Sem correção") || s === "0" || s.includes("Neutro")) return "0";
-            const digits = s.match(/\d+/);
-            if (!digits) return "0";
+        const extractNumericValue = (s: string) => {
+            if (!s || s.includes("Sem correção") || s === "0" || s.includes("Neutro") || s === "Nenhuma" || s === "") return 0;
 
-            // Supinação é NEGATIVO no sistema biomecânico (geralmente)
-            const isNegative = s.toLowerCase().includes("negativo") || s.toLowerCase().includes("supinação") || s.toLowerCase().includes("supinacao");
-            return isNegative ? `-${digits[0]}` : digits[0];
+            // Suporte a negativos e decimais (ex: -12, 0.5)
+            const match = s.match(/-?\d+(\.\d+)?/);
+            if (!match) return 0;
+
+            let val = parseFloat(match[0]);
+
+            // Garantia extra para inversão/supinação se o regex não pegar o sinal mas o texto contiver a palavra
+            if (val > 0 && (s.toLowerCase().includes("negativo") || s.toLowerCase().includes("supin"))) {
+                val = -val;
+            }
+
+            return val;
         };
 
         // 3. Info - Enviando chaves em Duplicidade (CamelCase e lowercase) para garantir captura pelo dashboard
@@ -111,17 +118,17 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             Absorcao_dir: orderData.rightFoot?.absorcao?.includes("Absorção") ? "Sim" : "0",
             Absorcao_esq: orderData.leftFoot?.absorcao?.includes("Absorção") ? "Sim" : "0",
 
-            Antepe_Dir: extractDegree(orderData.rightFoot?.antepe || ""),
-            Antepe_Esq: extractDegree(orderData.leftFoot?.antepe || ""),
-            Retrope_Dir: extractDegree(orderData.rightFoot?.retrope || ""),
-            Retrope_Esq: extractDegree(orderData.leftFoot?.retrope || ""),
+            Antepe_Dir: extractNumericValue(orderData.rightFoot?.antepe || ""),
+            Antepe_Esq: extractNumericValue(orderData.leftFoot?.antepe || ""),
+            Retrope_Dir: extractNumericValue(orderData.rightFoot?.retrope || ""),
+            Retrope_Esq: extractNumericValue(orderData.leftFoot?.retrope || ""),
 
             Barra_Dir: orderData.rightFoot?.pads?.['Barra'] ? "Barra" : "0",
             Barra_Esq: orderData.leftFoot?.pads?.['Barra'] ? "Barra" : "0",
             Gota_perda: !!orderData.rightFoot?.pads?.['Gota'] || !!orderData.leftFoot?.pads?.['Gota'],
 
-            Elevacao_Dir: (orderData.rightFoot?.elevacao === "Nenhuma" || !orderData.rightFoot?.elevacao) ? "0" : extractDegree(orderData.rightFoot?.elevacao),
-            Elevacao_Esq: (orderData.leftFoot?.elevacao === "Nenhuma" || !orderData.leftFoot?.elevacao) ? "0" : extractDegree(orderData.leftFoot?.elevacao),
+            Elevacao_Dir: (orderData.rightFoot?.elevacao === "Nenhuma" || !orderData.rightFoot?.elevacao) ? 0 : extractNumericValue(orderData.rightFoot?.elevacao),
+            Elevacao_Esq: (orderData.leftFoot?.elevacao === "Nenhuma" || !orderData.leftFoot?.elevacao) ? 0 : extractNumericValue(orderData.leftFoot?.elevacao),
 
             Arco_Dir: mapArco(orderData.rightFoot?.arco || ""),
             Arco_Esq: mapArco(orderData.leftFoot?.arco || ""),
@@ -141,20 +148,22 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             Borda_Esq: orderData.leftFoot?.borda?.includes("Borda") ? "Borda" : "0",
 
             // Fallback Lowercase para garantir exibição no Dashboard
-            antepe_dir: extractDegree(orderData.rightFoot?.antepe || ""),
-            antepe_esq: extractDegree(orderData.leftFoot?.antepe || ""),
-            retrope_dir: extractDegree(orderData.rightFoot?.retrope || ""),
-            retrope_esq: extractDegree(orderData.leftFoot?.retrope || ""),
+            antepe_dir: extractNumericValue(orderData.rightFoot?.antepe || ""),
+            antepe_esq: extractNumericValue(orderData.leftFoot?.antepe || ""),
+            retrope_dir: extractNumericValue(orderData.rightFoot?.retrope || ""),
+            retrope_esq: extractNumericValue(orderData.leftFoot?.retrope || ""),
             arco_dir: mapArco(orderData.rightFoot?.arco || ""),
             arco_esq: mapArco(orderData.leftFoot?.arco || ""),
             barra_dir: orderData.rightFoot?.pads?.['Barra'] ? "Barra" : "0",
             barra_esq: orderData.leftFoot?.pads?.['Barra'] ? "Barra" : "0",
-            elevacao_dir: (orderData.rightFoot?.elevacao === "Nenhuma" || !orderData.rightFoot?.elevacao) ? "0" : extractDegree(orderData.rightFoot?.elevacao),
-            elevacao_esq: (orderData.leftFoot?.elevacao === "Nenhuma" || !orderData.leftFoot?.elevacao) ? "0" : extractDegree(orderData.leftFoot?.elevacao),
+            elevacao_dir: (orderData.rightFoot?.elevacao === "Nenhuma" || !orderData.rightFoot?.elevacao) ? 0 : extractNumericValue(orderData.rightFoot?.elevacao),
+            elevacao_esq: (orderData.leftFoot?.elevacao === "Nenhuma" || !orderData.leftFoot?.elevacao) ? 0 : extractNumericValue(orderData.leftFoot?.elevacao),
 
             fileE: orderData.fileE || "UExhY2Vob2xkZXI=",
             fileD: orderData.fileD || "UExhY2Vob2xkZXI="
         };
+
+        console.log("📤 [sendOrderToPropulsao] PAYLOAD INFO:", JSON.stringify(info, null, 2));
 
         const headers = {
             "Content-Type": "application/json",

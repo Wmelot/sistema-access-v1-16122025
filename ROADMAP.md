@@ -26,11 +26,29 @@ Acompanhamento de progresso das implementações e correções.
 - [ ] **Validação de Agendamento**: Simular fluxo completo de paciente -> agenda Access em tempo real.
 - [ ] **Co-Piloto Biomecânico (Voz)**: Testar gravação de áudio e preenchimento automático do formulário de Avaliação Biomecânica via IA.
 - [ ] **Auditoria PBE**: Verificar se os laudos gerados via Propulsão estão caindo corretamente no histórico do paciente Axiom.
+- [ ] **Mapa de Dor 2.0**: Explorar viabilidade técnica de seleção por áreas delimitadas (regiões SVG) em vez de pontos isolados (Sugestão Warley).
 
 ### 🧠 Axiom Central de IA (Data Lake)
 - [ ] Linkar Transcrição com o Paciente Avaliado como um "Termo de Consulta" em anexo.
 - [ ] Base de treinamento: Refinar prompts do Auditor PBE com a transcrição dos áudios.
 
+## 🔵 Prioridades para Amanhã (Quinta-Feira 26/02)
+> [!IMPORTANT]
+> **Anotação para a Manhã:** Warley, hoje devemos focar em fechar a **reconciliação do Cronograma Acadêmico** (garantir que as datas do PDF batam 100% com o sistema) e finalizar o **Accordion de Testes Dorsais** na Palmilha 5.0. O sistema está muito próximo do uso real, faltando apenas esse "fino trato" na consistência dos dados.
+
+### 🎓 Axiom Acadêmico (Design de Cronograma 2.0)
+- [ ] **Reconciliação Final**: Resolver discrepâncias entre o PDF original (DFM-2026) e o motor de datas do Axiom.
+- [ ] **Holidays & Conflicts**: Validar se o recesso de Carnaval e outros feriados estão sendo aplicados corretamente na Timeline.
+- [ ] **Print & Drafts**: Estabilizar o `PrintPreview` e o salvamento de múltiplos rascunhos em `DraftsModal`.
+
+### 🦶 Palmilha 5.0 & Biomecânica
+- [ ] **UI Polish**: Finalizar o `DorsalTestsAccordion` e garantir que todos os testes físicos da V5 estão salvando via `actions/insoles.ts`.
+- [ ] **Fusão UltimatePBE**: Integrar a aba de "Biomecânica V3/V5" no `UltimatePBEForm.tsx` para centralização total.
+
+### 🤖 IA & Infra
+- [ ] **Smart Audit**: Implementar o primeiro hook de auditoria no formulário de palmilha (sugerir elementos com base nos testes sugeridos pela IA).
+- [ ] **Offline Sync**: Testar persistência em `localStorage` para ambientes com Wi-Fi instável na clínica.
+
 ---
-*Última atualização: 22/02/2026 às 23:45*
-*Status Geral: Propulsão "Go-Live" Ready para testes amanhã! 🚀*
+*Última atualização: 26/02/2026 às 00:35*
+*Status Geral: Axiom Acadêmico em fase final de refinamento; Propulsão em "Stage Rollout". 🚀*

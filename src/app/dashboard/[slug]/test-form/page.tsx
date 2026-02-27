@@ -336,6 +336,7 @@ export default function PalmilhaSandboxPage() {
                                         <SelectItem value="physical">Avaliação Física Avançada</SelectItem>
                                         <SelectItem value="advanced-pbe">Avaliação Física (Antigo URL)</SelectItem>
                                         <SelectItem value="pbe">Avaliação PBE (Inteligente)</SelectItem>
+                                        <SelectItem value="pbe-5" className="font-black text-blue-600 bg-blue-50">✨ PBE 5.0 (Nova Geração)</SelectItem>
                                         <SelectItem value="ultimate-pbe" className="font-bold text-indigo-600">✨ Ultimate PBE (Fusão)</SelectItem>
                                         <SelectItem value="womens-health">Saúde da Mulher & Pélvica</SelectItem>
                                         <SelectItem value="diabetic-foot">Avaliação de Pé Diabético</SelectItem>
