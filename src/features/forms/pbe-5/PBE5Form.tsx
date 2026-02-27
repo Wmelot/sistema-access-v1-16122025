@@ -24,7 +24,21 @@ import { FunctionalAccordion } from "./accordions/FunctionalAccordion";
 import { MovementAssessmentAccordion } from "./accordions/MovementAssessmentAccordion";
 import { MuscleStrengthAccordion } from "./accordions/MuscleStrengthAccordion";
 import { JointProtocolsAccordion } from "./accordions/JointProtocolsAccordion";
+import { NeuropediaAccordion } from "./accordions/NeuropediaAccordion";
 import { ClinicalConductAccordion } from "./accordions/ClinicalConductAccordion";
+
+// Advanced Physical Assessment Modular Components
+import { PhysicalAntroAccordion } from "./accordions/PhysicalAntroAccordion";
+import { PhysicalCardioAccordion } from "./accordions/PhysicalCardioAccordion";
+import { PhysicalStrengthAccordion } from "./accordions/PhysicalStrengthAccordion";
+import { PhysicalMobilityAccordion } from "./accordions/PhysicalMobilityAccordion";
+import { PhysicalPostureAccordion } from "./accordions/PhysicalPostureAccordion";
+import { PhysicalSportsAccordion } from "./accordions/PhysicalSportsAccordion";
+
+// Women's Health Modular Components
+import { WomensHealthObstetricAccordion } from "./accordions/WomensHealthObstetricAccordion";
+import { WomensHealthComplaintsAccordion } from "./accordions/WomensHealthComplaintsAccordion";
+import { WomensHealthPhysicalAccordion } from "./accordions/WomensHealthPhysicalAccordion";
 
 const SECTION_STYLES: Record<string, { border: string, iconColor: string, bg: string }> = {
     anamnesis: { border: "border-l-blue-600", iconColor: "text-blue-600", bg: "bg-blue-50/30" },
@@ -34,18 +48,52 @@ const SECTION_STYLES: Record<string, { border: string, iconColor: string, bg: st
     movement: { border: "border-l-sky-500", iconColor: "text-sky-500", bg: "bg-sky-50/30" },
     strength: { border: "border-l-orange-500", iconColor: "text-orange-500", bg: "bg-orange-50/30" },
     protocols: { border: "border-l-purple-600", iconColor: "text-purple-600", bg: "bg-purple-50/30" },
-    plan: { border: "border-l-slate-700", iconColor: "text-slate-700", bg: "bg-slate-50/30" }
+    neuropedia: { border: "border-l-pink-500", iconColor: "text-pink-500", bg: "bg-pink-50/30" },
+    plan: { border: "border-l-slate-700", iconColor: "text-slate-700", bg: "bg-slate-50/30" },
+
+    // Advanced Physics
+    antro: { border: "border-l-blue-600", iconColor: "text-blue-600", bg: "bg-blue-50/10" },
+    cardio: { border: "border-l-rose-600", iconColor: "text-rose-600", bg: "bg-rose-50/10" },
+    strength_advanced: { border: "border-l-slate-900", iconColor: "text-slate-900", bg: "bg-slate-50/10" },
+    mobility: { border: "border-l-indigo-600", iconColor: "text-indigo-600", bg: "bg-indigo-50/10" },
+    posture: { border: "border-l-purple-600", iconColor: "text-purple-600", bg: "bg-purple-50/10" },
+    sports: { border: "border-l-emerald-600", iconColor: "text-emerald-600", bg: "bg-emerald-50/10" },
+
+    // Women's Health
+    womens_obstetric: { border: "border-l-pink-400", iconColor: "text-pink-400", bg: "bg-pink-50/10" },
+    womens_complaints: { border: "border-l-rose-400", iconColor: "text-rose-400", bg: "bg-rose-50/10" },
+    womens_physical: { border: "border-l-purple-400", iconColor: "text-purple-400", bg: "bg-purple-50/10" }
 };
 
-const MENU_SECTIONS = [
-    { id: 'anamnesis', label: 'Anamnese', desc: 'Queixa e HMA' },
-    { id: 'clinical', label: 'Histórico Clínico', desc: 'Saúde e Lifestyle' },
-    { id: 'metrics', label: 'Biofísica & Vitais', desc: 'Antropometria e VO2' },
-    { id: 'functionality', label: 'Funcionalidade', desc: 'EFEP e Escalas' },
-    { id: 'movement', label: 'Avaliação Movimento', desc: 'ADM e McKenzie' },
-    { id: 'strength', label: 'Dinamometria', desc: 'Força & HHD' },
-    { id: 'protocols', label: 'Protocolos Regionais', desc: 'Testes de Base' },
-    { id: 'plan', label: 'Conduta Clínica', desc: 'Estratégia & Plano' }
+const ALL_MENU_SECTIONS = [
+    { id: 'anamnesis', label: 'Anamnese', desc: 'Queixa e Config', specialties: ['all'] },
+    { id: 'clinical', label: 'Histórico Clínico', desc: 'Saúde e Lifestyle', specialties: ['all'] },
+
+    // Women's Health Specifics (Conditional)
+    { id: 'womens_obstetric', label: 'História Obstétrica', desc: 'Saúde da Mulher', specialties: ['saude_mulher'] },
+    { id: 'womens_complaints', label: 'Queixas & Sintomas', desc: 'Triagem Pélvica', specialties: ['saude_mulher'] },
+
+    { id: 'metrics', label: 'Biofísica & Vitais', desc: 'Sinais Vitais', specialties: ['all'] },
+    { id: 'functionality', label: 'Funcionalidade', desc: 'EFEP e Escalas', specialties: ['all'] },
+
+    // Advanced Physics (Conditional via advancedPhysical setting)
+    { id: 'antro', label: 'Composição Corporal', desc: 'Protocolo US', specialties: ['advanced_physical'] },
+    { id: 'cardio', label: 'Cardio VO2', desc: 'Performance Aeróbica', specialties: ['advanced_physical'] },
+    { id: 'strength_advanced', label: 'Dinamometria Avançada', desc: 'Z-Score Reference', specialties: ['advanced_physical'] },
+    { id: 'mobility', label: 'Mobilidade/Flex', desc: 'Wells & Leg Raise', specialties: ['advanced_physical'] },
+    { id: 'posture', label: 'Biofotogrametria', desc: 'Postura por Fotos', specialties: ['advanced_physical'] },
+    { id: 'sports', label: 'Rotina Desportiva', desc: 'IPAQ & Treino', specialties: ['advanced_physical'] },
+
+    { id: 'movement', label: 'Avaliação Movimento', desc: 'ADM e McKenzie', specialties: ['ortopedia'] },
+    { id: 'strength', label: 'Força Muscular', desc: 'Testes de Base', specialties: ['ortopedia'] },
+    { id: 'protocols', label: 'Protocolos Regionais', desc: 'Ortopedia Clássica', specialties: ['ortopedia'] },
+
+    { id: 'neuropedia', label: 'Neuropediatria', desc: 'Neurodesenvolvimento', specialties: ['neuropediatria'] },
+
+    // Final Women's Health Section
+    { id: 'womens_physical', label: 'Exame Físico Pélvico', desc: 'PERFECT Scheme', specialties: ['saude_mulher'] },
+
+    { id: 'plan', label: 'Conduta Clínica', desc: 'Estratégia & Plano', specialties: ['all'] }
 ];
 
 interface PBE5FormProps {
@@ -88,16 +136,38 @@ export default function PBE5Form({
         mode: "onChange",
         defaultValues: {
             anamnesis: { qp: "", hma: "", painDuration: "", eva: 0, mainRegions: [] },
-            clinical: { meds: [], comorbidities: [], goals: "", activityLevel: "sedentary", sleepQuality: "regular" },
+            clinical: { meds: [], comorbidities: [], goals: "", activityLevel: "sedentary", sleepQuality: "regular", specialty: "ortopedia", advancedPhysical: false },
             metrics: { weight: "", height: "", hr: "", bp: "", spo2: "", temp: "", vo2_method: "none" },
+            antro: { gender: "male", weight: "", height: "", thigh: "", suprailiac: "", abdominal: "" },
+            cardio: { method: "rockport", timeMin: "", heartRate: "", distance: "" },
+            strength: {},
+            mobility: { wells: "", legRaiseRight: "", legRaiseLeft: "", shoulderReachRight: "", shoulderReachLeft: "" },
+            posture: { photos: {}, observations: [] },
+            sports: { activity: "", frequency: "", duration: "", ipaq: "" },
+            womens_health: {
+                obstetric: { gestations: 0, births: 0, abortions: 0, birthType: 'null', episiotomy: false, menopause: false },
+                complaints: { stressUrinaryIncontinence: false, urgeIncontinence: false, nocturia: false, prolapseSensation: false, constipation: false, dyspareunia: false },
+                redFlags: { vaginalBleeding: false, amnioticFluidLeak: false, severeHeadache: false, reducedFetalMovement: false },
+                perfect: { power: 0, endurance: 0, repetitions: 0, fast: 0, diastasis: false }
+            },
             functionality: { efep: [{ activity: "", score: "" }] },
             movement: { active: {}, passive: {}, repeated: {} },
-            strength: {},
             conduct: { questionnaires: [], extraQuestionnaire: "none", followUpDays: [], monitorPain: true },
             protocols: {},
+            neuropedia: { gmfcs_level: "", aims_score: 0 },
             plan: { orientations: "", exercises: [], frequency: 2 },
             ...initialData
         }
+    });
+
+    const specialty = form.watch('clinical.specialty') || 'ortopedia';
+    const advancedPhysical = form.watch('clinical.advancedPhysical');
+
+    const menuSections = ALL_MENU_SECTIONS.filter(sec => {
+        if (sec.specialties.includes('all')) return true;
+        if (sec.specialties.includes(specialty)) return true;
+        if (sec.specialties.includes('advanced_physical') && advancedPhysical) return true;
+        return false;
     });
 
     const [debouncedData] = useDebounce(form.watch(), 2000);
@@ -130,7 +200,20 @@ export default function PBE5Form({
         if (section === 'movement') return Object.keys(data.active || {}).length > 0 || Object.keys(data.repeated || {}).length > 0;
         if (section === 'strength') return Object.keys(data).length > 0;
         if (section === 'protocols') return Object.keys(data).length > 0;
+        if (section === 'neuropedia') return !!data.gmfcs_level || !!data.aims_score;
         if (section === 'plan') return !!data.orientations || data.exercises?.length > 0;
+
+        // Advanced & Womens
+        if (section === 'antro') return !!data.weight && !!data.height;
+        if (section === 'cardio') return !!data.distance || (!!data.timeMin && !!data.heartRate);
+        if (section === 'posture') return (data.observations || []).length > 0 || Object.keys(data.photos || {}).length > 0;
+        if (section === 'mobility') return !!data.wells || !!data.legRaiseRight || !!data.shoulderReachRight;
+        if (section === 'strength_advanced') return Object.keys(data).length > 0;
+        if (section === 'sports') return !!data.activity || !!data.ipaq;
+        if (section === 'womens_obstetric') return data.birthType !== 'null' || data.gestations > 0;
+        if (section === 'womens_complaints') return Object.values(data.complaints || {}).some(Boolean) || Object.values(data.redFlags || {}).some(Boolean);
+        if (section === 'womens_physical') return data.perfect?.power > 0 || data.perfect?.diastasis;
+
         return false;
     };
 
@@ -151,9 +234,9 @@ export default function PBE5Form({
                             </div>
                         </div>
 
-                        {MENU_SECTIONS.map((sec, idx) => {
+                        {menuSections.map((sec, idx) => {
                             const isFilled = isSectionFilled(sec.id);
-                            const curIdx = MENU_SECTIONS.findIndex(s => s.id === openSection);
+                            const curIdx = menuSections.findIndex(s => s.id === openSection);
                             const isActive = curIdx === idx;
                             return (
                                 <button
@@ -181,7 +264,7 @@ export default function PBE5Form({
                 <div className="space-y-6 flex flex-col items-center flex-1 w-full max-w-4xl mx-auto relative z-10 pb-20">
                     <div className="w-full">
                         {(() => {
-                            const activeSec = MENU_SECTIONS.find(s => s.id === openSection);
+                            const activeSec = menuSections.find(s => s.id === openSection);
                             if (!activeSec) return null;
                             return (
                                 <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm mb-2 flex items-center justify-between">
@@ -209,18 +292,70 @@ export default function PBE5Form({
                                 sectionStyle={SECTION_STYLES.functionality}
                                 setIsAssessmentModalOpen={setIsAssessmentModalOpen}
                             />
-                            <MovementAssessmentAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.movement} />
-                            <MuscleStrengthAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.strength} patient={patient} />
-                            <JointProtocolsAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.protocols} />
+
+                            {/* Specialty Specific Accordions */}
+                            {specialty === 'ortopedia' && (
+                                <>
+                                    <MovementAssessmentAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.movement} />
+                                    <MuscleStrengthAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.strength} patient={patient} />
+                                    <JointProtocolsAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.protocols} />
+                                </>
+                            )}
+
+                            {specialty === 'neuropediatria' && (
+                                <NeuropediaAccordion
+                                    openSection={openSection}
+                                    isSectionFilled={isSectionFilled}
+                                    sectionStyle={SECTION_STYLES.neuropedia}
+                                    setIsAssessmentModalOpen={setIsAssessmentModalOpen}
+                                />
+                            )}
+
+                            {/* Specialty: Women's Health (Modularized) */}
+                            {specialty === 'saude_mulher' && (
+                                <>
+                                    <WomensHealthObstetricAccordion openSection={openSection} isSectionFilled={isSectionFilled} />
+                                    <WomensHealthComplaintsAccordion openSection={openSection} isSectionFilled={isSectionFilled} />
+                                    <WomensHealthPhysicalAccordion openSection={openSection} isSectionFilled={isSectionFilled} />
+                                </>
+                            )}
+
+                            {/* Advanced Physical Assessment Mode (Cross-Specialty) */}
+                            {advancedPhysical && (
+                                <>
+                                    <PhysicalAntroAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.antro} />
+                                    <PhysicalCardioAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.cardio} />
+                                    <PhysicalStrengthAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.strength_advanced} />
+                                    <PhysicalMobilityAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.mobility} />
+                                    <PhysicalPostureAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.posture} />
+                                    <PhysicalSportsAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.sports} />
+                                </>
+                            )}
+
+                            {/* Future Specialties Placeholders */}
+                            {['neurofuncional_adulto', 'cardio_respiratorio', 'saude_trabalho', 'gerontologia'].includes(specialty) && (
+                                <div className="p-12 text-center bg-white rounded-[40px] border-2 border-dashed border-slate-100 shadow-sm animate-pulse">
+                                    <div className="flex flex-col items-center gap-4">
+                                        <div className="h-16 w-16 rounded-full bg-slate-50 flex items-center justify-center">
+                                            <Zap className="h-6 w-6 text-slate-300" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Módulo em Desenvolvimento</h4>
+                                            <p className="text-xs font-bold text-slate-400 mt-1 uppercase">Estamos mapeando as métricas Magee e protocolos específicos.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             <ClinicalConductAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.plan} />
                         </Accordion>
 
                         {/* NAV BUTTONS */}
                         <div className="w-full flex justify-between items-center mt-12 bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm mb-4">
                             {(() => {
-                                const curIdx = MENU_SECTIONS.findIndex(s => s.id === openSection);
-                                const prevSec = curIdx > 0 ? MENU_SECTIONS[curIdx - 1] : null;
-                                const nextSec = curIdx < MENU_SECTIONS.length - 1 ? MENU_SECTIONS[curIdx + 1] : null;
+                                const curIdx = menuSections.findIndex(s => s.id === openSection);
+                                const prevSec = curIdx > 0 ? menuSections[curIdx - 1] : null;
+                                const nextSec = curIdx < menuSections.length - 1 ? menuSections[curIdx + 1] : null;
                                 return (
                                     <>
                                         <Button

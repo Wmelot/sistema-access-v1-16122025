@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
-import { Activity, Thermometer, Trash2, Search, Plus, ChevronsUpDown } from "lucide-react";
+import { Activity, Thermometer, Trash2, Search, Plus, ChevronsUpDown, Settings2, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandInput, CommandList, CommandItem, CommandEmpty, CommandGroup } from "@/components/ui/command";
 import { AxiomCopilot } from "@/components/copilot/AxiomCopilot";
 import { Switch } from "@/components/ui/switch";
@@ -26,6 +27,17 @@ const REGION_OPTIONS = [
     { id: "tornozelo_pe", label: "Tornozelo e Pé" },
     { id: "quadril", label: "Quadril" },
     { id: "cotovelo_mao", label: "Cotovelo/Punho/Mão" },
+    { id: "atm", label: "ATM (Temporomandibular)" },
+];
+
+const SPECIALTY_OPTIONS = [
+    { id: "ortopedia", label: "Ortopedia e Esportes (Fisioterapia Musculoesquelética)" },
+    { id: "neuropediatria", label: "Neuropediatria e Neurodesenvolvimento" },
+    { id: "neurofuncional_adulto", label: "Neurofuncional Adulto" },
+    { id: "saude_mulher", label: "Saúde da Mulher & Pélvica" },
+    { id: "cardio_respiratorio", label: "Cardiovascular e Respiratório Ambulatorial" },
+    { id: "saude_trabalho", label: "Saúde do Trabalho (Ergonomia / Pericial)" },
+    { id: "gerontologia", label: "Gerontologia" },
 ];
 
 const RED_FLAGS_DATA: Record<string, { id: string; label: string; alerts: string[] }[]> = {
@@ -169,6 +181,19 @@ const RED_FLAGS_DATA: Record<string, { id: string; label: string; alerts: string
             alerts: ["Encurtamento do membro", "Rotação externa fixa", "Incapacidade de apoiar peso"]
         },
     ],
+    atm: [
+        {
+            id: "atm_malignancy",
+            label: "Sinais de Alerta (ATM / Cabeça e Pescoço)",
+            alerts: [
+                "Perda de peso inexplicada",
+                "Dificuldade de deglutição (Disfagia)",
+                "Alterações sensoriais súbitas na face",
+                "Trismo severo (Bloqueio total da mandíbula)",
+                "Histórico de câncer em região de cabeça e pescoço"
+            ]
+        },
+    ],
 };
 
 interface AnamnesisAccordionProps {
@@ -214,6 +239,62 @@ export function AnamnesisAccordion({ openSection, isSectionFilled, sectionStyle 
                     {/* Identification Section */}
                     <div className="space-y-8">
                         <div className="flex items-center gap-3">
+                            <div className="w-1 h-5 bg-blue-600 rounded-full" />
+                            <h4 className="font-black text-slate-800 uppercase text-xs tracking-widest">Configurações da Avaliação</h4>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-8 bg-slate-50/50 p-6 rounded-[2.5rem] border border-slate-100 shadow-inner">
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 mb-1 px-1">
+                                    <Settings2 className="w-4 h-4 text-blue-500" />
+                                    <FormLabel className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Área de Atuação Clínica</FormLabel>
+                                </div>
+                                <Controller
+                                    name="clinical.specialty"
+                                    control={control}
+                                    defaultValue="ortopedia"
+                                    render={({ field }) => (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger className="h-14 rounded-2xl border-slate-200 bg-white font-bold text-sm shadow-sm">
+                                                <SelectValue placeholder="Selecione a área clínica..." />
+                                            </SelectTrigger>
+                                            <SelectContent className="z-[500]">
+                                                {SPECIALTY_OPTIONS.map(opt => (
+                                                    <SelectItem key={opt.id} value={opt.id} className="font-bold py-3">
+                                                        {opt.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter px-1">Otimiza os campos e escalas baseado na especialidade selecionada.</p>
+                            </div>
+
+                            <div className="flex flex-col justify-center space-y-3">
+                                <div className="flex items-center gap-3 p-4 bg-white border border-slate-100 rounded-3xl hover:border-blue-200 transition-all group">
+                                    <Controller
+                                        name="clinical.advancedPhysical"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Checkbox
+                                                id="advanced-physical"
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                                className="h-6 w-6 border-slate-300 data-[state=checked]:bg-blue-600 rounded-lg"
+                                            />
+                                        )}
+                                    />
+                                    <div className="space-y-0.5 cursor-pointer" onClick={() => setValue('clinical.advancedPhysical', !watch('clinical.advancedPhysical'))}>
+                                        <label htmlFor="advanced-physical" className="text-[11px] font-black text-slate-700 uppercase tracking-widest cursor-pointer">Avaliação Física Avançada</label>
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Habilita exames sistêmicos e biofotogrametria.</p>
+                                    </div>
+                                    <ShieldCheck className="w-5 h-5 text-blue-500 ml-auto opacity-30 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 pt-4">
                             <div className="w-1 h-5 bg-blue-600 rounded-full" />
                             <h4 className="font-black text-slate-800 uppercase text-xs tracking-widest">A queixa do paciente</h4>
                         </div>

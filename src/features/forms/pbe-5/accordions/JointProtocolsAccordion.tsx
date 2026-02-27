@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { LumbarRichProtocol } from "./protocols/LumbarRichProtocol";
 import { CervicalRichProtocol } from "./protocols/CervicalRichProtocol";
 import { KneeRichProtocol } from "./protocols/KneeRichProtocol";
+import { AtmRichProtocol } from "./protocols/AtmRichProtocol";
 
 const PROTOCOLS: Record<string, {
     label: string,
@@ -30,6 +31,10 @@ const PROTOCOLS: Record<string, {
     joelho: {
         label: "Protocolo de Joelho",
         component: <KneeRichProtocol />
+    },
+    atm: {
+        label: "Protocolo de ATM (Temporomandibular)",
+        component: <AtmRichProtocol />
     },
     ombro: {
         label: "Protocolo de Ombro",

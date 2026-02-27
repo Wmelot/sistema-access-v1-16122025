@@ -1,6 +1,6 @@
 
 
-export type AssessmentType = 'start_back' | 'roland_morris' | 'oswestry' | 'mcgill_short' | 'tampa_kinesiophobia' | 'quickdash' | 'lefs' | 'quebec' | 'ndi' | 'psfs' | 'spadi' | 'prwe' | 'ihot33' | 'womac' | 'hoos' | 'ikdc' | 'lysholm' | 'koos' | 'faos' | 'faam' | 'aofas' | 'insoles_40d' | 'insoles_1y' | 'iciq_sf' | 'udi_6' | 'fsfi' | 'perfect_scale' | 'mnsi' | 'diabetes_control';
+export type AssessmentType = 'start_back' | 'roland_morris' | 'oswestry' | 'mcgill_short' | 'tampa_kinesiophobia' | 'quickdash' | 'lefs' | 'quebec' | 'ndi' | 'psfs' | 'spadi' | 'prwe' | 'ihot33' | 'womac' | 'hoos' | 'ikdc' | 'lysholm' | 'koos' | 'faos' | 'faam' | 'aofas' | 'insoles_40d' | 'insoles_1y' | 'iciq_sf' | 'udi_6' | 'fsfi' | 'perfect_scale' | 'mnsi' | 'diabetes_control' | 'fonseca' | 'jfls8' | 'gmfcs' | 'pbs_pediatric' | 'ecab' | 'aims' | 'mfm32' | 'gmfm88';
 
 export interface Question {
     id: string;
@@ -1769,6 +1769,204 @@ Foco na durabilidade e upsell (renovação).
                 else { status = 'Controle Insuficiente'; color = 'red'; }
             }
             return { hba1c: answers['hba1c'], classification: status, riskColor: color };
+        }
+    },
+    fonseca: {
+        id: 'fonseca',
+        title: 'Índice Anamnéstico de Fonseca (IAF)',
+        description: 'Questionário de triagem para DTM (Disfunção Temporomandibular).',
+        instruction: 'Por favor, assinale a opção que melhor descreve seus sintomas.',
+        clinicalGuidance: `
+**Instruções de Aplicação**
+Instrumento de triagem rápida para severidade de DTM.
+
+**Pontuação (0-100):**
+- Sim (10 pts), Às vezes (5 pts), Não (0 pts).
+- **0-15**: Sem DTM.
+- **20-40**: DTM Leve.
+- **45-65**: DTM Moderada.
+- **70-100**: DTM Severe.
+        `,
+        questions: [
+            { id: 'q1', text: 'Sente dificuldade para abrir a boca?', type: 'scale', options: [{ label: 'Não', value: 0 }, { label: 'Às vezes', value: 5 }, { label: 'Sim', value: 10 }] },
+            { id: 'q2', text: 'Sente dificuldade para movimentar a mandíbula para os lados?', type: 'scale', options: [{ label: 'Não', value: 0 }, { label: 'Às vezes', value: 5 }, { label: 'Sim', value: 10 }] },
+            { id: 'q3', text: 'Sente cansaço ou dor muscular quando mastiga?', type: 'scale', options: [{ label: 'Não', value: 0 }, { label: 'Às vezes', value: 5 }, { label: 'Sim', value: 10 }] },
+            { id: 'q4', text: 'Sente dores de cabeça com frequência?', type: 'scale', options: [{ label: 'Não', value: 0 }, { label: 'Às vezes', value: 5 }, { label: 'Sim', value: 10 }] },
+            { id: 'q5', text: 'Sente dor na nuca ou torcicolo?', type: 'scale', options: [{ label: 'Não', value: 0 }, { label: 'Às vezes', value: 5 }, { label: 'Sim', value: 10 }] },
+            { id: 'q6', text: 'Sente dor no ouvido ou na região da articulação (ATM)?', type: 'scale', options: [{ label: 'Não', value: 0 }, { label: 'Às vezes', value: 5 }, { label: 'Sim', value: 10 }] },
+            { id: 'q7', text: 'Sente ruídos na ATM (estalos ou crepitação) ao abrir a boca ou mastigar?', type: 'scale', options: [{ label: 'Não', value: 0 }, { label: 'Às vezes', value: 5 }, { label: 'Sim', value: 10 }] },
+            { id: 'q8', text: 'Costuma ter hábitos como apertar ou ranger os dentes (bruxismo)?', type: 'scale', options: [{ label: 'Não', value: 0 }, { label: 'Às vezes', value: 5 }, { label: 'Sim', value: 10 }] },
+            { id: 'q9', text: 'Sente que seus dentes não se encaixam bem?', type: 'scale', options: [{ label: 'Não', value: 0 }, { label: 'Às vezes', value: 5 }, { label: 'Sim', value: 10 }] },
+            { id: 'q10', text: 'Você se considera uma pessoa tensa ou nervosa?', type: 'scale', options: [{ label: 'Não', value: 0 }, { label: 'Às vezes', value: 5 }, { label: 'Sim', value: 10 }] }
+        ],
+        calculateScore: (answers) => {
+            const total = Object.values(answers).reduce((a, b) => a + Number(b || 0), 0);
+            let classification = 'Ausência de DTM';
+            let riskColor = 'green';
+            if (total >= 70) { classification = 'DTM Grave'; riskColor = 'red'; }
+            else if (total >= 45) { classification = 'DTM Moderada'; riskColor = 'orange'; }
+            else if (total >= 20) { classification = 'DTM Leve'; riskColor = 'yellow'; }
+            return { total, classification, riskColor };
+        }
+    },
+    jfls8: {
+        id: 'jfls8',
+        title: 'JFLS-8 (Jaw Functional Limitation Scale)',
+        description: 'Escala de Limitação Funcional Mandibular (versão curta).',
+        instruction: 'Nas últimas 4 semanas, quanto seu problema de mandíbula limitou você para:',
+        clinicalGuidance: `
+**Pontuação (0-80):**
+- 0 = Nenhuma limitação; 10 = Limitação extrema.
+- Avalia fala, mastigação e mobilidade.
+        `,
+        questions: [
+            { id: 'q1', text: 'Mastigar comida dura (ex: maçã)?', type: 'vas', min: 0, max: 10, minLabel: 'Sem limite', maxLabel: 'Extremo' },
+            { id: 'q2', text: 'Mastigar comida que exige mastigação prolongada (ex: bife)?', type: 'vas', min: 0, max: 10 },
+            { id: 'q3', text: 'Abrir a boca o suficiente para comer um sanduíche?', type: 'vas', min: 0, max: 10 },
+            { id: 'q4', text: 'Abrir a boca o suficiente para bocejar?', type: 'vas', min: 0, max: 10 },
+            { id: 'q5', text: 'Falar por um longo tempo?', type: 'vas', min: 0, max: 10 },
+            { id: 'q6', text: 'Cantar?', type: 'vas', min: 0, max: 10 },
+            { id: 'q7', text: 'Sorrir?', type: 'vas', min: 0, max: 10 },
+            { id: 'q8', text: 'Fazer expressões faciais?', type: 'vas', min: 0, max: 10 }
+        ],
+        calculateScore: (answers) => {
+            const total = Object.values(answers).reduce((a, b) => a + Number(b || 0), 0);
+            const avg = total / 8;
+            return { total, average: avg.toFixed(1), riskColor: avg > 7 ? 'red' : avg > 3 ? 'orange' : 'green' };
+        }
+    },
+    gmfcs: {
+        id: 'gmfcs',
+        title: 'GMFCS-E&R (Gross Motor Function Classification System)',
+        description: 'Sistema de Classificação da Função Motora Grossa Ampliado e Revisto.',
+        instruction: 'Selecione o nível que melhor descreve as habilidades atuais da criança.',
+        clinicalGuidance: `
+**Níveis (I a V):**
+- **Nível I**: Anda sem restrições.
+- **Nível II**: Anda com limitações.
+- **Nível III**: Anda usando dispositivo manual de mobilidade.
+- **Nível IV**: Automobilidade com limitações; pode usar mobilidade motorizada.
+- **Nível V**: Transportado em cadeira de rodas manual.
+        `,
+        questions: [
+            {
+                id: 'level',
+                text: 'Classificação Atual',
+                type: 'mcq',
+                options: [
+                    { label: 'Nível I - Sem limitações em ambientes fechados/abertos', value: 1 },
+                    { label: 'Nível II - Limitações ao andar em superfícies irregulares/longas', value: 2 },
+                    { label: 'Nível III - Dispositivo de mobilidade manual (andador/muletas)', value: 3 },
+                    { label: 'Nível IV - Mobilidade motorizada ou transporte por terceiros', value: 4 },
+                    { label: 'Nível V - Limitação total; transportado em cadeira de rodas', value: 5 }
+                ]
+            }
+        ],
+        calculateScore: (answers) => ({ level: `Nível ${answers.level || '?'}` })
+    },
+    pbs_pediatric: {
+        id: 'pbs_pediatric',
+        title: 'Pediatric Balance Scale (PBS)',
+        description: 'Escala Pediátrica de Equilíbrio (Versão adaptada do Berg).',
+        instruction: 'Avalie o desempenho em cada item (0 a 4 pontos).',
+        questions: [
+            { id: 'q1', text: '1. Sentado para de pé', type: 'scale', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3', value: 3 }, { label: '4', value: 4 }] },
+            { id: 'q2', text: '2. De pé para sentado', type: 'scale', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3', value: 3 }, { label: '4', value: 4 }] },
+            { id: 'q3', text: '3. Transferências (entre cadeiras)', type: 'scale', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3', value: 3 }, { label: '4', value: 4 }] },
+            { id: 'q4', text: '4. Ficar de pé s/ apoio', type: 'scale', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3', value: 3 }, { label: '4', value: 4 }] },
+            { id: 'q5', text: '5. Ficar sentado s/ apoio', type: 'scale', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3', value: 3 }, { label: '4', value: 4 }] },
+            { id: 'q6', text: '6. De pé c/ olhos fechados', type: 'scale', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3', value: 3 }, { label: '4', value: 4 }] },
+            { id: 'q7', text: '7. De pé c/ pés juntos', type: 'scale', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3', value: 3 }, { label: '4', value: 4 }] },
+            { id: 'q8', text: '8. De pé c/ um pé à frente (tandem)', type: 'scale', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3', value: 3 }, { label: '4', value: 4 }] },
+            { id: 'q9', text: '9. De pé em um pé só', type: 'scale', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3', value: 3 }, { label: '4', value: 4 }] },
+            { id: 'q10', text: '10. Virar 360 graus', type: 'scale', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3', value: 3 }, { label: '4', value: 4 }] },
+            { id: 'q11', text: '11. Olhar p/ trás (rotação)', type: 'scale', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3', value: 3 }, { label: '4', value: 4 }] },
+            { id: 'q12', text: '12. Pegar objeto no chão', type: 'scale', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3', value: 3 }, { label: '4', value: 4 }] },
+            { id: 'q13', text: '13. Colocar pés alternadamente no degrau', type: 'scale', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3', value: 3 }, { label: '4', value: 4 }] },
+            { id: 'q14', text: '14. Alcançar à frente c/ braço estendido', type: 'scale', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3', value: 3 }, { label: '4', value: 4 }] }
+        ],
+        calculateScore: (answers) => {
+            const total = Object.values(answers).reduce((a, b) => a + Number(b || 0), 0);
+            return { total, max: 56, riskColor: total < 40 ? 'red' : 'green' };
+        }
+    },
+    ecab: {
+        id: 'ecab',
+        title: 'ECAB (Early Clinical Assessment of Balance)',
+        description: 'Avaliação clínica precoce do equilíbrio para crianças com Paralisia Cerebral.',
+        instruction: 'Pontue os itens de 0 a 100 conforme manual CanChild.',
+        clinicalGuidance: 'Parte I (Controle de Cabeça/Tronco) e Parte II (Sentado/De pé). Total 100.',
+        questions: Array.from({ length: 13 }, (_, i) => ({
+            id: `q${i + 1}`,
+            text: [
+                'Item 1: Endireitamento de cabeça (Lat)', 'Item 2: Endireitamento de cabeça (Ext)', 'Item 3: Endireitamento de cabeça (Flex)',
+                'Item 4: Rotação de tronco', 'Item 5: Reação de equilíbrio (Sentado)', 'Item 6: Extensão protetora (Lat)', 'Item 7: Extensão protetora (Post)',
+                'Item 8: Sentado s/ apoio (pés apoiados)', 'Item 9: Sentado para de pé', 'Item 10: De pé s/ apoio (olhos fechados)',
+                'Item 11: De pé s/ apoio (pés juntos)', 'Item 12: Virar 360 graus', 'Item 13: Alternar pés no degrau'
+            ][i],
+            type: 'scale',
+            options: i < 7
+                ? [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3', value: 3 }]
+                : [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3', value: 3 }, { label: '4', value: 4 }]
+        })),
+        calculateScore: (answers) => {
+            const total = Object.values(answers).reduce((a, b) => a + Number(b || 0), 0);
+            return { total, max: 100 };
+        }
+    },
+    aims: {
+        id: 'aims',
+        title: 'AIMS (Alberta Infant Motor Scale)',
+        description: 'Avaliação do desenvolvimento motor grosso em bebês (0 a 18 meses).',
+        instruction: 'Marque todos os itens observados no repertório do bebê.',
+        clinicalGuidance: 'Marque "1" para itens observados e "0" para não observados. A escala é dividida em Prono, Supino, Sentado e De pé.',
+        questions: Array.from({ length: 58 }, (_, i) => ({
+            id: `q${i + 1}`,
+            text: `Item ${i + 1} (${i < 21 ? 'Prono' : i < 30 ? 'Supino' : i < 42 ? 'Sentado' : 'De pé'})`,
+            type: 'binary',
+            options: [{ label: 'Não', value: 0 }, { label: 'Sim', value: 1 }]
+        })),
+        calculateScore: (answers) => {
+            const total = Object.values(answers).reduce((a, b) => a + Number(b || 0), 0);
+            return { total, max: 58 };
+        }
+    },
+    mfm32: {
+        id: 'mfm32',
+        title: 'MFM-32 (Medida da Função Motora)',
+        description: 'Escala para avaliação de doenças neuromusculares.',
+        instruction: 'Pontue cada item de 0 a 3 conforme o desempenho.',
+        clinicalGuidance: '0=Incapaz; 1=Inicia; 2=Completa parcialmente/imperfeito; 3=Completa controlado.',
+        questions: Array.from({ length: 32 }, (_, i) => ({
+            id: `q${i + 1}`,
+            text: `Item ${i + 1} (${i < 13 ? 'D1: Em pé/Transf' : i < 25 ? 'D2: Axial/Proximal' : 'D3: Distal'})`,
+            type: 'scale',
+            options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3', value: 3 }]
+        })),
+        calculateScore: (answers) => {
+            const total = Object.values(answers).reduce((a, b) => a + Number(b || 0), 0);
+            const percentage = ((total / 96) * 100).toFixed(1);
+            return { total, percentage: `${percentage}%` };
+        }
+    },
+    gmfm88: {
+        id: 'gmfm88',
+        title: 'GMFM-88 (Gross Motor Function Measure)',
+        description: 'Padrão-ouro para Paralisia Cerebral e Síndrome de Down.',
+        instruction: 'Pontue cada item de 0 a 3 conforme o desempenho.',
+        clinicalGuidance: 'A: Deitar/Rolar; B: Sentar; C: Engatinhar/Ajoelhar; D: Em Pé; E: Andar/Correr/Pular.',
+        questions: Array.from({ length: 88 }, (_, i) => ({
+            id: `q${i + 1}`,
+            text: `Item ${i + 1} (Dimens ${i < 17 ? 'A' : i < 37 ? 'B' : i < 51 ? 'C' : i < 64 ? 'D' : 'E'})`,
+            type: 'scale',
+            options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }, { label: '3', value: 3 }, { label: 'NT', value: -1 }]
+        })),
+        calculateScore: (answers) => {
+            const entries = Object.entries(answers);
+            const total = entries.reduce((a, [_, b]) => a + (typeof b === 'number' && b >= 0 ? b : 0), 0);
+            const testedCount = entries.filter(([_, b]) => typeof b === 'number' && b >= 0).length;
+            const percentage = testedCount > 0 ? ((total / (testedCount * 3)) * 100).toFixed(1) : '0';
+            return { total, percentage: `${percentage}%` };
         }
     }
 }

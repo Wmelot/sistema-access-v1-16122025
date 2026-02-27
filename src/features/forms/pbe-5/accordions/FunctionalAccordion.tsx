@@ -21,6 +21,13 @@ const QUESTIONNAIRES_BY_CATEGORY = [
         ]
     },
     {
+        category: "ATM (Temporomandibular)",
+        items: [
+            { id: "fonseca", label: "Fonseca (Triagem DTM)" },
+            { id: "jfls8", label: "JFLS-8 (Limitação Mandibular)" }
+        ]
+    },
+    {
         category: "Coluna Lombar",
         items: [
             { id: "oswestry", label: "Oswestry (Lombar)" },
@@ -72,6 +79,14 @@ const QUESTIONNAIRES_BY_CATEGORY = [
             { id: "iciq_sf", label: "ICIQ-SF (Incontinência)" },
             { id: "udi_6", label: "UDI-6 (Urogenital)" },
             { id: "fsfi", label: "FSFI (Função Sexual)" }
+        ]
+    },
+    {
+        category: "Neuropediatria",
+        items: [
+            { id: "gmfcs", label: "GMFCS (Classificação Motora)" },
+            { id: "pbs_pediatric", label: "PBS (Equilíbrio Pediátrico)" },
+            { id: "ecab", label: "ECAB (Equilíbrio Inicial)" }
         ]
     },
     {
