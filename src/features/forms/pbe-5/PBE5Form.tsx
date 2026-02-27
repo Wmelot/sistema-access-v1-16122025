@@ -25,7 +25,14 @@ import { MovementAssessmentAccordion } from "./accordions/MovementAssessmentAcco
 import { MuscleStrengthAccordion } from "./accordions/MuscleStrengthAccordion";
 import { JointProtocolsAccordion } from "./accordions/JointProtocolsAccordion";
 import { NeuropediaAccordion } from "./accordions/NeuropediaAccordion";
+import { NeuroAdultAccordion } from "./accordions/NeuroAdultAccordion";
+import { CardioRespiratorioAccordion } from "./accordions/CardioRespiratorioAccordion";
+import { OccupationalHealthAccordion } from "./accordions/OccupationalHealthAccordion";
+import { GerontologyAccordion } from "./accordions/GerontologyAccordion";
 import { ClinicalConductAccordion } from "./accordions/ClinicalConductAccordion";
+import { PhysicalAssessmentAccordion } from "./accordions/PhysicalAssessmentAccordion";
+import { WomensHealthAccordion } from "./accordions/WomensHealthAccordion";
+import { BiomechanicsAccordion } from "./accordions/BiomechanicsAccordion";
 
 // Advanced Physical Assessment Modular Components
 import { PhysicalAntroAccordion } from "./accordions/PhysicalAntroAccordion";
@@ -35,18 +42,18 @@ import { PhysicalMobilityAccordion } from "./accordions/PhysicalMobilityAccordio
 import { PhysicalPostureAccordion } from "./accordions/PhysicalPostureAccordion";
 import { PhysicalSportsAccordion } from "./accordions/PhysicalSportsAccordion";
 
-// Women's Health Modular Components
-import { WomensHealthObstetricAccordion } from "./accordions/WomensHealthObstetricAccordion";
-import { WomensHealthComplaintsAccordion } from "./accordions/WomensHealthComplaintsAccordion";
-import { WomensHealthPhysicalAccordion } from "./accordions/WomensHealthPhysicalAccordion";
-
 const SECTION_STYLES: Record<string, { border: string, iconColor: string, bg: string }> = {
     anamnesis: { border: "border-l-blue-600", iconColor: "text-blue-600", bg: "bg-blue-50/30" },
     clinical: { border: "border-l-indigo-600", iconColor: "text-indigo-600", bg: "bg-indigo-50/30" },
     metrics: { border: "border-l-emerald-600", iconColor: "text-emerald-600", bg: "bg-emerald-50/30" },
     functionality: { border: "border-l-blue-500", iconColor: "text-blue-500", bg: "bg-blue-50/30" },
+    neuro_adult: { border: "border-l-indigo-700", iconColor: "text-indigo-700", bg: "bg-indigo-50/30" },
+    cardio_respiratory: { border: "border-l-emerald-600", iconColor: "text-emerald-600", bg: "bg-emerald-50/30" },
+    occupational_health: { border: "border-l-amber-600", iconColor: "text-amber-600", bg: "bg-amber-50/30" },
+    gerontology: { border: "border-l-purple-600", iconColor: "text-purple-600", bg: "bg-purple-50/30" },
     movement: { border: "border-l-sky-500", iconColor: "text-sky-500", bg: "bg-sky-50/30" },
     strength: { border: "border-l-orange-500", iconColor: "text-orange-500", bg: "bg-orange-50/30" },
+    womens_health: { border: "border-l-pink-600", iconColor: "text-pink-600", bg: "bg-pink-50/30" },
     protocols: { border: "border-l-purple-600", iconColor: "text-purple-600", bg: "bg-purple-50/30" },
     neuropedia: { border: "border-l-pink-500", iconColor: "text-pink-500", bg: "bg-pink-50/30" },
     plan: { border: "border-l-slate-700", iconColor: "text-slate-700", bg: "bg-slate-50/30" },
@@ -58,20 +65,11 @@ const SECTION_STYLES: Record<string, { border: string, iconColor: string, bg: st
     mobility: { border: "border-l-indigo-600", iconColor: "text-indigo-600", bg: "bg-indigo-50/10" },
     posture: { border: "border-l-purple-600", iconColor: "text-purple-600", bg: "bg-purple-50/10" },
     sports: { border: "border-l-emerald-600", iconColor: "text-emerald-600", bg: "bg-emerald-50/10" },
-
-    // Women's Health
-    womens_obstetric: { border: "border-l-pink-400", iconColor: "text-pink-400", bg: "bg-pink-50/10" },
-    womens_complaints: { border: "border-l-rose-400", iconColor: "text-rose-400", bg: "bg-rose-50/10" },
-    womens_physical: { border: "border-l-purple-400", iconColor: "text-purple-400", bg: "bg-purple-50/10" }
 };
 
 const ALL_MENU_SECTIONS = [
     { id: 'anamnesis', label: 'Anamnese', desc: 'Queixa e Config', specialties: ['all'] },
     { id: 'clinical', label: 'Histórico Clínico', desc: 'Saúde e Lifestyle', specialties: ['all'] },
-
-    // Women's Health Specifics (Conditional)
-    { id: 'womens_obstetric', label: 'História Obstétrica', desc: 'Saúde da Mulher', specialties: ['saude_mulher'] },
-    { id: 'womens_complaints', label: 'Queixas & Sintomas', desc: 'Triagem Pélvica', specialties: ['saude_mulher'] },
 
     { id: 'metrics', label: 'Biofísica & Vitais', desc: 'Sinais Vitais', specialties: ['all'] },
     { id: 'functionality', label: 'Funcionalidade', desc: 'EFEP e Escalas', specialties: ['all'] },
@@ -89,9 +87,11 @@ const ALL_MENU_SECTIONS = [
     { id: 'protocols', label: 'Protocolos Regionais', desc: 'Ortopedia Clássica', specialties: ['ortopedia'] },
 
     { id: 'neuropedia', label: 'Neuropediatria', desc: 'Neurodesenvolvimento', specialties: ['neuropediatria'] },
-
-    // Final Women's Health Section
-    { id: 'womens_physical', label: 'Exame Físico Pélvico', desc: 'PERFECT Scheme', specialties: ['saude_mulher'] },
+    { id: 'neuro_adult', label: 'Neurofuncional Adulto', desc: 'Funcionalidade e Controle', specialties: ['neurofuncional_adulto'] },
+    { id: 'cardio_respiratory', label: 'Cardiovascular e Respiratório', desc: 'Monitorização e Esforço', specialties: ['cardio_respiratorio'] },
+    { id: 'occupational_health', label: 'Saúde do Trabalho', desc: 'Ergonomia e Pericial', specialties: ['saude_trabalho'] },
+    { id: 'gerontology', label: 'Gerontologia', desc: 'Avaliação Geriátrica Ampla', specialties: ['gerontologia'] },
+    { id: 'womens_health', label: 'Saúde da Mulher', desc: 'Pélvica e Obstétrica', specialties: ['saude_mulher'] },
 
     { id: 'plan', label: 'Conduta Clínica', desc: 'Estratégia & Plano', specialties: ['all'] }
 ];
@@ -144,17 +144,63 @@ export default function PBE5Form({
             mobility: { wells: "", legRaiseRight: "", legRaiseLeft: "", shoulderReachRight: "", shoulderReachLeft: "" },
             posture: { photos: {}, observations: [] },
             sports: { activity: "", frequency: "", duration: "", ipaq: "" },
-            womens_health: {
-                obstetric: { gestations: 0, births: 0, abortions: 0, birthType: 'null', episiotomy: false, menopause: false },
-                complaints: { stressUrinaryIncontinence: false, urgeIncontinence: false, nocturia: false, prolapseSensation: false, constipation: false, dyspareunia: false },
-                redFlags: { vaginalBleeding: false, amnioticFluidLeak: false, severeHeadache: false, reducedFetalMovement: false },
-                perfect: { power: 0, endurance: 0, repetitions: 0, fast: 0, diastasis: false }
-            },
             functionality: { efep: [{ activity: "", score: "" }] },
             movement: { active: {}, passive: {}, repeated: {} },
             conduct: { questionnaires: [], extraQuestionnaire: "none", followUpDays: [], monitorPain: true },
             protocols: {},
-            neuropedia: { gmfcs_level: "", aims_score: 0 },
+            neuropedia: {
+                gmfcs_level: "",
+                macs_level: "",
+                aims_score: 0,
+                aims_prono: 0, aims_supino: 0, aims_sentado: 0, aims_depe: 0,
+                f_words: { f_function: "", f_family: "", f_fitness: "", f_fun: "", f_friends: "", f_future: "" },
+                tone_upper_esq: "0", tone_upper_dir: "0", tone_lower_esq: "0", tone_lower_dir: "0",
+                reflexes: { rtca: "integrated", rtcs: "integrated", moro: "integrated", palmar: "integrated", plantar: "integrated", galant: "integrated" },
+                adm: { hip_flex_l: "", hip_flex_r: "", knee_ext_l: "", knee_ext_r: "", ankle_dorsi_l: "", ankle_dorsi_r: "", elbow_ext_l: "", elbow_ext_r: "", head_rot_l: "", head_rot_r: "" },
+                strength_notes: ""
+            },
+            neuro_adult: {
+                tone_upper_esq: "0", tone_upper_dir: "0", tone_lower_esq: "0", tone_lower_dir: "0",
+                coordination: { index_nose: "N", heel_shin: "N", diado: "N" },
+                berg_score: 0,
+                tug_seconds: "",
+                walk_speed: "",
+                rankin_level: "0",
+                barthel_score: 0,
+                cif_participation: "",
+                cif_environment: ""
+            },
+            cardio_respiratory: {
+                vitals: { bp_sys: "", bp_dia: "", hr_rest: "", spo2_rest: "", rr_rest: "" },
+                ausculta: { estertores: "absent", sibilos: "absent", roncos: "absent", estridor: "absent" },
+                tc6m: { distance: "", spo2_final: "", borg: "0" },
+                cirto: { axilar_ins: "", axilar_exp: "", xifoide_ins: "", xifoide_exp: "", abdominal_ins: "", abdominal_exp: "" },
+                mmrc: "0",
+                cat_score: 0
+            },
+            occupational_health: {
+                job_title: "", job_tenure: "", hours_per_day: "", task_description: "",
+                posture_levels: { sitting: "Baixo", standing: "Baixo", walking: "Baixo", repetitive: "Baixo" },
+                ergonomic_risk: "low",
+                checklist: { chair: false, monitor: false, lighting: false, noise: false },
+                ergonomic_suggestions: "",
+                causal_link: "indetermined", forensic_tests: "", forensic_summary: "",
+                handgrip_esquerda: "", handgrip_direita: "", lifting_capacity: ""
+            },
+            gerontology: {
+                sarc_f: { strength: 0, walking: 0, rising: 0, stairs: 0, falls: 0 },
+                sppb_walk: "", sppb_stand: "",
+                meem_score: 0,
+                depression_risk: "NÃO", mood_notes: "",
+                katz: { bathing: "indep", dressing: "indep", toileting: "indep", transferring: "indep", continence: "indep", feeding: "indep" },
+                giants: { instability: "AUSENTE", immobility: "AUSENTE", incontinence: "AUSENTE", insufficiency: "AUSENTE", iatrogeny: "AUSENTE" }
+            },
+            womens_health: {
+                obstetric: { gestations: "", births: "", abortions: "", birth_type: "Vaginal", episiotomy: false, gestational_dm: false, menopause: false },
+                perfect: { power: "", endurance: "", repetitions: "", fast: "" },
+                urogyn: { mictions_day: "", nocturia: "", stress_incontinence: false, urgency_incontinence: false, pad_use: false, urodynamic_notes: "" },
+                sexual: { dyspareunia: false, vaginismus: false, low_libido: false, anovulacao: false, trigger_points: "" }
+            },
             plan: { orientations: "", exercises: [], frequency: 2 },
             ...initialData
         }
@@ -200,7 +246,12 @@ export default function PBE5Form({
         if (section === 'movement') return Object.keys(data.active || {}).length > 0 || Object.keys(data.repeated || {}).length > 0;
         if (section === 'strength') return Object.keys(data).length > 0;
         if (section === 'protocols') return Object.keys(data).length > 0;
-        if (section === 'neuropedia') return !!data.gmfcs_level || !!data.aims_score;
+        if (section === 'neuropedia') return !!data.gmfcs_level || !!data.aims_score || Object.values(data.f_words || {}).some(v => !!v);
+        if (section === 'neuro_adult') return !!data.rankin_level || !!data.berg_score || !!data.tug_seconds;
+        if (section === 'cardio_respiratory') return Object.values(data.vitals || {}).some(v => !!v) || !!data.tc6m?.distance;
+        if (section === 'occupational_health') return !!data.job_title || !!data.forensic_summary || !!data.handgrip_esquerda;
+        if (section === 'gerontology') return !!data.meem_score || !!data.sppb_walk || Object.values(data.katz || {}).some(v => v === 'dep');
+        if (section === 'womens_health') return !!data.obstetric?.gestations || !!data.perfect?.power || !!data.urogyn?.mictions_day;
         if (section === 'plan') return !!data.orientations || data.exercises?.length > 0;
 
         // Advanced & Womens
@@ -210,9 +261,6 @@ export default function PBE5Form({
         if (section === 'mobility') return !!data.wells || !!data.legRaiseRight || !!data.shoulderReachRight;
         if (section === 'strength_advanced') return Object.keys(data).length > 0;
         if (section === 'sports') return !!data.activity || !!data.ipaq;
-        if (section === 'womens_obstetric') return data.birthType !== 'null' || data.gestations > 0;
-        if (section === 'womens_complaints') return Object.values(data.complaints || {}).some(Boolean) || Object.values(data.redFlags || {}).some(Boolean);
-        if (section === 'womens_physical') return data.perfect?.power > 0 || data.perfect?.diastasis;
 
         return false;
     };
@@ -311,13 +359,49 @@ export default function PBE5Form({
                                 />
                             )}
 
-                            {/* Specialty: Women's Health (Modularized) */}
+                            {specialty === 'neurofuncional_adulto' && (
+                                <NeuroAdultAccordion
+                                    openSection={openSection}
+                                    isSectionFilled={isSectionFilled}
+                                    sectionStyle={SECTION_STYLES.neuro_adult}
+                                    setIsAssessmentModalOpen={setIsAssessmentModalOpen}
+                                />
+                            )}
+
+                            {specialty === 'cardio_respiratorio' && (
+                                <CardioRespiratorioAccordion
+                                    openSection={openSection}
+                                    isSectionFilled={isSectionFilled}
+                                    sectionStyle={SECTION_STYLES.cardio_respiratory}
+                                    setIsAssessmentModalOpen={setIsAssessmentModalOpen}
+                                />
+                            )}
+
+                            {specialty === 'saude_trabalho' && (
+                                <OccupationalHealthAccordion
+                                    openSection={openSection}
+                                    isSectionFilled={isSectionFilled}
+                                    sectionStyle={SECTION_STYLES.occupational_health}
+                                    setIsAssessmentModalOpen={setIsAssessmentModalOpen}
+                                />
+                            )}
+
+                            {specialty === 'gerontologia' && (
+                                <GerontologyAccordion
+                                    openSection={openSection}
+                                    isSectionFilled={isSectionFilled}
+                                    sectionStyle={SECTION_STYLES.gerontology}
+                                    setIsAssessmentModalOpen={setIsAssessmentModalOpen}
+                                />
+                            )}
+
                             {specialty === 'saude_mulher' && (
-                                <>
-                                    <WomensHealthObstetricAccordion openSection={openSection} isSectionFilled={isSectionFilled} />
-                                    <WomensHealthComplaintsAccordion openSection={openSection} isSectionFilled={isSectionFilled} />
-                                    <WomensHealthPhysicalAccordion openSection={openSection} isSectionFilled={isSectionFilled} />
-                                </>
+                                <WomensHealthAccordion
+                                    openSection={openSection}
+                                    isSectionFilled={isSectionFilled}
+                                    sectionStyle={SECTION_STYLES.womens_health}
+                                    setIsAssessmentModalOpen={setIsAssessmentModalOpen}
+                                />
                             )}
 
                             {/* Advanced Physical Assessment Mode (Cross-Specialty) */}
