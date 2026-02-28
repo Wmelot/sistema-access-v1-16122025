@@ -40,6 +40,7 @@ import { ActiveEvaluationWidget } from "@/features/attendance/components/ActiveE
 import { toast } from "sonner";
 import { useGlobalLoader } from "@/components/providers/global-loader-provider";
 import { CommandMenu } from "@/components/layout/command-menu";
+import { QuickAttendanceButton } from "@/features/attendance/components/QuickAttendanceButton";
 
 interface SidebarProps {
     logoUrl?: string;
@@ -156,41 +157,35 @@ export function SidebarContent({
                         <CommandMenu />
                     </div>
                 )}
+                {/* ── Atendimento Rápido ── */}
+                <QuickAttendanceButton isCollapsed={isCollapsed} />
+
                 <nav className={cn("grid items-start px-2 text-base font-medium", isCollapsed ? "justify-center" : "lg:px-4 py-4 gap-1")}>
+
+                    {/* ── Lembretes: sempre primeiro, separado ── */}
+                    <ReminderWidget />
+                    {!isCollapsed && <div className="my-2 border-t border-slate-100" />}
+
+                    {/* ── Menu principal — alfabético ── */}
                     {[
                         { href: dashboardPrefix, icon: Home, label: "Tela Inicial", perm: 'sidebar.home.view' },
                         { href: `${dashboardPrefix}/schedule`, icon: CalendarIcon, label: "Agenda", perm: 'sidebar.schedule.view', feature: 'agenda_module', id: 'nav-agenda' },
-                        { href: `${dashboardPrefix}/auditor`, icon: Microscope, label: "Auditor PBE", perm: 'sidebar.auditor.view', className: "text-indigo-600" },
+                        { href: `${dashboardPrefix}/auditor`, icon: Microscope, label: "Auditor PBE", perm: 'sidebar.auditor.view' },
                         { href: `${dashboardPrefix}/management`, icon: Settings, label: "Configurações Gerais", perm: 'sidebar.management.view', id: 'nav-management' },
                         { href: `${dashboardPrefix}/products`, icon: ShoppingBag, label: "Estoque", perm: 'sidebar.products.view', feature: 'products_module' },
                         { href: `${dashboardPrefix}/financial?tab=my_statement`, icon: DollarSign, label: "Finanças", perm: 'sidebar.financial.view', feature: 'financial_module' },
                         { href: `${dashboardPrefix}/forms`, icon: ClipboardList, label: "Formulários", perm: 'sidebar.forms.view' },
-                        { href: `${dashboardPrefix}/locations`, icon: MapPin, label: "Locais", perm: 'sidebar.locations.view' },
                         { href: `${dashboardPrefix}/marketing`, icon: Megaphone, label: "Marketing", perm: 'sidebar.marketing.view' },
                         { href: `${dashboardPrefix}/patients`, icon: Users, label: "Pacientes", perm: 'sidebar.patients.view', feature: 'records_module' },
-                        { href: `${dashboardPrefix}/settings?tab=roles`, icon: Shield, label: "Perfis de Acesso", perm: 'sidebar.roles.view' },
-                        { href: `${dashboardPrefix}/professionals`, icon: Users, label: "Profissionais", perm: 'sidebar.professionals.view' },
-                        { href: `${dashboardPrefix}/questionnaires`, icon: FileText, label: "Questionários", perm: 'sidebar.questionnaires.view' },
-                        { href: `${dashboardPrefix}/services`, icon: Stethoscope, label: "Serviços", perm: 'sidebar.services.view' },
-                        { href: `${dashboardPrefix}/prices`, icon: Tag, label: "Tabela de Preços", perm: 'sidebar.prices.view' },
-                        { href: `${dashboardPrefix}/settings?tab=users`, icon: Users, label: "Usuários", perm: 'sidebar.users.view' },
                         { href: `${dashboardPrefix}/settings/communication`, icon: MessageCircle, label: "WhatsApp", perm: 'sidebar.whatsapp.view', feature: 'whatsapp_integration' },
-                        (isMaster || isAdmin) && { href: `${dashboardPrefix}/radar-propulsao`, icon: Activity, label: "Radar Propulsão", perm: 'sidebar.home.view', className: "text-[#0052cc]" },
-                        { href: `${dashboardPrefix}/test-form`, icon: FileSignature, label: "Sandbox / PBE", perm: 'sidebar.forms.view' },
-                        { type: 'widget', label: "Lembretes", component: ReminderWidget }
-                    ].filter(Boolean)
-                        .sort((a: any, b: any) => {
+                    ]
+                        .sort((a, b) => {
                             if (a.label === "Tela Inicial") return -1;
                             if (b.label === "Tela Inicial") return 1;
-                            return a.label.localeCompare(b.label);
+                            return a.label.localeCompare(b.label, 'pt-BR');
                         })
                         .map((item: any) => {
-                            if (item.type === 'widget') {
-                                return <item.component key="widget-reminders" />;
-                            }
-
                             if (!checkPermission(item.perm)) return null;
-
                             return (
                                 <NavItem
                                     key={item.href}
@@ -202,7 +197,6 @@ export function SidebarContent({
                                     locked={item.feature ? !checkFeature(item.feature) : false}
                                     onClick={onNavigate}
                                     showLoading={showLoading}
-                                    className={item.className}
                                 />
                             );
                         })}

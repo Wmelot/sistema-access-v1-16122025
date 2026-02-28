@@ -39,6 +39,7 @@ import { WomensHealthForm } from "@/features/forms/womens-health/components/Wome
 import { ScanFace } from "lucide-react"
 import BiomechanicsInsoleForm from "@/features/forms/pbe/components/BiomechanicsInsoleForm"
 import DiabeticFootForm from "@/features/forms/pbe/components/DiabeticFootForm"
+import InsensitiveFootForm from "@/features/forms/insensitive-foot/InsensitiveFootForm"
 import { ConceptPBEForm } from "@/features/forms/pbe/components/ConceptPBEForm"
 import PalmilhaFormV3 from "@/features/forms/_ROOT_BACKUP_JUNK_OUTSIDE/palmilha-biomecanica/components/PalmilhaFormV3"
 import Palmilha5Form from "@/features/forms/palmilha-5/components/Palmilha5Form"
@@ -829,45 +830,24 @@ export function AttendanceClient({
                                                 className="w-[90vw] sm:w-[350px] z-[9999]"
                                                 align="start"
                                             >
-                                                {/* PBE 5.0 — FORMULÁRIO PRINCIPAL */}
+                                                {/* ⭐ FORMULÁRIOS ATIVOS — OS BIG 4 */}
                                                 <SelectGroup>
                                                     <div className="px-3 py-2 text-[10px] font-black text-indigo-500 uppercase tracking-widest border-b border-indigo-50 mb-1">⭐ Avaliação Clínica</div>
                                                     <SelectItem value={PBE5_ID} className="py-3 cursor-pointer font-black text-indigo-700 bg-indigo-50/50 focus:bg-indigo-100">🧠 PBE 5.0 — Avaliação Completa</SelectItem>
-                                                    <SelectItem value={WOMENS_HEALTH_ID} className="py-3 cursor-pointer font-medium text-pink-700 focus:bg-pink-50">Saúde da Mulher & Pélvica</SelectItem>
-                                                    <SelectItem value="diabetic_foot_system" className="py-3 cursor-pointer font-medium">Avaliação de Pé Diabético</SelectItem>
-                                                </SelectGroup>
-                                                {/* Formulários Legados (mantidos para compatibilidade) */}
-                                                <SelectGroup>
-                                                    <Separator className="my-1" />
-                                                    <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 mb-1">Legado (Somente Leitura Histórica)</div>
-                                                    <SelectItem value={SMART_ASSESSMENT_ID} className="py-3 cursor-pointer text-slate-500 font-medium">PBE Inteligente (v3)</SelectItem>
-                                                    <SelectItem value={ULTIMATE_PBE_ID} className="py-3 cursor-pointer text-slate-500 font-medium">Ultimate PBE</SelectItem>
-                                                    <SelectItem value={TREE_WIZARD_ID} className="py-3 cursor-pointer text-slate-500 font-medium">Tree Wizard (IA)</SelectItem>
-                                                    <SelectItem value={PHYSICAL_ASSESSMENT_ID} className="py-3 cursor-pointer text-slate-500 font-medium">Avaliação Física Avançada (v1)</SelectItem>
+                                                    <SelectItem value="diabetic_foot_system" className="py-3 cursor-pointer font-medium text-teal-700 focus:bg-teal-50">🦶 Palmilha Pé Insensível</SelectItem>
                                                 </SelectGroup>
 
-                                                {/* Specialized Section for Palmilhas */}
-                                                {hasPalmilhaTemplates && (
-                                                    <SelectGroup>
-                                                        <Separator className="my-1" />
-                                                        <div className="px-2 py-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest">Modelos de Palmilha</div>
-                                                        <SelectItem value="palmilha-5" className="py-2.5 text-blue-700 font-bold bg-blue-50/50 cursor-pointer">Palmilha 5.0 (EVOLUÍDA)</SelectItem>
-                                                        <SelectItem value={PALMILHA_V3_ID} className="py-2.5 text-violet-700 font-bold bg-violet-50/50 cursor-pointer">Palmilha Biomecânica V3</SelectItem>
-                                                        <SelectItem value={PALMILHA_ORIGINAL_ID} className="py-2.5 text-indigo-900 cursor-pointer font-medium">Palmilha Biomecânica (Original)</SelectItem>
-                                                        {filteredTemplates
-                                                            .filter(t => t.id !== PALMILHA_V3_ID && t.id !== PALMILHA_ORIGINAL_ID)
-                                                            .filter(t => t.title?.toLowerCase().includes('palmilha'))
-                                                            .map(t => (
-                                                                <SelectItem key={t.id} value={t.id} className="py-2.5 text-indigo-900 cursor-pointer">
-                                                                    {t.title}
-                                                                </SelectItem>
-                                                            ))}
-                                                    </SelectGroup>
-                                                )}
-
+                                                {/* 🦶 PALMILHA */}
                                                 <SelectGroup>
                                                     <Separator className="my-1" />
-                                                    <div className="px-2 py-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest">Evolução Inteligente</div>
+                                                    <div className="px-2 py-1.5 text-[10px] font-black text-blue-400 uppercase tracking-widest">🦶 Biomecânica & Palmilha</div>
+                                                    <SelectItem value="palmilha-5" className="py-2.5 text-blue-700 font-bold bg-blue-50/50 cursor-pointer">Palmilha 5.0 — Biomecânica Completa</SelectItem>
+                                                </SelectGroup>
+
+                                                {/* 📋 EVOLUÇÃO */}
+                                                <SelectGroup>
+                                                    <Separator className="my-1" />
+                                                    <div className="px-2 py-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest">📋 Evolução Clínica</div>
                                                     {(() => {
                                                         const clinicalTemplate = templates.find(t =>
                                                             t.title?.toLowerCase().includes('evolução clínica & ia')
@@ -877,18 +857,23 @@ export function AttendanceClient({
                                                                 value={clinicalTemplate?.id || CLINICAL_EVOLUTION_ID}
                                                                 className="py-2.5 text-indigo-700 font-bold bg-indigo-50/50 cursor-pointer"
                                                             >
-                                                                {clinicalTemplate?.title || 'Evolução Clínica & IA (NOVO)'}
+                                                                {clinicalTemplate?.title || 'Evolução Clínica & IA'}
                                                             </SelectItem>
                                                         );
                                                     })()}
-                                                </SelectGroup>
-
-                                                <SelectGroup>
-                                                    <Separator className="my-1" />
-                                                    <div className="px-2 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Outros Modelos</div>
                                                     {filteredTemplates
-                                                        .filter(t => ![PHYSICAL_ASSESSMENT_ID, SMART_ASSESSMENT_ID, WOMENS_HEALTH_ID, 'womens_health_system'].includes(t.id))
+                                                        .filter(t => ![
+                                                            PHYSICAL_ASSESSMENT_ID, SMART_ASSESSMENT_ID,
+                                                            WOMENS_HEALTH_ID, 'womens_health_system',
+                                                            PBE5_ID, 'palmilha-5', PALMILHA_V3_ID, PALMILHA_ORIGINAL_ID,
+                                                            ULTIMATE_PBE_ID, TREE_WIZARD_ID, CLINICAL_EVOLUTION_ID,
+                                                            'e0000000-0000-0000-0000-000000000001',
+                                                            'e0000000-0000-0000-0000-000000000004'
+                                                        ].includes(t.id))
                                                         .filter(t => !t.title?.toLowerCase().includes('palmilha'))
+                                                        .filter(t => !t.title?.toLowerCase().includes('pbe'))
+                                                        .filter(t => !t.title?.toLowerCase().includes('wizard'))
+                                                        .filter(t => !t.title?.toLowerCase().includes('avaliação física'))
                                                         .map(t => (
                                                             <SelectItem key={t.id} value={t.id} className="font-medium py-2.5 cursor-pointer">
                                                                 {t.title}
@@ -1101,11 +1086,13 @@ export function AttendanceClient({
                                                 onSave={handlePhysicalAssessmentSave}
                                             />
                                         ) : (selectedTemplateId === 'diabetic_foot_system' || selectedTemplateId === 'e0000000-0000-0000-0000-000000000009') ? (
-                                            <DiabeticFootForm
+                                            <InsensitiveFootForm
                                                 patientId={patient.id}
                                                 initialData={currentRecord?.content}
                                                 onSave={handlePhysicalAssessmentSave}
                                                 patient={patient}
+                                                organization={(appointment as any)?.organizations || {}}
+                                                professional={appointment?.profiles}
                                                 hideHeader
                                             />
                                         ) : (selectedTemplateId === PALMILHA_ORIGINAL_ID || selectedTemplate?.title?.toLowerCase().includes('palmilha')) ? (

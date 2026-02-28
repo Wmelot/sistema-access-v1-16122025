@@ -14,6 +14,7 @@ import { FisioterapiaEvolutionForm } from '@/features/forms/clinical-evolution/c
 import { UltimatePBEForm } from '@/features/forms/pbe/components/UltimatePBEForm'
 import AdvancedSmartAssessment from '@/features/forms/smart-assessment/components/AdvancedSmartAssessment'
 import DiabeticFootForm from '@/features/forms/pbe/components/DiabeticFootForm'
+import InsensitiveFootForm from '@/features/forms/insensitive-foot/InsensitiveFootForm'
 import PBE5Form from '@/features/forms/pbe-5/PBE5Form'
 import { updateRecordContent } from '@/actions/patients'
 import { toast } from 'sonner'
@@ -195,12 +196,14 @@ export function RecordClient({
                     readOnly={isReadOnly}
                 />
             ) : isDiabeticFoot ? (
-                <DiabeticFootForm
+                <InsensitiveFootForm
                     patientId={id}
                     initialData={record.content}
                     patient={patientData}
+                    organization={organization}
+                    professional={professional}
                     onSave={handleSave}
-                    readOnly={isReadOnly}
+                    readonly={isReadOnly}
                 />
             ) : isClinicalEvolution ? (
                 <div className="max-w-[1200px] mx-auto">

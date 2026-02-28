@@ -48,12 +48,19 @@ export function PhysicalStrengthAccordion({ openSection, isSectionFilled, sectio
     const age = Number(watch('antro.age')) || 30;
     const gender = (watch('antro.gender') || 'male') as 'male' | 'female';
 
+    // Maps test IDs that don't exactly match the reference table keys
+    const REF_KEY_MAP: Record<string, string> = {
+        'extensao_de_joelho_quadriceps': 'extensao_de_joelho',
+    };
+
     const strengthResult = React.useMemo(() => {
         if (!weight) return null;
 
         const testResults = STRENGTH_TESTS.map(test => {
             let ref: { mean: number, std_dev: number } | undefined = undefined;
-            const ageRefs = FORCE_REFERENCES_BY_AGE[test.id as keyof typeof FORCE_REFERENCES_BY_AGE];
+            // Use mapped key if available, fallback to test.id
+            const refKey = REF_KEY_MAP[test.id] || test.id;
+            const ageRefs = FORCE_REFERENCES_BY_AGE[refKey as keyof typeof FORCE_REFERENCES_BY_AGE];
 
             if (ageRefs && ageRefs.ranges) {
                 const range = ageRefs.ranges.find(r => age >= r.min && age <= r.max);
