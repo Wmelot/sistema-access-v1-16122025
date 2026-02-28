@@ -130,7 +130,7 @@ export default function PBE5Form({
 
     useEffect(() => {
         setIsCollapsed(true);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [openSection, setIsCollapsed]);
 
     const form = useForm({

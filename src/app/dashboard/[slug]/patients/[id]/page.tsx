@@ -8,6 +8,7 @@ import { getPatient } from "@/actions/patients"
 import { getUnbilledAppointments, getInvoices } from "@/actions/billing"
 import { getAssessments } from "@/app/dashboard/[slug]/patients/actions/assessments"
 import { getPatientRecords } from "@/app/dashboard/[slug]/patients/actions/records"
+import { getVoidingDiaryEntries } from "@/app/dashboard/[slug]/patients/actions/voiding-diary"
 import { createClient } from "@/lib/supabase/server"
 import { logAction, logAccess } from "@/lib/logger"
 import { getPaymentFees, getCardBrands } from "@/app/dashboard/[slug]/financial/actions"
@@ -78,7 +79,8 @@ export default async function PatientDetailPage({
         { data: activeAppt },
         { data: allAppointments },
         fees,
-        cardBrands
+        cardBrands,
+        voidingDiaryEntries
     ] = await Promise.all([
         getUnbilledAppointments(id),
         getInvoices(id),
@@ -90,7 +92,8 @@ export default async function PatientDetailPage({
         supabase.from('appointments').select('id, status, start_time').eq('patient_id', id).eq('status', 'in_progress').order('start_time', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('appointments').select('*, profiles:professional_id(full_name)').eq('patient_id', id).neq('status', 'cancelled').order('start_time', { ascending: false }).limit(20),
         getPaymentFees(),
-        getCardBrands()
+        getCardBrands(),
+        getVoidingDiaryEntries(id)
     ])
     console.timeEnd(`[PatientDetails] Fetching: ${id}`)
 
@@ -450,7 +453,9 @@ export default async function PatientDetailPage({
                         <QuestionnairesTab
                             patientId={id}
                             patientName={patient.name}
+                            clinicId={patient.organization_id}
                             assessments={assessments}
+                            voidingDiaryEntries={voidingDiaryEntries}
                             slug={slug}
                         />
                     </TabsContent>

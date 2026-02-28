@@ -1,6 +1,4 @@
-
-
-export type AssessmentType = 'start_back' | 'roland_morris' | 'oswestry' | 'mcgill_short' | 'tampa_kinesiophobia' | 'quickdash' | 'lefs' | 'quebec' | 'ndi' | 'psfs' | 'spadi' | 'prwe' | 'ihot33' | 'womac' | 'hoos' | 'ikdc' | 'lysholm' | 'koos' | 'faos' | 'faam' | 'aofas' | 'insoles_40d' | 'insoles_1y' | 'iciq_sf' | 'udi_6' | 'fsfi' | 'perfect_scale' | 'mnsi' | 'diabetes_control' | 'fonseca' | 'jfls8' | 'gmfcs' | 'pbs_pediatric' | 'ecab' | 'aims' | 'mfm32' | 'gmfm88';
+export type AssessmentType = 'start_back' | 'roland_morris' | 'oswestry' | 'mcgill_short' | 'tampa_kinesiophobia' | 'quickdash' | 'lefs' | 'quebec' | 'ndi' | 'psfs' | 'spadi' | 'prwe' | 'ihot33' | 'womac' | 'hoos' | 'ikdc' | 'lysholm' | 'koos' | 'faos' | 'faam' | 'aofas' | 'insoles_40d' | 'insoles_1y' | 'iciq_sf' | 'udi_6' | 'fsfi' | 'perfect_scale' | 'mnsi' | 'diabetes_control' | 'fonseca' | 'jfls8' | 'gmfcs' | 'pbs_pediatric' | 'ecab' | 'aims' | 'mfm32' | 'gmfm88' | 'meem_gero' | 'lawton_gero' | 'sppb_gero';
 
 export interface Question {
     id: string;
@@ -1839,30 +1837,64 @@ Instrumento de triagem rápida para severidade de DTM.
         id: 'gmfcs',
         title: 'GMFCS-E&R (Gross Motor Function Classification System)',
         description: 'Sistema de Classificação da Função Motora Grossa Ampliado e Revisto.',
-        instruction: 'Selecione o nível que melhor descreve as habilidades atuais da criança.',
+        instruction: 'Selecione o nível que melhor descreve as habilidades atuais da criança considerando sua faixa etária.',
         clinicalGuidance: `
-**Níveis (I a V):**
-- **Nível I**: Anda sem restrições.
-- **Nível II**: Anda com limitações.
-- **Nível III**: Anda usando dispositivo manual de mobilidade.
-- **Nível IV**: Automobilidade com limitações; pode usar mobilidade motorizada.
-- **Nível V**: Transportado em cadeira de rodas manual.
+**Descrição dos Níveis por Faixa Etária (E&R):**
+
+**Nível I**
+- **Antes dos 2 anos**: Senta no chão com ambas as mãos livres. Engatinha. Puxa para ficar em pé. Anda entre 18 meses e 2 anos.
+- **6-12 anos**: Anda dentro e fora de casa. Sobe escadas sem apoio. Corre e pula, mas com limitações em velocidade e coordenação.
+
+**Nível II**
+- **Antes dos 2 anos**: Mantém sentado no chão mas precisa de mãos para equilíbrio. Rasteja.
+- **6-12 anos**: Anda na maioria dos ambientes. Pode ter dificuldade em superfícies irregulares ou longas distâncias (pode precisar de dispositivo). Sobe escadas com corrimão.
+
+**Nível III**
+- **Antes dos 2 anos**: Sentado no chão com apoio de lombar. Rola e rasteja.
+- **6-12 anos**: Anda usando dispositivos manuais (andador/muletas). Pode usar cadeira de rodas para longas distâncias.
+
+**Nível IV**
+- **Antes dos 2 anos**: Sentado com apoio de mãos para equilíbrio. Pode rolar.
+- **6-12 anos**: Necessita de auxílio físico ou mobilidade motorizada. Pode andar distâncias curtas com andadores de suporte de tronco.
+
+**Nível V**
+- **Todas as idades**: Limitações Graves. Sem controle anti-gravitacional de tronco/cabeça. Mobilidade apenas com cadeira de rodas manual/motorizada com adaptações extensas.
         `,
         questions: [
             {
-                id: 'level',
-                text: 'Classificação Atual',
+                id: 'age_group',
+                text: 'Faixa Etária do Paciente',
                 type: 'mcq',
                 options: [
-                    { label: 'Nível I - Sem limitações em ambientes fechados/abertos', value: 1 },
-                    { label: 'Nível II - Limitações ao andar em superfícies irregulares/longas', value: 2 },
-                    { label: 'Nível III - Dispositivo de mobilidade manual (andador/muletas)', value: 3 },
-                    { label: 'Nível IV - Mobilidade motorizada ou transporte por terceiros', value: 4 },
-                    { label: 'Nível V - Limitação total; transportado em cadeira de rodas', value: 5 }
+                    { label: 'Antes de 2 anos', value: 0 },
+                    { label: 'Entre 2 e 4 anos', value: 1 },
+                    { label: 'Entre 4 e 6 anos', value: 2 },
+                    { label: 'Entre 6 e 12 anos', value: 3 },
+                    { label: 'Entre 12 e 18 anos', value: 4 }
+                ]
+            },
+            {
+                id: 'level',
+                text: 'Nível GMFCS Identificado',
+                type: 'mcq',
+                options: [
+                    { label: 'Nível I - Sem limitações significativas', value: 1 },
+                    { label: 'Nível II - Limitações p/ caminhar em ambientes comunitários', value: 2 },
+                    { label: 'Nível III - Necessita de dispositivos manuais', value: 3 },
+                    { label: 'Nível IV - Automobilidade limitada (motorizada)', value: 4 },
+                    { label: 'Nível V - Dependência total de transporte', value: 5 }
                 ]
             }
         ],
-        calculateScore: (answers) => ({ level: `Nível ${answers.level || '?'}` })
+        calculateScore: (answers) => {
+            const age_map = ['<2y', '2-4y', '4-6y', '6-12y', '12-18y'];
+            const age_str = age_map[answers.age_group] || '?';
+            return {
+                total: answers.level || 0,
+                classification: `GMFCS Nível ${answers.level || '?'} (${age_str})`,
+                riskColor: answers.level > 3 ? 'red' : answers.level > 1 ? 'yellow' : 'green'
+            };
+        }
     },
     pbs_pediatric: {
         id: 'pbs_pediatric',
@@ -1918,17 +1950,84 @@ Instrumento de triagem rápida para severidade de DTM.
         id: 'aims',
         title: 'AIMS (Alberta Infant Motor Scale)',
         description: 'Avaliação do desenvolvimento motor grosso em bebês (0 a 18 meses).',
-        instruction: 'Marque todos os itens observados no repertório do bebê.',
-        clinicalGuidance: 'Marque "1" para itens observados e "0" para não observados. A escala é dividida em Prono, Supino, Sentado e De pé.',
-        questions: Array.from({ length: 58 }, (_, i) => ({
-            id: `q${i + 1}`,
-            text: `Item ${i + 1} (${i < 21 ? 'Prono' : i < 30 ? 'Supino' : i < 42 ? 'Sentado' : 'De pé'})`,
-            type: 'binary',
-            options: [{ label: 'Não', value: 0 }, { label: 'Sim', value: 1 }]
-        })),
+        instruction: 'Observe o repertório motor do bebê e marque os itens observados.',
+        clinicalGuidance: `
+**Instruções de Aplicação**
+Identifique a "Janela Motora": o item mais imaturo observado e o mais maduro. Todos os itens "abaixo" da janela são pontuados como 1 (Observado).
+
+**Dimensões:**
+1. **Prono (1-21)**: Postura Barker, Nadar, Apoio Antebraços, Pivoteia, Rola...
+2. **Supino (22-30)**: Chuta, Traz pés à boca, Rola p/ prono...
+3. **Sentado (31-42)**: Sentado com apoio, Senta sozinho, Passagens...
+4. **Em pé (43-58)**: Suporta peso, Fica de pé com apoio, Anda sozinho.
+        `,
+        questions: [
+            // PRONO
+            { id: 'q1', text: '1/P: Prono - Deitado (Recém-nascido)', type: 'binary' },
+            { id: 'q2', text: '2/P: Prono - Extensão de cervical', type: 'binary' },
+            { id: 'q3', text: '3/P: Prono - Nadar (Swimming)', type: 'binary' },
+            { id: 'q4', text: '4/P: Prono - Apoio em antebraços (início)', type: 'binary' },
+            { id: 'q5', text: '5/P: Prono - Apoio em antebraços (estável)', type: 'binary' },
+            { id: 'q6', text: '6/P: Prono - Braços estendidos', type: 'binary' },
+            { id: 'q7', text: '7/P: Prono - Alcance em antebraço', type: 'binary' },
+            { id: 'q8', text: '8/P: Prono - Pivoteia', type: 'binary' },
+            { id: 'q9', text: '9/P: Prono - Rola prono p/ supino (s/ controle)', type: 'binary' },
+            { id: 'q10', text: '10/P: Prono - Rola prono p/ supino (c/ controle)', type: 'binary' },
+            { id: 'q11', text: '11/P: Quatro apoios (início)', type: 'binary' },
+            { id: 'q12', text: '12/P: Quatro apoios (estável)', type: 'binary' },
+            { id: 'q13', text: '13/P: Engatinha recíproco (início)', type: 'binary' },
+            { id: 'q14', text: '14/P: Engatinha recíproco (estável)', type: 'binary' },
+            { id: 'q15', text: '15/P: Quatro apoios para sentado (início)', type: 'binary' },
+            { id: 'q16', text: '16/P: Quatro apoios para sentado (controle)', type: 'binary' },
+            { id: 'q17', text: '17/P: Creeping recíproco', type: 'binary' },
+            { id: 'q18', text: '18/P: Creeping - Passagem de sentar p/ prono', type: 'binary' },
+            { id: 'q19', text: '19/P: Sobe degraus engatinhando', type: 'binary' },
+            { id: 'q20', text: '20/P: Creeping - Passagem de quatro apoios p/ em pé', type: 'binary' },
+            { id: 'q21', text: '21/P: Creeping - Marcha de urso', type: 'binary' },
+            // SUPINO
+            { id: 'q22', text: '22/S: Supino - Deitado (Recém-nascido)', type: 'binary' },
+            { id: 'q23', text: '23/S: Supino - Chutes simétricos', type: 'binary' },
+            { id: 'q24', text: '24/S: Supino - Mãos no joelho/pés', type: 'binary' },
+            { id: 'q25', text: '25/S: Supino - Traz pés à boca', type: 'binary' },
+            { id: 'q26', text: '26/S: Rola supino p/ prono (s/ controle)', type: 'binary' },
+            { id: 'q27', text: '27/S: Rola supino p/ prono (c/ controle)', type: 'binary' },
+            { id: 'q28', text: '28/S: Supino - Rola para sentar', type: 'binary' },
+            { id: 'q29', text: '29/S: Supino - Rola para quatro apoios', type: 'binary' },
+            { id: 'q30', text: '30/S: Supino - Rola para em pé', type: 'binary' },
+            // SENTADO
+            { id: 'q31', text: '31/SN: Sentado c/ suporte de tronco', type: 'binary' },
+            { id: 'q32', text: '32/SN: Sentado c/ apoio de mãos', type: 'binary' },
+            { id: 'q33', text: '33/SN: Senta sozinho (s/ apoio de mãos)', type: 'binary' },
+            { id: 'q34', text: '34/SN: Sentado - Rotação de tronco', type: 'binary' },
+            { id: 'q35', text: '35/SN: Sentado - Alcance lateral', type: 'binary' },
+            { id: 'q36', text: '36/SN: Sentado - Alcance posterior', type: 'binary' },
+            { id: 'q37', text: '37/SN: Senta sozinho de supino', type: 'binary' },
+            { id: 'q38', text: '38/SN: Senta sozinho de prono', type: 'binary' },
+            { id: 'q39', text: '39/SN: Senta p/ quatro apoios', type: 'binary' },
+            { id: 'q40', text: '40/SN: Senta p/ prono (movimento controlado)', type: 'binary' },
+            { id: 'q41', text: '41/SN: Senta em posição Semi-ajoelhada', type: 'binary' },
+            { id: 'q42', text: '42/SN: Senta e levanta com apoio', type: 'binary' },
+            // EM PÉ
+            { id: 'q43', text: '43/EP: Em pé - Suporte de peso ausente (RN)', type: 'binary' },
+            { id: 'q44', text: '44/EP: Em pé - Suporte de peso parcial', type: 'binary' },
+            { id: 'q45', text: '45/EP: Em pé - Extensão ativa de joelhos', type: 'binary' },
+            { id: 'q46', text: '46/EP: Em pé - Puxa p/ em pé com apoio', type: 'binary' },
+            { id: 'q47', text: '47/EP: Em pé - Mantém em pé com apoio', type: 'binary' },
+            { id: 'q48', text: '48/EP: Em pé - Escora em móveis (Cruising)', type: 'binary' },
+            { id: 'q49', text: '49/EP: Em pé - Solta uma mão do apoio', type: 'binary' },
+            { id: 'q50', text: '50/EP: Em pé - Abaixa p/ pegar objeto (c/ apoio)', type: 'binary' },
+            { id: 'q51', text: '51/EP: Em pé - Fica em pé sem apoio (estático)', type: 'binary' },
+            { id: 'q52', text: '52/EP: Em pé - Agacha e levanta sem apoio', type: 'binary' },
+            { id: 'q53', text: '53/EP: Marcha lateral (Cruising) sem apoio de mãos', type: 'binary' },
+            { id: 'q54', text: '54/EP: Marcha frontal com apoio de 2 mãos', type: 'binary' },
+            { id: 'q55', text: '55/EP: Marcha frontal com apoio de 1 mão', type: 'binary' },
+            { id: 'q56', text: '56/EP: Anda sozinho (Passos independentes)', type: 'binary' },
+            { id: 'q57', text: '57/EP: Anda sozinho - Recíproco e fluido', type: 'binary' },
+            { id: 'q58', text: '58/EP: Tenta subir degraus em pé', type: 'binary' },
+        ],
         calculateScore: (answers) => {
             const total = Object.values(answers).reduce((a, b) => a + Number(b || 0), 0);
-            return { total, max: 58 };
+            return { total, max: 58, percentile: 'Ver tabela normativa (AIMS)' };
         }
     },
     mfm32: {
@@ -1967,6 +2066,122 @@ Instrumento de triagem rápida para severidade de DTM.
             const testedCount = entries.filter(([_, b]) => typeof b === 'number' && b >= 0).length;
             const percentage = testedCount > 0 ? ((total / (testedCount * 3)) * 100).toFixed(1) : '0';
             return { total, percentage: `${percentage}%` };
+        }
+    },
+    meem_gero: {
+        id: 'meem_gero',
+        title: 'MEEM - Mini Exame do Estado Mental',
+        description: 'Triagem cognitiva rápida para idosos.',
+        instruction: 'Aplique os testes de orientação, memória e linguagem conforme as instruções clínicas.',
+        clinicalGuidance: `
+**Instruções de Aplicação**
+O MEEM é o teste de triagem cognitiva mais utilizado no mundo.
+
+**Pontuação (0-30):**
+- **Orientação Temporal (5):** Dia, Mês, Ano, Dia da Semana, Hora/Período.
+- **Orientação Espacial (5):** Local, Instituição/Prédio, Bairro/Rua, Cidade, Estado.
+- **Registro (3):** Repetir 3 palavras (Ex: Papel, Bicicleta, Flor).
+- **Atenção/Cálculo (5):** Subtração serial de 7 a partir de 100 (100, 93, 86, 79, 72).
+- **Evocação (3):** Relembrar as 3 palavras anteriores.
+- **Linguagem (9):** Nomear (2), Repetir (1), Comando 3 estágios (3), Ler e fazer (1), Escrever frase (1), Copiar desenho (1).
+
+**Pontos de Corte (Brasil):**
+- Analfabetos: 19-20
+- 1 a 4 anos: 24
+- 5 a 8 anos: 26
+- > 9 anos: 27-28
+        `,
+        questions: [
+            { id: 'orientation', text: 'Orientação Temporal e Espacial', type: 'vas', min: 0, max: 10, minLabel: 'Desorientado', maxLabel: 'Plena' },
+            { id: 'memory', text: 'Registro e Evocação (3 palavras)', type: 'vas', min: 0, max: 6, minLabel: 'Nula', maxLabel: 'Total' },
+            { id: 'attention', text: 'Atenção e Cálculo (7 seriado)', type: 'vas', min: 0, max: 5, minLabel: 'Inapto', maxLabel: 'Sempre correta' },
+            { id: 'language', text: 'Linguagem e Cópia de Desenho', type: 'vas', min: 0, max: 9, minLabel: 'Afásico/Incapaz', maxLabel: 'Preservado' },
+        ],
+        calculateScore: (answers) => {
+            const total = Object.values(answers).reduce((a, b) => a + b, 0);
+            let classification = 'Cognição Preservada';
+            let riskColor = 'green';
+            if (total < 24) { riskColor = 'red'; classification = 'Declínio Cognitivo Provável'; }
+            else if (total < 27) { riskColor = 'yellow'; classification = 'Atenção Necessária'; }
+
+            return { total, classification, riskColor };
+        }
+    },
+    lawton_gero: {
+        id: 'lawton_gero',
+        title: 'Escala de Lawton & Brody (AIVD)',
+        description: 'Avaliação de Atividades Instrumentais da Vida Diária.',
+        instruction: 'Marque o nível de independência para cada atividade instrumental.',
+        clinicalGuidance: `
+**Instruções de Aplicação**
+Avalia a capacidade do idoso de viver de forma independente na comunidade.
+
+**Domínios (8 itens):**
+Telefone, Compras, Comida, Limpeza, Roupa, Transporte, Medicação e Finanças.
+
+**Pontuação:**
+1 ponto = Dependente
+2 pontos = Precisa de ajuda
+3 pontos = Independente
+Total: 8 a 24 pontos.
+
+**Interpretação:**
+Quanto menor o escore, maior a dependência.
+        `,
+        questions: [
+            { id: 'phone', text: 'Capacidade de usar o telefone', type: 'scale', options: [{ label: 'Independente', value: 3 }, { label: 'Ajuda parcial', value: 2 }, { label: 'Dependente', value: 1 }] },
+            { id: 'shopping', text: 'Realização de compras', type: 'scale', options: [{ label: 'Independente', value: 3 }, { label: 'Ajuda parcial', value: 2 }, { label: 'Dependente', value: 1 }] },
+            { id: 'food', text: 'Preparação de refeições', type: 'scale', options: [{ label: 'Independente', value: 3 }, { label: 'Ajuda parcial', value: 2 }, { label: 'Dependente', value: 1 }] },
+            { id: 'housekeeping', text: 'Trabalho doméstico', type: 'scale', options: [{ label: 'Independente', value: 3 }, { label: 'Ajuda parcial', value: 2 }, { label: 'Dependente', value: 1 }] },
+            { id: 'laundry', text: 'Lavagem de roupa', type: 'scale', options: [{ label: 'Independente', value: 3 }, { label: 'Ajuda parcial', value: 2 }, { label: 'Dependente', value: 1 }] },
+            { id: 'transport', text: 'Uso de meios de transporte', type: 'scale', options: [{ label: 'Independente', value: 3 }, { label: 'Ajuda parcial', value: 2 }, { label: 'Dependente', value: 1 }] },
+            { id: 'medicine', text: 'Responsabilidade sobre medicação', type: 'scale', options: [{ label: 'Independente', value: 3 }, { label: 'Ajuda parcial', value: 2 }, { label: 'Dependente', value: 1 }] },
+            { id: 'finances', text: 'Capacidade de lidar com finanças', type: 'scale', options: [{ label: 'Independente', value: 3 }, { label: 'Ajuda parcial', value: 2 }, { label: 'Dependente', value: 1 }] },
+        ],
+        calculateScore: (answers) => {
+            const total = Object.values(answers).reduce((a, b) => a + b, 0);
+            let classification = 'Independência Total';
+            let riskColor = 'green';
+            if (total < 16) { riskColor = 'red'; classification = 'Dependência Grave'; }
+            else if (total < 21) { riskColor = 'yellow'; classification = 'Dependência Moderada'; }
+
+            return { total, classification, riskColor };
+        }
+    },
+    sppb_gero: {
+        id: 'sppb_gero',
+        title: 'SPPB - Short Physical Performance Battery',
+        description: 'Teste de desempenho físico funcional.',
+        instruction: 'Realize os testes de equilíbrio, marcha e subir/descer da cadeira.',
+        clinicalGuidance: `
+**Instruções de Aplicação**
+Bateria de 3 testes para predição de fragilidade e quedas.
+
+**Componentes (0-12 pontos):**
+1. **Equilíbrio (4):** Pés juntos, semi-tandem e tandem (permanecer 10s em cada).
+2. **Marcha (4):** Tempo para caminhar 4 metros em passo habitual.
+3. **Levantar da Cadeira (4):** Tempo para levantar e sentar 5 vezes sem usar as mãos.
+
+**Interpretação:**
+- 0-3 pontos: Incapacidade/Fragilidade Grave.
+- 4-6 pontos: Baixo Desempenho.
+- 7-9 pontos: Médio Desempenho.
+- 10-12 pontos: Bom Desempenho.
+        `,
+        questions: [
+            { id: 'balance', text: 'Teste de Equilíbrio (Soma)', type: 'scale', options: [{ label: '4 pts (Tandem > 10s)', value: 4 }, { label: '3 pts', value: 3 }, { label: '2 pts', value: 2 }, { label: '1 pt', value: 1 }, { label: '0 pt', value: 0 }] },
+            { id: 'walking', text: 'Velocidade de Marcha (4m)', type: 'scale', options: [{ label: '4 pts (< 4.8s)', value: 4 }, { label: '3 pts', value: 3 }, { label: '2 pts', value: 2 }, { label: '1 pt', value: 1 }, { label: '0 pt', value: 0 }] },
+            { id: 'chair', text: 'Senta/Levanta (5 vezes)', type: 'scale', options: [{ label: '4 pts (< 11.2s)', value: 4 }, { label: '3 pts', value: 3 }, { label: '2 pts', value: 2 }, { label: '1 pt', value: 1 }, { label: '0 pt', value: 0 }] },
+        ],
+        calculateScore: (answers) => {
+            const total = Object.values(answers).reduce((a, b) => a + b, 0);
+            let classification = 'Bom Desempenho';
+            let riskColor = 'green';
+            if (total < 4) { riskColor = 'red'; classification = 'Fragilidade Grave'; }
+            else if (total < 7) { riskColor = 'red'; classification = 'Baixo Desempenho'; }
+            else if (total < 10) { riskColor = 'yellow'; classification = 'Médio Desempenho'; }
+
+            return { total, classification, riskColor };
         }
     }
 }

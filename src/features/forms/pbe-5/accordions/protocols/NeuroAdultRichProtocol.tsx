@@ -65,17 +65,17 @@ export function NeuroAdultRichProtocol() {
             <Tabs defaultValue="clinical" className="w-full">
                 <div className="flex justify-center mb-8">
                     <TabsList className="bg-slate-100/50 p-1.5 rounded-2xl h-auto border border-slate-100 shadow-inner gap-1">
-                        <TabsTrigger value="clinical" className="rounded-xl px-6 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all">
-                            🧠 Cognição/Sensório
+                        <TabsTrigger value="clinical" className="rounded-xl px-6 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all flex items-center gap-2">
+                            <Brain className="h-3.5 w-3.5" /> Cognição/Sensório
                         </TabsTrigger>
-                        <TabsTrigger value="motor" className="rounded-xl px-6 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all">
-                            💪 Motor/Tônus
+                        <TabsTrigger value="motor" className="rounded-xl px-6 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all flex items-center gap-2">
+                            <Zap className="h-3.5 w-3.5" /> Motor/Tônus
                         </TabsTrigger>
-                        <TabsTrigger value="balance" className="rounded-xl px-6 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all">
-                            ⚖️ Equilíbrio
+                        <TabsTrigger value="balance" className="rounded-xl px-6 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all flex items-center gap-2">
+                            <Scale className="h-3.5 w-3.5" /> Equilíbrio
                         </TabsTrigger>
-                        <TabsTrigger value="function" className="rounded-xl px-6 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all">
-                            ♿ Funcionalidade
+                        <TabsTrigger value="function" className="rounded-xl px-6 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all flex items-center gap-2">
+                            <Accessibility className="h-3.5 w-3.5" /> Funcionalidade
                         </TabsTrigger>
                     </TabsList>
                 </div>
@@ -87,7 +87,7 @@ export function NeuroAdultRichProtocol() {
                             <div className="space-y-4">
                                 <div className="flex items-center gap-3 ml-2">
                                     <Brain className="h-4 w-4 text-indigo-500" />
-                                    <h5 className="font-black text-slate-700 uppercase text-[11px] tracking-widest">Cognição (MEEM Resumido)</h5>
+                                    <h5 className="font-black text-slate-700 uppercase text-[11px] tracking-widest">Mini Exame do Estado Mental (MEEM)</h5>
                                 </div>
                                 <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm space-y-6">
                                     <div className="grid grid-cols-2 gap-4">

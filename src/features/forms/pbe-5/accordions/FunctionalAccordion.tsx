@@ -8,13 +8,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
-import { PencilRuler, Plus, Trash2, ClipboardList, FileText, Info, CalendarClock, Activity, Zap } from "lucide-react";
+import { PencilRuler, Plus, Trash2, ClipboardList, FileText, Info, CalendarClock, Activity, Zap, Search, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Swal from 'sweetalert2';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
 
 const QUESTIONNAIRES_BY_CATEGORY = [
     {
         category: "Coluna Cervical",
+        regions: ["cervical"],
+        specialties: ["ortopedia"],
         items: [
             { id: "ndi", label: "NDI (Cervical)" },
             { id: "cmq", label: "CMQ (Cefaleia)" }
@@ -22,6 +26,8 @@ const QUESTIONNAIRES_BY_CATEGORY = [
     },
     {
         category: "ATM (Temporomandibular)",
+        regions: ["face", "head"],
+        specialties: ["ortopedia"],
         items: [
             { id: "fonseca", label: "Fonseca (Triagem DTM)" },
             { id: "jfls8", label: "JFLS-8 (Limitação Mandibular)" }
@@ -29,6 +35,8 @@ const QUESTIONNAIRES_BY_CATEGORY = [
     },
     {
         category: "Coluna Lombar",
+        regions: ["lombar", "sacroiliaca"],
+        specialties: ["ortopedia"],
         items: [
             { id: "oswestry", label: "Oswestry (Lombar)" },
             { id: "roland_morris", label: "Roland-Morris (Lombar)" },
@@ -38,12 +46,16 @@ const QUESTIONNAIRES_BY_CATEGORY = [
     },
     {
         category: "Ombro",
+        regions: ["ombro"],
+        specialties: ["ortopedia"],
         items: [
             { id: "spadi", label: "SPADI (Ombro)" }
         ]
     },
     {
         category: "Cotovelo, Punho e Mão",
+        regions: ["cotovelo", "punho", "mao"],
+        specialties: ["ortopedia"],
         items: [
             { id: "quickdash", label: "QuickDASH (Mm. Superior)" },
             { id: "prwe", label: "PRWE (Punho)" }
@@ -51,6 +63,8 @@ const QUESTIONNAIRES_BY_CATEGORY = [
     },
     {
         category: "Quadril",
+        regions: ["quadril"],
+        specialties: ["ortopedia"],
         items: [
             { id: "hoos", label: "HOOS (Quadril)" },
             { id: "ihot33", label: "iHOT-33 (Quadril)" }
@@ -58,6 +72,8 @@ const QUESTIONNAIRES_BY_CATEGORY = [
     },
     {
         category: "Joelho",
+        regions: ["joelho"],
+        specialties: ["ortopedia"],
         items: [
             { id: "koos", label: "KOOS (Joelho)" },
             { id: "ikdc", label: "IKDC Subjetivo (Joelho)" },
@@ -66,6 +82,8 @@ const QUESTIONNAIRES_BY_CATEGORY = [
     },
     {
         category: "Pé e Tornozelo",
+        regions: ["tornozelo", "pe"],
+        specialties: ["ortopedia"],
         items: [
             { id: "lefs", label: "LEFS (Membro Inferior)" },
             { id: "faam", label: "FAAM (Tornozelo e Pé)" },
@@ -75,6 +93,7 @@ const QUESTIONNAIRES_BY_CATEGORY = [
     },
     {
         category: "Saúde Pélvica",
+        specialties: ["saude_mulher"],
         items: [
             { id: "iciq_sf", label: "ICIQ-SF (Incontinência)" },
             { id: "udi_6", label: "UDI-6 (Urogenital)" },
@@ -82,15 +101,28 @@ const QUESTIONNAIRES_BY_CATEGORY = [
         ]
     },
     {
-        category: "Neuropediatria",
+        category: "Neurologia & Pediatria",
+        specialties: ["neuropediatria", "neurofuncional_adulto"],
         items: [
             { id: "gmfcs", label: "GMFCS (Classificação Motora)" },
             { id: "pbs_pediatric", label: "PBS (Equilíbrio Pediátrico)" },
-            { id: "ecab", label: "ECAB (Equilíbrio Inicial)" }
+            { id: "ecab", label: "ECAB (Equilíbrio Inicial)" },
+            { id: "aims", label: "AIMS (Escala Motora Infantil)" },
+            { id: "mfm32", label: "MFM-32 (Função Motora)" }
+        ]
+    },
+    {
+        category: "Gerontologia",
+        specialties: ["gerontologia"],
+        items: [
+            { id: "meem_gero", label: "MEEM (Cognição)" },
+            { id: "lawton_gero", label: "Lawton (AIVD)" },
+            { id: "sppb_gero", label: "SPPB (Desempenho Físico)" }
         ]
     },
     {
         category: "Geral & Dor",
+        specialties: ["all"],
         items: [
             { id: "tampa_kinesiophobia", label: "Tampa (Cinesiofobia)" },
             { id: "mcgill_short", label: "McGill (Dor)" }
@@ -100,26 +132,80 @@ const QUESTIONNAIRES_BY_CATEGORY = [
 
 const QUESTIONNAIRES = QUESTIONNAIRES_BY_CATEGORY.flatMap(c => c.items);
 
-const ExtraQuestionnaireSelector = ({ value, onChange }: { value: string, onChange: (v: string) => void }) => {
+const ExtraQuestionnaireSelector = ({ value, onChange, specialty, regions }: { value: string, onChange: (v: string) => void, specialty: string, regions: string[] }) => {
+    const [open, setOpen] = React.useState(false);
+
+    const filteredCategories = QUESTIONNAIRES_BY_CATEGORY.filter(cat => {
+        if (cat.specialties?.includes('all')) return true;
+        if (cat.specialties?.includes(specialty)) {
+            // If specialty matches, further filter ortopedia by regions if regions are provided
+            if (specialty === 'ortopedia' && cat.regions && regions?.length > 0) {
+                return cat.regions.some(r => regions.includes(r));
+            }
+            return true;
+        }
+        return false;
+    });
+
+    const selectedLabel = QUESTIONNAIRES.find((q) => q.id === value)?.label || "Selecionar Questionário...";
+
     return (
-        <Select value={value} onValueChange={onChange}>
-            <SelectTrigger className="w-full h-12 text-xs border-slate-200 font-bold bg-white text-slate-900 rounded-xl shadow-sm hover:bg-slate-50 focus:ring-blue-600 transition-all">
-                <SelectValue placeholder="Selecionar Questionário Clínico Padrão..." />
-            </SelectTrigger>
-            <SelectContent className="z-[500]"> {/* Changed z-index here */}
-                <SelectItem value="none" className="font-bold text-slate-400 uppercase text-[10px]">Nenhum (Apenas Funcional)</SelectItem>
-                {QUESTIONNAIRES_BY_CATEGORY.map((cat) => (
-                    <SelectGroup key={cat.category}>
-                        <SelectLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 py-2 bg-slate-50/50 mt-1">{cat.category}</SelectLabel>
-                        {cat.items.map(q => (
-                            <SelectItem key={q.id} value={q.id} className="text-xs font-bold py-3 pl-8">
-                                {q.label}
-                            </SelectItem>
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className="w-full h-12 justify-between text-xs font-bold bg-white text-slate-900 border-slate-200 rounded-xl hover:bg-slate-50 transition-all"
+                >
+                    {value === "none" ? "Selecionar Questionário Clínico..." : selectedLabel}
+                    <div className="flex items-center gap-2">
+                        {value !== "none" && <Badge className="bg-blue-600 text-[8px] h-4">SELECIONADO</Badge>}
+                        <Search className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                    </div>
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 z-[500] rounded-2xl shadow-2xl border-slate-100 overflow-hidden">
+                <Command className="rounded-none">
+                    <CommandInput placeholder="Digite para pesquisar questionário..." className="h-12 font-bold" />
+                    <CommandList className="max-h-[300px]">
+                        <CommandEmpty className="py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Nenhum questionário encontrado.</CommandEmpty>
+                        <CommandGroup>
+                            <CommandItem
+                                value="none"
+                                onSelect={() => {
+                                    onChange("none");
+                                    setOpen(false);
+                                }}
+                                className="font-bold text-slate-400 uppercase text-[10px] py-3 cursor-pointer"
+                            >
+                                <Check className={cn("mr-2 h-4 w-4", value === "none" ? "opacity-100" : "opacity-0")} />
+                                Nenhum (Apenas Funcional)
+                            </CommandItem>
+                        </CommandGroup>
+                        <CommandSeparator />
+                        {filteredCategories.map((cat) => (
+                            <CommandGroup key={cat.category} heading={cat.category} className="px-2">
+                                {cat.items.map((q) => (
+                                    <CommandItem
+                                        key={q.id}
+                                        value={q.label}
+                                        onSelect={() => {
+                                            onChange(q.id);
+                                            setOpen(false);
+                                        }}
+                                        className="text-xs font-bold py-3 pl-4 cursor-pointer rounded-lg hover:bg-slate-50 transition-colors"
+                                    >
+                                        <Check className={cn("mr-2 h-4 w-4 text-blue-600", value === q.id ? "opacity-100" : "opacity-0")} />
+                                        {q.label}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
                         ))}
-                    </SelectGroup>
-                ))}
-            </SelectContent>
-        </Select>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
     );
 };
 
@@ -290,13 +376,15 @@ export function FunctionalAccordion({ openSection, isSectionFilled, sectionStyle
                                     <ExtraQuestionnaireSelector
                                         value={extraQuestionnaire}
                                         onChange={(v) => setValue("conduct.extraQuestionnaire", v)}
+                                        specialty={watch('clinical.specialty')}
+                                        regions={watch('anamnesis.mainRegions')}
                                     />
                                 </div>
                                 <Button
                                     type="button"
                                     disabled={!extraQuestionnaire || extraQuestionnaire === 'none'}
                                     onClick={() => setIsAssessmentModalOpen?.(true)}
-                                    className="h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] tracking-widest px-6 rounded-xl shadow-lg shadow-indigo-200 transition-all active:scale-95 disabled:grayscale"
+                                    className="h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] tracking-widest px-6 rounded-xl shadow-lg shadow-indigo-200 transition-all active:scale-95 disabled:grayscale shrink-0"
                                 >
                                     <Plus className="h-4 w-4 mr-1" /> ADICIONAR
                                 </Button>

@@ -6,17 +6,21 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { AssessmentList } from './assessments/AssessmentList'
 import { ASSESSMENTS, AssessmentType } from './assessments/definitions'
 import { ViewRecordDialog } from "@/components/records/ViewRecordDialog"
+import { VoidingDiaryCard } from './VoidingDiaryCard'
+import type { VoidingEntry } from '../actions/voiding-diary'
 
 interface QuestionnairesTabProps {
     patientId: string
     patientName?: string
+    clinicId?: string
     assessments: any[]
+    voidingDiaryEntries?: VoidingEntry[]
     onViewRecord?: (record: any) => void
     showInsoles?: boolean
     slug?: string
 }
 
-export function QuestionnairesTab({ patientId, patientName, assessments, onViewRecord, showInsoles = false, slug }: QuestionnairesTabProps) {
+export function QuestionnairesTab({ patientId, patientName, clinicId, assessments, voidingDiaryEntries, onViewRecord, showInsoles = false, slug }: QuestionnairesTabProps) {
     const [selectedRecord, setSelectedRecord] = useState<any>(null)
 
     const handleView = (record: any) => {
@@ -51,6 +55,15 @@ export function QuestionnairesTab({ patientId, patientName, assessments, onViewR
                     <p className="text-muted-foreground">Avaliações e escalas aplicadas anteriormente</p>
                 </div>
             </div>
+
+            {/* DIÁRIO MICCIONAL — dados pré-carregados do servidor */}
+            {(voidingDiaryEntries ?? []).length > 0 && (
+                <VoidingDiaryCard
+                    patientId={patientId}
+                    clinicId={clinicId ?? ''}
+                    initialEntries={voidingDiaryEntries ?? []}
+                />
+            )}
 
             <ScrollArea className="flex-1">
                 {validAssessments.length > 0 ? (

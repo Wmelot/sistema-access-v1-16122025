@@ -15,6 +15,7 @@ import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ASSESSMENTS, AssessmentType, AssessmentDefinition } from "@/app/dashboard/[slug]/patients/components/assessments/definitions";
 import { cn } from "@/lib/utils";
+import { Info } from "lucide-react";
 
 interface RapidAssessmentModalProps {
     isOpen: boolean;
