@@ -7,8 +7,9 @@ import {
     Printer, Brain, Briefcase, Heart, User, Calendar,
     Landmark, ShieldCheck, PenTool, Activity, Scale,
     Thermometer, Wind, Zap, CheckCircle2, AlertTriangle,
-    Target, Clock, Timer, MessageSquare, UserCheck
+    Target, Clock, Timer, MessageSquare, UserCheck, Dumbbell
 } from "lucide-react";
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 
@@ -376,6 +377,122 @@ export function PBE5UnifiedReport({
                             </div>
                         )}
 
+                        {/* ADVANCED PHYSICAL ASSESSMENT SECTION */}
+                        {data?.clinical?.advancedPhysical && (
+                            <section className="space-y-10 pt-10 border-t-2 border-slate-100">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-12 w-12 bg-slate-900 rounded-[1.5rem] flex items-center justify-center text-white -rotate-3">
+                                        <Dumbbell className="h-6 w-6" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Avaliação Física Avançada</h3>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Protocolos: Pineau (US) • Rockport/Cooper (VO2) • Z-Score (Força)</p>
+                                    </div>
+                                </div>
+
+                                {/* Composição Corporal + VO2 */}
+                                <div className="grid grid-cols-2 gap-6">
+                                    {/* Composição */}
+                                    <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-4">
+                                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200 pb-2">Composição Corporal (Pineau/US)</h4>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {[
+                                                { label: '% Gordura', value: data?.antro?.fatPercent ? `${Number(data.antro.fatPercent).toFixed(1)}%` : '--' },
+                                                { label: 'Massa Gorda (kg)', value: data?.antro?.fatMass ? `${Number(data.antro.fatMass).toFixed(1)} kg` : '--' },
+                                                { label: 'Massa Magra (kg)', value: data?.antro?.leanMass ? `${Number(data.antro.leanMass).toFixed(1)} kg` : '--' },
+                                                { label: 'FFMI', value: data?.antro?.ffmi ? Number(data.antro.ffmi).toFixed(1) : '--' },
+                                            ].map(item => (
+                                                <div key={item.label} className="bg-white p-4 rounded-2xl border border-slate-100 text-center">
+                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">{item.label}</span>
+                                                    <p className="text-xl font-black text-slate-900 mt-1">{item.value}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    {/* Cardio VO2 */}
+                                    <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-4">
+                                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200 pb-2">Aptidão Aeróbica (VO2 Máximo)</h4>
+                                        <div className="flex flex-col items-center justify-center h-32">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">VO2 Máximo</span>
+                                            <p className="text-5xl font-black text-emerald-600 mt-2">
+                                                {data?.cardio?.vo2Result ? `${Number(data.cardio.vo2Result).toFixed(1)}` : '--'}
+                                            </p>
+                                            <span className="text-[10px] font-bold text-slate-500 mt-1">ml/kg/min • Protocolo {data?.cardio?.method === 'rockport' ? 'Rockport (Caminhada)' : 'Cooper (Corrida)'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Dinamometria */}
+                                {data?.strength && Object.keys(data.strength).length > 0 && (
+                                    <div className="space-y-4">
+                                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Dinamometria — Z-Score por Idade e Gênero</h4>
+                                        <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden">
+                                            <table className="w-full text-xs">
+                                                <thead className="bg-slate-50 border-b border-slate-100">
+                                                    <tr>
+                                                        <th className="text-left p-4 font-black text-slate-500 uppercase tracking-widest text-[9px]">Teste</th>
+                                                        <th className="p-4 font-black text-blue-600 uppercase tracking-widest text-[9px] text-center">Esquerdo (N)</th>
+                                                        <th className="p-4 font-black text-green-600 uppercase tracking-widest text-[9px] text-center">Direito (N)</th>
+                                                        <th className="p-4 font-black text-slate-500 uppercase tracking-widest text-[9px] text-center">Classificação</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {[
+                                                        { key: 'kneeExtension', label: 'Extensão Joelho' },
+                                                        { key: 'kneeFlexion', label: 'Flexão Joelho' },
+                                                        { key: 'hipAbduction', label: 'Abdução Quadril' },
+                                                        { key: 'hipFlexion', label: 'Flexão Quadril' },
+                                                        { key: 'trunkFlexion', label: 'Flexão Tronco' },
+                                                        { key: 'shoulderAbduction', label: 'Abdução Ombro' },
+                                                        { key: 'elbowFlexion', label: 'Flexão Cotovelo' },
+                                                        { key: 'handgrip', label: 'Preensão Manual' },
+                                                    ].filter(t => data?.strength?.[`${t.key}_left`] || data?.strength?.[`${t.key}_right`]).map((test, i) => {
+                                                        const left = Number(data?.strength?.[`${test.key}_left`] || 0);
+                                                        const right = Number(data?.strength?.[`${test.key}_right`] || 0);
+                                                        const hasBoth = left > 0 && right > 0;
+                                                        const maxVal = Math.max(left, right);
+                                                        const minVal = Math.min(left, right);
+                                                        const asymmetry = hasBoth && maxVal > 0 ? Math.round(100 - (minVal / maxVal) * 100) : null;
+                                                        return (
+                                                            <tr key={test.key} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                                                                <td className="p-4 font-black text-[10px] text-slate-700 uppercase tracking-tighter">{test.label}</td>
+                                                                <td className="p-4 text-center font-bold text-blue-700">{left > 0 ? `${left}N` : '--'}</td>
+                                                                <td className="p-4 text-center font-bold text-green-700">{right > 0 ? `${right}N` : '--'}</td>
+                                                                <td className="p-4 text-center">
+                                                                    {asymmetry !== null ? (
+                                                                        <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase ${asymmetry > 15 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
+                                                                            }`}>
+                                                                            {asymmetry > 15 ? `⚠ Assimetria ${asymmetry}%` : `✓ Simétrico ${asymmetry}%`}
+                                                                        </span>
+                                                                    ) : '--'}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Mobilidade */}
+                                {(data?.mobility?.wells || data?.mobility?.legRaiseRight) && (
+                                    <div className="grid grid-cols-3 gap-4">
+                                        {[
+                                            { label: 'Banco de Wells (cm)', value: data?.mobility?.wells ? `${data.mobility.wells} cm` : '--' },
+                                            { label: 'Leg Raise Direito (°)', value: data?.mobility?.legRaiseRight ? `${data.mobility.legRaiseRight}°` : '--' },
+                                            { label: 'Leg Raise Esquerdo (°)', value: data?.mobility?.legRaiseLeft ? `${data.mobility.legRaiseLeft}°` : '--' },
+                                        ].map(item => (
+                                            <div key={item.label} className="bg-white p-5 rounded-2xl border border-slate-100 text-center">
+                                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">{item.label}</span>
+                                                <p className="text-2xl font-black text-indigo-600 mt-1">{item.value}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
+                        )}
+
                         {/* COMMON: CLINICAL VERDICT */}
                         <section className="space-y-6 pt-10 border-t-2 border-slate-100">
                             <div className="flex items-center gap-4">
@@ -388,7 +505,7 @@ export function PBE5UnifiedReport({
                                 </div>
                             </div>
                             <div className="bg-slate-50 p-10 rounded-[3rem] border border-slate-100 italic text-slate-700 leading-relaxed text-sm">
-                                {data?.neuro_adult?.clinical_verdict || data?.occupational_health?.clinical_verdict || data?.cardio_respiratory?.clinical_verdict || "Nenhum parecer redigido até o momento."}
+                                {data?.neuro_adult?.clinical_verdict || data?.occupational_health?.clinical_verdict || data?.cardio_respiratory?.clinical_verdict || data?.plan?.orientations || "Nenhum parecer redigido até o momento."}
                             </div>
                         </section>
 

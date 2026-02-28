@@ -33,18 +33,18 @@ import { useActiveAttendance } from "@/components/providers/active-attendance-pr
 import { useGlobalLoader } from "@/components/providers/global-loader-provider"
 import { AdvancedPhysicalForm } from "@/features/forms/pbe/components/AdvancedPhysicalForm"
 import { VoiceRecorder } from "@/components/ui/voice-recorder"
-// BiomechanicsForm removed
 import SmartPBEForm from "@/features/forms/pbe/components/SmartPBEForm"
 import { FocusModeEvolution } from "@/features/attendance/components/FocusModeEvolution"
-import { WomensHealthForm } from "@/features/forms/womens-health/components/WomensHealthForm" // [NEW]
+import { WomensHealthForm } from "@/features/forms/womens-health/components/WomensHealthForm"
 import { ScanFace } from "lucide-react"
 import BiomechanicsInsoleForm from "@/features/forms/pbe/components/BiomechanicsInsoleForm"
 import DiabeticFootForm from "@/features/forms/pbe/components/DiabeticFootForm"
 import { ConceptPBEForm } from "@/features/forms/pbe/components/ConceptPBEForm"
-import PalmilhaFormV3 from "@/features/forms/palmilha-biomecanica/components/PalmilhaFormV3"
+import PalmilhaFormV3 from "@/features/forms/_ROOT_BACKUP_JUNK_OUTSIDE/palmilha-biomecanica/components/PalmilhaFormV3"
 import Palmilha5Form from "@/features/forms/palmilha-5/components/Palmilha5Form"
 import FisioterapiaEvolutionForm from "@/features/forms/clinical-evolution/components/FisioterapiaEvolutionForm"
 import { UltimatePBEForm } from "@/features/forms/pbe/components/UltimatePBEForm"
+import PBE5Form from "@/features/forms/pbe-5/PBE5Form"
 import AdvancedSmartAssessment from "@/features/forms/smart-assessment/components/AdvancedSmartAssessment"
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
@@ -168,6 +168,7 @@ export function AttendanceClient({
     const CLINICAL_EVOLUTION_ID = 'clinical_evolution_system'
     const ULTIMATE_PBE_ID = 'ultimate_pbe_system'
     const TREE_WIZARD_ID = 'tree_wizard_system'
+    const PBE5_ID = 'pbe-5' // PBE 5.0 — Nova Geração
 
     // The "assessments" tab is for LISTING past assessments. The "evolution" tab is for PERFORMING the action (form).
     // So both modes use the 'evolution' tab to fill the form.
@@ -242,9 +243,8 @@ export function AttendanceClient({
         }
 
         if (mode === 'assessment') {
-            const pbeTemplate = templates.find(t => t.id === SMART_ASSESSMENT_ID || t.title?.toLowerCase().includes('pbe'))
-            if (pbeTemplate) return pbeTemplate.id
-            return SMART_ASSESSMENT_ID
+            // PBE 5.0 é o formulário principal de avaliação
+            return PBE5_ID
         }
 
         const fav = preferences.find(p => p.is_favorite)
@@ -829,16 +829,21 @@ export function AttendanceClient({
                                                 className="w-[90vw] sm:w-[350px] z-[9999]"
                                                 align="start"
                                             >
-                                                {/* Select Items... */}
+                                                {/* PBE 5.0 — FORMULÁRIO PRINCIPAL */}
                                                 <SelectGroup>
-                                                    <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 mb-1">Avaliações Especializadas</div>
-                                                    <SelectItem value={TREE_WIZARD_ID} className="py-3 cursor-pointer font-bold text-indigo-600 focus:bg-indigo-50">✨ PBE 3.0: Tree Wizard (IA)</SelectItem>
-                                                    <SelectItem value={ULTIMATE_PBE_ID} className="py-3 cursor-pointer font-bold text-violet-600 focus:bg-violet-50">✨ Ultimate PBE (Fusão)</SelectItem>
-                                                    <SelectItem value={PHYSICAL_ASSESSMENT_ID} className="py-3 cursor-pointer font-medium">Avaliação Física Avançada</SelectItem>
-                                                    <SelectItem value={SMART_ASSESSMENT_ID} className="py-3 cursor-pointer font-medium">Avaliação PBE (Inteligente)</SelectItem>
-                                                    <SelectItem value="pbe_concept_system" className="py-3 text-slate-500 cursor-pointer font-medium">Formulário Conceito PBE Inicial</SelectItem>
-                                                    <SelectItem value={WOMENS_HEALTH_ID} className="py-3 cursor-pointer font-medium">Saúde da Mulher & Pélvica</SelectItem>
+                                                    <div className="px-3 py-2 text-[10px] font-black text-indigo-500 uppercase tracking-widest border-b border-indigo-50 mb-1">⭐ Avaliação Clínica</div>
+                                                    <SelectItem value={PBE5_ID} className="py-3 cursor-pointer font-black text-indigo-700 bg-indigo-50/50 focus:bg-indigo-100">🧠 PBE 5.0 — Avaliação Completa</SelectItem>
+                                                    <SelectItem value={WOMENS_HEALTH_ID} className="py-3 cursor-pointer font-medium text-pink-700 focus:bg-pink-50">Saúde da Mulher & Pélvica</SelectItem>
                                                     <SelectItem value="diabetic_foot_system" className="py-3 cursor-pointer font-medium">Avaliação de Pé Diabético</SelectItem>
+                                                </SelectGroup>
+                                                {/* Formulários Legados (mantidos para compatibilidade) */}
+                                                <SelectGroup>
+                                                    <Separator className="my-1" />
+                                                    <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 mb-1">Legado (Somente Leitura Histórica)</div>
+                                                    <SelectItem value={SMART_ASSESSMENT_ID} className="py-3 cursor-pointer text-slate-500 font-medium">PBE Inteligente (v3)</SelectItem>
+                                                    <SelectItem value={ULTIMATE_PBE_ID} className="py-3 cursor-pointer text-slate-500 font-medium">Ultimate PBE</SelectItem>
+                                                    <SelectItem value={TREE_WIZARD_ID} className="py-3 cursor-pointer text-slate-500 font-medium">Tree Wizard (IA)</SelectItem>
+                                                    <SelectItem value={PHYSICAL_ASSESSMENT_ID} className="py-3 cursor-pointer text-slate-500 font-medium">Avaliação Física Avançada (v1)</SelectItem>
                                                 </SelectGroup>
 
                                                 {/* Specialized Section for Palmilhas */}
@@ -1023,7 +1028,17 @@ export function AttendanceClient({
                                             </DialogContent>
                                         </Dialog>
 
-                                        {(selectedTemplateId === 'palmilha-5' || selectedTemplateId === 'e0000000-0000-0000-0000-000000000005') ? (
+                                        {/* ✅ PBE 5.0 — FORMULÁRIO PRINCIPAL */}
+                                        {(selectedTemplateId === PBE5_ID) ? (
+                                            <PBE5Form
+                                                patientId={patient.id}
+                                                initialData={currentRecord?.content}
+                                                onSave={handlePhysicalAssessmentSave}
+                                                patient={patient}
+                                                organization={(appointment as any)?.organizations || {}}
+                                                professional={appointment?.profiles}
+                                            />
+                                        ) : (selectedTemplateId === 'palmilha-5' || selectedTemplateId === 'e0000000-0000-0000-0000-000000000005') ? (
                                             <Palmilha5Form
                                                 initialData={currentRecord?.content}
                                                 patientId={patient.id}

@@ -31,7 +31,7 @@ import { ChevronRight, ChevronLeft } from "lucide-react";
 import { BiomechanicsReport } from "@/features/forms/pbe/components/biomechanics-report";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { parseFeegowText } from "@/features/forms/palmilha-biomecanica/utils/feegow-parser";
+import { parseFeegowText } from "@/features/forms/_ROOT_BACKUP_JUNK_OUTSIDE/palmilha-biomecanica/utils/feegow-parser";
 
 const SECTION_STYLES: Record<string, { border: string, iconColor: string }> = {
     hma: { border: "border-l-blue-600", iconColor: "text-blue-600" },

@@ -139,15 +139,15 @@ export function PhysicalStrengthAccordion({ openSection, isSectionFilled, sectio
     };
 
     return (
-        <AccordionItem value="strength" className={cn("border rounded-[2rem] px-6 mb-4 transition-all duration-500 shadow-sm", openSection === 'strength' ? "bg-white border-slate-200 shadow-xl scale-[1.01]" : "bg-slate-50/50 border-transparent hover:bg-white")}>
+        <AccordionItem value="strength_advanced" className={cn("border rounded-[2rem] px-6 mb-4 transition-all duration-500 shadow-sm", openSection === 'strength_advanced' ? "bg-white border-slate-200 shadow-xl scale-[1.01]" : "bg-slate-50/50 border-transparent hover:bg-white")}>
             <AccordionTrigger className="hover:no-underline py-6 group">
                 <div className="flex items-center gap-4 w-full text-left">
-                    <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-all duration-500", openSection === 'strength' ? "bg-slate-900 text-white shadow-lg rotate-12" : "bg-white text-slate-400 shadow-sm group-hover:text-slate-900")}>
+                    <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-all duration-500", openSection === 'strength_advanced' ? "bg-slate-900 text-white shadow-lg rotate-12" : "bg-white text-slate-400 shadow-sm group-hover:text-slate-900")}>
                         <Dumbbell className="h-6 w-6" />
                     </div>
                     <div className="flex-1">
                         <div className="flex items-center gap-2">
-                            <h3 className={cn("text-sm font-black uppercase tracking-widest", openSection === 'strength' ? "text-slate-900" : "text-slate-500")}>Dinamometria Avançada</h3>
+                            <h3 className={cn("text-sm font-black uppercase tracking-widest", openSection === 'strength_advanced' ? "text-slate-900" : "text-slate-500")}>Dinamometria Avançada</h3>
                             {isFilled && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
                         </div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Comparativo Z-Score por Idade e Gênero</p>

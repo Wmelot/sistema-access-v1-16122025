@@ -1,11 +1,10 @@
 "use client";
-
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { FormRenderer } from '@/components/forms/FormRenderer'
-import PalmilhaFormV3 from '@/features/forms/palmilha-biomecanica/components/PalmilhaFormV3'
+import PalmilhaFormV3 from '@/features/forms/_ROOT_BACKUP_JUNK_OUTSIDE/palmilha-biomecanica/components/PalmilhaFormV3'
 import Palmilha5Form from '@/features/forms/palmilha-5/components/Palmilha5Form'
 import { WomensHealthForm } from '@/features/forms/womens-health/components/WomensHealthForm'
 import { AdvancedPhysicalForm } from '@/features/forms/pbe/components/AdvancedPhysicalForm'
@@ -15,6 +14,7 @@ import { FisioterapiaEvolutionForm } from '@/features/forms/clinical-evolution/c
 import { UltimatePBEForm } from '@/features/forms/pbe/components/UltimatePBEForm'
 import AdvancedSmartAssessment from '@/features/forms/smart-assessment/components/AdvancedSmartAssessment'
 import DiabeticFootForm from '@/features/forms/pbe/components/DiabeticFootForm'
+import PBE5Form from '@/features/forms/pbe-5/PBE5Form'
 import { updateRecordContent } from '@/actions/patients'
 import { toast } from 'sonner'
 
@@ -27,6 +27,7 @@ interface RecordClientProps {
     isReadOnly: boolean;
     validAppointmentId?: string;
     finalTemplate: any;
+    isPBE5: boolean;
     isPalmilha5: boolean;
     isPalmilhaV3: boolean;
     isPalmilhaOriginal: boolean;
@@ -49,6 +50,7 @@ export function RecordClient({
     isReadOnly,
     validAppointmentId,
     finalTemplate,
+    isPBE5,
     isPalmilha5,
     isPalmilhaV3,
     isPalmilhaOriginal,
@@ -109,7 +111,19 @@ export function RecordClient({
                     </div>
                 </div>
             )}
-            {isPalmilha5 ? (
+            {isPBE5 ? (
+                <div className="max-w-[1400px] mx-auto">
+                    <PBE5Form
+                        patientId={id}
+                        initialData={record.content}
+                        patient={patientData}
+                        organization={organization}
+                        professional={professional}
+                        readonly={isReadOnly}
+                        onSave={handleSave}
+                    />
+                </div>
+            ) : isPalmilha5 ? (
                 <div className="max-w-[1600px] mx-auto">
                     <Palmilha5Form
                         patientId={id}
