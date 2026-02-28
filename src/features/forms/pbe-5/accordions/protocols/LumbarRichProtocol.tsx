@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { InteractiveDermatomeMap } from "../../components/neurological/InteractiveDermatomeMap";
+import { InteractiveInominadoMap } from "../../components/neurological/InteractiveInominadoMap";
 
 export function LumbarRichProtocol() {
     const { register, watch, setValue } = useFormContext();
@@ -25,8 +26,77 @@ export function LumbarRichProtocol() {
         setValue(path, val, { shouldDirty: true, shouldValidate: true });
     };
 
+    // Inteligência Clínica: Monitor de Radiculopatia
+    const renderRadiculopathyAlerts = () => {
+        const neuro = data?.protocols?.coluna_lombar?.neuro || {};
+        const dermatomes = neuro.dermatomes || [];
+        const inominado = neuro.inominado_test || [];
+        const allDermatomes = [...new Set([...dermatomes, ...inominado])];
+
+        const alerts: { root: string; side: string; reasons: string[] }[] = [];
+
+        ['d', 'e'].forEach(side => {
+            const sideLabel = side === 'd' ? 'Direita' : 'Esquerda';
+
+            // L4 Correlation
+            const l4Reasons = [];
+            if (allDermatomes.includes('L4')) l4Reasons.push('Dermátomo L4');
+            if (neuro.myotomes?.[`L4_${side}`] === 'WEAK') l4Reasons.push('Fraqueza Tibial Ant. (L4)');
+            if (['hipo', 'arreflexia'].includes(neuro.reflexes?.[`patelar_${side}`])) l4Reasons.push('Reflexo Patelar alterado');
+            if (l4Reasons.length >= 2) alerts.push({ root: 'L4', side: sideLabel, reasons: l4Reasons });
+
+            // L5 Correlation
+            const l5Reasons = [];
+            if (allDermatomes.includes('L5')) l5Reasons.push('Dermátomo L5');
+            if (neuro.myotomes?.[`L5_${side}`] === 'WEAK') l5Reasons.push('Fraqueza Ext. Hálux (L5)');
+            if (['hipo', 'arreflexia'].includes(neuro.reflexes?.[`semitendineo_${side}`])) l5Reasons.push('Reflexo Semitendíneo alterado');
+            if (neuro.tension?.[`slr_${side}`] || neuro.tension?.[`slump_${side}`]) l5Reasons.push('Tensão Neural (+)');
+            if (l5Reasons.length >= 3) alerts.push({ root: 'L5', side: sideLabel, reasons: l5Reasons });
+
+            // S1 Correlation
+            const s1Reasons = [];
+            if (allDermatomes.includes('S1')) s1Reasons.push('Dermátomo S1');
+            if (neuro.myotomes?.[`S1_${side}`] === 'WEAK') s1Reasons.push('Fraqueza Tríceps Sur. (S1)');
+            if (['hipo', 'arreflexia'].includes(neuro.reflexes?.[`aquileu_${side}`])) s1Reasons.push('Reflexo Aquileu alterado');
+            if (neuro.tension?.[`slr_${side}`]) s1Reasons.push('Tensão Neural (+)');
+            if (s1Reasons.length >= 3) alerts.push({ root: 'S1', side: sideLabel, reasons: s1Reasons });
+        });
+
+        if (alerts.length === 0) return null;
+
+        return (
+            <div className="space-y-3 mb-8 animate-in slide-in-from-top-4 duration-500">
+                {alerts.map((alert, i) => (
+                    <div key={i} className="bg-rose-50 border-2 border-rose-200 p-5 rounded-[2rem] flex items-start gap-4 shadow-sm relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <Zap className="h-20 w-20 text-rose-500 rotate-12" />
+                        </div>
+                        <div className="h-10 w-10 rounded-2xl bg-rose-500 flex items-center justify-center text-white shadow-lg animate-pulse">
+                            <AlertTriangle className="h-6 w-6" />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                            <div className="flex items-center gap-2">
+                                <Badge className="bg-rose-500 hover:bg-rose-600 text-white font-black px-3 py-1 rounded-lg text-[10px]">RADICULOPATIA SUSPEITA</Badge>
+                                <span className="text-[11px] font-black text-rose-900 uppercase tracking-widest">{alert.root} - Lado {alert.side}</span>
+                            </div>
+                            <p className="text-[10px] font-bold text-rose-700 leading-relaxed uppercase">
+                                Foram identificados múltiplos marcadores clínicos convergentes:
+                                <span className="ml-1 text-rose-900 font-black">{alert.reasons.join(' + ')}</span>.
+                            </p>
+                            <p className="text-[9px] font-black text-rose-500 uppercase tracking-tighter pt-1">
+                                Sugestão Axiom: Correlacionar com RM e avaliação neurofuncional profunda.
+                            </p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
     return (
         <div className="space-y-10 animate-in fade-in duration-500">
+
+            {renderRadiculopathyAlerts()}
 
             <Tabs defaultValue="standing" className="w-full">
                 <div className="flex justify-center mb-8">
@@ -273,6 +343,7 @@ export function LumbarRichProtocol() {
                                     debug={true}
                                 />
                             </div>
+
                         </div>
 
                         {/* TENSÃO NEURAL */}

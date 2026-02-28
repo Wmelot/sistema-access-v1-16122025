@@ -31,7 +31,7 @@ const REGION_OPTIONS = [
 ];
 
 const SPECIALTY_OPTIONS = [
-    { id: "ortopedia", label: "Ortopedia e Esportes (Fisioterapia Musculoesquelética)" },
+    { id: "ortopedia", label: "Ortopedia e Esportes" },
     { id: "neuropediatria", label: "Neuropediatria e Neurodesenvolvimento" },
     { id: "neurofuncional_adulto", label: "Neurofuncional Adulto" },
     { id: "saude_mulher", label: "Saúde da Mulher & Pélvica" },

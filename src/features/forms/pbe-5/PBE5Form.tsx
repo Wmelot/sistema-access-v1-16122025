@@ -14,6 +14,7 @@ import { AxiomCopilot } from "@/components/copilot/AxiomCopilot";
 import { BiomechanicsReport } from "@/features/forms/pbe/components/biomechanics-report";
 import { RapidAssessmentModal } from "@/features/forms/pbe/components/RapidAssessmentModal";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PBE5UnifiedReport } from "./components/reports/PBE5UnifiedReport";
 import { Textarea } from "@/components/ui/textarea";
 
 // Modular Accordions
@@ -24,15 +25,15 @@ import { FunctionalAccordion } from "./accordions/FunctionalAccordion";
 import { MovementAssessmentAccordion } from "./accordions/MovementAssessmentAccordion";
 import { MuscleStrengthAccordion } from "./accordions/MuscleStrengthAccordion";
 import { JointProtocolsAccordion } from "./accordions/JointProtocolsAccordion";
-import { NeuropediaAccordion } from "./accordions/NeuropediaAccordion";
+import { NeuropediaAccordion } from "./accordions/neuropedia-accordion";
 import { NeuroAdultAccordion } from "./accordions/NeuroAdultAccordion";
 import { CardioRespiratorioAccordion } from "./accordions/CardioRespiratorioAccordion";
 import { OccupationalHealthAccordion } from "./accordions/OccupationalHealthAccordion";
 import { GerontologyAccordion } from "./accordions/GerontologyAccordion";
 import { ClinicalConductAccordion } from "./accordions/ClinicalConductAccordion";
-import { PhysicalAssessmentAccordion } from "./accordions/PhysicalAssessmentAccordion";
+// import { PhysicalAssessmentAccordion } from "./accordions/PhysicalAssessmentAccordion";
 import { WomensHealthAccordion } from "./accordions/WomensHealthAccordion";
-import { BiomechanicsAccordion } from "./accordions/BiomechanicsAccordion";
+// import { BiomechanicsAccordion } from "./accordions/BiomechanicsAccordion";
 
 // Advanced Physical Assessment Modular Components
 import { PhysicalAntroAccordion } from "./accordions/PhysicalAntroAccordion";
@@ -416,20 +417,7 @@ export default function PBE5Form({
                                 </>
                             )}
 
-                            {/* Future Specialties Placeholders */}
-                            {['neurofuncional_adulto', 'cardio_respiratorio', 'saude_trabalho', 'gerontologia'].includes(specialty) && (
-                                <div className="p-12 text-center bg-white rounded-[40px] border-2 border-dashed border-slate-100 shadow-sm animate-pulse">
-                                    <div className="flex flex-col items-center gap-4">
-                                        <div className="h-16 w-16 rounded-full bg-slate-50 flex items-center justify-center">
-                                            <Zap className="h-6 w-6 text-slate-300" />
-                                        </div>
-                                        <div>
-                                            <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Módulo em Desenvolvimento</h4>
-                                            <p className="text-xs font-bold text-slate-400 mt-1 uppercase">Estamos mapeando as métricas Magee e protocolos específicos.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                            {/* Plan / Conduct always at the end */}
 
                             <ClinicalConductAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.plan} />
                         </Accordion>
@@ -539,17 +527,30 @@ export default function PBE5Form({
                 )}
 
                 {previewOpen && (
-                    <BiomechanicsReport
-                        open={previewOpen}
-                        onClose={() => setPreviewOpen(false)}
-                        form={form}
-                        patient={patient || initialData?.patient}
-                        organization={organization}
-                        professional={professional}
-                        data={form.getValues()}
-                        minIndex={0}
-                    />
+                    specialty === 'biomecanica' ? (
+                        <BiomechanicsReport
+                            open={previewOpen}
+                            onClose={() => setPreviewOpen(false)}
+                            form={form}
+                            patient={patient || initialData?.patient}
+                            organization={organization}
+                            professional={professional}
+                            data={form.getValues()}
+                            minIndex={0}
+                        />
+                    ) : (
+                        <PBE5UnifiedReport
+                            open={previewOpen}
+                            onClose={() => setPreviewOpen(false)}
+                            data={form.getValues()}
+                            patient={patient || initialData?.patient}
+                            organization={organization}
+                            professional={professional}
+                            specialty={specialty}
+                        />
+                    )
                 )}
+
 
                 <RapidAssessmentModal
                     isOpen={isAssessmentModalOpen}
