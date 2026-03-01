@@ -856,14 +856,7 @@ export function AttendanceClient({
                             {/* Mobile Tabs - Removed for Space as per user request */}
                             <div className="sm:hidden" />
 
-                            {!['palmilha-5', 'e0000000-0000-0000-0000-000000000005', PBE5_ID].includes(selectedTemplateId) && (
-                                <TabsList className="hidden sm:flex bg-slate-100 p-1">
-                                    <TabsTrigger value="evolution" className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                                        <FileText className="h-4 w-4" />
-                                        Evolução / Formulários
-                                    </TabsTrigger>
-                                </TabsList>
-                            )}
+
                         </div>
 
 
@@ -906,9 +899,8 @@ export function AttendanceClient({
                                                     <SelectGroup>
                                                         <Separator className="my-1" />
                                                         <div className="px-2 py-1.5 text-[10px] font-black text-blue-400 uppercase tracking-widest">Biomecânica e Palmilha</div>
-                                                        <SelectItem value="palmilha-5" className="py-2.5 text-blue-700 font-bold bg-blue-50/50 cursor-pointer">Palmilha 5.0 — Biomecânica Completa</SelectItem>
+                                                        <SelectItem value="palmilha-5" className="py-2.5 text-blue-700 font-bold bg-blue-50/50 cursor-pointer">Palmilha 5.0 </SelectItem>
                                                     </SelectGroup>
-
                                                     {/* EVOLUÇÃO */}
                                                     <SelectGroup>
                                                         <Separator className="my-1" />

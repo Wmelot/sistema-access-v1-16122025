@@ -128,7 +128,7 @@ export const FunctionalTestsSection = () => {
                         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
                             <div className="flex items-center gap-2 mb-4 border-b border-slate-50 pb-2">
                                 <Activity className="w-5 h-5 text-emerald-500" />
-                                <h3 className="text-sm font-black uppercase text-slate-700">Pelve, Quadril & Força</h3>
+                                <h3 className="text-sm font-black uppercase text-slate-700">Pelve, Quadril e Força</h3>
                             </div>
                             <div className="space-y-1">
                                 <ClinicalSideBySide label="Força Glúteo Médio (0-5)" leftName="exame_fisico.forca_gluteo.medio.left" rightName="exame_fisico.forca_gluteo.medio.right" control={control} referenceType="glute_strength" />

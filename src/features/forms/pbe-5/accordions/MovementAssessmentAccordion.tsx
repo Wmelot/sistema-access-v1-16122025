@@ -65,8 +65,8 @@ const JOINT_RESOURCES: Record<string, { label: string; lpp: string; cpp: string;
             { label: "Flexão", id: "flexion", normal: 180 },
             { label: "Extensão", id: "extension", normal: 60 },
             { label: "Abdução", id: "abduction", normal: 180 },
-            { label: "Rotação Interna", id: "int_rot", normal: 70 },
-            { label: "Rotação Externa", id: "ext_rot", normal: 90 },
+            { label: "Rotação Medial", id: "int_rot", normal: 70 },
+            { label: "Rotação Lateral", id: "ext_rot", normal: 90 },
         ]
     },
     joelho: {
@@ -81,14 +81,14 @@ const JOINT_RESOURCES: Record<string, { label: string; lpp: string; cpp: string;
     quadril: {
         label: "Quadril",
         lpp: "30º Flexão, 30º Abdução, ligeira Rot. Externa",
-        cpp: "Extensão Máxima, Rotação Interna e Abdução",
+        cpp: "Extensão Máxima, Rotação Medial e Abdução",
         movements: [
             { label: "Flexão", id: "flexion", normal: 120 },
             { label: "Extensão", id: "extension", normal: 30 },
             { label: "Abdução", id: "abduction", normal: 45 },
             { label: "Adução", id: "adduction", normal: 30 },
-            { label: "Rotação Interna", id: "int_rot", normal: 45 },
-            { label: "Rotação Externa", id: "ext_rot", normal: 45 },
+            { label: "Rotação Medial", id: "int_rot", normal: 45 },
+            { label: "Rotação Lateral", id: "ext_rot", normal: 45 },
         ]
     },
     tornozelo_pe: {
@@ -138,7 +138,7 @@ const MAGEE_CAPSULAR_PATTERNS: Record<string, { check: (m: any) => boolean; desc
             // and the specific order of restriction is maintained
             return erLoss > 0.15 && erLoss > abdLoss && abdLoss > riLoss;
         },
-        desc: "Rotação Externa > Abdução > Rotação Interna (ER é a mais limitada)"
+        desc: "Rotação Lateral > Abdução > Rotação Medial (RL é a mais limitada)"
     },
     cotovelo_mao: {
         label: "Umeroulnar / Radiocarpica",
@@ -180,7 +180,7 @@ const MAGEE_CAPSULAR_PATTERNS: Record<string, { check: (m: any) => boolean; desc
 
             return flexLoss > 0.2 && flexLoss > abdLoss && abdLoss > riLoss;
         },
-        desc: "Flexão > Abdução > Rotação Interna"
+        desc: "Flexão > Abdução > Rotação Medial"
     },
     joelho: {
         label: "Tíbio-Femural",
@@ -263,6 +263,7 @@ const PHENOMENON_OPTIONS = [
 
 const END_FEEL_OPTIONS = [
     { value: "aproximacao_tecido", label: "Aproximação de tecido" },
+    { value: "alongamento_tecido", label: "Alongamento de tecido" },
     { value: "vazio", label: "Vazio" },
     { value: "capsular", label: "Capsular" },
     { value: "bloqueio_mola", label: "Bloqueio de mola (Joelho/ATM)" },
@@ -376,7 +377,7 @@ export function MovementAssessmentAccordion({ openSection, isSectionFilled, sect
                                         <thead>
                                             <tr className="bg-slate-50/80 border-b border-slate-100">
                                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-1/4">Movimento</th>
-                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">ADM (Graus)</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">ADM (º)</th>
                                                 {type === 'passive' && <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">End-Feel</th>}
                                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Sintomas / Qualidade</th>
                                             </tr>
@@ -460,7 +461,7 @@ export function MovementAssessmentAccordion({ openSection, isSectionFilled, sect
                 <div className="flex items-center gap-4 flex-1">
                     <Move className="h-5 w-5 transition-colors group-hover:animate-bounce" />
                     <div>
-                        <span className={cn("font-black text-lg tracking-tight", openSection === 'movement' ? "text-slate-900" : "text-slate-600")}>5. Avaliação do Movimento (ADM)</span>
+                        <span className={cn("font-black text-lg tracking-tight", openSection === 'movement' ? "text-slate-900" : "text-slate-600")}>Avaliação do Movimento (ADM)</span>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Testes ativos, passivos e movimentos repetidos</p>
                     </div>
                 </div>
@@ -476,7 +477,7 @@ export function MovementAssessmentAccordion({ openSection, isSectionFilled, sect
                             <TabsTrigger value="active" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">Ativa</TabsTrigger>
                             <TabsTrigger value="passive" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">Passiva</TabsTrigger>
                             <TabsTrigger value="repeated" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">Repetidos</TabsTrigger>
-                            <TabsTrigger value="sahrmann" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">Sahrmann</TabsTrigger>
+                            <TabsTrigger value="sahrmann" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">Dominância</TabsTrigger>
                         </TabsList>
                     </div>
 
@@ -492,9 +493,9 @@ export function MovementAssessmentAccordion({ openSection, isSectionFilled, sect
                         <div className="bg-blue-50/50 p-5 rounded-3xl border border-blue-100 flex gap-4">
                             <Info className="h-5 w-5 text-blue-600 mt-1 shrink-0" />
                             <div>
-                                <h6 className="text-[11px] font-black text-blue-900 uppercase tracking-widest mb-1">Mecânica MDT (McKenzie)</h6>
+                                <h6 className="text-[11px] font-black text-blue-900 uppercase tracking-widest mb-1">Mecânica de Movimentos Repetidos</h6>
                                 <p className="text-[10px] text-blue-700 leading-relaxed font-bold opacity-80 uppercase tracking-tighter">
-                                    Avalie a resposta sintomática e o fenômeno de centralização/periferização após séries de repet. (Ex: 10 repet.).
+                                    Avalie a resposta sintomática e o fenômeno de centralização/periferização após séries de repetições. (Ex: 10 repetições).
                                 </p>
                             </div>
                         </div>
@@ -567,7 +568,7 @@ export function MovementAssessmentAccordion({ openSection, isSectionFilled, sect
                         <div className="bg-indigo-50/50 p-6 rounded-3xl border border-indigo-100 flex gap-4">
                             <ShieldCheck className="h-5 w-5 text-indigo-600 mt-1 shrink-0" />
                             <div>
-                                <h6 className="text-[11px] font-black text-indigo-900 uppercase tracking-widest mb-1">Teste de Sahrmann (Dominância Sinérgica)</h6>
+                                <h6 className="text-[11px] font-black text-indigo-900 uppercase tracking-widest mb-1">Teste de Dominância Muscular</h6>
                                 <p className="text-[10px] text-indigo-700 leading-relaxed font-bold opacity-80 uppercase tracking-tighter">
                                     Identifique padrões de compensação e dominância muscular durante a execução do movimento.
                                 </p>
@@ -635,7 +636,7 @@ export function MovementAssessmentAccordion({ openSection, isSectionFilled, sect
                                 className="h-16 border-2 border-dashed border-indigo-200 bg-indigo-50/20 text-indigo-600 rounded-[2.5rem] font-black text-xs space-x-2 hover:bg-indigo-50 hover:border-indigo-300 transition-all"
                             >
                                 <Plus className="h-4 w-4" />
-                                <span>ADICIONAR NOVA DOMINÂNCIA (SAHRMANN)</span>
+                                <span>ADICIONAR NOVA DOMINÂNCIA</span>
                             </Button>
                         </div>
                     </TabsContent>

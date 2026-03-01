@@ -140,7 +140,7 @@ export function InteractiveInominadoMap({
                 </div>
                 {debug && (
                     <div className="text-[8px] text-rose-400 font-bold uppercase mt-1">
-                        Modo Debug Ativo - Verifique os IDs passando o mouse
+                    
                     </div>
                 )}
             </div>

@@ -130,7 +130,7 @@ export function WomensHealthRichProtocol() {
                             { v: "physical", icon: ShieldCheck, label: "PERFECT" },
                             { v: "bladder", icon: Droplets, label: "Bexiga / Intestino" },
                             { v: "sexual", icon: Heart, label: "Sexual / Dor" },
-                            { v: "red_flags", icon: AlertTriangle, label: "Red Flags" },
+                            { v: "red_flags", icon: AlertTriangle, label: "Bandeiras Vermelhas" },
                         ].map(({ v, icon: Icon, label }) => (
                             <TabsTrigger
                                 key={v}
@@ -626,7 +626,7 @@ export function WomensHealthRichProtocol() {
                         <div className="flex items-center gap-4 bg-red-950 rounded-[2.5rem] p-6 text-white">
                             <AlertTriangle className="h-8 w-8 text-red-400 shrink-0" />
                             <div>
-                                <h4 className="font-black uppercase text-sm tracking-widest text-red-300">Sinais de Alerta — Red Flags</h4>
+                                <h4 className="font-black uppercase text-sm tracking-widest text-red-300">Sinais de Alerta — Bandeiras Vermelhas</h4>
                                 <p className="text-[10px] text-red-400/70 font-bold uppercase mt-0.5">Presença de qualquer item → encaminhamento médico imediato</p>
                             </div>
                         </div>

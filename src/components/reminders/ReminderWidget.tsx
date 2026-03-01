@@ -33,9 +33,10 @@ import {
 
 import { useSidebar } from '@/hooks/use-sidebar';
 
-export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { className?: string, iconClassName?: string }) {
+export function ReminderWidget({ className, isCollapsed: propIsCollapsed, iconClassName = "h-4 w-4" }: { className?: string, isCollapsed?: boolean, iconClassName?: string }) {
     const { slug } = useParams();
-    const { isCollapsed, setIsCollapsed } = useSidebar();
+    const { isCollapsed: sidebarCollapsed } = useSidebar();
+    const isCollapsed = propIsCollapsed !== undefined ? propIsCollapsed : sidebarCollapsed;
     const [reminders, setReminders] = useState<any[]>([]);
     const [professionals, setProfessionals] = useState<any[]>([]);
     const [selectedRecipient, setSelectedRecipient] = useState<string>('self');

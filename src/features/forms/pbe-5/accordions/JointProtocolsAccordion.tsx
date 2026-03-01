@@ -103,7 +103,7 @@ export function JointProtocolsAccordion({ openSection, isSectionFilled, sectionS
                         <Layers className="h-5 w-5 transition-colors group-hover:animate-bounce" />
                     </div>
                     <div>
-                        <span className={cn("font-black text-lg tracking-tight", openSection === 'protocols' ? "text-slate-900" : "text-slate-600")}>7. Protocolos Regionais (Específicos)</span>
+                        <span className={cn("font-black text-lg tracking-tight", openSection === 'protocols' ? "text-slate-900" : "text-slate-600")}>Protocolos Regionais (Específicos)</span>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Testes ortopédicos e funcionais por articulação</p>
                     </div>
                 </div>

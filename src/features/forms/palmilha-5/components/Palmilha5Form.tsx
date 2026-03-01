@@ -210,8 +210,8 @@ export default function Palmilha5Form({
                                 <SelectValue placeholder="Selecionar" />
                             </SelectTrigger>
                             <SelectContent className="z-[9999]">
-                                <SelectItem value="palmilha-5" className="font-bold text-blue-700">Palmilha 5.0 — Biomecânica</SelectItem>
-                                <SelectItem value={PBE5_ID || "pbe-5"} className="font-bold text-indigo-700">PBE 5.0 — Avaliação</SelectItem>
+                                <SelectItem value="palmilha-5" className="font-bold text-blue-700">Palmilha 5.0</SelectItem>
+                                <SelectItem value={PBE5_ID || "pbe-5"} className="font-bold text-indigo-700">PBE 5.0</SelectItem>
                                 {templates?.filter((t: any) =>
                                     t.id !== 'palmilha-5' &&
                                     t.id !== PBE5_ID &&

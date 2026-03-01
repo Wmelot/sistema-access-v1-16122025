@@ -73,15 +73,15 @@ const SECTION_STYLES: Record<string, { border: string, iconColor: string, bg: st
 };
 
 const ALL_MENU_SECTIONS = [
-    { id: 'anamnesis', label: 'Anamnese', desc: 'Queixa e Config', specialties: ['all'] },
-    { id: 'clinical', label: 'Histórico Clínico', desc: 'Saúde e Lifestyle', specialties: ['all'] },
+    { id: 'anamnesis', label: 'Anamnese', desc: 'Queixa Principal e História da Moléstia Atual', specialties: ['all'] },
+    { id: 'clinical', label: 'Histórico Clínico', desc: 'História Pregressa e Medicamentos', specialties: ['all'] },
 
     { id: 'metrics', label: 'Biofísica & Vitais', desc: 'Sinais Vitais', specialties: ['all'] },
 
-    { id: 'palpation', label: 'Palpação & Trigger Points', desc: 'Sensibilidade e Dor', specialties: ['ortopedia'] },
+    { id: 'palpation', label: 'Palpação e Trigger Points', desc: 'Sensibilidade e Dor', specialties: ['ortopedia'] },
     { id: 'movement', label: 'Avaliação Movimento', desc: 'ADM e McKenzie', specialties: ['ortopedia'] },
-    { id: 'strength', label: 'Dinamometria & Força', desc: 'Testes Lafayette/HHD', specialties: ['ortopedia'] },
-    { id: 'functionality', label: 'Funcionalidade & Conduta', desc: 'Escalas e Plano', specialties: ['all'] },
+    { id: 'strength', label: 'Dinamometria e Força', desc: 'Testes Lafayette/HHD', specialties: ['ortopedia'] },
+    { id: 'functionality', label: 'Funcionalidade e Conduta', desc: 'Escalas e Plano', specialties: ['all'] },
     { id: 'protocols', label: 'Protocolos Regionais', desc: 'Ortopedia Clássica', specialties: ['ortopedia'] },
 
     { id: 'neuropedia', label: 'Neuropediatria', desc: 'Neurodesenvolvimento', specialties: ['neuropediatria'] },
@@ -502,7 +502,35 @@ export default function PBE5Form({
                                         {nextSec ? (
                                             <Button
                                                 type="button"
-                                                onClick={() => setOpenSection(nextSec.id)}
+                                                onClick={() => {
+                                                    if (openSection === 'anamnesis') {
+                                                        const redFlags = form.getValues('clinical.redFlags') || {};
+                                                        const hasFlags = Object.values(redFlags).some(v => !!v);
+                                                        if (hasFlags) {
+                                                            import('sweetalert2').then((Swal) => {
+                                                                Swal.default.fire({
+                                                                    title: '⚠ ATENÇÃO: Bandeiras Vermelhas!',
+                                                                    text: 'Foram detectados sinais de alerta que podem indicar patologias graves. Recomendamos cautela extrema ou encaminhamento imediato.',
+                                                                    icon: 'warning',
+                                                                    showCancelButton: true,
+                                                                    confirmButtonText: 'Prosseguir mesmo assim',
+                                                                    cancelButtonText: 'Revisar Anamnese',
+                                                                    confirmButtonColor: '#e11d48',
+                                                                    cancelButtonColor: '#94a3b8',
+                                                                    customClass: {
+                                                                        popup: 'rounded-[1.5rem] border-none',
+                                                                        confirmButton: 'rounded-xl font-black uppercase tracking-widest text-[10px] px-6 py-3',
+                                                                        cancelButton: 'rounded-xl font-black uppercase tracking-widest text-[10px] px-6 py-3',
+                                                                    }
+                                                                }).then((res) => {
+                                                                    if (res.isConfirmed) setOpenSection(nextSec.id);
+                                                                });
+                                                            });
+                                                            return;
+                                                        }
+                                                    }
+                                                    setOpenSection(nextSec.id);
+                                                }}
                                                 className="h-12 rounded-2xl px-10 font-black text-[10px] uppercase tracking-widest bg-slate-900 text-white hover:scale-105 transition-all shadow-xl shadow-slate-200"
                                             >
                                                 <span className="opacity-50 mr-2 uppercase">Próximo:</span> {nextSec.label} <ChevronRight className="w-4 h-4 ml-2" />

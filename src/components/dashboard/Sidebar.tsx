@@ -165,9 +165,7 @@ export function SidebarContent({
                     <QuickAttendanceButton isCollapsed={isCollapsed} />
                     <DraftsModalButton isCollapsed={isCollapsed} />
 
-                    <div className="mt-4 px-2">
-                        <ReminderWidget />
-                    </div>
+                    <ReminderWidget isCollapsed={isCollapsed} />
                 </div>
 
                 {!isCollapsed && <div className="mx-6 my-2 border-t border-slate-100" />}

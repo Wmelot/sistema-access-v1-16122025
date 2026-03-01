@@ -137,8 +137,8 @@ export function MuscleStrengthAccordion({ openSection, isSectionFilled, sectionS
                         <Dumbbell className="h-5 w-5 transition-colors group-hover:animate-bounce" />
                     </div>
                     <div>
-                        <span className={cn("font-black text-lg tracking-tight", openSection === 'strength' ? "text-slate-900" : "text-slate-600")}>6. Dinamometria & Força Muscular</span>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Avaliação HHD (Lafayette) e Estabilização</p>
+                        <span className={cn("font-black text-lg tracking-tight", openSection === 'strength' ? "text-slate-900" : "text-slate-600")}>Dinamometria e Força Muscular</span>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Avaliação (Dinamômetro Manual) e Estabilização</p>
                     </div>
                 </div>
                 {isSectionFilled('strength') && (
@@ -158,9 +158,9 @@ export function MuscleStrengthAccordion({ openSection, isSectionFilled, sectionS
                         <div className="bg-orange-50/50 p-6 rounded-[2rem] border border-orange-100 flex gap-4 shadow-inner">
                             <Info className="h-5 w-5 text-orange-600 mt-1 shrink-0" />
                             <div>
-                                <h6 className="text-[11px] font-black text-orange-900 uppercase tracking-widest mb-1">Dinamometria HHD (Ref: Bohannon 1997)</h6>
+                                <h6 className="text-[11px] font-black text-orange-900 uppercase tracking-widest mb-1">Dinamometria (Referência: Bohannon, 1997)</h6>
                                 <p className="text-[10px] text-orange-700 leading-relaxed font-bold opacity-80 uppercase tracking-tighter">
-                                    Valores de referência calculados com base em Sexo ({patientGender === 'male' ? 'Masc' : 'Fem'}), Idade ({patientAge} anos) e Peso ({patientWeight}kg).
+                                    Valores de referência calculados com base em Sexo ({patientGender === 'male' ? 'Masculino' : 'Feminino'}), Idade ({patientAge} anos) e Peso ({patientWeight}kg).
                                     Assimetrias acima de <span className="text-rose-600">15%</span> são clinicamente relevantes.
                                 </p>
                             </div>
@@ -207,7 +207,7 @@ export function MuscleStrengthAccordion({ openSection, isSectionFilled, sectionS
                                                                     {muscle.label}
                                                                     {asymmetry !== null && asymmetry > 15 && (
                                                                         <Badge className="bg-rose-500 text-white border-none text-[8px] font-black h-4 px-1.5 rounded-full animate-pulse">
-                                                                            ⚠️ {asymmetry}% ASSIMETRIA
+                                                                            <AlertCircle className="h-2 w-2 mr-1" /> {asymmetry}% ASSIMETRIA
                                                                         </Badge>
                                                                     )}
                                                                 </span>

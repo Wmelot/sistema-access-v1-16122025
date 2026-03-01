@@ -44,7 +44,7 @@ const RED_FLAGS_DATA: Record<string, { id: string; label: string; alerts: string
     coluna_lombar: [
         {
             id: "cauda_equina",
-            label: "SÍNDROME DA CAUDA EQUINA (CES)",
+            label: "SÍNDROME DA CAUDA EQUINA",
             alerts: [
                 "Anestesia em sela (dormência perineal)",
                 "Disfunção vesical de início súbito (retenção/incontinência)",
@@ -60,7 +60,7 @@ const RED_FLAGS_DATA: Record<string, { id: string; label: string; alerts: string
             id: "lombar_malignancy",
             label: "SUSPEITA DE MALIGNIDADE",
             alerts: [
-                "Histórico prévio de câncer (Red flag mais consensual)",
+                "Histórico prévio de câncer (Bandeira Vermelha mais consensual)",
                 "Perda de peso inexplicada ou não intencional",
                 "Dor noturna (que aumenta ao deitar)",
                 "Dor contínua ao repouso",
@@ -68,7 +68,7 @@ const RED_FLAGS_DATA: Record<string, { id: string; label: string; alerts: string
                 "Idade > 50 anos (especialmente se dor severa inédita)",
                 "Falha na melhora após 4-6 semanas de tratamento",
                 "Velocidade de hemossedimentação (VHS) elevada",
-                "Malaise geral ou fadiga rápida",
+                "Mal-estar ou fadiga rápida e generalizada",
                 "Redução de apetite",
                 "Paraparesia ou sintomas progressivos",
                 "Febre"
@@ -82,10 +82,10 @@ const RED_FLAGS_DATA: Record<string, { id: string; label: string; alerts: string
                 "Trauma menor em idosos (tossir, levantar peso leve)",
                 "Uso prolongado de corticosteroides/imunossupressores",
                 "Histórico de Osteoporose",
-                "Idade avançada (Cut-off graduado: >50, >60 ou >70 anos)",
+                "Idade avançada (>50, >60 ou >70 anos)",
                 "Gênero feminino (fraturas osteoporóticas)",
                 "Início súbito de dor severa",
-                "Dor ao carregar peso (loading pain)",
+                "Dor ao carregar peso",
                 "Deformidade estrutural ou aumento da cifose torácica",
                 "Contusão ou abrasão local",
                 "Baixo peso corporal"
@@ -101,7 +101,7 @@ const RED_FLAGS_DATA: Record<string, { id: string; label: string; alerts: string
                 "Imunodeficiência, HIV ou AIDS",
                 "Infecção urinária recente ou recorrente",
                 "Cirurgia de coluna ou infiltração espinal recente",
-                "Dor com recrudescência noturna ou em repouso",
+                "Dor com maior intensidade a noite ou em repouso",
                 "Sensibilidade óssea sobre o processo espinhoso",
                 "Ferida penetrante próxima à coluna"
             ]
@@ -111,7 +111,7 @@ const RED_FLAGS_DATA: Record<string, { id: string; label: string; alerts: string
             label: "ESPONDILOARTROPATIAS INFLAMATÓRIA",
             alerts: [
                 "Idade de início < 20 ou < 45 anos",
-                "Rigidez matinal > 30-60 min",
+                "Rigidez matinal > 30-60 minutos",
                 "Melhora com exercício e sem alívio com repouso",
                 "Dor que desperta o paciente à noite",
                 "Histórico familiar de espondiloartrite",
@@ -123,7 +123,7 @@ const RED_FLAGS_DATA: Record<string, { id: string; label: string; alerts: string
             label: "OUTRAS PATOLOGIAS ESPINAIS",
             alerts: [
                 "Aneurisma de aorta: Massa abdominal pulsante, idade > 60 anos, aterosclerose",
-                "Mielopatia: Sinal de Babinski ou clônus sustentado, fraqueza do neurônio motor superior",
+                "Mielopatia: Sinal de Babinski ou clônus sustentado, lesão do neurônio motor superior",
                 "Espondilolistese severa: Desalinhamento palpável dos processos espinhosos (L4-L5)"
             ]
         }
@@ -131,8 +131,8 @@ const RED_FLAGS_DATA: Record<string, { id: string; label: string; alerts: string
     coluna_cervical: [
         {
             id: "ivb_cervical",
-            label: "Insuficiência Vertebrobasilar (IVB)",
-            alerts: ["Diplopia", "Dizziness", "Drop attacks", "Dysarthria", "Dysphagia", "Nausea", "Numbness", "Nystagmus"]
+            label: "Insuficiência Vertebrobasilar",
+            alerts: ["Diplopia", "Vertigem", "Crises de queda súbitas", "Disartria", "Disfagia", "Nausea", "Parestesia", "Nistagmo"]
         },
         {
             id: "myelopathy_cervical",
@@ -157,14 +157,14 @@ const RED_FLAGS_DATA: Record<string, { id: string; label: string; alerts: string
         {
             id: "cervical_infection",
             label: "Suspeita de Infecção",
-            alerts: ["Febre / Calafrios", "Histórico de cirurgia recente", "Uso de drogas IV", "Malaise generalizado"]
+            alerts: ["Febre / Calafrios", "Histórico de cirurgia recente", "Uso de drogas IV", "Mal-estar generalizado"]
         },
     ],
     ombro: [
         {
             id: "shoulder_infarction",
             label: "Dor Referida Visceral (Cardíaca)",
-            alerts: ["Dor em ombro E associada a aperto no peito", "Dor desproporcional ao esforço", "Sudorese fria"]
+            alerts: ["Dor em ombro Esquerdo associada a aperto no peito", "Dor desproporcional ao esforço", "Sudorese fria"]
         },
         {
             id: "shoulder_septic_arthritis",
@@ -334,7 +334,7 @@ export function AnamnesisAccordion({ openSection, isSectionFilled, sectionStyle 
                         <Activity className="h-5 w-5 transition-colors group-hover:animate-bounce" />
                     </div>
                     <div>
-                        <span className={cn("font-black text-lg tracking-tight", openSection === 'anamnesis' ? "text-slate-900" : "text-slate-600")}>1. Anamnese e Queixa Principal</span>
+                        <span className={cn("font-black text-lg tracking-tight", openSection === 'anamnesis' ? "text-slate-900" : "text-slate-600")}>Anamnese e Queixa Principal</span>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Motivo da consulta e histórico atual</p>
                     </div>
                 </div>
@@ -356,7 +356,7 @@ export function AnamnesisAccordion({ openSection, isSectionFilled, sectionStyle 
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2 mb-1 px-1">
                                     <Settings2 className="w-4 h-4 text-blue-500" />
-                                    <FormLabel className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Área de Atuação Clínica</FormLabel>
+                                    <FormLabel className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Especialidade Clínica</FormLabel>
                                 </div>
                                 <Controller
                                     name="clinical.specialty"
@@ -365,7 +365,7 @@ export function AnamnesisAccordion({ openSection, isSectionFilled, sectionStyle 
                                     render={({ field }) => (
                                         <Select onValueChange={field.onChange} value={field.value}>
                                             <SelectTrigger className="h-14 rounded-2xl border-slate-200 bg-white font-bold text-sm shadow-sm">
-                                                <SelectValue placeholder="Selecione a área clínica..." />
+                                                <SelectValue placeholder="Selecione a especialidade..." />
                                             </SelectTrigger>
                                             <SelectContent className="z-[500]">
                                                 {SPECIALTY_OPTIONS.map(opt => (
@@ -449,7 +449,7 @@ export function AnamnesisAccordion({ openSection, isSectionFilled, sectionStyle 
                             </div>
 
                             <div className="space-y-2">
-                                <FormLabel className="text-[11px] font-black text-slate-400 uppercase tracking-tighter ml-1">HMA (História da Moléstia Atual)</FormLabel>
+                                <FormLabel className="text-[11px] font-black text-slate-400 uppercase tracking-tighter ml-1">História da Moléstia Atual (HMA)</FormLabel>
                                 <Textarea
                                     {...register('anamnesis.hma')}
                                     placeholder={hmaPlaceholder}
@@ -565,7 +565,7 @@ export function AnamnesisAccordion({ openSection, isSectionFilled, sectionStyle 
                             <div className="flex items-center gap-3">
                                 <AlertTriangle className="h-5 w-5 text-rose-600 animate-pulse" />
                                 <div>
-                                    <h4 className="font-black text-rose-900 uppercase text-[10px] tracking-widest leading-none mb-1">Trigger de Alerta: Red Flags</h4>
+                                    <h4 className="font-black text-rose-900 uppercase text-[10px] tracking-widest leading-none mb-1">Sinais de Alerta: Bandeiras Vermelhas</h4>
                                     <p className="text-[9px] font-bold text-rose-400 uppercase tracking-tighter">Sinais e Sintomas de Alerta para Patologias Graves</p>
                                 </div>
                             </div>
@@ -596,7 +596,7 @@ export function AnamnesisAccordion({ openSection, isSectionFilled, sectionStyle 
                                                         </div>
                                                         <h5 className={cn(
                                                             "font-black text-[11px] uppercase tracking-widest leading-none pt-1 transition-colors",
-                                                            isMainActive ? "text-rose-900" : "text-slate-600"
+                                                            isMainActive ? "text-rose-900" : "text-slate-800"
                                                         )}>
                                                             {flag.label}
                                                         </h5>
@@ -668,7 +668,7 @@ export function AnamnesisAccordion({ openSection, isSectionFilled, sectionStyle 
                                                                 />
                                                                 <span className={cn(
                                                                     "text-[10px] font-bold uppercase tracking-tight leading-snug transition-colors",
-                                                                    watch(fieldName) ? "text-rose-900" : "text-slate-400"
+                                                                    watch(fieldName) ? "text-rose-900" : "text-slate-700"
                                                                 )}>
                                                                     {alert}
                                                                 </span>
@@ -689,14 +689,14 @@ export function AnamnesisAccordion({ openSection, isSectionFilled, sectionStyle 
                                     <div className="space-y-1.5">
                                         <h6 className="text-[10px] font-black text-amber-900 uppercase tracking-widest">Atenção a Falsos Positivos</h6>
                                         <p className="text-[9px] font-bold text-amber-700 leading-relaxed uppercase tracking-tighter">
-                                            Até 80% dos pacientes na atenção primária podem apresentar pelo menos uma Red Flag, mesmo sem patologia séria. Evite exames desnecessários sem combinação de sinais claros.
+                                            Até 80% dos pacientes na atenção primária podem apresentar pelo menos uma Bandeira Vermelha, mesmo sem patologia séria. Evite exames desnecessários sem combinação de sinais claros.
                                         </p>
                                     </div>
                                 </div>
                                 <div className="p-5 bg-indigo-50/50 rounded-3xl border border-indigo-100 flex gap-4 transition-all hover:bg-indigo-50 group">
                                     <AlertCircle className="h-5 w-5 text-indigo-500 shrink-0 mt-1" />
                                     <div className="space-y-1.5">
-                                        <h6 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">Cluster de Sinais (Combinação)</h6>
+                                        <h6 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">Combinação de Sinais</h6>
                                         <p className="text-[9px] font-bold text-indigo-700 leading-relaxed uppercase tracking-tighter">
                                             O diagnóstico é mais preciso quando os sinais são combinados (ex: Presença de 3 fatores para Fratura, como Idade {'>'} 70 + Gênero Feminino + Trauma, aumenta probabilidade para 90%).
                                         </p>

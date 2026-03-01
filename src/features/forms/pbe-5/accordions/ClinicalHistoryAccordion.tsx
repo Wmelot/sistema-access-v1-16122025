@@ -134,9 +134,9 @@ export function ClinicalHistoryAccordion({ openSection, isSectionFilled, section
     const comorbidities = watch('clinical.comorbidities') || [];
 
     const COMORBIDITIES_LIST = [
-        'HAS', 'Diabetes', 'Cardiopatia', 'D. Reumáticas',
-        'D. Respiratórias', 'D. Vasculares', 'D. Tiroideanas',
-        'Obesidade', 'Dislipidemia', 'Tabagismo', 'Etilismo', 'Ansiedade/Depressão'
+        'Hipertensão Arterial Sistêmica (HAS)', 'Diabetes Mellitus', 'Cardiopatia', 'Distúrbios Reumáticos',
+        'Distúrbios Respiratórios', 'Distúrbios Vasculares', 'Distúrbios Tireoidianos',
+        'Obesidade', 'Dislipidemia', 'Tabagismo', 'Etilismo', 'Ansiedade e/ou Depressão'
     ];
 
     return (
@@ -155,8 +155,8 @@ export function ClinicalHistoryAccordion({ openSection, isSectionFilled, section
                         <Stethoscope className="h-5 w-5 transition-colors group-hover:animate-bounce" />
                     </div>
                     <div>
-                        <span className={cn("font-black text-lg tracking-tight", openSection === 'clinical' ? "text-slate-900" : "text-slate-600")}>2. Histórico Clínico & Estilo de Vida</span>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Comorbidades, medicamentos e hábitos</p>
+                        <span className={cn("font-black text-lg tracking-tight", openSection === 'clinical' ? "text-slate-900" : "text-slate-600")}>Histórico Clínico e Estilo de Vida</span>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Comorbidades, medicamentos e hábitos sociais</p>
                     </div>
                 </div>
                 {isSectionFilled('clinical') && (
@@ -180,7 +180,7 @@ export function ClinicalHistoryAccordion({ openSection, isSectionFilled, section
                                         "flex items-center gap-2 p-2.5 rounded-xl border transition-all cursor-pointer select-none",
                                         comorbidities.includes(c)
                                             ? "bg-white border-indigo-200 text-indigo-700 shadow-sm ring-2 ring-indigo-500/5"
-                                            : "bg-white/50 border-slate-100 text-slate-400 opacity-70 hover:opacity-100 hover:border-indigo-100"
+                                            : "bg-white border-slate-100 text-slate-900 hover:border-indigo-100"
                                     )}
                                     onClick={() => {
                                         const next = comorbidities.includes(c)
@@ -194,7 +194,7 @@ export function ClinicalHistoryAccordion({ openSection, isSectionFilled, section
                                         onCheckedChange={() => { }} // Controlled by div click
                                         className="rounded-md border-indigo-200 h-4 w-4"
                                     />
-                                    <span className="text-[10px] font-bold leading-tight">{c}</span>
+                                    <span className="text-[11px] font-black leading-tight">{c}</span>
                                 </div>
                             ))}
                         </div>
@@ -241,6 +241,17 @@ export function ClinicalHistoryAccordion({ openSection, isSectionFilled, section
                                                 className="h-10 rounded-xl bg-white border-slate-200 font-bold text-center text-xs"
                                             />
                                         </div>
+                                        <div className="pt-4">
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => removeMed(index)}
+                                                className="h-8 w-8 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
 
                                     <div className="mt-2 pl-3 border-l-2 border-indigo-100">
@@ -251,15 +262,6 @@ export function ClinicalHistoryAccordion({ openSection, isSectionFilled, section
                                         />
                                     </div>
 
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => removeMed(index)}
-                                        className="h-7 w-7 text-slate-200 hover:text-red-500 absolute top-2 right-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
                                 </div>
                             )) : (
                                 <div className="p-10 border-2 border-dashed border-slate-100 rounded-[2rem] text-center bg-white/30 backdrop-blur-sm">
@@ -302,7 +304,7 @@ export function ClinicalHistoryAccordion({ openSection, isSectionFilled, section
                                                             : "text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/50"
                                                     )}
                                                 >
-                                                    {s === 'bad' ? 'Ruim' : s === 'regular' ? 'Ok' : 'Bom'}
+                                                    {s === 'bad' ? 'Ruim' : s === 'regular' ? 'Regular' : 'Bom'}
                                                 </button>
                                             ))}
                                         </div>
@@ -314,9 +316,9 @@ export function ClinicalHistoryAccordion({ openSection, isSectionFilled, section
                                             className="w-full h-11 bg-white border border-slate-200 rounded-2xl px-4 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
                                         >
                                             <option value="sedentary">Sedentário</option>
-                                            <option value="light">Leve (1-2x/sem)</option>
-                                            <option value="moderate">Moderado (3-4x/sem)</option>
-                                            <option value="vigorous">Vigoroso (5x+/sem)</option>
+                                            <option value="light">Leve (1-2x por semana)</option>
+                                            <option value="moderate">Moderado (3-4x por semana)</option>
+                                            <option value="vigorous">Vigoroso (5x ou mais por semana)</option>
                                         </select>
                                     </div>
                                 </div>
@@ -325,7 +327,7 @@ export function ClinicalHistoryAccordion({ openSection, isSectionFilled, section
                             <div className="space-y-6">
                                 <div className="flex items-center gap-3">
                                     <div className="w-1 h-5 bg-indigo-600 rounded-full" />
-                                    <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Expectativas & Metas</h4>
+                                    <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Expectativas e Metas</h4>
                                 </div>
                                 <div className="space-y-4">
                                     <Textarea
@@ -335,7 +337,7 @@ export function ClinicalHistoryAccordion({ openSection, isSectionFilled, section
                                     />
                                     <div className="p-4 bg-white/80 border border-indigo-100 rounded-2xl flex gap-3 text-[10px] text-indigo-700 font-black uppercase tracking-tight leading-relaxed">
                                         <Target className="h-4 w-4 shrink-0 text-indigo-400" />
-                                        <span>Metas claras aumentam a aderência em até 40%.</span>
+                                        <span>Metas claras aumentam a aderência ao programa de tratamento em até 40%.</span>
                                     </div>
                                 </div>
                             </div>
@@ -343,6 +345,6 @@ export function ClinicalHistoryAccordion({ openSection, isSectionFilled, section
                     </div>
                 </div>
             </AccordionContent>
-        </AccordionItem>
+        </AccordionItem >
     );
 }

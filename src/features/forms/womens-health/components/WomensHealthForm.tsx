@@ -224,7 +224,7 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly, hid
                             <div className={cn("rounded-lg border p-4 transition-all", hasRedFlags ? "border-l-4 border-red-500 bg-red-50/40 border-red-200" : "border-slate-200 bg-slate-50/50")}>
                                 <div className={cn("flex items-center gap-2 text-sm font-bold mb-3 uppercase tracking-wider", hasRedFlags ? "text-red-700" : "text-slate-500")}>
                                     <AlertTriangle className="w-4 h-4" />
-                                    Triagem Gestante (Red Flags)
+                                    Triagem Gestante (Bandeiras Vermelhas)
                                 </div>
                                 <div className="grid md:grid-cols-2 gap-3">
                                     {[

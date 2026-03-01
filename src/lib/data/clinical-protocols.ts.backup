@@ -15,7 +15,7 @@ export const CLINICAL_PROTOCOLS = [
                 "doi_link": "https://www.jospt.org/doi/10.2519/jospt.2021.0304",
                 "resumo_educativo": "Recomenda fortemente o uso de exercício terapêutico, terapia cognitivo-funcional e educação em dor. Desencoraja repouso no leito, uso isolado de modalidades passivas e imagem de rotina sem sinais de alerta.",
                 "pontos_chave": [
-                    "Imagem apenas se houver suspeita de patologia grave (Red Flags)",
+                    "Imagem apenas se houver suspeita de patologia grave (Bandeiras Vermelhas)",
                     "A Terapia Manual deve ser usada apenas como coadjuvante ao exercício",
                     "Fatores psicossociais são os maiores preditores de cronificação"
                 ]

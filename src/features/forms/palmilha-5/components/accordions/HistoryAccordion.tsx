@@ -147,7 +147,7 @@ export function HistoryAccordion({ openSection, isSectionFilled, sectionStyle }:
                 <div className="space-y-3">
                     <FormLabel>Comorbilidades</FormLabel>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        {['Cardiopatia', 'Diabetes', 'D. Metabólicas', 'D. Reumáticas', 'D. Tiroideanas', 'D. Vasculares', 'Dislipidemia', 'Etilismo', 'HAS', 'Obesidade', 'Osteoporose', 'Tabagismo'].map(c => (
+                        {['Cardiopatia', 'Diabetes Mellitus', 'Distúrbios Metabólicos', 'Distúrbios Reumáticos', 'Distúrbios Tireoidianos', 'Distúrbios Vasculares', 'Dislipidemia', 'Etilismo', 'Hipertensão Arterial', 'Obesidade', 'Osteoporose', 'Tabagismo'].map(c => (
                             <div key={c} className="flex items-center gap-2">
                                 <Checkbox onCheckedChange={(checked) => {
                                     const current = form.getValues("history.comorbidities") || [];

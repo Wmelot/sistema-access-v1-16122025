@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import {
     UserCheck, Accessibility, Activity, Zap, Ruler,
     ShieldCheck, AlertTriangle, CheckCircle2, Info,
-    Thermometer, Dumbbell, Move
+    Thermometer, Dumbbell, Move, Fingerprint
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { InteractiveDermatomeMap } from "../../components/neurological/InteractiveDermatomeMap";
@@ -101,14 +101,14 @@ export function LumbarRichProtocol() {
             <Tabs defaultValue="standing" className="w-full">
                 <div className="flex justify-center mb-8">
                     <TabsList className="bg-slate-100/50 p-1.5 rounded-2xl h-auto border border-slate-100 shadow-inner">
-                        <TabsTrigger value="standing" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">
-                            🧍 Em Pé
+                        <TabsTrigger value="standing" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all gap-2">
+                            <Accessibility className="h-4 w-4" /> Em Pé
                         </TabsTrigger>
-                        <TabsTrigger value="sitting" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">
-                            🪑 Sentado
+                        <TabsTrigger value="sitting" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all gap-2">
+                            <UserCheck className="h-4 w-4" /> Sentado
                         </TabsTrigger>
-                        <TabsTrigger value="lying" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">
-                            🛌 Deitado
+                        <TabsTrigger value="lying" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all gap-2">
+                            <Move className="h-4 w-4" /> Deitado
                         </TabsTrigger>
                     </TabsList>
                 </div>
@@ -124,7 +124,7 @@ export function LumbarRichProtocol() {
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {['Vista Anterior', 'Vista Posterior', 'Vista Lateral D', 'Vista Lateral E'].map((view) => (
+                            {['Vista Anterior', 'Vista Posterior', 'Vista Lateral Direita', 'Vista Lateral Esquerda'].map((view) => (
                                 <div key={view} className="aspect-[3/4] bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:bg-purple-50 hover:border-purple-300 transition-all group relative overflow-hidden shadow-sm">
                                     <div className="absolute inset-0 opacity-5 pointer-events-none bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:16px_16px]"></div>
                                     <div className="p-3 bg-white rounded-2xl shadow-sm text-slate-300 group-hover:text-purple-500 transition-colors mb-4">
@@ -141,7 +141,7 @@ export function LumbarRichProtocol() {
                     <div className="space-y-6 pt-6 border-t border-slate-50">
                         <div className="flex items-center gap-3 ml-2">
                             <div className="h-2 w-2 rounded-full bg-purple-600" />
-                            <h5 className="font-black text-slate-700 uppercase text-[11px] tracking-widest">Testes Funcionais & Marcha</h5>
+                            <h5 className="font-black text-slate-700 uppercase text-[11px] tracking-widest">Testes Funcionais e Análise de Marcha</h5>
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-4">
@@ -332,7 +332,9 @@ export function LumbarRichProtocol() {
                         {/* DERMÁTOMOS */}
                         <div className="space-y-6">
                             <div className="flex items-center gap-3 ml-2">
-                                <div className="h-8 w-8 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600 shadow-sm border border-purple-200">✋</div>
+                                <div className="h-8 w-8 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600 shadow-sm border border-purple-200">
+                                    <Fingerprint className="h-5 w-5" />
+                                </div>
                                 <h5 className="font-black text-slate-700 uppercase text-[11px] tracking-widest">Dermátomos (Sensibilidade)</h5>
                             </div>
 

@@ -42,7 +42,7 @@ export function WomensHealthSidePanel() {
                         <div className="bg-red-100 text-red-700 p-3 rounded-md border border-red-200 flex items-start gap-2">
                             <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
                             <div>
-                                <h4 className="font-bold text-xs uppercase mb-1">Atenção: Red Flags</h4>
+                                <h4 className="font-bold text-xs uppercase mb-1">Atenção: Bandeiras Vermelhas</h4>
                                 <p className="text-[11px] leading-tight">Sinais de alerta identificados. Requer avaliação médica imediata ou cautela.</p>
                             </div>
                         </div>

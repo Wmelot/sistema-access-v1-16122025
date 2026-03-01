@@ -17,7 +17,7 @@ export const RedFlagsSection = () => {
         <div className="space-y-4">
             <h3 className="font-semibold text-lg text-red-800 border-b border-red-200 pb-2 flex items-center gap-2">
                 <AlertCircle className="h-5 w-5" />
-                Sinais de Alerta (Red Flags)
+                Sinais de Alerta (Bandeiras Vermelhas)
             </h3>
 
             <div className="bg-red-50 p-4 rounded-lg border border-red-100 grid grid-cols-1 md:grid-cols-2 gap-4">

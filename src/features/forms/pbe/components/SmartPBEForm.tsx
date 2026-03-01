@@ -574,7 +574,7 @@ export default function SmartPBEForm({ patientId, initialData, readOnly, onSave,
                         <AccordionTrigger className="px-6 py-5 hover:no-underline flex gap-2 items-center text-left group">
                             <div className="flex items-center gap-3 flex-1">
                                 <Activity className={cn("h-5 w-5 transition-colors group-hover:animate-bounce", openSection === 'anamnese' ? "text-blue-600" : "text-slate-400 group-hover:text-blue-500")} />
-                                <span className={cn("font-bold text-base tracking-tight", openSection === 'anamnese' ? "text-blue-950" : "text-slate-600")}>1. Anamnese e Queixa Principal</span>
+                                <span className={cn("font-bold text-base tracking-tight", openSection === 'anamnese' ? "text-blue-950" : "text-slate-600")}>Anamnese e Queixa Principal</span>
                             </div>
                             {isSectionFilled('anamnese') && (
                                 <Badge variant="outline" className="bg-blue-100 text-blue-700 border-none text-[10px] h-5 mr-4 font-black">PREENCHIDO</Badge>
@@ -835,8 +835,8 @@ export default function SmartPBEForm({ patientId, initialData, readOnly, onSave,
                                                 <FormControl>
                                                     <select {...field} className="h-11 w-full bg-slate-50 border rounded-xl px-3 font-medium text-slate-700 border-slate-200 focus:ring-2 focus:ring-indigo-500">
                                                         <option value="sedentary">Sedentário</option>
-                                                        <option value="active">Ativo (1-2x/sem)</option>
-                                                        <option value="very_active">Atleta (3x+/sem)</option>
+                                                        <option value="active">Ativo (1-2x por semana)</option>
+                                                        <option value="very_active">Atleta (3x+ por semana)</option>
                                                     </select>
                                                 </FormControl>
                                             </FormItem>

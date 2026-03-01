@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Zap, Activity, ShieldCheck, AlertTriangle,
-    CheckCircle2, Info, Move, Ruler, Dumbbell, Flame
+    CheckCircle2, Info, Move, Ruler, Dumbbell, Flame, FlaskConical
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { checkStatus } from "@/utils/clinical-references";
@@ -73,11 +73,11 @@ export function KneeRichProtocol() {
             <Tabs defaultValue="tests" className="w-full">
                 <div className="flex justify-center mb-8">
                     <TabsList className="bg-slate-100/50 p-1.5 rounded-2xl h-auto border border-slate-100 shadow-inner">
-                        <TabsTrigger value="tests" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">
-                            🧪 Testes Especiais
+                        <TabsTrigger value="tests" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all gap-2">
+                            <FlaskConical className="h-4 w-4" /> Testes Especiais
                         </TabsTrigger>
-                        <TabsTrigger value="functional" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">
-                            🏃 Funcional
+                        <TabsTrigger value="functional" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all gap-2">
+                            <Activity className="h-4 w-4" /> Funcional
                         </TabsTrigger>
                     </TabsList>
                 </div>

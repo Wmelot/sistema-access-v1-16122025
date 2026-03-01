@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Zap, Activity, ShieldCheck, AlertTriangle,
-    CheckCircle2, Info, Move, Ruler
+    CheckCircle2, Info, Move, Ruler, FlaskConical, Target
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { InteractiveDermatomeMap } from "../../components/neurological/InteractiveDermatomeMap";
@@ -28,14 +28,14 @@ export function CervicalRichProtocol() {
             <Tabs defaultValue="tests" className="w-full">
                 <div className="flex justify-center mb-8">
                     <TabsList className="bg-slate-100/50 p-1.5 rounded-2xl h-auto border border-slate-100 shadow-inner">
-                        <TabsTrigger value="tests" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">
-                            🧪 Testes Especiais
+                        <TabsTrigger value="tests" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all gap-2">
+                            <FlaskConical className="h-4 w-4" /> Testes Especiais
                         </TabsTrigger>
-                        <TabsTrigger value="neuro" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">
-                            🧠 Neurológico
+                        <TabsTrigger value="neuro" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all gap-2">
+                            <Zap className="h-4 w-4" /> Neurológico
                         </TabsTrigger>
-                        <TabsTrigger value="control" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">
-                            🎯 Controle Motor
+                        <TabsTrigger value="control" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all gap-2">
+                            <Target className="h-4 w-4" /> Controle Motor
                         </TabsTrigger>
                     </TabsList>
                 </div>

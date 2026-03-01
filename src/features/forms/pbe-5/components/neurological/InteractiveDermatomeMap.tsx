@@ -122,7 +122,7 @@ export function InteractiveDermatomeMap({
                 </div>
                 {debug && (
                     <div className="text-[8px] text-rose-400 font-bold uppercase mt-1">
-                        Modo Debug Ativo
+                        
                     </div>
                 )}
             </div>

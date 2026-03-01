@@ -243,7 +243,7 @@ export function FunctionalAccordion({ openSection, isSectionFilled, sectionStyle
                 <div className="flex items-center gap-4 flex-1">
                     <PencilRuler className="h-5 w-5 transition-colors group-hover:animate-bounce" />
                     <div>
-                        <span className={cn("font-black text-lg tracking-tight", openSection === 'functionality' ? "text-slate-900" : "text-slate-600")}>4. Funcionalidade & Escalas</span>
+                        <span className={cn("font-black text-lg tracking-tight", openSection === 'functionality' ? "text-slate-900" : "text-slate-600")}>Funcionalidade e Escalas</span>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">EFEP, Questionários Regionais e Follow-up</p>
                     </div>
                 </div>
@@ -408,14 +408,14 @@ export function FunctionalAccordion({ openSection, isSectionFilled, sectionStyle
 
                             <div className="space-y-4 relative z-10">
                                 <div className="space-y-2">
-                                    <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest block ml-1">Régua de Reavaliação</span>
+                                    <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest block ml-1">Prazos de envio das Reavaliações</span>
                                     <div className="flex flex-wrap gap-2">
                                         {[
-                                            { l: "15d", v: "15" },
-                                            { l: "30d", v: "30" },
-                                            { l: "45d", v: "45" },
-                                            { l: "60d", v: "60" },
-                                            { l: "90d", v: "90" }
+                                            { l: "15 DIAS", v: "15" },
+                                            { l: "30 DIAS", v: "30" },
+                                            { l: "45 DIAS", v: "45" },
+                                            { l: "60 DIAS", v: "60" },
+                                            { l: "90 DIAS", v: "90" }
                                         ].map((opt) => {
                                             const isChecked = followUpDays.includes(opt.v);
                                             return (
@@ -467,8 +467,8 @@ export function FunctionalAccordion({ openSection, isSectionFilled, sectionStyle
                                                 <SelectValue placeholder="Selecione o canal..." />
                                             </SelectTrigger>
                                             <SelectContent className="z-[500]">
-                                                <SelectItem value="whatsapp" className="text-[10px] font-bold py-2">WhatsApp Automático</SelectItem>
-                                                <SelectItem value="email" className="text-[10px] font-bold py-2">E-mail Profissional</SelectItem>
+                                                <SelectItem value="whatsapp" className="text-[10px] font-bold py-2">WhatsApp</SelectItem>
+                                                <SelectItem value="email" className="text-[10px] font-bold py-2">E-mail</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter px-1 mt-1 leading-tight opacity-70">

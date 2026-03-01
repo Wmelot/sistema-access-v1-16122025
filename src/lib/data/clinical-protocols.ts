@@ -81,7 +81,7 @@ export const CLINICAL_PROTOCOLS = [
         "resumo_clinico": "Condição complexa e multifatorial (>12 semanas). A persistência da dor está mais ligada à sensibilização do sistema nervoso central e fatores biopsicossociais do que a danos estruturais detectáveis por imagem.",
         "diagnostico": {
             "testes_recomendados": [
-                "Triagem de 'Red Flags' (Cauda Equina, Fratura, Neoplasia): IFOMPT Framework",
+                "Triagem de 'Bandeiras Vermelhas' (Cauda Equina, Fratura, Neoplasia): IFOMPT Framework",
                 "Straight Leg Raise (SLR): Alta sensibilidade (91%) para excluir compressão radicular",
                 "Slump Test: Alta especificidade (83%) para tensão neural",
                 "Prone Instability Test: Para identificar subgrupo de estabilização"
@@ -102,7 +102,7 @@ export const CLINICAL_PROTOCOLS = [
             ],
             "expectativa_recuperacao": "A dor lombar crônica tende a flutuar. O objetivo é a gestão da carga e função. Reduções de 30% na dor são consideradas sucesso clínico moderado."
         },
-        "contraindicacoes": "EVITAR: Repouso no leito > 48h (Grau A), uso de órteses lombares de rotina, e exames de imagem rotineiros em ausência de Red Flags (Iatrogenia diagnóstica).",
+        "contraindicacoes": "EVITAR: Repouso no leito > 48h (Grau A), uso de órteses lombares de rotina, e exames de imagem rotineiros em ausência de Bandeiras Vermelhas (Iatrogenia diagnóstica).",
         "intervencoes": [
             {
                 "categoria": "Exercício Terapêutico",
@@ -1707,7 +1707,7 @@ export const CLINICAL_PROTOCOLS = [
                 "ano": "2020",
                 "nota_qualidade": "Padrão Ouro Internacional",
                 "doi_link": "https://www.jospt.org/doi/10.2519/jospt.2020.9971",
-                "resumo_educativo": "As Red Flags são sinais de alerta para patologias graves como Síndrome da Cauda Equina, Fraturas, Tumores e Infecções. O framework da IFOMPT foca na 'tomada de decisão clínica' e não apenas em uma lista isolada de sintomas.",
+                "resumo_educativo": "As Bandeiras Vermelhas são sinais de alerta para patologias graves como Síndrome da Cauda Equina, Fraturas, Tumores e Infecções. O framework da IFOMPT foca na 'tomada de decisão clínica' e não apenas em uma lista isolada de sintomas.",
                 "pontos_chave": [
                     "Determinar o nível de preocupação (Baixo, Médio, Alto)",
                     "Urgência da referência médica conforme a gravidade",
@@ -1734,7 +1734,7 @@ export const CLINICAL_PROTOCOLS = [
             {
                 "categoria": "Triagem (Prioridade 1)",
                 "nivel_evidencia": "Nível A",
-                "tipo": "Triagem de Red Flags Espinhais e Periféricas",
+                "tipo": "Triagem de Bandeiras Vermelhas (Espinhais e Periféricas)",
                 "descricao": "Identificação de sinais de alerta para patologias orgânicas graves em qualquer articulação.",
                 "conduta_sugerida": "Espinhal: Síndrome da Cauda Equina (incontinência, anestesia em sela). Periférica: Artrite Séptica (dor monoarticular aguda, febre, calor local excessivo), Fraturas (trauma grave, incapacidade de carga - Ottawa Rules), Malignidade (histórico de câncer, dor noturna incessante, perda de peso).",
                 "prognostico": "Referência imediata para evitar danos irreversíveis ou risco de vida."

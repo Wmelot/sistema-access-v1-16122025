@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
     Activity, Zap, ShieldCheck, AlertTriangle,
-    CheckCircle2, Info, Move, Ruler, Dumbbell, Flame
+    CheckCircle2, Info, Move, Ruler, Dumbbell, Flame, FlaskConical
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,14 +26,14 @@ export function AtmRichProtocol() {
             <Tabs defaultValue="mobility" className="w-full">
                 <div className="flex justify-center mb-8">
                     <TabsList className="bg-slate-100/50 p-1.5 rounded-2xl h-auto border border-slate-100 shadow-inner">
-                        <TabsTrigger value="mobility" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">
-                            📏 Mobilidade & ADM
+                        <TabsTrigger value="mobility" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all gap-2">
+                            <Ruler className="h-4 w-4" /> Mobilidade & ADM
                         </TabsTrigger>
-                        <TabsTrigger value="special" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">
-                            🧪 Testes (Magee)
+                        <TabsTrigger value="special" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all gap-2">
+                            <FlaskConical className="h-4 w-4" /> Testes (Magee)
                         </TabsTrigger>
-                        <TabsTrigger value="mckenzie" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">
-                            🧠 MDT (McKenzie)
+                        <TabsTrigger value="mckenzie" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all gap-2">
+                            <Zap className="h-4 w-4" /> MDT (McKenzie)
                         </TabsTrigger>
                     </TabsList>
                 </div>
