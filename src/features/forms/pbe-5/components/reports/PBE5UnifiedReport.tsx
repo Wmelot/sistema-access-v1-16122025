@@ -1,17 +1,17 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useMemo, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
     Printer, Brain, Briefcase, Heart, User, Calendar,
     Landmark, ShieldCheck, PenTool, Activity, Scale,
     Thermometer, Wind, Zap, CheckCircle2, AlertTriangle,
-    Target, Clock, Timer, MessageSquare, UserCheck, Dumbbell
+    Target, Clock, Timer, MessageSquare, UserCheck, Dumbbell,
+    Play, Ruler, Shell, Send, LayoutPanelLeft, Info, Baby
 } from "lucide-react";
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
-import { Progress } from "@/components/ui/progress";
+import Image from "next/image";
 
 interface PBE5UnifiedReportProps {
     open: boolean;
@@ -21,7 +21,64 @@ interface PBE5UnifiedReportProps {
     professional: any;
     organization: any;
     specialty: string;
+    selectedSections?: string[];
 }
+
+// --- HELPERS ---
+function calculateAge(dob: string) {
+    if (!dob) return "--";
+    try {
+        const diff = Date.now() - new Date(dob).getTime();
+        return Math.abs(new Date(diff).getUTCFullYear() - 1970);
+    } catch (e) {
+        return "--";
+    }
+}
+
+const SectionHeader = ({ title, icon: Icon, color = "indigo" }: any) => (
+    <div className={cn("flex items-center gap-3 border-b-2 pb-2 mb-4 print:mb-2",
+        color === "blue" ? "border-blue-200" :
+            color === "indigo" ? "border-indigo-200" :
+                color === "emerald" ? "border-emerald-200" :
+                    color === "amber" ? "border-amber-200" :
+                        color === "rose" ? "border-rose-200" :
+                            `border-${color}-200`)}>
+        <div className={cn("p-1.5 rounded-lg text-white",
+            color === "blue" ? "bg-blue-600" :
+                color === "indigo" ? "bg-indigo-600" :
+                    color === "emerald" ? "bg-emerald-600" :
+                        color === "amber" ? "bg-amber-600" :
+                            color === "rose" ? "bg-rose-600" :
+                                `bg-${color}-600`)}>
+            <Icon className="w-4 h-4" />
+        </div>
+        <h3 className={cn("font-black uppercase text-sm tracking-widest",
+            color === "blue" ? "text-blue-900" :
+                color === "indigo" ? "text-indigo-900" :
+                    color === "emerald" ? "text-emerald-900" :
+                        color === "amber" ? "text-amber-900" :
+                            color === "rose" ? "text-rose-900" :
+                                `text-${color}-900`)}>{title}</h3>
+    </div>
+);
+
+const ReportCard = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+    <div className={cn("bg-white border rounded-[2rem] p-8 shadow-sm print:shadow-none print:border-slate-100 break-inside-avoid mb-6", className)}>
+        {children}
+    </div>
+);
+
+const DataRow = ({ label, value, icon: Icon, colorClass = "text-slate-900" }: any) => (
+    <div className="flex justify-between items-center py-2 border-b border-dashed border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors px-1 rounded-lg">
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight flex items-center gap-2">
+            {Icon && <Icon className="w-3 h-3 text-slate-300" />}
+            {label}
+        </span>
+        <span className={cn("text-xs font-black uppercase text-right", colorClass)}>
+            {value || "--"}
+        </span>
+    </div>
+);
 
 export function PBE5UnifiedReport({
     open,
@@ -30,502 +87,450 @@ export function PBE5UnifiedReport({
     patient,
     professional,
     organization,
-    specialty
+    specialty,
+    selectedSections = []
 }: PBE5UnifiedReportProps) {
-    const reportRef = useRef<HTMLDivElement>(null);
+    const [mounted, setMounted] = useState(false);
 
-    const handlePrint = () => {
-        const content = reportRef.current;
-        if (!content) return;
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
 
-        const printWindow = window.open("", "_blank");
-        if (!printWindow) return;
+    const prof = useMemo(() => {
+        const p = Array.isArray(professional) ? professional[0] : professional;
+        return p || {};
+    }, [professional]);
 
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Relatório Axiom - ${patient?.name || "Paciente"}</title>
-                    <script src="https://cdn.tailwindcss.com"></script>
-                    <style>
-                        @media print {
-                            .no-print { display: none !important; }
-                            body { background: white !important; -webkit-print-color-adjust: exact; }
-                            .page-break { page-break-before: always; }
-                        }
-                    </style>
-                </head>
-                <body class="bg-white">
-                    ${content.innerHTML}
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 500);
-    };
-
-    const getSpecialtyLabel = (s: string) => {
+    // Format specialty label
+    const specialtyLabel = useMemo(() => {
         const labels: Record<string, string> = {
             neurofuncional_adulto: "Neurofuncional Adulto",
             saude_trabalho: "Saúde do Trabalho & Ergonomia",
             cardio_respiratorio: "Cardiovascular e Respiratório",
             gerontologia: "Gerontologia (AGA)",
-            neuropediatria: "Neuropediatria Sênior"
+            neuropediatria: "Neuropediatria",
+            saude_mulher: "Saúde da Mulher",
+            ortopedia: "Ortopedia e Esporte",
+            advanced_physical: "Avaliação Física Avançada"
         };
-        return labels[s] || "Avaliação Clínica";
-    };
+        return labels[specialty] || "Avaliação Clínica";
+    }, [specialty]);
 
-    const getThemeColor = (s: string) => {
-        if (s === 'neurofuncional_adulto') return 'text-indigo-600 bg-indigo-50 border-indigo-100';
-        if (s === 'saude_trabalho') return 'text-amber-600 bg-amber-50 border-amber-100';
-        if (s === 'cardio_respiratorio') return 'text-emerald-600 bg-emerald-50 border-emerald-100';
-        return 'text-slate-600 bg-slate-50 border-slate-100';
-    };
+    if (!open || !mounted) return null;
 
-    return (
-        <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="fixed top-24 right-8 bottom-8 left-[300px] max-w-none w-auto h-auto p-0 overflow-hidden flex flex-col rounded-[2.5rem] border-none shadow-2xl animate-in fade-in slide-in-from-right-4 duration-500 bg-slate-50/50 backdrop-blur-xl">
-                {/* Control Bar */}
-                <div className="p-4 bg-slate-900 flex justify-between items-center text-white no-print">
-                    <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 bg-indigo-600 rounded-xl flex items-center justify-center rotate-3">
-                            <ShieldCheck className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <h2 className="text-sm font-black uppercase tracking-widest">Visualização de Relatório</h2>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase">PBE 5.0 Clinical Standard</p>
-                        </div>
+    const sectionsToRender = selectedSections.length > 0 ? selectedSections : Object.keys(data);
+
+    return createPortal(
+        <div id="pbe-report-wrapper" className="fixed inset-0 z-[2147483647] bg-white flex flex-col animate-in fade-in duration-300 print:static print:h-auto print:overflow-visible overflow-hidden">
+            {/* TOOLBAR */}
+            <div className="h-16 border-b flex items-center justify-between px-4 md:px-6 bg-slate-900 text-white shrink-0 print:hidden no-print">
+                <h2 className="font-extrabold text-sm md:text-lg flex items-center gap-3 uppercase tracking-tighter">
+                    <div className="h-8 w-8 bg-indigo-600 rounded-lg flex items-center justify-center rotate-3">
+                        <ShieldCheck className="w-5 h-5 text-white" />
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Button variant="ghost" className="text-white hover:bg-white/10 font-bold text-xs" onClick={onClose}>Fechar</Button>
-                        <Button onClick={handlePrint} className="bg-white text-slate-900 hover:bg-slate-200 font-black text-xs gap-2 rounded-xl h-10 px-6">
-                            <Printer className="h-4 w-4" /> IMPRIMIR PDF
-                        </Button>
-                    </div>
+                    Relatório PBE 5.0
+                </h2>
+                <div className="flex gap-2 md:gap-4">
+                    <Button variant="ghost" onClick={onClose} className="text-slate-300 hover:text-white px-2 md:px-4 text-xs md:text-sm">Sair</Button>
+                    <Button
+                        onClick={() => window.print()}
+                        className="bg-white text-slate-900 hover:bg-slate-200 font-black shrink-0 text-xs md:text-sm h-10 px-6 rounded-xl gap-2 shadow-lg"
+                    >
+                        <Printer className="w-4 h-4" /> IMPRIMIR PDF
+                    </Button>
                 </div>
+            </div>
 
-                {/* Printable Area */}
-                <div className="flex-1 overflow-y-auto bg-slate-50 p-12 scrollbar-hide" id="axiom-report-content" ref={reportRef}>
-                    <div className="max-w-5xl mx-auto bg-white min-h-[297mm] shadow-sm rounded-none print:shadow-none p-16 space-y-12 text-slate-800 font-sans">
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+                {/* SCROLL AREA */}
+                <div
+                    id="report-scroll-area"
+                    className="flex-1 overflow-y-auto bg-slate-100 p-4 md:p-8 print:p-0 print:bg-white custom-scrollbar print:overflow-visible overflow-x-hidden"
+                >
+                    <div className="w-full min-h-full py-4 print:py-0 flex flex-col items-center">
+                        <div id="report-paper" className="bg-white w-[210mm] min-w-[210mm] shadow-2xl print:shadow-none print:max-w-none print:w-full print:h-auto transition-all duration-300 origin-top p-12 print:p-6 print:transform-none">
 
-                        {/* HEADER */}
-                        <div className="flex justify-between items-start border-b-2 border-slate-100 pb-10">
-                            <div className="space-y-4">
-                                <div className="space-y-1">
-                                    <h1 className="text-4xl font-black text-slate-900 tracking-tighter">Relatório de Avaliação</h1>
-                                    <div className={cn("inline-flex items-center px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest", getThemeColor(specialty))}>
-                                        {getSpecialtyLabel(specialty)}
+                            {/* --- HEADER (IDENTICAL TO PALMILHA 5) --- */}
+                            <header className="flex justify-between items-start border-b-4 border-indigo-900 pb-6 mb-10 print:mb-8 print:pb-4 print-color-adjust">
+                                <div className="flex items-center gap-4">
+                                    {organization?.logo_url ? (
+                                        <div className="w-20 h-20 relative overflow-hidden rounded-[24px] border border-slate-100 shadow-sm print:shadow-none">
+                                            <Image src={organization.logo_url} alt="Logo" fill className="object-cover" unoptimized priority />
+                                        </div>
+                                    ) : (
+                                        <div className="w-16 h-16 bg-indigo-900 rounded-2xl flex items-center justify-center text-white font-black text-3xl print-color-adjust">
+                                            {organization?.name?.[0] || professional?.name?.[0] || "A"}
+                                        </div>
+                                    )}
+                                    <div>
+                                        <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none">Relatório Clínico</h1>
+                                        <p className="text-sm font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">{organization?.name || "Advanced Clinical Center"}</p>
+                                        <div className="inline-flex mt-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-[10px] font-black text-indigo-700 uppercase tracking-widest leading-none">
+                                            {specialtyLabel}
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="space-y-0.5">
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                        <Landmark className="h-3 w-3" /> {organization?.name || "Axiom Clinical Center"}
-                                    </p>
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                        <Calendar className="h-3 w-3" /> {new Date().toLocaleDateString('pt-BR')}
-                                    </p>
+                                <div className="text-right">
+                                    <p className="text-[10px] font-black uppercase text-slate-400">Emissão</p>
+                                    <p className="text-xl font-black text-slate-800">{new Date().toLocaleDateString('pt-BR')}</p>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic">Axiom Performance & Evidence</p>
                                 </div>
-                            </div>
-                            <div className="text-right space-y-1">
-                                <div className="h-16 w-16 bg-slate-900 rounded-2xl ml-auto mb-4 flex items-center justify-center">
-                                    <ShieldCheck className="h-8 w-8 text-white" />
-                                </div>
-                                <p className="text-[10px] font-black uppercase text-slate-500 tracking-tighter italic">Axiom Performance & Evidence</p>
-                            </div>
-                        </div>
+                            </header>
 
-                        {/* PATIENT BANNER */}
-                        <div className="grid grid-cols-2 gap-8 bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-8 w-8 bg-white rounded-xl flex items-center justify-center border border-slate-200 shadow-sm text-slate-400">
-                                        <User className="h-4 w-4" />
+                            {/* --- PATIENT BANNER --- */}
+                            <div className="bg-slate-50 border-l-4 border-indigo-600 p-8 mb-10 print:mb-8 rounded-r-[2rem] print:bg-slate-50 relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-8 opacity-[0.03] transition-transform group-hover:scale-110 duration-500"><User className="w-32 h-32 text-indigo-900" /></div>
+                                <div className="relative z-10 grid grid-cols-3 gap-12 text-sm">
+                                    <div className="col-span-2">
+                                        <span className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">Paciente</span>
+                                        <h2 className="text-2xl font-black text-slate-900 uppercase">{patient?.name || data?.patientName || "Paciente Modelo"}</h2>
+                                        <div className="flex gap-6 mt-2">
+                                            <span className="text-xs font-bold text-indigo-700 uppercase">Idade: {patient?.date_of_birth ? calculateAge(patient.date_of_birth) : (data?.patientAge || "--")} anos</span>
+                                            <span className="text-xs font-bold text-slate-500 uppercase">Tel: {patient?.phone || "--"}</span>
+                                        </div>
                                     </div>
                                     <div>
-                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Paciente</span>
-                                        <p className="text-sm font-black text-slate-900 uppercase">{patient?.name || "Paciente não identificado"}</p>
+                                        <span className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">Objetivo Clínico</span>
+                                        <p className="text-[13px] font-bold text-slate-600 italic leading-snug">
+                                            "{data?.anamnesis?.qp || data?.anamnesis?.mainComplaint || "Avaliação diagnóstica e conduta terapêutica."}"
+                                        </p>
                                     </div>
-                                </div>
-                                <div>
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Objetivo Clínico</span>
-                                    <p className="text-xs font-bold text-slate-600 italic leading-relaxed">
-                                        "{data?.anamnesis?.mainComplaint || "Não informado"}"
-                                    </p>
                                 </div>
                             </div>
-                            <div className="space-y-4 border-l border-slate-200 pl-8">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-8 w-8 bg-white rounded-xl flex items-center justify-center border border-slate-200 shadow-sm text-slate-400">
-                                        <UserCheck className="h-4 w-4" />
-                                    </div>
-                                    <div>
-                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Profissional Responsável</span>
-                                        <p className="text-sm font-black text-slate-900 uppercase">{professional?.name || "Fisioterapeuta Sênior"}</p>
-                                    </div>
-                                </div>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase">
-                                    Reg: {professional?.registration_number || "CREFITO/CRM"} • Axiom Certified
-                                </p>
-                            </div>
-                        </div>
 
-                        {/* SPECIALTY CONTENT: NEURO ADULT */}
-                        {specialty === 'neurofuncional_adulto' && (
-                            <div className="space-y-10">
-                                <section className="space-y-6">
-                                    <div className="flex items-center gap-3">
-                                        <Brain className="h-5 w-5 text-indigo-600" />
-                                        <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Status Neurológico e Cognitivo</h3>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div className="bg-white p-6 rounded-3xl border-2 border-slate-100 text-center space-y-2">
-                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Escala de Glasgow</span>
-                                            <p className="text-4xl font-black text-indigo-600">{data?.neuro_adult?.gcs_total || "--"}</p>
-                                            <span className="text-[9px] font-bold text-slate-500 uppercase">Total / 15</span>
-                                        </div>
-                                        <div className="bg-white p-6 rounded-3xl border-2 border-slate-100 text-center space-y-2">
-                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Score NIHSS (Stroke)</span>
-                                            <p className="text-4xl font-black text-rose-600">{data?.neuro_adult?.nihss_score || "--"}</p>
-                                            <span className="text-[9px] font-bold text-slate-500 uppercase">Risco Vascular</span>
-                                        </div>
-                                        <div className="bg-white p-6 rounded-3xl border-2 border-slate-100 text-center space-y-2">
-                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">MMSE (Mini Mental)</span>
-                                            <p className="text-4xl font-black text-emerald-600">{data?.neuro_adult?.mmse_score || "--"}</p>
-                                            <span className="text-[9px] font-bold text-slate-500 uppercase">Cognição Base</span>
-                                        </div>
-                                    </div>
-                                </section>
+                            {/* --- MAIN CONTENT (CARD-BASED) --- */}
+                            <div className="space-y-6">
 
-                                <section className="grid grid-cols-2 gap-10">
-                                    <div className="space-y-6">
-                                        <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest border-l-4 border-indigo-600 pl-4">Coordenação e Ataxia</h4>
-                                        <div className="space-y-3">
-                                            {[
-                                                { id: 'index_nose', label: 'Dedo-Nariz' },
-                                                { id: 'heel_shin', label: 'Calcanhar-Canela' },
-                                                { id: 'diado', label: 'Diadococinésia' }
-                                            ].map(test => (
-                                                <div key={test.id} className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl">
-                                                    <span className="text-[10px] font-black text-slate-600 uppercase">{test.label}</span>
-                                                    <div className="flex gap-2">
-                                                        <span className={cn(
-                                                            "px-3 py-1 rounded-lg text-[9px] font-black uppercase",
-                                                            data?.neuro_adult?.coordination?.[test.id] === 'N' ? "bg-emerald-600 text-white" :
-                                                                data?.neuro_adult?.coordination?.[test.id] === 'D' ? "bg-amber-500 text-white" :
-                                                                    data?.neuro_adult?.coordination?.[test.id] === 'A' ? "bg-rose-600 text-white" : "text-slate-300"
-                                                        )}>
-                                                            {data?.neuro_adult?.coordination?.[test.id] === 'N' ? 'Normal' :
-                                                                data?.neuro_adult?.coordination?.[test.id] === 'D' ? 'Dismetria' :
-                                                                    data?.neuro_adult?.coordination?.[test.id] === 'A' ? 'Ataxia' : 'Não Avaliado'}
-                                                        </span>
+                                {/* 1. SECTION: ANAMNESE */}
+                                {sectionsToRender.includes('anamnesis') && (
+                                    <ReportCard>
+                                        <SectionHeader title="Anamnese e Queixa Principal" icon={MessageSquare} color="blue" />
+                                        <div className="grid grid-cols-2 gap-10">
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Impacto da Dor (EVA)</span>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="text-5xl font-black text-rose-600 leading-none">{data?.anamnesis?.eva || 0}</div>
+                                                        <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                                                            <div className="h-full bg-rose-500 rounded-full" style={{ width: `${(data?.anamnesis?.eva || 0) * 10}%` }}></div>
+                                                        </div>
+                                                        <span className="text-xs font-bold text-slate-400">/10</span>
                                                     </div>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-6">
-                                        <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest border-l-4 border-emerald-600 pl-4">Sinais Piramidais e Reflexos</h4>
-                                        <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white space-y-4 shadow-xl">
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Sinal de Babinski</span>
-                                                <span className={cn("text-lg font-black", data?.neuro_adult?.reflexes?.babinski === '+' ? "text-rose-400" : "text-emerald-400")}>
-                                                    {data?.neuro_adult?.reflexes?.babinski || "N/A"}
-                                                </span>
+                                                <DataRow label="Tempo de Evolução" value={data?.anamnesis?.painDuration} />
+                                                <DataRow label="Comportamento" value={data?.anamnesis?.painBehavior} />
                                             </div>
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Sinal de Hoffmann</span>
-                                                <span className={cn("text-lg font-black", data?.neuro_adult?.reflexes?.hoffmann === '+' ? "text-rose-400" : "text-emerald-400")}>
-                                                    {data?.neuro_adult?.reflexes?.hoffmann || "N/A"}
-                                                </span>
-                                            </div>
-                                            <div className="pt-4 border-t border-white/10">
-                                                <p className="text-[9px] font-bold text-slate-500 uppercase italic">A presença de sinais piramidais indica comprometimento do Primeiro Neurônio Motor.</p>
+                                            <div className="bg-slate-50 p-6 rounded-2xl italic text-slate-700 text-xs leading-relaxed border border-slate-100">
+                                                <span className="text-[9px] font-black text-indigo-400 uppercase block mb-2 opacity-50">Resumo da História</span>
+                                                {data?.anamnesis?.hma || "Sem descrição detalhada da história atual."}
                                             </div>
                                         </div>
-                                    </div>
-                                </section>
-                            </div>
-                        )}
+                                    </ReportCard>
+                                )}
 
-                        {/* SPECIALTY CONTENT: OCCUPATIONAL HEALTH */}
-                        {specialty === 'saude_trabalho' && (
-                            <div className="space-y-10">
-                                <section className="grid grid-cols-2 gap-8">
-                                    <div className="space-y-6">
-                                        <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
-                                            <Briefcase className="h-5 w-5 text-amber-600" /> Riscos Ergonômicos (NR-17)
-                                        </h3>
-                                        <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-100 flex flex-col items-center justify-center space-y-4">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Classificação Proposta</span>
-                                            <div className={cn(
-                                                "px-8 py-3 rounded-2xl text-white font-black uppercase text-sm shadow-lg",
-                                                data?.occupational_health?.risk_level === 'low' ? "bg-emerald-600" :
-                                                    data?.occupational_health?.risk_level === 'moderate' ? "bg-amber-500" :
-                                                        data?.occupational_health?.risk_level === 'high' ? "bg-orange-600" :
-                                                            data?.occupational_health?.risk_level === 'critical' ? "bg-rose-700 underline decoration-2 underline-offset-4" : "bg-slate-300"
-                                            )}>
-                                                {data?.occupational_health?.risk_level === 'low' ? 'Baixo Risco' :
-                                                    data?.occupational_health?.risk_level === 'moderate' ? 'Risco Moderado' :
-                                                        data?.occupational_health?.risk_level === 'high' ? 'Alto Risco' :
-                                                            data?.occupational_health?.risk_level === 'critical' ? 'Risco Crítico / Alerta' : 'Não Definido'}
-                                            </div>
-                                            <p className="text-[9px] font-bold text-slate-400 text-center italic uppercase px-4">
-                                                Avaliação baseada no checklist pericial e normas regulamentadoras do MTE.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-6">
-                                        <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
-                                            <ShieldCheck className="h-5 w-5 text-emerald-600" /> Fatores Psicossociais
-                                        </h3>
-                                        <div className="grid grid-cols-1 gap-3">
-                                            {[
-                                                { id: 'stress', label: 'Estresse Ocupacional' },
-                                                { id: 'support', label: 'Suporte Social' }
-                                            ].map(item => (
-                                                <div key={item.id} className="flex justify-between items-center p-4 bg-white border-2 border-slate-100 rounded-2xl">
-                                                    <span className="text-[10px] font-black text-slate-600 uppercase">{item.label}</span>
-                                                    <span className="text-[10px] font-black text-amber-600">
-                                                        {data?.occupational_health?.psychosocial?.hazards?.includes(item.id) ? 'ALTO IMPACTO' : 'CONTROLADO'}
-                                                    </span>
+                                {/* 2. SECTION: CLINICAL HISTORY */}
+                                {sectionsToRender.includes('clinical') && (
+                                    <ReportCard>
+                                        <SectionHeader title="Histórico Clínico e Comorbidades" icon={Activity} color="indigo" />
+                                        <div className="grid grid-cols-2 gap-8">
+                                            <div className="space-y-2">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Comorbidades Identificadas</span>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {(data?.clinical?.comorbidities || []).map((c: string) => (
+                                                        <span key={c} className="px-3 py-1 bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase rounded-lg border border-indigo-100">{c}</span>
+                                                    )) || <span className="text-xs text-slate-400 italic">Nenhum registro.</span>}
                                                 </div>
-                                            ))}
-                                        </div>
-                                        <div className="pt-4">
-                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Nível de Suporte Necessário</span>
-                                            <Progress value={
-                                                data?.occupational_health?.psychosocial?.support_level === 'irrisorio' ? 10 :
-                                                    data?.occupational_health?.psychosocial?.support_level === 'moderado' ? 50 :
-                                                        data?.occupational_health?.psychosocial?.support_level === 'critico' ? 100 : 0
-                                            } className="h-3 bg-slate-100" />
-                                        </div>
-                                    </div>
-                                </section>
-                            </div>
-                        )}
-
-                        {/* SPECIALTY CONTENT: CARDIO RESPIRATORY */}
-                        {specialty === 'cardio_respiratorio' && (
-                            <div className="space-y-10">
-                                <section className="space-y-6">
-                                    <div className="flex items-center gap-3">
-                                        <Heart className="h-5 w-5 text-emerald-600" />
-                                        <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Status Hemodinâmico e Respiratório</h3>
-                                    </div>
-                                    <div className="grid grid-cols-4 gap-4">
-                                        {[
-                                            { label: 'PA Sistólica', value: data?.cardio_respiratory?.bp_sys, unit: 'mmHg' },
-                                            { label: 'PA Diastólica', value: data?.cardio_respiratory?.bp_dia, unit: 'mmHg' },
-                                            { label: 'FC Repouso', value: data?.cardio_respiratory?.hr_rest, unit: 'bpm' },
-                                            { label: 'SpO2', value: data?.cardio_respiratory?.spo2, unit: '%' }
-                                        ].map(stat => (
-                                            <div key={stat.label} className="bg-white p-4 rounded-3xl border-2 border-slate-100 text-center space-y-1">
-                                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">{stat.label}</span>
-                                                <p className="text-2xl font-black text-emerald-600">{stat.value || "--"}</p>
-                                                <span className="text-[8px] font-bold text-slate-500 uppercase">{stat.unit}</span>
                                             </div>
-                                        ))}
-                                    </div>
-                                </section>
-
-                                <section className="grid grid-cols-2 gap-10">
-                                    <div className="space-y-6">
-                                        <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest border-l-4 border-emerald-600 pl-4">Classificação Funcional</h4>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 text-center space-y-2">
-                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">mMRC (Dispneia)</span>
-                                                <p className="text-3xl font-black text-slate-900">G{data?.cardio_respiratory?.mmrc_grade || "-"}</p>
-                                            </div>
-                                            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 text-center space-y-2">
-                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">NYHA (Classe)</span>
-                                                <p className="text-3xl font-black text-slate-900">{data?.cardio_respiratory?.nyha_class || "-"}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-6">
-                                        <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest border-l-4 border-slate-900 pl-4">Tolerância ao Esforço</h4>
-                                        <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white space-y-4 shadow-xl">
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Distância TC6M</span>
-                                                <span className="text-lg font-black text-emerald-400">
-                                                    {data?.cardio_respiratory?.tc6m_dist ? `${data.cardio_respiratory.tc6m_dist} m` : "N/A"}
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">DASI Score (METs)</span>
-                                                <span className="text-lg font-black text-emerald-400">
-                                                    {data?.cardio_respiratory?.dasi_score || "N/A"}
-                                                </span>
-                                            </div>
-                                            <div className="pt-4 border-t border-white/10 text-center">
-                                                <span className="text-[10px] font-black uppercase tracking-widest opacity-60 block mb-2">Borg Final (CR10)</span>
-                                                <div className="flex justify-center gap-1">
-                                                    {['0', '1', '3', '5', '7', '10'].map(v => (
-                                                        <div key={v} className={cn(
-                                                            "w-6 h-6 rounded flex items-center justify-center text-[10px] font-black",
-                                                            data?.cardio_respiratory?.borg_final === v ? "bg-emerald-500 text-white" : "bg-white/10 text-white/30"
-                                                        )}>{v}</div>
-                                                    ))}
+                                            <div className="space-y-2">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Medicamentos em Uso</span>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {(data?.clinical?.meds || []).map((m: string) => (
+                                                        <span key={m} className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-black uppercase rounded-lg">{m}</span>
+                                                    )) || <span className="text-xs text-slate-400 italic">Nenhum registro.</span>}
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </section>
-                            </div>
-                        )}
+                                    </ReportCard>
+                                )}
 
-                        {/* ADVANCED PHYSICAL ASSESSMENT SECTION */}
-                        {data?.clinical?.advancedPhysical && (
-                            <section className="space-y-10 pt-10 border-t-2 border-slate-100">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 bg-slate-900 rounded-[1.5rem] flex items-center justify-center text-white -rotate-3">
-                                        <Dumbbell className="h-6 w-6" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Avaliação Física Avançada</h3>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Protocolos: Pineau (US) • Rockport/Cooper (VO2) • Z-Score (Força)</p>
-                                    </div>
-                                </div>
+                                {/* 3. SECTION: VITALS (METRICS) */}
+                                {sectionsToRender.includes('metrics') && (
+                                    <ReportCard>
+                                        <SectionHeader title="Biofísica e Sinais Vitais" icon={Heart} color="rose" />
+                                        <div className="grid grid-cols-4 gap-4">
+                                            <div className="text-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                                <span className="text-[8px] font-black text-slate-400 uppercase block mb-1">PA Sistólica</span>
+                                                <span className="text-2xl font-black text-indigo-600">{data?.metrics?.bp_sys || "--"}</span>
+                                                <span className="text-[8px] font-bold text-slate-400 uppercase block">mmHg</span>
+                                            </div>
+                                            <div className="text-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                                <span className="text-[8px] font-black text-slate-400 uppercase block mb-1">PA Diastólica</span>
+                                                <span className="text-2xl font-black text-indigo-600">{data?.metrics?.bp_dia || "--"}</span>
+                                                <span className="text-[8px] font-bold text-slate-400 uppercase block">mmHg</span>
+                                            </div>
+                                            <div className="text-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                                <span className="text-[8px] font-black text-slate-400 uppercase block mb-1">FC Repouso</span>
+                                                <span className="text-2xl font-black text-rose-600">{data?.metrics?.hr || "--"}</span>
+                                                <span className="text-[8px] font-bold text-slate-400 uppercase block">bpm</span>
+                                            </div>
+                                            <div className="text-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                                <span className="text-[8px] font-black text-slate-400 uppercase block mb-1">SpO2</span>
+                                                <span className="text-2xl font-black text-emerald-600">{data?.metrics?.spo2 || "--"}</span>
+                                                <span className="text-[8px] font-bold text-slate-400 uppercase block">%</span>
+                                            </div>
+                                        </div>
+                                    </ReportCard>
+                                )}
 
-                                {/* Composição Corporal + VO2 */}
-                                <div className="grid grid-cols-2 gap-6">
-                                    {/* Composição */}
-                                    <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-4">
-                                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200 pb-2">Composição Corporal (Pineau/US)</h4>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {[
-                                                { label: '% Gordura', value: data?.antro?.fatPercent ? `${Number(data.antro.fatPercent).toFixed(1)}%` : '--' },
-                                                { label: 'Massa Gorda (kg)', value: data?.antro?.fatMass ? `${Number(data.antro.fatMass).toFixed(1)} kg` : '--' },
-                                                { label: 'Massa Magra (kg)', value: data?.antro?.leanMass ? `${Number(data.antro.leanMass).toFixed(1)} kg` : '--' },
-                                                { label: 'FFMI', value: data?.antro?.ffmi ? Number(data.antro.ffmi).toFixed(1) : '--' },
-                                            ].map(item => (
-                                                <div key={item.label} className="bg-white p-4 rounded-2xl border border-slate-100 text-center">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">{item.label}</span>
-                                                    <p className="text-xl font-black text-slate-900 mt-1">{item.value}</p>
+                                {/* 4. SECTION: NEURO ADULT */}
+                                {sectionsToRender.includes('neuro_adult') && (
+                                    <ReportCard>
+                                        <SectionHeader title="Status Neurofuncional Adulto" icon={Brain} color="indigo" />
+                                        <div className="grid grid-cols-3 gap-6 mb-6">
+                                            <div className="bg-slate-900 p-6 rounded-[2.5rem] text-center text-white space-y-1">
+                                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block opacity-70">Escala de Glasgow</span>
+                                                <p className="text-4xl font-black text-indigo-400">{data?.neuro_adult?.gcs_total || "--"}</p>
+                                                <span className="text-[8px] font-bold uppercase opacity-50">Total / 15</span>
+                                            </div>
+                                            <div className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-100 text-center space-y-1">
+                                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">NIHSS (Stroke)</span>
+                                                <p className="text-4xl font-black text-rose-600">{data?.neuro_adult?.nihss_score || "--"}</p>
+                                            </div>
+                                            <div className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-100 text-center space-y-1">
+                                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">MMSE (Mental)</span>
+                                                <p className="text-4xl font-black text-emerald-600">{data?.neuro_adult?.mmse_score || "--"}</p>
+                                            </div>
+                                        </div>
+                                        <div className="bg-slate-50 p-6 rounded-3xl grid grid-cols-2 gap-8">
+                                            <div className="space-y-4">
+                                                <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest border-l-4 border-indigo-600 pl-4 mb-2">Coordenação</h4>
+                                                <DataRow label="Dedo-Nariz" value={data?.neuro_adult?.coordination?.index_nose === 'N' ? 'Normal' : 'Dismetria/Ataxia'} />
+                                                <DataRow label="Calcanhar-Canela" value={data?.neuro_adult?.coordination?.heel_shin === 'N' ? 'Normal' : 'Dismetria/Ataxia'} />
+                                            </div>
+                                            <div className="space-y-4">
+                                                <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest border-l-4 border-rose-600 pl-4 mb-2">Reflexos Piramidais</h4>
+                                                <DataRow label="Sinal de Babinski" value={data?.neuro_adult?.reflexes?.babinski === '+' ? 'Presente' : 'Ausente'} colorClass={data?.neuro_adult?.reflexes?.babinski === '+' ? "text-rose-600" : "text-emerald-600"} />
+                                                <DataRow label="Sinal de Hoffmann" value={data?.neuro_adult?.reflexes?.hoffmann === '+' ? 'Presente' : 'Ausente'} colorClass={data?.neuro_adult?.reflexes?.hoffmann === '+' ? "text-rose-600" : "text-emerald-600"} />
+                                            </div>
+                                        </div>
+                                    </ReportCard>
+                                )}
+
+                                {/* 5. SECTION: OCCUPATIONAL HEALTH */}
+                                {sectionsToRender.includes('occupational_health') && (
+                                    <ReportCard>
+                                        <SectionHeader title="Saúde do Trabalho & Ergonomia" icon={Briefcase} color="amber" />
+                                        <div className="grid grid-cols-2 gap-10">
+                                            <div className="space-y-4">
+                                                <div className="p-6 bg-slate-900 rounded-[2.5rem] text-center space-y-2 text-white">
+                                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block opacity-70">Nível de Risco (NR-17)</span>
+                                                    <div className={cn(
+                                                        "inline-flex px-6 py-2 rounded-xl text-xs font-black uppercase shadow-lg",
+                                                        data?.occupational_health?.risk_level === 'high' || data?.occupational_health?.risk_level === 'critical' ? "bg-rose-600 text-white" : "bg-emerald-600 text-white"
+                                                    )}>
+                                                        {data?.occupational_health?.risk_level === 'low' ? 'Baixo Risco' :
+                                                            data?.occupational_health?.risk_level === 'moderate' ? 'Risco Moderado' :
+                                                                data?.occupational_health?.risk_level === 'high' ? 'Alto Risco' :
+                                                                    data?.occupational_health?.risk_level === 'critical' ? 'Risco Crítico' : 'Não Definido'}
+                                                    </div>
                                                 </div>
-                                            ))}
+                                                <DataRow label="Cargo / Função" value={data?.occupational_health?.job_title} />
+                                                <DataRow label="Jornada Diária" value={data?.occupational_health?.daily_hours ? `${data.occupational_health.daily_hours}h` : "--"} />
+                                            </div>
+                                            <div className="space-y-4 bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 text-xs italic text-slate-600 leading-relaxed shadow-sm">
+                                                <span className="text-[9px] font-black text-amber-600 uppercase block mb-2 opacity-50">Conclusão Pericial</span>
+                                                {data?.occupational_health?.forensic_summary || "Sem parecer pericial detalhado."}
+                                            </div>
                                         </div>
-                                    </div>
-                                    {/* Cardio VO2 */}
-                                    <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-4">
-                                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200 pb-2">Aptidão Aeróbica (VO2 Máximo)</h4>
-                                        <div className="flex flex-col items-center justify-center h-32">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">VO2 Máximo</span>
-                                            <p className="text-5xl font-black text-emerald-600 mt-2">
-                                                {data?.cardio?.vo2Result ? `${Number(data.cardio.vo2Result).toFixed(1)}` : '--'}
-                                            </p>
-                                            <span className="text-[10px] font-bold text-slate-500 mt-1">ml/kg/min • Protocolo {data?.cardio?.method === 'rockport' ? 'Rockport (Caminhada)' : 'Cooper (Corrida)'}</span>
-                                        </div>
-                                    </div>
-                                </div>
+                                    </ReportCard>
+                                )}
 
-                                {/* Dinamometria */}
-                                {data?.strength && Object.keys(data.strength).length > 0 && (
-                                    <div className="space-y-4">
-                                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Dinamometria — Z-Score por Idade e Gênero</h4>
-                                        <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden">
-                                            <table className="w-full text-xs">
-                                                <thead className="bg-slate-50 border-b border-slate-100">
-                                                    <tr>
-                                                        <th className="text-left p-4 font-black text-slate-500 uppercase tracking-widest text-[9px]">Teste</th>
-                                                        <th className="p-4 font-black text-blue-600 uppercase tracking-widest text-[9px] text-center">Esquerdo (N)</th>
-                                                        <th className="p-4 font-black text-green-600 uppercase tracking-widest text-[9px] text-center">Direito (N)</th>
-                                                        <th className="p-4 font-black text-slate-500 uppercase tracking-widest text-[9px] text-center">Classificação</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {[
-                                                        { key: 'kneeExtension', label: 'Extensão Joelho' },
-                                                        { key: 'kneeFlexion', label: 'Flexão Joelho' },
-                                                        { key: 'hipAbduction', label: 'Abdução Quadril' },
-                                                        { key: 'hipFlexion', label: 'Flexão Quadril' },
-                                                        { key: 'trunkFlexion', label: 'Flexão Tronco' },
-                                                        { key: 'shoulderAbduction', label: 'Abdução Ombro' },
-                                                        { key: 'elbowFlexion', label: 'Flexão Cotovelo' },
-                                                        { key: 'handgrip', label: 'Preensão Manual' },
-                                                    ].filter(t => data?.strength?.[`${t.key}_left`] || data?.strength?.[`${t.key}_right`]).map((test, i) => {
-                                                        const left = Number(data?.strength?.[`${test.key}_left`] || 0);
-                                                        const right = Number(data?.strength?.[`${test.key}_right`] || 0);
-                                                        const hasBoth = left > 0 && right > 0;
-                                                        const maxVal = Math.max(left, right);
-                                                        const minVal = Math.min(left, right);
-                                                        const asymmetry = hasBoth && maxVal > 0 ? Math.round(100 - (minVal / maxVal) * 100) : null;
-                                                        return (
-                                                            <tr key={test.key} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
-                                                                <td className="p-4 font-black text-[10px] text-slate-700 uppercase tracking-tighter">{test.label}</td>
-                                                                <td className="p-4 text-center font-bold text-blue-700">{left > 0 ? `${left}N` : '--'}</td>
-                                                                <td className="p-4 text-center font-bold text-green-700">{right > 0 ? `${right}N` : '--'}</td>
-                                                                <td className="p-4 text-center">
-                                                                    {asymmetry !== null ? (
-                                                                        <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase ${asymmetry > 15 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
-                                                                            }`}>
-                                                                            {asymmetry > 15 ? `⚠ Assimetria ${asymmetry}%` : `✓ Simétrico ${asymmetry}%`}
-                                                                        </span>
-                                                                    ) : '--'}
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </table>
+                                {/* 6. SECTION: NEUROPEDIA */}
+                                {sectionsToRender.includes('neuropedia') && (
+                                    <ReportCard>
+                                        <SectionHeader title="Avaliação Neuropediátrica" icon={Baby} color="rose" />
+                                        <div className="grid grid-cols-3 gap-6">
+                                            <div className="text-center p-6 bg-slate-900 text-white rounded-[2.5rem] space-y-2">
+                                                <span className="text-[10px] font-black text-slate-500 uppercase block">AIMS (Score)</span>
+                                                <p className="text-4xl font-black text-indigo-400">{data?.neuropedia?.aims_score || "--"}</p>
+                                            </div>
+                                            <div className="text-center p-6 bg-indigo-50 border border-indigo-100 rounded-[2.5rem] space-y-2">
+                                                <span className="text-[10px] font-black text-indigo-400 uppercase block">GMFCS (Nível)</span>
+                                                <p className="text-4xl font-black text-indigo-900">{data?.neuropedia?.gmfcs_level || "--"}</p>
+                                            </div>
+                                            <div className="text-center p-6 bg-rose-50 border border-rose-100 rounded-[2.5rem] space-y-2">
+                                                <span className="text-[10px] font-black text-rose-400 uppercase block">MACS (Mão)</span>
+                                                <p className="text-4xl font-black text-rose-900">{data?.neuropedia?.macs_level || "--"}</p>
+                                            </div>
                                         </div>
+                                    </ReportCard>
+                                )}
+
+                                {/* 7. SECTION: GERONTOLOGY */}
+                                {sectionsToRender.includes('gerontology') && (
+                                    <ReportCard>
+                                        <SectionHeader title="Avaliação Geriátrica Ampla (AGA)" icon={Scale} color="purple" />
+                                        <div className="grid grid-cols-2 gap-8">
+                                            <div className="space-y-4">
+                                                <h4 className="text-[10px] font-black text-purple-600 uppercase tracking-widest pl-4 border-l-4 border-purple-600">Cognição e Equilíbrio</h4>
+                                                <DataRow label="MEEM (Mini-Mental)" value={data?.gerontology?.meem_score} />
+                                                <DataRow label="SPPB (Total)" value={data?.gerontology?.sppb_total} />
+                                            </div>
+                                            <div className="space-y-4">
+                                                <h4 className="text-[10px] font-black text-purple-600 uppercase tracking-widest pl-4 border-l-4 border-purple-600">Funcionalidade (AIVD/AVD)</h4>
+                                                <DataRow label="Índice de Katz" value={data?.gerontology?.katz_total} />
+                                                <DataRow label="Escala de Lawton" value={data?.gerontology?.lawton_score} />
+                                            </div>
+                                        </div>
+                                    </ReportCard>
+                                )}
+
+                                {/* 8. SECTION: WOMENS HEALTH */}
+                                {sectionsToRender.includes('womens_health') && (
+                                    <ReportCard>
+                                        <SectionHeader title="Saúde da Mulher / Pélvica" icon={ShieldCheck} color="rose" />
+                                        <div className="grid grid-cols-2 gap-8">
+                                            <div className="space-y-4">
+                                                <h4 className="text-[10px] font-black text-pink-600 uppercase tracking-widest pl-4 border-l-4 border-pink-400">Status Obstétrico</h4>
+                                                <DataRow label="Gestações" value={data?.womens_health?.obstetric?.gestations} />
+                                                <DataRow label="Partos" value={data?.womens_health?.obstetric?.deliveries} />
+                                            </div>
+                                            <div className="space-y-4">
+                                                <h4 className="text-[10px] font-black text-pink-600 uppercase tracking-widest pl-4 border-l-4 border-pink-400">Funcionalidade Pélvica (PERFECT)</h4>
+                                                <DataRow label="P (Power)" value={data?.womens_health?.perfect?.power} />
+                                                <DataRow label="E (Endurance)" value={data?.womens_health?.perfect?.endurance} />
+                                            </div>
+                                        </div>
+                                    </ReportCard>
+                                )}
+
+                                {/* 9. SECTION: ORTOPEDIA (MOVEMENT / STRENGTH / PROTOCOLS) */}
+                                {(sectionsToRender.includes('movement') || sectionsToRender.includes('strength') || sectionsToRender.includes('protocols')) && (
+                                    <ReportCard>
+                                        <SectionHeader title="Avaliação Musculoesquelética" icon={Dumbbell} color="blue" />
+                                        <div className="space-y-6">
+                                            {sectionsToRender.includes('movement') && (
+                                                <div>
+                                                    <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-3">Mobilidade e Movimento</h4>
+                                                    <div className="bg-slate-50 p-4 rounded-2xl grid grid-cols-2 gap-x-12 gap-y-2">
+                                                        <DataRow label="Qualidade ADM" value={data?.movement?.quality} />
+                                                        <DataRow label="Déficit Restritivo" value={data?.movement?.restriction} />
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {sectionsToRender.includes('strength') && (
+                                                <div>
+                                                    <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-3">Força (Dinamometria HHD)</h4>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        {(data?.strength?.tests || []).slice(0, 4).map((t: any, i: number) => (
+                                                            <DataRow key={i} label={t.name} value={`${t.right || 0}N | ${t.left || 0}N`} />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </ReportCard>
+                                )}
+
+                                {/* 10. SECTION: ADVANCED PHYSICAL ASSESSMENT */}
+                                {(sectionsToRender.includes('antro') || sectionsToRender.includes('cardio') || sectionsToRender.includes('strength_advanced')) && (
+                                    <ReportCard>
+                                        <SectionHeader title="Performance e Avaliação Física Avançada" icon={Dumbbell} color="emerald" />
+                                        <div className="grid grid-cols-2 gap-10">
+                                            <div className="space-y-4">
+                                                <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4">Composição (Pineau/US)</h4>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+                                                        <span className="text-[8px] font-black text-slate-400 uppercase block">% Gordura</span>
+                                                        <span className="text-xl font-black text-slate-800">{data?.antro?.fatPercent ? `${Number(data.antro.fatPercent).toFixed(1)}%` : '--'}</span>
+                                                    </div>
+                                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+                                                        <span className="text-[8px] font-black text-slate-400 uppercase block">FFMI</span>
+                                                        <span className="text-xl font-black text-slate-800">{data?.antro?.ffmi ? Number(data.antro.ffmi).toFixed(1) : '--'}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="p-6 bg-slate-900 rounded-[2rem] text-center text-white space-y-1">
+                                                    <span className="text-[9px] font-black text-slate-500 uppercase block opacity-70">VO2 Máximo Estimado</span>
+                                                    <p className="text-4xl font-black text-emerald-400">{data?.cardio?.vo2Result ? Number(data.cardio.vo2Result).toFixed(1) : '--'}</p>
+                                                    <span className="text-[8px] font-bold uppercase opacity-50">ml/kg/min</span>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-4">
+                                                <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4">Dinamometria (D-E)</h4>
+                                                <div className="max-h-[300px] overflow-y-auto pr-2 space-y-2">
+                                                    <DataRow label="Extensão Joelho" value={`${data?.strength_advanced?.kneeExtension_right || 0}N | ${data?.strength_advanced?.kneeExtension_left || 0}N`} />
+                                                    <DataRow label="Flexão Joelho" value={`${data?.strength_advanced?.kneeFlexion_right || 0}N | ${data?.strength_advanced?.kneeFlexion_left || 0}N`} />
+                                                    <DataRow label="Dorsiflexão" value={`${data?.strength_advanced?.dorsiflexion_right || 0}N | ${data?.strength_advanced?.dorsiflexion_left || 0}N`} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </ReportCard>
+                                )}
+
+                                {/* 8. SECTION: CLINICAL CONDUCT (PLAN) */}
+                                {sectionsToRender.includes('plan') && (
+                                    <ReportCard className="bg-slate-900 text-white border-0 shadow-xl">
+                                        <SectionHeader title="Planejamento e Conduta Terapêutica" icon={PenTool} color="indigo" />
+                                        <div className="space-y-8 mt-6">
+                                            <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/10 italic text-slate-300 text-sm leading-relaxed relative">
+                                                <MessageSquare className="absolute -top-3 -left-3 w-8 h-8 text-indigo-500 bg-slate-900 p-1.5 rounded-full border-2 border-slate-800 shadow-lg" />
+                                                {data?.plan?.orientations || "Orientação para manutenção das atividades com progressão monitorada de carga e acompanhamento bi-semanal."}
+                                            </div>
+
+                                            {data?.plan?.exercises?.length > 0 && (
+                                                <div className="space-y-3">
+                                                    <h5 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                                                        <Activity className="w-3 h-3" /> Exercícios e Estrutura do Treino
+                                                    </h5>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        {data.plan.exercises.map((ex: any, i: number) => (
+                                                            <div key={i} className="flex justify-between items-center p-3 bg-white/5 border border-white/10 rounded-2xl">
+                                                                <span className="text-[11px] font-bold text-slate-200">{typeof ex === 'string' ? ex : ex.name}</span>
+                                                                <span className="text-[10px] font-black text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded-lg">{ex.sets || 3}x{ex.reps || 12}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </ReportCard>
+                                )}
+                            </div>
+
+                            {/* --- FOOTER (IDENTICAL TO PALMILHA 5) --- */}
+                            <footer className="mt-16 pt-12 border-t flex flex-col items-center">
+                                {prof?.digital_signature_url ? (
+                                    <div className="h-24 w-64 relative mb-4">
+                                        <Image src={prof.digital_signature_url} alt="Assinatura" fill className="object-contain" unoptimized priority />
+                                    </div>
+                                ) : (
+                                    <div className="h-20 w-80 border-b-2 border-slate-200 mb-4 opacity-50 flex items-end justify-center">
+                                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest pb-1 italic">Assinatura do Profissional</span>
                                     </div>
                                 )}
 
-                                {/* Mobilidade */}
-                                {(data?.mobility?.wells || data?.mobility?.legRaiseRight) && (
-                                    <div className="grid grid-cols-3 gap-4">
-                                        {[
-                                            { label: 'Banco de Wells (cm)', value: data?.mobility?.wells ? `${data.mobility.wells} cm` : '--' },
-                                            { label: 'Leg Raise Direito (°)', value: data?.mobility?.legRaiseRight ? `${data.mobility.legRaiseRight}°` : '--' },
-                                            { label: 'Leg Raise Esquerdo (°)', value: data?.mobility?.legRaiseLeft ? `${data.mobility.legRaiseLeft}°` : '--' },
-                                        ].map(item => (
-                                            <div key={item.label} className="bg-white p-5 rounded-2xl border border-slate-100 text-center">
-                                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">{item.label}</span>
-                                                <p className="text-2xl font-black text-indigo-600 mt-1">{item.value}</p>
-                                            </div>
-                                        ))}
+                                <div className="text-center">
+                                    <h4 className="font-extrabold text-slate-900 uppercase text-lg tracking-tight mb-1">
+                                        {prof?.full_name || prof?.name || "Dr(a). Profissional Sênior"}
+                                    </h4>
+                                    <div className="flex justify-center gap-4 text-[10px] text-slate-500 font-black uppercase tracking-widest">
+                                        <span>{prof?.council_type || "CREFITO"}: {prof?.council_number || prof?.crefito || "---"}</span>
+                                        <span className="text-slate-200">|</span>
+                                        <span>Tel/E-mail: {prof?.email || prof?.phone || "Axiom Certified Specialist"}</span>
                                     </div>
-                                )}
-                            </section>
-                        )}
+                                </div>
 
-                        {/* COMMON: CLINICAL VERDICT */}
-                        <section className="space-y-6 pt-10 border-t-2 border-slate-100">
-                            <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 bg-slate-900 rounded-[1.5rem] flex items-center justify-center text-white rotate-3">
-                                    <PenTool className="h-6 w-6" />
+                                <div className="mt-12 text-[8px] font-bold text-slate-300 uppercase tracking-[0.4em]">
+                                    Axiom Performance & Evidence • Smart Clinical System • {new Date().toLocaleDateString()}
                                 </div>
-                                <div>
-                                    <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Síntese Neurofuncional / Parecer</h3>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fundamentação Clínica e Prognóstico</p>
-                                </div>
-                            </div>
-                            <div className="bg-slate-50 p-10 rounded-[3rem] border border-slate-100 italic text-slate-700 leading-relaxed text-sm">
-                                {data?.neuro_adult?.clinical_verdict || data?.occupational_health?.clinical_verdict || data?.cardio_respiratory?.clinical_verdict || data?.plan?.orientations || "Nenhum parecer redigido até o momento."}
-                            </div>
-                        </section>
+                            </footer>
 
-                        {/* FOOTER */}
-                        <div className="pt-20 text-center space-y-6 opacity-30 no-print">
-                            <div className="flex justify-center gap-12">
-                                <div className="space-y-1">
-                                    <div className="h-10 w-24 bg-slate-200 rounded-lg mx-auto mb-2 opacity-50 flex items-center justify-center font-black text-[10px] text-slate-400 uppercase tracking-widest italic">Assinatura</div>
-                                    <div className="border-t border-slate-400 w-48 mx-auto"></div>
-                                    <p className="text-[9px] font-black uppercase text-slate-500">{professional?.name}</p>
-                                </div>
-                            </div>
-                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.3em]">
-                                Axiom Clinical Reporting System • Gerado em {new Date().toLocaleString()}
-                            </p>
                         </div>
-
                     </div>
                 </div>
-            </DialogContent>
-        </Dialog>
+            </div>
+        </div>,
+        document.body
     );
 }

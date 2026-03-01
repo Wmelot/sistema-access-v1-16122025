@@ -149,7 +149,11 @@ export default function Palmilha5Form({
         // Compatibility with both 'hma' and 'anamnesis' for regions
         const regions = form.watch('hma.mainRegions') || form.watch('anamnesis.mainRegions') || [];
 
-        return qp.includes("diabet") || history.includes("diabet") || comorbidities.includes("Diabetes") || regions.includes("insensitive_foot");
+        const hasDiabet = qp.includes("diabet") || history.includes("diabet") || comorbidities.some((c: string) => c.toLowerCase().includes("diabet"));
+        const hasSensibilityLoss = qp.includes("sensibilid") || history.includes("sensibilid");
+        const hasAmputation = qp.includes("amputa") || history.includes("amputa");
+
+        return hasDiabet || hasSensibilityLoss || hasAmputation || regions.includes("insensitive_foot");
     }, [form.watch('hma.qp'), form.watch('hma.history'), form.watch('history.comorbidities'), form.watch('hma.mainRegions'), form.watch('anamnesis.mainRegions')]);
 
     const MENU_SECTIONS = useMemo(() => {
@@ -248,6 +252,7 @@ export default function Palmilha5Form({
                             onReport={() => setPreviewOpen(true)}
                             onImport={() => setFeegowImportOpen(true)}
                             onCopilotStatusChange={setIsListening}
+                            isInsensitiveFoot={isInsensitiveFoot}
                         />
                     </div>
 
@@ -386,6 +391,7 @@ export default function Palmilha5Form({
                                 isSectionFilled={isSectionFilled}
                                 sectionStyle={SECTION_STYLES['shoe']}
                                 organizationId={organization?.id}
+                                isInsensitiveFoot={isInsensitiveFoot}
                             />
 
                             {/* 7. BAROPODOMETRIA (MIGRADO!) */}

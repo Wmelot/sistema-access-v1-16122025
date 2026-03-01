@@ -81,6 +81,7 @@ interface ShoeAccordionProps {
     isSectionFilled: (section: string) => boolean;
     sectionStyle: { border: string; iconColor: string };
     organizationId?: string;
+    isInsensitiveFoot?: boolean;
 }
 
 export const getShoeRecommendationFlow = (shoeVals: any) => {
@@ -157,7 +158,7 @@ export const getShoeRecommendationFlow = (shoeVals: any) => {
     return rec;
 };
 
-export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, organizationId }: ShoeAccordionProps) {
+export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, organizationId, isInsensitiveFoot: isInsensitiveProp }: ShoeAccordionProps) {
     const form = useFormContext();
     const [searchOpen, setSearchOpen] = useState(false);
     const [customShoes, setCustomShoes] = useState<any[]>([]);
@@ -168,11 +169,18 @@ export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, orga
     }, []);
 
     const isInsensitiveFoot = useMemo(() => {
+        if (isInsensitiveProp !== undefined) return isInsensitiveProp;
         const qp = form.watch('hma.qp')?.toLowerCase() || "";
         const history = form.watch('hma.history')?.toLowerCase() || "";
         const comorbidities = form.watch('history.comorbidities') || [];
-        return qp.includes("diabet") || history.includes("diabet") || comorbidities.includes("Diabetes");
-    }, [form.watch('hma.qp'), form.watch('hma.history'), form.watch('history.comorbidities')]);
+        const regions = form.watch('hma.mainRegions') || form.watch('anamnesis.mainRegions') || [];
+
+        const hasDiabet = qp.includes("diabet") || history.includes("diabet") || comorbidities.some((c: string) => c.toLowerCase().includes("diabet"));
+        const hasSensibilityLoss = qp.includes("sensibilid") || history.includes("sensibilid");
+        const hasAmputation = qp.includes("amputa") || history.includes("amputa");
+
+        return hasDiabet || hasSensibilityLoss || hasAmputation || regions.includes("insensitive_foot");
+    }, [isInsensitiveProp, form.watch('hma.qp'), form.watch('hma.history'), form.watch('history.comorbidities'), form.watch('hma.mainRegions'), form.watch('anamnesis.mainRegions')]);
 
     const ALL_SHOES = useMemo(() => {
         const brandsPriority = ['Adidas', 'Asics', 'Brooks', 'Hoka', 'Mizuno', 'New Balance', 'Nike', 'On Running', 'Puma', 'Saucony', 'Olympikus'];

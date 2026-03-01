@@ -15,6 +15,7 @@ import { BiomechanicsReport } from "@/features/forms/pbe/components/biomechanics
 import { RapidAssessmentModal } from "@/features/forms/pbe/components/RapidAssessmentModal";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PBE5UnifiedReport } from "./components/reports/PBE5UnifiedReport";
+import { PBE5ReportSelectorModal } from "./components/reports/PBE5ReportSelectorModal";
 import { Textarea } from "@/components/ui/textarea";
 import { CompactPBE5Card } from "./components/CompactPBE5Card";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -137,6 +138,8 @@ export default function PBE5Form({
     const [feegowImportOpen, setFeegowImportOpen] = useState(false);
     const [feegowText, setFeegowText] = useState("");
     const [isListening, setIsListening] = useState(false);
+    const [isReportSelectorOpen, setIsReportSelectorOpen] = useState(false);
+    const [selectedSections, setSelectedSections] = useState<string[]>([]);
     const { setIsCollapsed } = useSidebar();
 
     useEffect(() => {
@@ -322,7 +325,7 @@ export default function PBE5Form({
                                     setIsSaving(false);
                                 }
                             })}
-                            onReport={() => setPreviewOpen(true)}
+                            onReport={() => setIsReportSelectorOpen(true)}
                             onImport={() => setFeegowImportOpen(true)}
                             onCopilotStatusChange={setIsListening}
                         />
@@ -584,6 +587,20 @@ export default function PBE5Form({
 
                 {/* FOOTER REMOVED - NOW IN SIDEBAR */}
 
+                {isReportSelectorOpen && (
+                    <PBE5ReportSelectorModal
+                        isOpen={isReportSelectorOpen}
+                        onClose={() => setIsReportSelectorOpen(false)}
+                        menuSections={menuSections}
+                        isSectionFilled={isSectionFilled}
+                        onConfirm={(sections) => {
+                            setSelectedSections(sections);
+                            setIsReportSelectorOpen(false);
+                            setPreviewOpen(true);
+                        }}
+                    />
+                )}
+
                 {previewOpen && (
                     specialty === 'biomecanica' ? (
                         <BiomechanicsReport
@@ -605,6 +622,7 @@ export default function PBE5Form({
                             organization={organization}
                             professional={professional}
                             specialty={specialty}
+                            selectedSections={selectedSections}
                         />
                     )
                 )}

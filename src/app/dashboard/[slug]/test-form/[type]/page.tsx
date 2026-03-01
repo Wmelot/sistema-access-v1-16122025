@@ -9,10 +9,13 @@ import DiabeticFootForm from "@/features/forms/pbe/components/DiabeticFootForm";
 import UltimatePBEForm from "@/features/forms/pbe/components/UltimatePBEForm";
 import AdvancedSmartAssessment from "@/features/forms/smart-assessment/components/AdvancedSmartAssessment";
 import PBE5Form from "@/features/forms/pbe-5/PBE5Form";
+import Palmilha5Form from "@/features/forms/palmilha-5/components/Palmilha5Form";
+import PalmilhaFormV3 from "@/features/forms/_ROOT_BACKUP_JUNK_OUTSIDE/palmilha-biomecanica/components/PalmilhaFormV3";
+import BiomechanicsInsoleForm from "@/features/forms/pbe/components/BiomechanicsInsoleForm";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, Save, UserPlus, User, X, FileText, ArrowLeft, ChevronDown, Check, ChevronsUpDown } from "lucide-react";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -48,7 +51,37 @@ export default function GenericSandboxPage() {
     const [newName, setNewName] = useState("");
     const [newPhone, setNewPhone] = useState("");
 
+
     const [isSaving, setIsSaving] = useState(false);
+    const [isRestoring, setIsRestoring] = useState(true);
+
+    // PERSISTENCE BACKUP (Avoid data loss)
+    // 1. Load on mount
+    useEffect(() => {
+        const saved = localStorage.getItem(`sandbox_backup_${type}`);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed && typeof parsed === 'object') {
+                    setPendingData(parsed);
+                    console.log(`Restored sandbox backup for ${type} from localStorage`);
+                }
+            } catch (e) {
+                console.error("Failed to restore backup", e);
+            }
+        }
+        setIsRestoring(false);
+    }, [type]);
+
+    // 2. Save on change (Debounced to avoid heavy storage writes)
+    useEffect(() => {
+        if (pendingData && !isRestoring) {
+            const timer = setTimeout(() => {
+                localStorage.setItem(`sandbox_backup_${type}`, JSON.stringify(pendingData));
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [pendingData, isRestoring, type]);
 
     // Phone Mask
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -276,30 +309,47 @@ export default function GenericSandboxPage() {
             toast.error(result.error);
         } else {
             toast.success("Dados salvos com sucesso! Abrindo prontuário...");
+            localStorage.removeItem(`sandbox_backup_${type}`);
             setDialogOpen(false);
             router.push(`/dashboard/${slug}/patients/${result.patientId}`);
         }
     }
 
+
     const renderForm = () => {
+        if (isRestoring) {
+            return (
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                    <div className="h-8 w-8 animate-spin border-4 border-indigo-600 border-t-transparent rounded-full" />
+                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Recuperando progresso...</p>
+                </div>
+            );
+        }
+
         switch (type) {
             case 'womens-health':
-                return <WomensHealthForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
+                return <WomensHealthForm patientId="sandbox" initialData={pendingData} onSave={handleInitialSave} hideHeader hideButtons />;
             case 'pbe':
-                return <SmartPBEForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
+                return <SmartPBEForm patientId="sandbox" initialData={pendingData} onSave={handleInitialSave} hideHeader hideButtons />;
             case 'pbe-5':
-                return <PBE5Form patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
+                return <PBE5Form patientId="sandbox" initialData={pendingData} onSave={handleInitialSave} onTemplateChange={handleFormChange} selectedTemplateId={type} templates={[]} hideHeader hideButtons />;
+            case 'palmilha-5':
+                return <Palmilha5Form patientId="sandbox" initialData={pendingData} onSave={handleInitialSave} onTemplateChange={handleFormChange} selectedTemplateId={type} templates={[]} />;
+            case 'palmilha-v3':
+                return <PalmilhaFormV3 patientId="sandbox" initialData={pendingData} onSave={handleInitialSave} />;
+            case 'palmilha':
+                return <BiomechanicsInsoleForm patientId="sandbox" initialData={pendingData} onSave={handleInitialSave} hideHeader hideButtons />;
             case 'physical':
-                return <AdvancedPhysicalForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
+                return <AdvancedPhysicalForm patientId="sandbox" initialData={pendingData} onSave={handleInitialSave} hideHeader hideButtons />;
             case 'ultimate-pbe': // Fusion Form
-                return <UltimatePBEForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
+                return <UltimatePBEForm patientId="sandbox" initialData={pendingData} onSave={handleInitialSave} hideHeader hideButtons />;
             case 'diabetic-foot':
-                return <DiabeticFootForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
+                return <DiabeticFootForm patientId="sandbox" initialData={pendingData} onSave={handleInitialSave} hideHeader hideButtons />;
 
             case 'smart-wizard':
                 return <AdvancedSmartAssessment patientId="sandbox" />;
             default:
-                return <div>Formulário não encontrado.</div>;
+                return <div>Formulário não encontrado. O seletor acima permite escolher outro modelo.</div>;
         }
     };
 
@@ -314,49 +364,51 @@ export default function GenericSandboxPage() {
     return (
         <div className="space-y-6 relative pb-20">
             {/* Standardized Header */}
-            <div className="bg-white border rounded-xl p-3 mb-4 flex items-center justify-between shadow-sm">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-600 transition-colors" onClick={() => router.push(`/dashboard/${slug}/forms`)}>
-                        <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                    <div className="h-10 w-10 bg-indigo-50 border border-indigo-100 rounded-lg flex items-center justify-center text-indigo-600">
-                        <FileText className="h-5 w-5" />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
-                            Atalho de Preenchimento
-                        </span>
-                        <div className="flex items-center gap-1 group cursor-pointer">
-                            <Select value={type} onValueChange={handleFormChange}>
-                                <SelectTrigger className="border-none shadow-none font-black text-xl text-slate-900 tracking-tight p-0 h-auto focus:ring-0">
-                                    <SelectValue placeholder="Selecione o Formulário" />
-                                </SelectTrigger>
-                                <SelectContent className="z-[100]">
-                                    <SelectGroup>
-                                        <SelectItem value="palmilha">Palmilha Biomecânica</SelectItem>
-                                        <SelectItem value="pbe-5" className="font-black text-blue-600 bg-blue-50">✨ PBE 5.0 (Nova Geração)</SelectItem>
-                                        <SelectItem value="physical">Avaliação Física Avançada</SelectItem>
-                                        <SelectItem value="pbe">Avaliação PBE (Acordeão Inteligente)</SelectItem>
-                                        <SelectItem value="smart-wizard" className="font-bold text-indigo-600 bg-indigo-50">✨ PBE 3.0: Decision Tree Wizard (IA)</SelectItem>
-                                        <SelectItem value="ultimate-pbe" className="font-bold text-indigo-600">✨ Ultimate PBE (Fusão)</SelectItem>
-                                        <SelectItem value="womens-health">Saúde da Mulher & Pélvica</SelectItem>
-                                        <SelectItem value="diabetic-foot">Avaliação de Pé Diabético</SelectItem>
 
-
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
+            {/* Standardized Header (Conditionally Hidden for Modern Forms with Sidebar Selector) */}
+            {!['pbe-5', 'palmilha-5'].includes(type) && (
+                <div className="bg-white border rounded-xl p-3 mb-4 flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-600 transition-colors" onClick={() => router.push(`/dashboard/${slug}/forms`)}>
+                            <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                        <div className="h-10 w-10 bg-indigo-50 border border-indigo-100 rounded-lg flex items-center justify-center text-indigo-600">
+                            <FileText className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                                Atalho de Preenchimento
+                            </span>
+                            <div className="flex items-center gap-1 group cursor-pointer">
+                                <Select value={type} onValueChange={handleFormChange}>
+                                    <SelectTrigger className="border-none shadow-none font-black text-xl text-slate-900 tracking-tight p-0 h-auto focus:ring-0">
+                                        <SelectValue placeholder="Selecione o Formulário" />
+                                    </SelectTrigger>
+                                    <SelectContent className="z-[100]">
+                                        <SelectGroup>
+                                            <SelectItem value="pbe-5" className="font-black text-blue-600 bg-blue-50">✨ PBE 5.0 (Nova Geração)</SelectItem>
+                                            <SelectItem value="palmilha-5" className="font-bold text-indigo-600">Palmilha 5.0 (V5 Premium)</SelectItem>
+                                            <SelectItem value="palmilha">Palmilha Biomecânica (Tradicional)</SelectItem>
+                                            <SelectItem value="palmilha-v3">Palmilha V3 (Nova)</SelectItem>
+                                            <SelectItem value="physical">Avaliação Física Avançada</SelectItem>
+                                            <SelectItem value="pbe">Avaliação PBE (Acordeão Inteligente)</SelectItem>
+                                            <SelectItem value="smart-wizard" className="font-bold text-indigo-600 bg-indigo-50">✨ PBE 3.0: Decision Tree Wizard (IA)</SelectItem>
+                                            <SelectItem value="ultimate-pbe" className="font-bold text-indigo-600">✨ Ultimate PBE (Fusão)</SelectItem>
+                                            <SelectItem value="womens-health">Saúde da Mulher & Pélvica</SelectItem>
+                                            <SelectItem value="diabetic-foot">Avaliação de Pé Diabético</SelectItem>
+                                        </SelectGroup>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100">
-                    <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Salvamento Automático</span>
+                    <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100">
+                        <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Salvamento Automático</span>
+                    </div>
                 </div>
-            </div>
-
-            {/* Form Containers */}
+            )}
             {renderForm()}
 
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

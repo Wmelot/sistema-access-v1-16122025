@@ -14,6 +14,7 @@ interface CompactBiomechanicsCardProps {
     onReport?: () => void;
     onImport?: () => void;
     onCopilotStatusChange?: (listening: boolean) => void;
+    isInsensitiveFoot?: boolean;
 }
 
 export function CompactBiomechanicsCard({
@@ -22,7 +23,8 @@ export function CompactBiomechanicsCard({
     onSave,
     onReport,
     onImport,
-    onCopilotStatusChange
+    onCopilotStatusChange,
+    isInsensitiveFoot = false
 }: CompactBiomechanicsCardProps) {
     // 1. OLHEIROS (Watchers)
     const hma = form.watch("hma") || {};
@@ -84,7 +86,9 @@ export function CompactBiomechanicsCard({
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:rotate-12 transition-transform duration-500">
                 <Activity className="w-20 h-20" />
             </div>
-            <h1 className="text-xl font-black uppercase tracking-tighter leading-none mb-1">Insole Engine</h1>
+            <h1 className={cn("text-xl font-black uppercase tracking-tighter leading-none mb-1 transition-colors", isInsensitiveFoot ? "text-teal-400" : "text-white")}>
+                {isInsensitiveFoot ? "Insense Engine" : "Insole Engine"}
+            </h1>
             <p className="text-[10px] text-slate-400 font-mono">LABORATÓRIO BIOMECÂNICO v5.0</p>
 
             {/* Radar Background Subtle */}
@@ -93,7 +97,7 @@ export function CompactBiomechanicsCard({
                     <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
                         <PolarGrid stroke="#fff" />
                         <PolarAngleAxis dataKey="subject" tick={false} />
-                        <Radar dataKey="A" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
+                        <Radar dataKey="A" stroke={isInsensitiveFoot ? "#2dd4bf" : "#3b82f6"} fill={isInsensitiveFoot ? "#2dd4bf" : "#3b82f6"} fillOpacity={0.5} />
                     </RadarChart>
                 </ResponsiveContainer>
             </div>
