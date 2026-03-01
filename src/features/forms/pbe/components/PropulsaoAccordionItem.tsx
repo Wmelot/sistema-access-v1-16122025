@@ -55,7 +55,7 @@ const DEFAULT_FOOT: FootConfig = {
     arco: 'Médio (25º)',
     flexibilidade: 'Semirrígido',
     borda: 'Sem Borda (Padrão)',
-    elevacao: 'Nenhuma',
+    elevacao: '0.0',
     antep: '',
     antepe: '',
     retrope: '',
@@ -65,7 +65,7 @@ const DEFAULT_FOOT: FootConfig = {
 }
 
 const ELEVATION_OPTIONS = [
-    { label: 'Nenhuma', value: 'Nenhuma' },
+    { label: '0.0 cm', value: '0.0' },
     { label: '0.1 cm', value: '0.1' },
     { label: '0.2 cm', value: '0.2' },
     { label: '0.3 cm', value: '0.3' },
@@ -263,7 +263,7 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
         let parts: string[] = []
 
         // 1. Introduction
-        parts.push("Indicação de órteses plantares (palmilhas) desenhadas para distribuir melhor a pressão na planta dos pés e controlar o movimento do arco plantar.")
+        parts.push("Indicação de órteses plantares (palmilhas) desenhadas para distribuir melhor a pressão plantar e controlar o movimentos indesejados do pé.")
 
         // 2. Corrections (Refatorado para melhor gramática e menos repetição)
         const getCorrectionDetails = (conf: any) => {
@@ -287,8 +287,8 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
         }
 
         // 3. Elevation
-        if ((leftFoot.elevacao !== 'Nenhuma' && leftFoot.elevacao !== '0') || (rightFoot.elevacao !== 'Nenhuma' && rightFoot.elevacao !== '0')) {
-            parts.push("Foi incluída compensação (balancim/elevação) com o intuito de proporcionar alinhamento dos membros inferiores e da pelve, melhorando a distribuição de carga axial.")
+        if ((leftFoot.elevacao !== '0.0' && leftFoot.elevacao !== '0') || (rightFoot.elevacao !== '0.0' && rightFoot.elevacao !== '0')) {
+            parts.push("Foi incluída compensação (elevação) com o intuito de proporcionar alinhamento dos membros inferiores e da pelve, melhorando a distribuição de carga axial.")
         }
 
         // 4. Borda
@@ -484,7 +484,7 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
             <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">
                 <div className="flex items-center gap-2">
                     <Send className="w-5 h-5 text-blue-600" />
-                    Pedido Palmilha Propulsão
+                    Pedido de Palmilha
                 </div>
             </AccordionTrigger>
 
@@ -763,7 +763,7 @@ function FootSummary({ side, config, color }: { side: string, config: FootConfig
                 </div>
             )}
 
-            {config.elevacao && config.elevacao !== "Nenhuma" && config.elevacao !== "0" && (
+            {config.elevacao && config.elevacao !== "0.0" && config.elevacao !== "0" && (
                 <div className="flex justify-between text-orange-600 text-xs font-medium bg-orange-50 px-2 py-1 rounded"><span>Elevação:</span><span>+{config.elevacao} cm</span></div>
             )}
 
@@ -970,7 +970,7 @@ function FootForm({
                 {/* 6. Scanner 3D Upload */}
                 <div className="pt-3 border-t border-slate-200 mt-2">
                     <Label className="text-xs mb-2 block font-semibold text-slate-700 flex items-center gap-2">
-                        <Upload className="w-3 h-3" /> Scanner 3D (Arqv. STL)
+                        <Upload className="w-3 h-3" /> Scanner 3D (Arquivo .STL)
                     </Label>
                     {!scannerFile ? (
                         <div className="relative group">

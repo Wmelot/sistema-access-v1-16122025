@@ -4,11 +4,12 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { useDebounce } from "use-debounce"
 import { useRouter, useSearchParams, useParams } from "next/navigation"
 import { toast } from "sonner"
-import { ArrowLeft, Save, CheckCircle, Clock, ChevronRight, ChevronLeft, PanelRightClose, PanelRightOpen, FileText, ClipboardList, ChevronDown, Mic, History as HistoryIcon, Trash2, Pencil, Check, X, Loader2 } from "lucide-react"
+import { ArrowLeft, Save, CheckCircle, Clock, ChevronRight, ChevronLeft, PanelRightClose, PanelRightOpen, FileText, ClipboardList, ChevronDown, Mic, History as HistoryIcon, Trash2, Pencil, Check, X, Loader2, PenTool } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -423,8 +424,8 @@ export function AttendanceClient({
     // Auto-start attendance and ensure record exists
     useEffect(() => {
         const init = async () => {
-            // 1. Start Attendance Status
-            if (appointment.status !== 'in_progress' && appointment.status !== 'attended') {
+            // 1. Start Attendance Status - ONLY if patient is linked
+            if (patient.id && appointment.status !== 'in_progress' && appointment.status !== 'attended') {
                 const res = await startAttendance(appointment.id, slug) as any
 
                 // [FIX] Handle Already Active Attendance
@@ -489,7 +490,7 @@ export function AttendanceClient({
 
             // [NEW] Set Active Context
             setActiveAttendanceId(appointment.id)
-            setPatientName(patient.name)
+            setPatientName(patient.full_name || patient.name || "Paciente")
 
             let start = currentRecord?.created_at || appointment.updated_at || null
             if (!start && (appointment.status === 'in_progress' || appointment.status === 'attended')) {
@@ -498,7 +499,7 @@ export function AttendanceClient({
             setStartTime(start)
         }
         init()
-    }, [appointment.id, appointment.status, currentRecord, selectedTemplateId, isCreatingRecord, patient.id, mode, slug, router, setActiveAttendanceId, setPatientName, setStartTime])
+    }, [appointment.id, appointment.status, currentRecord?.id, selectedTemplateId, isCreatingRecord, patient.id, mode, slug, router, setActiveAttendanceId, setPatientName, setStartTime])
 
     // Handle Template Change
     const handleTemplateChange = async (newTemplateId: string) => {
@@ -520,6 +521,21 @@ export function AttendanceClient({
         const hasContent = currentRecord && currentRecord.content && Object.keys(currentRecord.content).length > 0;
 
         try {
+            // [NEW] Persistência Sábia: Se já existe um registro deste tipo nesta sessão, retome-o
+            const existingInSession = localHistory.find((r: any) =>
+                r.template_id === newTemplateId &&
+                r.appointment_id === appointment.id
+            );
+
+            if (existingInSession) {
+                toast.success(`Retomando conteúdo de ${newTemplate?.title || 'formulário'}...`);
+                setSelectedTemplateId(newTemplateId);
+                setCurrentRecord(existingInSession);
+                // Align selection in DB
+                alignAppointmentService(appointment.id, newTemplateId, slug).catch(console.error);
+                return;
+            }
+
             if (hasContent) {
                 // CASE A: Current form is filled -> Save to History (Link to current appointment remains, but we create a NEW active one)
                 // The previous record is already auto-saved to DB.
@@ -577,7 +593,33 @@ export function AttendanceClient({
     }
 
     const handleFinish = async () => {
-        // [MODIFIED] Open Dialog instead of direct finish
+        if (!patient.id) {
+            const confirm = await MySwal.fire({
+                title: 'O que deseja fazer?',
+                text: 'Este atendimento ainda não possui um paciente vinculado.',
+                icon: 'question',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: '⚡ Salvar Rascunho',
+                denyButtonText: '👤 Vincular Paciente',
+                cancelButtonText: 'Continuar editando',
+                confirmButtonColor: '#ff9800',
+                denyButtonColor: '#4f46e5',
+                reverseButtons: true
+            })
+
+            if (confirm.isConfirmed) {
+                // Save and Exit
+                toast.success("Rascunho salvo com sucesso!")
+                router.push(`/dashboard/${slug}`)
+            } else if (confirm.isDenied) {
+                // Open the dialog to link patient and proceed
+                setIsFinishDialogOpen(true)
+            }
+            return
+        }
+
+        // Standard flow
         setIsFinishDialogOpen(true)
     }
 
@@ -684,7 +726,7 @@ export function AttendanceClient({
         <div className="h-[calc(100vh-4rem)] flex flex-col">
             {/* ... Header ... */}
             {/* Header: Patient Info Card (Redesigned for Mobile) */}
-            <div className="flex flex-col gap-4 border-b pb-4 mb-4 shrink-0">
+            <div className="flex flex-col gap-4 border-b pb-2 mb-2 shrink-0">
                 <div className="hidden sm:flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Avatar className="h-10 w-10 border">
@@ -730,10 +772,12 @@ export function AttendanceClient({
                             <ArrowLeft className="h-4 w-4" />
                             <span className="hidden sm:inline">Voltar</span>
                         </Button>
-                        <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200 shrink-0">
-                            <Clock className="h-4 w-4 text-slate-500" />
-                            <Stopwatch startTime={currentRecord?.created_at || appointment.updated_at || appointment.start_time} />
-                        </div>
+                        {patient.id && (
+                            <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200 shrink-0">
+                                <Clock className="h-4 w-4 text-slate-500" />
+                                <Stopwatch startTime={currentRecord?.created_at || appointment.updated_at || appointment.start_time} />
+                            </div>
+                        )}
                         <Button
                             variant="default"
                             size="sm"
@@ -741,10 +785,20 @@ export function AttendanceClient({
                             className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-all hover:scale-105 shrink-0"
                         >
                             <Mic className="w-4 h-4" />
-                            Modo Voz & Foco
+                            Modo Foco
                         </Button>
-                        <Button id="finish-attendance-btn" onClick={handleFinish} className="bg-green-600 hover:bg-green-700 text-white shrink-0">
-                            {mode === 'assessment' ? 'Finalizar Avaliação' : 'Finalizar Atendimento'}
+                        <Button id="finish-attendance-btn" onClick={handleFinish} className={cn(
+                            "text-white shrink-0",
+                            !patient.id ? "bg-amber-500 hover:bg-amber-600" : "bg-green-600 hover:bg-green-700"
+                        )}>
+                            {!patient.id ? (
+                                <span className="flex items-center gap-2">
+                                    <PenTool className="h-4 w-4" />
+                                    Salvar Rascunho / Vincular
+                                </span>
+                            ) : (
+                                mode === 'assessment' ? 'Finalizar Avaliação' : 'Finalizar Atendimento'
+                            )}
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="ml-2 shrink-0">
                             {isSidebarOpen ? <PanelRightClose className="h-5 w-5" /> : <PanelRightOpen className="h-5 w-5" />}
@@ -768,18 +822,26 @@ export function AttendanceClient({
 
                     <div className="flex items-center gap-1.5 shrink-0">
                         {/* Timer + Finalizar Capsule (FOTO 1) */}
-                        <div className="flex items-center bg-slate-100 border border-slate-200 rounded-full pl-2 pr-1 py-1 gap-2">
-                            <div className="flex items-center gap-1 text-slate-600">
-                                <Clock className="h-3 w-3" />
-                                <Stopwatch startTime={currentRecord?.created_at || appointment.updated_at || appointment.start_time} />
-                            </div>
+                        <div className={cn(
+                            "flex items-center bg-slate-100 border border-slate-200 rounded-full py-1 gap-2",
+                            patient.id ? "pl-2 pr-1" : "px-1"
+                        )}>
+                            {patient.id && (
+                                <div className="flex items-center gap-1 text-slate-600">
+                                    <Clock className="h-3 w-3" />
+                                    <Stopwatch startTime={currentRecord?.created_at || appointment.updated_at || appointment.start_time} />
+                                </div>
+                            )}
                             <Button
                                 id="finish-attendance-btn-mobile"
                                 size="sm"
                                 onClick={handleFinish}
-                                className="h-7 px-3 bg-green-600 hover:bg-green-700 text-white rounded-full text-[10px] font-black uppercase tracking-tight"
+                                className={cn(
+                                    "h-7 px-3 text-white rounded-full text-[10px] font-black uppercase tracking-tight",
+                                    !patient.id ? "bg-amber-500 hover:bg-amber-600" : "bg-green-600 hover:bg-green-700"
+                                )}
                             >
-                                FINALIZAR
+                                {!patient.id ? 'VINCULAR PACIENTE' : 'FINALIZAR'}
                             </Button>
                         </div>
                     </div>
@@ -790,106 +852,118 @@ export function AttendanceClient({
                 {/* Main Content Area (Tabs) */}
                 <div className="flex-1 flex flex-col overflow-hidden">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-                        <div className="flex items-center gap-4 mb-1 sm:mb-4">
+                        <div className="flex items-center gap-4 mb-1 sm:mb-2">
                             {/* Mobile Tabs - Removed for Space as per user request */}
                             <div className="sm:hidden" />
 
-                            <TabsList className="hidden sm:flex bg-slate-100 p-1">
-                                <TabsTrigger value="evolution" className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                                    <FileText className="h-4 w-4" />
-                                    Evolução / Formulários
-                                </TabsTrigger>
-                            </TabsList>
+                            {!['palmilha-5', 'e0000000-0000-0000-0000-000000000005', PBE5_ID].includes(selectedTemplateId) && (
+                                <TabsList className="hidden sm:flex bg-slate-100 p-1">
+                                    <TabsTrigger value="evolution" className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                                        <FileText className="h-4 w-4" />
+                                        Evolução / Formulários
+                                    </TabsTrigger>
+                                </TabsList>
+                            )}
                         </div>
 
 
                         <TabsContent value="evolution" className="flex-1 overflow-hidden mt-0">
-                            {/* Card Header Design (FOTO 1/2 Style Integration) */}
-                            <div className="bg-white border rounded-xl p-2.5 sm:p-3 mb-1.5 sm:mb-3 flex items-center justify-between shadow-sm">
-                                <div className="flex items-center gap-3 overflow-hidden flex-1">
-                                    <div className="h-10 w-10 bg-indigo-50 border border-indigo-100 rounded-lg hidden sm:flex items-center justify-center text-indigo-600">
-                                        <FileText className="h-5 w-5" />
-                                    </div>
-                                    <div className="h-8 w-8 bg-indigo-50 border border-indigo-100 rounded-lg flex sm:hidden items-center justify-center text-indigo-600 shrink-0">
-                                        <FileText className="h-4 w-4" />
-                                    </div>
-                                    <div className="flex flex-col min-w-0 flex-1">
-                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
-                                            Formulário
-                                        </span>
-                                        <Select value={selectedTemplateId || undefined} onValueChange={handleTemplateChange}>
-                                            <SelectTrigger
-                                                id="attendance-template-select"
-                                                className="h-8 sm:h-9 py-1 px-3 w-full max-w-[200px] sm:max-w-[280px] bg-white border-slate-200 shadow-none rounded-lg text-xs sm:text-sm font-bold"
-                                            >
-                                                <div className="flex items-center gap-2 overflow-hidden">
-                                                    <SelectValue placeholder="Selecionar" className="truncate" />
-                                                </div>
-                                            </SelectTrigger>
-                                            <SelectContent
-                                                className="w-[90vw] sm:w-[350px] z-[9999]"
-                                                align="start"
-                                            >
-                                                {/* ⭐ FORMULÁRIOS ATIVOS — OS BIG 4 */}
-                                                <SelectGroup>
-                                                    <div className="px-3 py-2 text-[10px] font-black text-indigo-500 uppercase tracking-widest border-b border-indigo-50 mb-1">⭐ Avaliação Clínica</div>
-                                                    <SelectItem value={PBE5_ID} className="py-3 cursor-pointer font-black text-indigo-700 bg-indigo-50/50 focus:bg-indigo-100">🧠 PBE 5.0 — Avaliação Completa</SelectItem>
-                                                    <SelectItem value="diabetic_foot_system" className="py-3 cursor-pointer font-medium text-teal-700 focus:bg-teal-50">🦶 Palmilha Pé Insensível</SelectItem>
-                                                </SelectGroup>
+                            {/* Card Header Design (FOTO 1/2 Style Integration) - Hidden for Modern Forms (PBE/Palmilha 5) */}
+                            {!['palmilha-5', 'e0000000-0000-0000-0000-000000000005', PBE5_ID].includes(selectedTemplateId) && (
+                                <div className="bg-white border rounded-xl p-2.5 sm:p-3 mb-1.5 sm:mb-3 flex items-center justify-between shadow-sm">
+                                    <div className="flex items-center gap-3 overflow-hidden flex-1">
+                                        <div className="h-10 w-10 bg-indigo-50 border border-indigo-100 rounded-lg hidden sm:flex items-center justify-center text-indigo-600">
+                                            <FileText className="h-5 w-5" />
+                                        </div>
+                                        <div className="h-8 w-8 bg-indigo-50 border border-indigo-100 rounded-lg flex sm:hidden items-center justify-center text-indigo-600 shrink-0">
+                                            <FileText className="h-4 w-4" />
+                                        </div>
+                                        <div className="flex flex-col min-w-0 flex-1">
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                                                Formulário
+                                            </span>
+                                            <Select value={selectedTemplateId || undefined} onValueChange={handleTemplateChange}>
+                                                <SelectTrigger
+                                                    id="attendance-template-select"
+                                                    className="h-8 sm:h-9 py-1 px-3 w-full max-w-[200px] sm:max-w-[280px] bg-white border-slate-200 shadow-none rounded-lg text-xs sm:text-sm font-bold"
+                                                >
+                                                    <div className="flex items-center gap-2 overflow-hidden">
+                                                        <SelectValue placeholder="Selecionar" className="truncate" />
+                                                    </div>
+                                                </SelectTrigger>
+                                                <SelectContent
+                                                    className="w-[90vw] sm:w-[350px] z-[9999]"
+                                                    align="start"
+                                                >
+                                                    {/* AVALIAÇÃO CLÍNICA */}
+                                                    <SelectGroup>
+                                                        <div className="px-3 py-2 text-[10px] font-black text-indigo-500 uppercase tracking-widest border-b border-indigo-50 mb-1">Avaliação Clínica</div>
+                                                        <SelectItem value={PBE5_ID} className="py-3 cursor-pointer font-black text-indigo-700 bg-indigo-50/50 focus:bg-indigo-100">PBE 5.0 — Avaliação Completa</SelectItem>
+                                                        <SelectItem value="diabetic_foot_system" className="py-3 cursor-pointer font-medium text-teal-700 focus:bg-teal-50">Pé Insensível — Protocolo IWGDF</SelectItem>
+                                                    </SelectGroup>
 
-                                                {/* 🦶 PALMILHA */}
-                                                <SelectGroup>
-                                                    <Separator className="my-1" />
-                                                    <div className="px-2 py-1.5 text-[10px] font-black text-blue-400 uppercase tracking-widest">🦶 Biomecânica & Palmilha</div>
-                                                    <SelectItem value="palmilha-5" className="py-2.5 text-blue-700 font-bold bg-blue-50/50 cursor-pointer">Palmilha 5.0 — Biomecânica Completa</SelectItem>
-                                                </SelectGroup>
+                                                    {/* BIOMECÂNICA */}
+                                                    <SelectGroup>
+                                                        <Separator className="my-1" />
+                                                        <div className="px-2 py-1.5 text-[10px] font-black text-blue-400 uppercase tracking-widest">Biomecânica e Palmilha</div>
+                                                        <SelectItem value="palmilha-5" className="py-2.5 text-blue-700 font-bold bg-blue-50/50 cursor-pointer">Palmilha 5.0 — Biomecânica Completa</SelectItem>
+                                                    </SelectGroup>
 
-                                                {/* 📋 EVOLUÇÃO */}
-                                                <SelectGroup>
-                                                    <Separator className="my-1" />
-                                                    <div className="px-2 py-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest">📋 Evolução Clínica</div>
-                                                    {(() => {
-                                                        const clinicalTemplate = templates.find(t =>
-                                                            t.title?.toLowerCase().includes('evolução clínica & ia')
-                                                        );
-                                                        return (
-                                                            <SelectItem
-                                                                value={clinicalTemplate?.id || CLINICAL_EVOLUTION_ID}
-                                                                className="py-2.5 text-indigo-700 font-bold bg-indigo-50/50 cursor-pointer"
-                                                            >
-                                                                {clinicalTemplate?.title || 'Evolução Clínica & IA'}
-                                                            </SelectItem>
-                                                        );
-                                                    })()}
-                                                    {filteredTemplates
-                                                        .filter(t => ![
-                                                            PHYSICAL_ASSESSMENT_ID, SMART_ASSESSMENT_ID,
-                                                            WOMENS_HEALTH_ID, 'womens_health_system',
-                                                            PBE5_ID, 'palmilha-5', PALMILHA_V3_ID, PALMILHA_ORIGINAL_ID,
-                                                            ULTIMATE_PBE_ID, TREE_WIZARD_ID, CLINICAL_EVOLUTION_ID,
-                                                            'e0000000-0000-0000-0000-000000000001',
-                                                            'e0000000-0000-0000-0000-000000000004'
-                                                        ].includes(t.id))
-                                                        .filter(t => !t.title?.toLowerCase().includes('palmilha'))
-                                                        .filter(t => !t.title?.toLowerCase().includes('pbe'))
-                                                        .filter(t => !t.title?.toLowerCase().includes('wizard'))
-                                                        .filter(t => !t.title?.toLowerCase().includes('avaliação física'))
-                                                        .map(t => (
-                                                            <SelectItem key={t.id} value={t.id} className="font-medium py-2.5 cursor-pointer">
-                                                                {t.title}
-                                                            </SelectItem>
-                                                        ))}
-                                                </SelectGroup>
-                                            </SelectContent>
-                                        </Select>
+                                                    {/* EVOLUÇÃO */}
+                                                    <SelectGroup>
+                                                        <Separator className="my-1" />
+                                                        <div className="px-2 py-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest">Evolução Clínica</div>
+                                                        {(() => {
+                                                            const clinicalTemplate = templates.find(t =>
+                                                                t.title?.toLowerCase().includes('evolução clínica & ia')
+                                                            );
+                                                            return (
+                                                                <SelectItem
+                                                                    value={clinicalTemplate?.id || CLINICAL_EVOLUTION_ID}
+                                                                    className="py-2.5 text-indigo-700 font-bold bg-indigo-50/50 cursor-pointer"
+                                                                >
+                                                                    {clinicalTemplate?.title || 'Evolução Clínica & IA'}
+                                                                </SelectItem>
+                                                            );
+                                                        })()}
+                                                        {filteredTemplates
+                                                            .filter(t => ![
+                                                                PHYSICAL_ASSESSMENT_ID, SMART_ASSESSMENT_ID,
+                                                                WOMENS_HEALTH_ID, 'womens_health_system',
+                                                                PBE5_ID, 'palmilha-5', PALMILHA_V3_ID, PALMILHA_ORIGINAL_ID,
+                                                                ULTIMATE_PBE_ID, TREE_WIZARD_ID, CLINICAL_EVOLUTION_ID,
+                                                                'e0000000-0000-0000-0000-000000000001',
+                                                                'e0000000-0000-0000-0000-000000000004'
+                                                            ].includes(t.id))
+                                                            .filter(t => !t.title?.toLowerCase().includes('palmilha'))
+                                                            .filter(t => !t.title?.toLowerCase().includes('pbe'))
+                                                            .filter(t => !t.title?.toLowerCase().includes('wizard'))
+                                                            .filter(t => !t.title?.toLowerCase().includes('tree'))
+                                                            .filter(t => !t.title?.toLowerCase().includes('avaliação física'))
+                                                            .filter(t => !t.title?.toLowerCase().includes('saúde da mulher'))
+                                                            .filter(t => !t.title?.toLowerCase().includes('pélvica'))
+                                                            .filter(t => !t.title?.toLowerCase().includes('concept'))
+                                                            .filter(t => !t.title?.toLowerCase().includes('ultimate'))
+                                                            .filter(t => !t.title?.toLowerCase().includes('inteligente'))
+                                                            .filter(t => !t.title?.toLowerCase().includes('insensível'))
+                                                            .filter(t => !t.title?.toLowerCase().includes('diabético'))
+                                                            .map(t => (
+                                                                <SelectItem key={t.id} value={t.id} className="font-medium py-2.5 cursor-pointer">
+                                                                    {t.title}
+                                                                </SelectItem>
+                                                            ))}
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+
+                                    <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100 shrink-0">
+                                        <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest">Sincronizado</span>
                                     </div>
                                 </div>
-
-                                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100 shrink-0">
-                                    <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Sincronizado</span>
-                                </div>
-                            </div>
+                            )}
 
                             <Card className="flex flex-col h-full border-0 shadow-none bg-slate-50/50 w-full pt-0">
                                 <ScrollArea className="flex-1 -mr-4 pr-4">
@@ -1022,6 +1096,9 @@ export function AttendanceClient({
                                                 patient={patient}
                                                 organization={(appointment as any)?.organizations || {}}
                                                 professional={appointment?.profiles}
+                                                selectedTemplateId={selectedTemplateId}
+                                                onTemplateChange={handleTemplateChange}
+                                                templates={templates}
                                             />
                                         ) : (selectedTemplateId === 'palmilha-5' || selectedTemplateId === 'e0000000-0000-0000-0000-000000000005') ? (
                                             <Palmilha5Form
@@ -1031,6 +1108,9 @@ export function AttendanceClient({
                                                 patient={patient}
                                                 organization={(appointment as any)?.organizations || {}}
                                                 professional={appointment?.profiles}
+                                                selectedTemplateId={selectedTemplateId}
+                                                onTemplateChange={handleTemplateChange}
+                                                templates={templates}
                                             />
                                         ) : (selectedTemplateId === PALMILHA_V3_ID) ? (
                                             <PalmilhaFormV3

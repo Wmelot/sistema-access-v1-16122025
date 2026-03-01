@@ -1093,10 +1093,10 @@ export function AdvancedPhysicalForm({ initialData, onSave, onDataChange, readOn
 
                                 {/* 0. ANAMNESE */}
                                 <AccordionItem value="anamnese" className="border rounded-lg px-4 mb-4 shadow-sm bg-card">
-                                    <AccordionTrigger className="hover:no-underline py-4">
+                                    <AccordionTrigger className="hover:no-underline py-4 group">
                                         <div className="flex items-center gap-2">
-                                            <Activity className="h-5 w-5 text-indigo-500" />
-                                            <span className="text-lg font-semibold">1. Anamnese & Sinais Vitais</span>
+                                            <Activity className="h-5 w-5 text-indigo-500 transition-colors group-hover:animate-bounce" />
+                                            <span className="text-lg font-semibold">1. Anamnese e Sinais Vitais</span>
                                         </div>
                                     </AccordionTrigger>
                                     <AccordionContent className="pt-2 pb-4 space-y-4">
@@ -1180,9 +1180,9 @@ export function AdvancedPhysicalForm({ initialData, onSave, onDataChange, readOn
 
                                 {/* 1. MÓDULO COMPOSIÇÃO CORPORAL & HIPERTROFIA (UNIFICADO) */}
                                 <AccordionItem value="antro" className="border rounded-lg px-4 mb-4 shadow-sm bg-card">
-                                    <AccordionTrigger className="hover:no-underline py-4">
+                                    <AccordionTrigger className="hover:no-underline py-4 group">
                                         <div className="flex items-center gap-2">
-                                            <Ruler className="h-5 w-5 text-blue-500" />
+                                            <Ruler className="h-5 w-5 text-blue-500 transition-colors group-hover:animate-bounce" />
                                             <span className="text-lg font-semibold">1. Composição Corporal & Hipertrofia</span>
                                         </div>
                                     </AccordionTrigger>
@@ -1318,9 +1318,9 @@ export function AdvancedPhysicalForm({ initialData, onSave, onDataChange, readOn
 
                                 {/* 2. MÓDULO CARDIO */}
                                 <AccordionItem value="cardio" className="border rounded-lg px-4 mb-4 shadow-sm bg-card">
-                                    <AccordionTrigger className="hover:no-underline py-4">
+                                    <AccordionTrigger className="hover:no-underline py-4 group">
                                         <div className="flex items-center gap-2">
-                                            <HeartPulse className="h-5 w-5 text-red-500" />
+                                            <HeartPulse className="h-5 w-5 text-red-500 transition-colors group-hover:animate-bounce" />
                                             <span className="text-lg font-semibold">2. Cardio (VO2 Max)</span>
                                         </div>
                                     </AccordionTrigger>
@@ -1360,9 +1360,9 @@ export function AdvancedPhysicalForm({ initialData, onSave, onDataChange, readOn
 
                                 {/* 3. MÓDULO FORÇA */}
                                 <AccordionItem value="strength" className="border rounded-lg px-4 mb-4 shadow-sm bg-card">
-                                    <AccordionTrigger className="hover:no-underline py-4">
+                                    <AccordionTrigger className="hover:no-underline py-4 group">
                                         <div className="flex items-center gap-2">
-                                            <Dumbbell className="h-5 w-5 text-slate-700" />
+                                            <Dumbbell className="h-5 w-5 text-slate-700 transition-colors group-hover:animate-bounce" />
                                             <span className="text-lg font-semibold">3. Força & Dinamometria</span>
                                         </div>
                                     </AccordionTrigger>
@@ -1468,9 +1468,9 @@ export function AdvancedPhysicalForm({ initialData, onSave, onDataChange, readOn
 
                                 {/* 4. MÓDULO MOBILIDADE E FLEXIBILIDADE */}
                                 <AccordionItem value="mobility" className="border rounded-lg px-4 mb-4 shadow-sm bg-card">
-                                    <AccordionTrigger className="hover:no-underline py-4">
+                                    <AccordionTrigger className="hover:no-underline py-4 group">
                                         <div className="flex items-center gap-2">
-                                            <Ruler className="h-5 w-5 text-indigo-600" />
+                                            <Ruler className="h-5 w-5 text-indigo-600 transition-colors group-hover:animate-bounce" />
                                             <span className="text-lg font-semibold">4. Mobilidade e Flexibilidade</span>
                                         </div>
                                     </AccordionTrigger>
@@ -1562,9 +1562,9 @@ export function AdvancedPhysicalForm({ initialData, onSave, onDataChange, readOn
 
                                 {/* 5. AVALIAÇÃO POSTURAL */}
                                 <AccordionItem value="posture" className="border rounded-lg px-4 mb-4 shadow-sm bg-card">
-                                    <AccordionTrigger className="hover:no-underline py-4">
+                                    <AccordionTrigger className="hover:no-underline py-4 group">
                                         <div className="flex items-center gap-2">
-                                            <Activity className="h-5 w-5 text-purple-500" />
+                                            <Activity className="h-5 w-5 text-purple-500 transition-colors group-hover:animate-bounce" />
                                             <span className="text-lg font-semibold">5. Avaliação Postural (Fotos)</span>
                                         </div>
                                     </AccordionTrigger>
@@ -1622,9 +1622,9 @@ export function AdvancedPhysicalForm({ initialData, onSave, onDataChange, readOn
 
                                 {/* 6. ROTINA DESPORTIVA (IPAQ Logic) */}
                                 <AccordionItem value="sports" className="border rounded-lg px-4 mb-4 shadow-sm bg-card">
-                                    <AccordionTrigger className="hover:no-underline py-4">
+                                    <AccordionTrigger className="hover:no-underline py-4 group">
                                         <div className="flex items-center gap-2">
-                                            <Zap className="h-5 w-5 text-yellow-500" />
+                                            <Zap className="h-5 w-5 text-yellow-500 transition-colors group-hover:animate-bounce" />
                                             <span className="text-lg font-semibold">6. Rotina Desportiva (IPAQ)</span>
                                         </div>
                                     </AccordionTrigger>

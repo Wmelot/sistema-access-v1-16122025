@@ -136,9 +136,9 @@ export function HistoryAccordion({ openSection, isSectionFilled, sectionStyle }:
                 sectionStyle.border
             )}
         >
-            <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left">
+            <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left group">
                 <div className="flex items-center gap-2 flex-1 text-base">
-                    <Stethoscope className={cn("h-5 w-5", sectionStyle.iconColor)} />
+                    <Stethoscope className={cn("h-5 w-5 transition-colors group-hover:animate-bounce", sectionStyle.iconColor)} />
                     <span>Histórico Clínico</span>
                 </div>
                 {isSectionFilled('history') && <Badge variant="outline" className="bg-slate-200 text-slate-600 border-none text-[9px] h-5 mr-4">PREENCHIDO</Badge>}

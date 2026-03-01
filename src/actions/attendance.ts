@@ -56,15 +56,35 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
     }
 
     // 2. Fetch Patient
-    const { data: patient, error: patientError } = await supabaseAdmin
-        .from('patients')
-        .select('*')
-        .eq('id', appointmentRaw.patient_id)
-        .single()
+    let patient = null;
+    if (appointmentRaw.patient_id) {
+        const { data: patientData, error: patientError } = await supabaseAdmin
+            .from('patients')
+            .select('*')
+            .eq('id', appointmentRaw.patient_id)
+            .single()
 
-    if (patientError || !patient) {
-        console.error("[getAttendanceData] Patient missing for appt:", appointmentRaw.patient_id);
-        throw new Error("Paciente não encontrado para este agendamento.")
+        if (patientError || !patientData) {
+            console.error("[getAttendanceData] Patient missing for appt:", appointmentRaw.patient_id);
+            // Non-critical error if we are in Quick Attendance or similar, but for legacy it might be critical
+            // Given the USER's recent "Quick Attendance" feature, we should be lenient.
+            patient = {
+                id: appointmentRaw.patient_id,
+                full_name: "Paciente não identificado",
+                document_id: "---",
+                birth_date: null
+            }
+        } else {
+            patient = patientData
+        }
+    } else {
+        // Quick Attendance Flow
+        patient = {
+            id: null,
+            full_name: "Atendimento Rápido (Sem Vínculo)",
+            document_id: "---",
+            birth_date: null
+        }
     }
 
     // 3. Fetch Professional
@@ -124,8 +144,16 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
         supabase.from('user_template_preferences').select('*').eq('user_id', user.id),
         // USE ADMIN CLIENT FOR THESE TO BYPASS RLS
         supabaseAdmin.from('patient_records').select('*').eq('appointment_id', appointmentId).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
-        supabaseAdmin.from('patient_records').select('*, form_templates (title), profiles (full_name)').eq('patient_id', appointment.patient_id!).neq('appointment_id', appointmentId).order('created_at', { ascending: false }).limit(5),
-        supabaseAdmin.from('patient_assessments').select('*, profiles (full_name)').eq('patient_id', appointment.patient_id!).order('created_at', { ascending: false }),
+
+        // Conditional fetches for patient specific data
+        appointmentRaw.patient_id ?
+            supabaseAdmin.from('patient_records').select('*, form_templates (title), profiles (full_name)').eq('patient_id', appointmentRaw.patient_id).neq('appointment_id', appointmentId).order('created_at', { ascending: false }).limit(5) :
+            Promise.resolve({ data: [] }),
+
+        appointmentRaw.patient_id ?
+            supabaseAdmin.from('patient_assessments').select('*, profiles (full_name)').eq('patient_id', appointmentRaw.patient_id).order('created_at', { ascending: false }) :
+            Promise.resolve({ data: [] }),
+
         supabase.from('payment_methods').select('*').eq('active', true).order('name'),
         supabaseAdmin.from('profiles').select('id, full_name, council_number, council_type, digital_signature_url').eq('organization_id', organizationId!)
     ])
@@ -270,8 +298,8 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
     let finalTemplateId = toUUID(template_id);
     const finalRecordId = toUUID(record_id);
 
-    if (!finalAppointmentId || !finalPatientId) {
-        return { success: false, msg: "Faltam IDs obrigatórios (Paciente ou Agendamento). Verifique a conexão." };
+    if (!finalAppointmentId) {
+        return { success: false, msg: "Faltam ID do Agendamento. Verifique a conexão." };
     }
 
     let finalContent = content
@@ -642,4 +670,79 @@ export async function alignAppointmentService(appointmentId: string, templateId:
         console.error("[alignAppointmentService] Error:", e)
         return { success: false, msg: e.message }
     }
+}
+
+export async function getDraftRecords() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, msg: "Unauthorized" }
+
+    const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+             *,
+             patient_records (
+                 id,
+                 content,
+                 created_at,
+                 template_id,
+                 form_templates (
+                     id,
+                     title
+                 )
+             )
+         `)
+        .is('patient_id', null)
+        .eq('professional_id', user.id)
+        .order('created_at', { ascending: false })
+
+    if (error) {
+        console.error("[getDraftRecords] Error:", error)
+        return { success: false, msg: error.message }
+    }
+
+    return { success: true, data }
+}
+
+export async function deleteDraft(appointmentId: string) {
+    const adminSupabase = await createAdminClient()
+
+    try {
+        // 1. Cleanup financial commissions
+        await adminSupabase.from('financial_commissions').delete().eq('appointment_id', appointmentId)
+
+        // 2. Cleanup patient records
+        await adminSupabase.from('patient_records').delete().eq('appointment_id', appointmentId)
+
+        // 3. Delete the appointment itself
+        const { error } = await adminSupabase.from('appointments').delete().eq('id', appointmentId)
+        if (error) throw error
+
+        return { success: true }
+    } catch (error: any) {
+        console.error("[deleteDraft] Error:", error)
+        return { success: false, msg: error.message }
+    }
+}
+
+export async function linkPatientToAppointment(appointmentId: string, patientId: string) {
+    const adminSupabase = await createAdminClient()
+
+    // 1. Update Appointment
+    const { error: appError } = await adminSupabase
+        .from('appointments')
+        .update({ patient_id: patientId })
+        .eq('id', appointmentId)
+
+    if (appError) return { success: false, msg: appError.message }
+
+    // 2. Update Patient Records
+    const { error: recError } = await adminSupabase
+        .from('patient_records')
+        .update({ patient_id: patientId })
+        .eq('appointment_id', appointmentId)
+
+    if (recError) return { success: false, msg: recError.message }
+
+    return { success: true }
 }

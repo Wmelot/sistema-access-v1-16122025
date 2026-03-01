@@ -10,6 +10,7 @@ import { Save, Loader2, Eye, Zap, Database, ArrowLeft, Menu, CheckCircle2 } from
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PBE5_ID } from "@/features/forms/pbe-5/PBE5Form";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { HmaAccordion } from "./accordions/HmaAccordion";
 import { HistoryAccordion } from "./accordions/HistoryAccordion";
@@ -25,6 +26,7 @@ import { DorsalTestsAccordion } from "./accordions/DorsalTestsAccordion";
 import { VentralTestsAccordion } from "./accordions/VentralTestsAccordion";
 import { ExamsAccordion } from "./accordions/ExamsAccordion";
 import { PlanAccordion } from "./accordions/PlanAccordion";
+import { InsensitiveFootAccordion } from "./accordions/InsensitiveFootAccordion";
 import { PropulsaoAccordionItem } from "@/features/forms/pbe/components/PropulsaoAccordionItem";
 import { CompactBiomechanicsCard } from "./CompactBiomechanicsCard";
 import { ChevronRight, ChevronLeft } from "lucide-react";
@@ -36,49 +38,64 @@ import { parseFeegowText } from "@/features/forms/_ROOT_BACKUP_JUNK_OUTSIDE/palm
 const SECTION_STYLES: Record<string, { border: string, iconColor: string }> = {
     hma: { border: "border-l-blue-600", iconColor: "text-blue-600" },
     history: { border: "border-l-green-600", iconColor: "text-green-600" },
+    insensitive_foot: { border: "border-l-teal-600", iconColor: "text-teal-600" },
     map: { border: "border-l-red-500", iconColor: "text-red-500" },
     efep: { border: "border-l-orange-500", iconColor: "text-orange-500" },
     sports: { border: "border-l-yellow-500", iconColor: "text-yellow-500" },
     shoe: { border: "border-l-blue-500", iconColor: "text-blue-500" },
+    baropo: { border: "border-l-rose-500", iconColor: "text-rose-500" },
     static: { border: "border-l-violet-600", iconColor: "text-violet-600" },
     fpi_detail: { border: "border-l-indigo-500", iconColor: "text-indigo-500" },
     orto: { border: "border-l-sky-600", iconColor: "text-sky-600" },
+    dynamic: { border: "border-l-violet-600", iconColor: "text-violet-600" },
     dorsal: { border: "border-l-emerald-600", iconColor: "text-emerald-600" },
     ventral: { border: "border-l-emerald-600", iconColor: "text-emerald-600" },
-    baropo: { border: "border-l-rose-500", iconColor: "text-rose-500" },
-    dynamic: { border: "border-l-violet-600", iconColor: "text-violet-600" },
     exams: { border: "border-l-slate-500", iconColor: "text-slate-500" },
     exercises: { border: "border-l-teal-600", iconColor: "text-teal-600" },
     propulsao: { border: "border-l-blue-700", iconColor: "text-blue-700" }
 };
 
-const MENU_SECTIONS = [
-    { id: 'hma', label: 'Anamnese', desc: 'Queixas e Histórico' },
-    { id: 'history', label: 'Histórico Clínico', desc: 'Doenças e Medicamentos' },
-    { id: 'map', label: 'Mapa da Dor', desc: 'Avaliação Digital 2D' },
-    { id: 'efep', label: 'Funcionalidade', desc: 'Escalas EFEP / PSFS' },
-    { id: 'sports', label: 'Rotina Desportiva', desc: 'Frequência e IPAQ' },
-    { id: 'shoe', label: 'Calçado', desc: 'Interface e Prescrição' },
-    { id: 'baropo', label: 'Baropodometria', desc: 'Pressão Plantar' },
+const BASE_MENU_SECTIONS = [
+    { id: 'hma', label: 'Anamnese', desc: 'Queixa Principal e História da Moléstia Atual' },
+    { id: 'history', label: 'Histórico Clínico', desc: 'História Pregressa e Medicamentos' },
+    { id: 'map', label: 'Mapa da Dor', desc: 'Mapeamento Digital da Dor' },
+    { id: 'efep', label: 'Funcionalidade', desc: 'Escalas de Função e Incapacidade' },
+    { id: 'sports', label: 'Rotina Desportiva', desc: 'Nível de Atividade Física' },
+    { id: 'shoe', label: 'Calçados', desc: 'Análise e Prescrição' },
+    { id: 'baropo', label: 'Baropodometria', desc: 'Análise de Distribuição de Pressão Plantar' },
     { id: 'static', label: 'Avaliação Estática', desc: 'Postura e Alinhamento' },
     { id: 'fpi_detail', label: 'FPI-6', desc: 'Foot Posture Index' },
-    { id: 'orto', label: 'Testes Funcionais', desc: 'Ortopédicos e Mobilidade' },
-    { id: 'dynamic', label: 'Movimento', desc: 'Avaliação Dinâmica / Vídeo' },
-    { id: 'dorsal', label: 'Testes em Dorsal', desc: 'Decúbito Dorsal' },
-    { id: 'ventral', label: 'Testes em Ventral', desc: 'Decúbito Ventral' },
-    { id: 'exams', label: 'Exames Extras', desc: 'Laudos Auxiliares' },
-    { id: 'exercises', label: 'Conduta Clínica', desc: 'Plano Terapêutico' },
-    { id: 'propulsao', label: 'Pedido Propulsão', desc: 'Elementos da Palmilha' }
+    { id: 'orto', label: 'Testes Funcionais I', desc: 'Testes Específicos na Posição Ortostática' },
+    { id: 'dynamic', label: 'Movimento', desc: 'Avaliação Dinâmica' },
+    { id: 'dorsal', label: 'Testes Funcionais II', desc: 'Testes Específicos em Decúbito Dorsal' },
+    { id: 'ventral', label: 'Testes Funcionais III', desc: 'Testes Específicos em Decúbito Ventral' },
+    { id: 'exams', label: 'Exames Complementares', desc: 'Laudos de exames (Rx, RNM, USG, etc)' },
+    { id: 'exercises', label: 'Conduta Clínica', desc: 'Plano de Tratamento e Recomendação Terapêutica de Exercícios' },
+    { id: 'propulsao', label: 'Pedido de Palmilha', desc: 'Elementos e Prescricção da Palmilha' }
 ];
 
-export default function Palmilha5Form({ patientId, initialData, onSave, hideHeader, hideButtons, readonly, isImported, organization, professional, patient }: any) {
+export default function Palmilha5Form({
+    patientId,
+    initialData,
+    onSave,
+    hideHeader,
+    hideButtons,
+    readonly,
+    isImported,
+    organization,
+    professional,
+    patient,
+    selectedTemplateId,
+    onTemplateChange,
+    templates
+}: any) {
     const [openSection, setOpenSection] = useState("hma");
     const [feegowImportOpen, setFeegowImportOpen] = useState(false);
     const [feegowText, setFeegowText] = useState("");
+    const [isListening, setIsListening] = useState(false);
     const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-
     const { setIsCollapsed } = useSidebar();
 
     // Efeito para rolar para o topo quando uma seção for aberta
@@ -91,37 +108,57 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
         setIsCollapsed(true);
     }, [setIsCollapsed]);
 
-    const defaults = {
-        hma: { qp: "", history: "", eva: [0] },
-        history: { comorbidities: [], meds: [], treatments: [] },
-        anthropometry: { weight: "" },
-        sports: [],
-        efep: [
-            { activity: "", score: "" },
-            { activity: "", score: "" },
-            { activity: "", score: "" }
-        ],
-        postural: { navicular: { left: "", right: "" }, shoeSize: "", fpi_left: {}, fpi_right: {} },
-        tests: {
-            jack: { left: 0, right: 0 }, lunge: { left: "", right: "" },
-            thomas: { left: 0, right: 0 }, slr: { left: 0, right: 0 },
-            glute_strength: { med_left: 5, med_right: 5, max_left: 5, max_right: 5 },
-            ventral: { rotation: { left: "", right: "" }, craig: { left: "", right: "" } },
-            ybalance: { legLength: { left: "", right: "" } },
-            dfi: [{ left: 0, right: 0 }, { left: 0, right: 0 }, { left: 0, right: 0 }],
-            gait_photos: { left: { initial: "", mid: "", terminal: "" }, right: { initial: "", mid: "", terminal: "" } },
-            single_squat: { pelvic_drop_left: "Normal", pelvic_drop_right: "Normal", valgus_left: "Normal", valgus_right: "Normal", trunk_left: "Normal", trunk_right: "Normal", photo_left: "", photo_right: "" }
-        },
-        shoe: { injuryType: "none", injuryStatus: "none", goals: ["pain_reduction"], experience: "amateur", weight: "", drop: "", stack: "" },
-        plan: { orientations: "", exercises: [], followUpDays: [], monitorPain: true, extraQuestionnaire: "none", questionnaires: [], deliveryDate: "" },
-        painPoints: [],
-        painZones: {}
-    };
-
     const form = useForm({
         mode: "onChange",
-        defaultValues: { ...defaults, ...initialData }
+        defaultValues: {
+            hma: { qp: "", history: "", eva: [0], glucoseControl: 5, drugsInUse: "" },
+            history: { comorbidities: [], meds: [], treatments: [] },
+            anthropometry: { weight: "" },
+            sports: [],
+            efep: [
+                { activity: "", score: "" },
+                { activity: "", score: "" },
+                { activity: "", score: "" }
+            ],
+            postural: { navicular: { left: "", right: "" }, shoeSize: "", fpi_left: {}, fpi_right: {} },
+            tests: {
+                jack: { left: 0, right: 0 }, lunge: { left: "", right: "" },
+                thomas: { left: 0, right: 0 }, slr: { left: 0, right: 0 },
+                glute_strength: { med_left: 5, med_right: 5, max_left: 5, max_right: 5 },
+                ventral: { rotation: { left: "", right: "" }, craig: { left: "", right: "" } },
+                ybalance: { legLength: { left: "", right: "" } },
+                dfi: [{ left: 0, right: 0 }, { left: 0, right: 0 }, { left: 0, right: 0 }],
+                gait_photos: { left: { initial: "", mid: "", terminal: "" }, right: { initial: "", mid: "", terminal: "" } },
+                single_squat: { pelvic_drop_left: "Normal", pelvic_drop_right: "Normal", valgus_left: "Normal", valgus_right: "Normal", trunk_left: "Normal", trunk_right: "Normal", photo_left: "", photo_right: "" }
+            },
+            shoe: { injuryType: "none", injuryStatus: "none", goals: ["pain_reduction"], experience: "amateur", weight: "", drop: "", stack: "" },
+            plan: { orientations: "", exercises: [], followUpDays: [], monitorPain: true, extraQuestionnaire: "none", questionnaires: [], deliveryDate: "" },
+            vascular: {},
+            neuropathic: {},
+            classification: { iwgdfLevel: "0" },
+            painPoints: [],
+            painZones: {},
+            ...initialData
+        }
     });
+
+    const isInsensitiveFoot = useMemo(() => {
+        const qp = form.watch('hma.qp')?.toLowerCase() || "";
+        const history = form.watch('hma.history')?.toLowerCase() || "";
+        const comorbidities = form.watch('history.comorbidities') || [];
+        // Compatibility with both 'hma' and 'anamnesis' for regions
+        const regions = form.watch('hma.mainRegions') || form.watch('anamnesis.mainRegions') || [];
+
+        return qp.includes("diabet") || history.includes("diabet") || comorbidities.includes("Diabetes") || regions.includes("insensitive_foot");
+    }, [form.watch('hma.qp'), form.watch('hma.history'), form.watch('history.comorbidities'), form.watch('hma.mainRegions'), form.watch('anamnesis.mainRegions')]);
+
+    const MENU_SECTIONS = useMemo(() => {
+        if (!isInsensitiveFoot) return BASE_MENU_SECTIONS;
+        const sections = [...BASE_MENU_SECTIONS];
+        // Insert 'Pé Insensível' after 'Histórico Clínico' (index 1)
+        sections.splice(2, 0, { id: 'insensitive_foot', label: 'Pé Insensível', desc: 'Protocolo IWGDF' });
+        return sections;
+    }, [isInsensitiveFoot]);
 
     const handleFeegowImport = () => {
         if (!feegowText.trim()) return;
@@ -159,18 +196,54 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
 
     return (
         <FormProvider {...form}>
-            <div className="flex-1 flex flex-col lg:flex-row max-w-[1400px] mx-auto w-full px-4 py-8 relative z-10 gap-8">
+            <div className="flex-1 flex flex-col lg:flex-row max-w-[1400px] mx-auto w-full px-4 py-4 relative z-10 gap-8">
 
                 {/* SIDEBAR ESQUERDA (DESKTOP) WIZARD MENU */}
                 <div className="hidden lg:flex flex-col gap-4 w-72 shrink-0 sticky top-8 self-start pt-2">
-                    <CompactBiomechanicsCard form={form} />
+                    {/* Template Selector integrated into Sidebar (FOTO 4) */}
+                    <div className="bg-white rounded-3xl p-4 border border-slate-100 shadow-sm mb-2">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2 block">
+                            Modelo de Avaliação
+                        </span>
+                        <Select value={selectedTemplateId || "palmilha-5"} onValueChange={onTemplateChange}>
+                            <SelectTrigger className="h-10 w-full bg-slate-50 border-slate-100 shadow-none rounded-2xl text-xs font-bold">
+                                <SelectValue placeholder="Selecionar" />
+                            </SelectTrigger>
+                            <SelectContent className="z-[9999]">
+                                <SelectItem value="palmilha-5" className="font-bold text-blue-700">Palmilha 5.0 — Biomecânica</SelectItem>
+                                <SelectItem value={PBE5_ID || "pbe-5"} className="font-bold text-indigo-700">PBE 5.0 — Avaliação</SelectItem>
+                                {templates?.filter((t: any) =>
+                                    t.id !== 'palmilha-5' &&
+                                    t.id !== PBE5_ID &&
+                                    !t.title?.includes('(SISTEMA)')
+                                ).map((t: any) => (
+                                    <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                    <div className="bg-white rounded-3xl p-3 border border-slate-100 shadow-sm flex flex-wrap gap-2 mt-2 mb-20">
+                    <CompactBiomechanicsCard
+                        form={form}
+                        isSaving={isSaving}
+                        onSave={form.handleSubmit(async (data) => {
+                            setIsSaving(true);
+                            try {
+                                await onSave(data, true);
+                            } finally {
+                                setIsSaving(false);
+                            }
+                        })}
+                        onReport={() => setPreviewOpen(true)}
+                        onImport={() => setFeegowImportOpen(true)}
+                        onCopilotStatusChange={setIsListening}
+                    />
+
+                    <div className="bg-white rounded-[2.5rem] p-4 border border-slate-100 shadow-sm flex flex-wrap gap-2 mt-2 mb-20">
                         {MENU_SECTIONS.map((sec, idx) => {
                             const isFilled = isSectionFilled(sec.id);
                             const curIdx = MENU_SECTIONS.findIndex(s => s.id === openSection);
                             const isActive = curIdx === idx;
-                            const isPast = curIdx > idx;
 
                             let showAsCard = false;
                             const total = MENU_SECTIONS.length;
@@ -182,7 +255,7 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
                                 showAsCard = idx >= curIdx - 1 && idx <= curIdx + 1;
                             }
 
-                            // Círculos compactos para itens fora da janela de 3
+                            // [NEW] Oval Capsules for items outside the 3-card window (FOTO 1 Logic)
                             if (!showAsCard) {
                                 return (
                                     <button
@@ -191,13 +264,13 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
                                         onClick={() => setOpenSection(sec.id)}
                                         title={sec.label}
                                         className={cn(
-                                            "w-10 h-10 rounded-full border flex items-center justify-center font-black text-[10px] transition-all shadow-sm shrink-0 uppercase",
+                                            "px-3 py-1.5 rounded-full border flex items-center justify-center font-black text-[9px] transition-all shadow-sm shrink-0 uppercase tracking-tighter whitespace-nowrap",
                                             isFilled
-                                                ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100 ring-2 ring-emerald-500/20"
+                                                ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100 ring-1 ring-emerald-500/20"
                                                 : "bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100"
                                         )}
                                     >
-                                        {sec.label.charAt(0)}
+                                        {sec.label}
                                     </button>
                                 );
                             }
@@ -208,16 +281,14 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
                                     type="button"
                                     onClick={() => setOpenSection(sec.id)}
                                     className={cn(
-                                        "w-full text-left px-4 py-3 rounded-2xl flex items-center gap-3 transition-all",
-                                        isActive ? "bg-slate-900 text-white shadow-xl shadow-slate-200" :
-                                            isPast ? "bg-slate-50 text-slate-500 hover:bg-slate-100" :
-                                                "bg-transparent text-slate-400 hover:bg-slate-50"
+                                        "w-full text-left px-5 py-4 rounded-[2rem] flex items-center gap-3 transition-all",
+                                        isActive ? "bg-slate-900 text-white shadow-2xl scale-105 z-10" :
+                                            "bg-slate-50/50 text-slate-400 hover:bg-slate-100"
                                     )}
                                 >
                                     <div className="flex-1">
-                                        <div className={cn("text-[9px] font-black uppercase tracking-widest opacity-60", isActive ? "text-indigo-300" : "")}>Step {(idx + 1).toString().padStart(2, '0')}</div>
-                                        <div className={cn("text-[11px] font-black uppercase tracking-tight", isActive ? "text-white" : "text-slate-700")}>{sec.label}</div>
-                                        <div className={cn("text-[9px] font-bold opacity-60 mt-0.5", isActive ? "text-slate-300" : "")}>{sec.desc}</div>
+                                        <div className={cn("text-[12px] font-black uppercase tracking-tight", isActive ? "text-white" : "text-slate-700")}>{sec.label}</div>
+                                        <div className={cn("text-[10px] font-bold opacity-60 mt-0.5", isActive ? "text-slate-200" : "text-slate-400")}>{sec.desc}</div>
                                     </div>
                                     {isFilled && <CheckCircle2 className={cn("w-4 h-4", isActive ? "text-emerald-400" : "text-emerald-500")} />}
                                 </button>
@@ -238,28 +309,8 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
                             return (
                                 <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm mb-2 flex items-center justify-between">
                                     <div>
-                                        <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full inline-block mb-2">
-                                            Step {(curIdx + 1).toString().padStart(2, '0')}
-                                        </div>
                                         <h2 className="text-3xl font-black tracking-tight text-slate-800">{activeSec.label}</h2>
                                         <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">{activeSec.desc}</p>
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row items-center gap-2">
-
-                                        <Badge variant="outline" className="hidden sm:flex h-9 justify-center gap-2 px-3 py-1 border-slate-200">
-                                            <CheckCircle2 className="w-3 h-3 text-green-500" />
-                                            <span className="text-xs font-medium text-slate-600">Salvamento Automático</span>
-                                        </Badge>
-
-                                        <Button
-                                            type="button"
-                                            onClick={() => setFeegowImportOpen(true)}
-                                            variant="outline"
-                                            className="h-9 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 font-bold px-4 rounded-xl flex items-center gap-2"
-                                        >
-                                            <Database className="w-4 h-4" />
-                                            <span className="hidden sm:inline">Sincronizar Feegow</span>
-                                        </Button>
                                     </div>
                                 </div>
                             );
@@ -276,14 +327,23 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
                                 setFeegowImportOpen={setFeegowImportOpen}
                                 isImported={isImported}
                                 sectionStyle={SECTION_STYLES['hma']}
+                                isListening={isListening}
                             />
 
-                            {/* 2. HISTÓRICO CLÍNICO (MIGRADO!) */}
                             <HistoryAccordion
                                 openSection={openSection}
                                 isSectionFilled={isSectionFilled}
                                 sectionStyle={SECTION_STYLES['history']}
                             />
+
+                            {/* 2.5 PÉ INSENSÍVEL (DINÂMICO!) */}
+                            {isInsensitiveFoot && (
+                                <InsensitiveFootAccordion
+                                    openSection={openSection}
+                                    isSectionFilled={isSectionFilled}
+                                    sectionStyle={SECTION_STYLES['insensitive_foot']}
+                                />
+                            )}
 
                             {/* 3. MAPA DA DOR (MIGRADO!) */}
                             <PainMapAccordion
@@ -479,54 +539,7 @@ export default function Palmilha5Form({ patientId, initialData, onSave, hideHead
                 </div>
             </div>
 
-            {/* BOTÕES FLUTUANTES FOOTER (FOTO 3) */}
-            {!hideButtons && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-white/50 backdrop-blur-md p-2 rounded-full border border-slate-200/50 shadow-2xl animate-in slide-in-from-bottom-5">
-
-                    <AxiomCopilot
-                        specialty="Fisioterapeuta Sênior PBE"
-                        formSchemaName="Palmilha Biomecânica 5.0"
-                    />
-
-                    {/* Botão Salvar (Outline) */}
-                    <Button
-                        type="button"
-                        onClick={form.handleSubmit(async (data) => {
-                            setIsSaving(true);
-                            try {
-                                await onSave(data, true);
-                            } finally {
-                                setIsSaving(false);
-                            }
-                        })}
-                        disabled={isSaving}
-                        className="rounded-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-sm h-12 px-6 font-bold flex items-center gap-2 transition-all active:scale-95"
-                    >
-                        {isSaving ? <Loader2 className="w-5 h-5 animate-spin text-blue-600" /> : <Save className="w-5 h-5 text-blue-600" />}
-                        Salvar
-                    </Button>
-
-                    {/* Botão Relatório PDF (Dark) */}
-                    <Button
-                        type="button"
-                        onClick={() => setPreviewOpen(true)}
-                        className="rounded-full bg-slate-900 hover:bg-slate-800 text-white shadow-lg h-12 px-6 font-bold flex items-center gap-2 transition-all active:scale-95 border border-slate-700"
-                    >
-                        <Eye className="w-5 h-5 text-blue-400" />
-                        Relatório
-                    </Button>
-
-                    {/* Botão Importar Feegow (Emerald) */}
-                    <Button
-                        type="button"
-                        onClick={() => setFeegowImportOpen(true)}
-                        className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg h-12 px-6 font-bold flex items-center gap-2 transition-all active:scale-95 border border-emerald-500"
-                    >
-                        <Zap className="w-5 h-5 text-emerald-100" />
-                        Importar
-                    </Button>
-                </div>
-            )}
+            {/* FOOTER REMOVED - NOW IN SIDEBAR */}
 
             {/* FEEGOW IMPORT DIALOG */}
             <Dialog open={feegowImportOpen} onOpenChange={setFeegowImportOpen}>

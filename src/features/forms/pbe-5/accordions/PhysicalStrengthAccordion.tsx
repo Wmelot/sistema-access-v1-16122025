@@ -6,10 +6,14 @@ import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dumbbell, CheckCircle2, AlertCircle } from "lucide-react";
+import { Dumbbell, CheckCircle2, AlertCircle, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { STRENGTH_TESTS, FORCE_REFERENCES_BY_AGE } from "@/app/dashboard/[slug]/assessments/strength-references";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface PhysicalStrengthAccordionProps {
     openSection: string;
@@ -103,16 +107,29 @@ export function PhysicalStrengthAccordion({ openSection, isSectionFilled, sectio
         };
     }, [strength, weight, age, gender]);
 
+    const [selectedTestIds, setSelectedTestIds] = React.useState<string[]>([]);
+    const [searchTerm, setSearchTerm] = React.useState("");
+
+    const filteredStrengthTests = React.useMemo(() => {
+        return STRENGTH_TESTS.filter(t =>
+            (selectedTestIds.length === 0 || selectedTestIds.includes(t.id)) &&
+            t.label.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [selectedTestIds, searchTerm]);
+
     const renderTest = (test: typeof STRENGTH_TESTS[0]) => {
         const result = strengthResult?.testResults.find(r => r.id === test.id);
 
         return (
-            <div key={test.id} className="w-full border-b last:border-0 pb-6 last:pb-0">
+            <div key={test.id} className="w-full border-b last:border-0 pb-6 last:pb-0 bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm mb-4">
                 <div className="flex items-center justify-between mb-4">
                     <Label className="text-[11px] font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
                         {test.label}
                         {result?.status === 'incomplete' && (
                             <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50 text-[9px] font-black uppercase">Incompleto</Badge>
+                        )}
+                        {result?.status === 'empty' && (
+                            <Badge variant="outline" className="text-slate-300 border-slate-100 text-[8px] font-black uppercase">Aguardando</Badge>
                         )}
                     </Label>
                     {result?.status === 'complete' && result.classification && (
@@ -130,13 +147,13 @@ export function PhysicalStrengthAccordion({ openSection, isSectionFilled, sectio
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     {test.inputs.map(input => (
-                        <div key={input.id} className="space-y-2 text-center">
+                        <div key={input.id} className="space-y-2 text-center relative group/field">
                             <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{input.label} ({test.unit})</Label>
                             <Input
                                 type="number"
                                 step="0.1"
                                 {...register(`strength.${test.id}_${input.id}`)}
-                                className="h-12 rounded-xl border-slate-200 bg-white font-black text-center text-lg shadow-inner focus:ring-slate-900"
+                                className="h-12 rounded-xl border-slate-100 bg-slate-50/50 font-black text-center text-lg shadow-inner focus:bg-white focus:ring-slate-900 transition-all"
                             />
                         </div>
                     ))}
@@ -150,7 +167,7 @@ export function PhysicalStrengthAccordion({ openSection, isSectionFilled, sectio
             <AccordionTrigger className="hover:no-underline py-6 group">
                 <div className="flex items-center gap-4 w-full text-left">
                     <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-all duration-500", openSection === 'strength_advanced' ? "bg-slate-900 text-white shadow-lg rotate-12" : "bg-white text-slate-400 shadow-sm group-hover:text-slate-900")}>
-                        <Dumbbell className="h-6 w-6" />
+                        <Dumbbell className="h-6 w-6 transition-colors group-hover:animate-bounce" />
                     </div>
                     <div className="flex-1">
                         <div className="flex items-center gap-2">
@@ -162,6 +179,74 @@ export function PhysicalStrengthAccordion({ openSection, isSectionFilled, sectio
                 </div>
             </AccordionTrigger>
             <AccordionContent className="pt-2 pb-8">
+                <div className="mb-8 space-y-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-1 h-4 bg-slate-900 rounded-full" />
+                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Configuração da Avaliação de Força</h4>
+                    </div>
+                    <div className="flex gap-4">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="flex-1 h-14 justify-between bg-white border-slate-200 rounded-2xl shadow-sm hover:border-slate-900 transition-all font-bold group">
+                                    <div className="flex items-center gap-3">
+                                        <Plus className="w-4 h-4 text-slate-400 group-hover:text-slate-900" />
+                                        <span className="text-slate-700">Adicionar Músculo / Teste...</span>
+                                    </div>
+                                    <Badge className="bg-slate-100 text-slate-600 border-none font-black text-[10px]">{selectedTestIds.length === 0 ? "Todos" : selectedTestIds.length} Ativos</Badge>
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[400px] p-0 rounded-2xl border-none shadow-2xl z-[500]" align="start">
+                                <Command>
+                                    <CommandInput placeholder="Filtrar por nome do músculo..." className="h-12 border-none ring-0 focus:ring-0" />
+                                    <CommandList className="max-h-[400px] p-2 bg-white">
+                                        <CommandEmpty className="p-4 text-center text-slate-400 text-xs font-medium">Nenhum teste encontrado.</CommandEmpty>
+                                        <CommandGroup heading="Membros Inferiores">
+                                            {STRENGTH_TESTS.filter(t => t.category === 'lower').map(t => (
+                                                <CommandItem
+                                                    key={t.id}
+                                                    onSelect={() => {
+                                                        setSelectedTestIds(prev =>
+                                                            prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id]
+                                                        );
+                                                    }}
+                                                    className="py-3 px-4 flex items-center justify-between cursor-pointer rounded-xl"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <Checkbox checked={selectedTestIds.includes(t.id) || selectedTestIds.length === 0} className="rounded-md" />
+                                                        <span className="font-bold text-slate-700">{t.label}</span>
+                                                    </div>
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                        <CommandSeparator />
+                                        <CommandGroup heading="Membros Superiores">
+                                            {STRENGTH_TESTS.filter(t => t.category === 'upper').map(t => (
+                                                <CommandItem
+                                                    key={t.id}
+                                                    onSelect={() => {
+                                                        setSelectedTestIds(prev =>
+                                                            prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id]
+                                                        );
+                                                    }}
+                                                    className="py-3 px-4 flex items-center justify-between cursor-pointer rounded-xl"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <Checkbox checked={selectedTestIds.includes(t.id) || selectedTestIds.length === 0} className="rounded-md" />
+                                                        <span className="font-bold text-slate-700">{t.label}</span>
+                                                    </div>
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                        {selectedTestIds.length > 0 && (
+                            <Button variant="ghost" className="h-14 rounded-2xl text-rose-500 font-bold hover:bg-rose-50" onClick={() => setSelectedTestIds([])}>Limpar Filtro</Button>
+                        )}
+                    </div>
+                </div>
+
                 <Tabs defaultValue="lower" className="w-full">
                     <TabsList className="grid w-full grid-cols-2 mb-8 bg-slate-100 p-1 rounded-2xl h-14">
                         <TabsTrigger value="lower" className="rounded-xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm">Membros Inferiores</TabsTrigger>
@@ -169,11 +254,19 @@ export function PhysicalStrengthAccordion({ openSection, isSectionFilled, sectio
                     </TabsList>
 
                     <TabsContent value="lower" className="space-y-8 px-2">
-                        {STRENGTH_TESTS.filter(t => t.category === 'lower').map(renderTest)}
+                        {filteredStrengthTests.filter(t => t.category === 'lower').length > 0 ? (
+                            filteredStrengthTests.filter(t => t.category === 'lower').map(renderTest)
+                        ) : (
+                            <div className="p-12 text-center text-slate-300 font-bold uppercase text-[10px] tracking-widest border-2 border-dashed border-slate-100 rounded-[3rem]">Nenhum teste de MMII selecionado</div>
+                        )}
                     </TabsContent>
 
                     <TabsContent value="upper" className="space-y-8 px-2">
-                        {STRENGTH_TESTS.filter(t => t.category === 'upper').map(renderTest)}
+                        {filteredStrengthTests.filter(t => t.category === 'upper').length > 0 ? (
+                            filteredStrengthTests.filter(t => t.category === 'upper').map(renderTest)
+                        ) : (
+                            <div className="p-12 text-center text-slate-300 font-bold uppercase text-[10px] tracking-widest border-2 border-dashed border-slate-100 rounded-[3rem]">Nenhum teste de MMSS selecionado</div>
+                        )}
                     </TabsContent>
                 </Tabs>
             </AccordionContent>

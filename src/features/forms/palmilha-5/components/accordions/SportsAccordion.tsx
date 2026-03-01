@@ -90,7 +90,7 @@ export function SportsAccordion({ openSection, isSectionFilled, sectionStyle }: 
         >
             <AccordionTrigger className="px-5 py-4 hover:no-underline flex gap-2 items-center text-left group">
                 <div className="flex items-center gap-3 flex-1 text-base">
-                    <Zap className={cn("h-5 w-5 transition-colors", sectionStyle.iconColor)} />
+                    <Zap className={cn("h-5 w-5 transition-colors group-hover:animate-bounce", sectionStyle.iconColor)} />
                     <span className="font-bold tracking-tight text-slate-700 group-hover:text-yellow-600 transition-colors">Rotina Desportiva</span>
                 </div>
                 {isSectionFilled('sports') && <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-none text-[10px] h-5 mr-4 font-black tracking-widest uppercase">PREENCHIDO</Badge>}

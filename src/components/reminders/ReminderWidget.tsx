@@ -156,32 +156,33 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <div className={cn("px-2 lg:px-4", className)}>
-                    <button
+                <div className={cn("px-3 py-1", className)}>
+                    <Button
+                        variant="ghost"
                         className={cn(
-                            "flex items-center gap-3 rounded-lg py-2 text-zinc-600 transition-all hover:text-zinc-900 hover:bg-zinc-50 active:scale-95 active:brightness-90 w-full font-medium",
-                            isCollapsed ? "justify-center px-0" : "px-3"
+                            "w-full bg-white text-slate-600 font-bold hover:bg-slate-50 hover:text-slate-900 transition-all relative flex items-center shadow-sm group h-auto",
+                            isCollapsed ? "px-0 justify-center h-10 w-10 rounded-xl" : "justify-start gap-3 h-11 px-4 rounded-2xl text-left"
                         )}
                         title={isCollapsed ? "Lembretes" : undefined}
                     >
-                        <div className="relative">
-                            <Bell className={cn(iconClassName)} strokeWidth={2} />
+                        <div className={cn(
+                            "flex items-center justify-center rounded-lg h-6 w-6 shrink-0 bg-slate-100 text-slate-500 shadow-inner group-hover:bg-red-50 group-hover:text-red-600",
+                            isCollapsed ? "bg-white border-slate-200 text-slate-400 rounded-xl h-8 w-8" : ""
+                        )}>
+                            <Bell className={cn(isCollapsed ? "h-5 w-5" : "h-3.5 w-3.5")} strokeWidth={isCollapsed ? 2 : 3} />
                             {pendingCount > 0 && (
-                                <span className={cn(
-                                    "absolute flex h-2 w-2 rounded-full bg-red-500",
-                                    isCollapsed ? "-top-0.5 -right-0.5" : "-top-0.5 -right-0.5"
-                                )} />
+                                <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2 rounded-full bg-red-500 border border-white" />
                             )}
                         </div>
                         {!isCollapsed && (
                             <div className="flex flex-1 items-center justify-between">
-                                <span className="text-sm">Lembretes</span>
+                                <span className="text-[13px] tracking-tight">Lembretes</span>
                                 {pendingCount > 0 && (
-                                    <span className="text-xs font-bold text-red-500 bg-red-50 px-1.5 rounded-full">{pendingCount}</span>
+                                    <span className="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-100">{pendingCount}</span>
                                 )}
                             </div>
                         )}
-                    </button>
+                    </Button>
                 </div>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px] max-h-[85vh] flex flex-col">

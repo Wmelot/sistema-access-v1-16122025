@@ -23,6 +23,7 @@ import {
     FormDescription
 } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
     Plus, Trash2, ClipboardList, CalendarClock, Info, PencilRuler,
@@ -43,6 +44,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { RapidAssessmentModal } from "./RapidAssessmentModal";
 import { useParams } from "next/navigation";
+import { AxiomCopilot } from "@/components/copilot/AxiomCopilot";
 
 // Schema imports
 import { SmartAssessmentSchema, SmartAssessmentValues } from "../schemas/smart-assessment-schema";
@@ -55,6 +57,19 @@ import { AnkleForm } from "./regions/ankle-form";
 import { HipForm } from "./regions/hip-form";
 import { CervicalSpineForm } from "./regions/spine-cervical-form";
 import { ElbowHandForm } from "./regions/elbow-hand-form";
+import { RedFlagChecker } from "./RedFlagChecker";
+
+const QUESTION_BANK = [
+    { id: "start", text: "Qual o motivo da sua consulta hoje?", keywords: ["dor", "motivo", "buscando", "vontade", "queixa"] },
+    { id: "duration", text: "Há quanto tempo você sente esse sintoma?", keywords: ["tempo", "dia", "mês", "ano", "semana", "desde"] },
+    { id: "onset", text: "Começou de repente ou foi aparecendo aos poucos?", keywords: ["repente", "súbito", "lento", "progressivo", "devagar"] },
+    { id: "behavior_p", text: "O que você faz que piora a sua dor?", keywords: ["piora", "agrav", "sentar", "correr", "andar", "subir"] },
+    { id: "behavior_m", text: "O que você faz que traz algum alívio?", keywords: ["melhora", "alívi", "repouso", "gelo", "remédio"] },
+    { id: "quality", text: "Como é essa dor? Pontada, agulhada, queimação ou peso?", keywords: ["tipo", "como", "pontada", "queima", "peso", "choque"] },
+    { id: "irradiance", text: "A dor fica parada em um lugar ou ela 'corre' para algum lugar?", keywords: ["irradia", "corre", "desce", "ponta", "mão", "pé"] },
+    { id: "impact", text: "Como isso está limitando seu trabalho ou lazer?", keywords: ["trabalho", "academia", "lazer", "limit", "impede"] },
+    { id: "trauma", text: "Houve algum acidente ou queda recente?", keywords: ["acidente", "queda", "bato", "trauma"] },
+];
 
 const QUESTIONNAIRES_BY_CATEGORY = [
     {
@@ -108,6 +123,7 @@ const REGION_OPTIONS = [
     { id: "ankle_foot", label: "Tornozelo e Pé" },
     { id: "hip", label: "Quadril" },
     { id: "elbow_hand", label: "Cotovelo/Punho/Mão" },
+    { id: "atm", label: "ATM/Mandíbula" },
 ];
 
 function ComboboxSelector({ value, onChange, database, placeholder = "Buscar...", autoFocus, onCommit }: { value: string, onChange: (v: string) => void, database: string[], placeholder?: string, autoFocus?: boolean, onCommit?: () => void }) {
@@ -180,26 +196,68 @@ function MedicationCombobox({ value, onChange, autoFocus, onCommit }: { value: s
     return <ComboboxSelector database={[]} value={value} onChange={onChange} placeholder="Nome do medicamento..." autoFocus={autoFocus} onCommit={onCommit} />;
 }
 
-function RegionSelector({ value, onChange, autoFocus, onCommit }: { value: string, onChange: (v: string) => void, autoFocus?: boolean, onCommit?: () => void }) {
+function RegionSelector({ selectedRegions, onToggleRegion }: { selectedRegions: string[], onToggleRegion: (id: string) => void }) {
     const [open, setOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
+
+    const filteredOptions = REGION_OPTIONS.filter(opt =>
+        opt.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-between h-11 bg-white border-slate-200 rounded-xl">
-                    {REGION_OPTIONS.find(r => r.id === value)?.label || "Selecione a região..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                <Button variant="outline" className="w-full justify-between h-12 bg-white border-slate-200 rounded-xl shadow-sm hover:border-blue-300 transition-all font-bold text-slate-700">
+                    <div className="flex items-center gap-2">
+                        <Search className="h-4 w-4 text-slate-400" />
+                        {selectedRegions.length === 0 ? "Adicionar Região..." : `${selectedRegions.length} Regiões Selecionadas`}
+                    </div>
+                    <ChevronDown className="h-4 w-4 opacity-50 text-slate-400" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[300px] p-0">
-                <Command>
-                    <CommandInput placeholder="Buscar região..." />
-                    <CommandList>
-                        {REGION_OPTIONS.map(opt => (
-                            <CommandItem key={opt.id} onSelect={() => { onChange(opt.id); setOpen(false); onCommit?.(); }}>
-                                {opt.label}
-                            </CommandItem>
-                        ))}
+            <PopoverContent className="w-[350px] p-0 rounded-2xl border border-slate-100 shadow-2xl overflow-hidden" align="start">
+                <Command className="border-none">
+                    <CommandInput
+                        placeholder="Buscar região articular..."
+                        className="h-12 border-none focus:ring-0"
+                        value={searchTerm}
+                        onValueChange={setSearchTerm}
+                    />
+                    <CommandList className="max-h-[400px] p-2 bg-white">
+                        <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 mb-1">
+                            Articulações & Segmentos
+                        </div>
+                        {filteredOptions.length === 0 && (
+                            <div className="p-4 text-center text-slate-400 text-xs font-medium italic">Nenhuma região encontrada.</div>
+                        )}
+                        {filteredOptions.map(opt => {
+                            const isSelected = selectedRegions.includes(opt.id);
+                            return (
+                                <div
+                                    key={opt.id}
+                                    className={cn(
+                                        "flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all mb-1 group",
+                                        isSelected ? "bg-blue-50 text-blue-700 shadow-sm" : "hover:bg-slate-50 text-slate-600"
+                                    )}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        onToggleRegion(opt.id);
+                                    }}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Checkbox
+                                            checked={isSelected}
+                                            className={cn(
+                                                "h-5 w-5 rounded-md border-2 transition-all",
+                                                isSelected ? "bg-blue-600 border-blue-600 text-white" : "border-slate-300 group-hover:border-blue-300"
+                                            )}
+                                        />
+                                        <span className="text-sm font-black uppercase tracking-tight">{opt.label}</span>
+                                    </div>
+                                    {isSelected && <Check className="h-4 w-4 animate-in zoom-in-50 duration-200" />}
+                                </div>
+                            );
+                        })}
                     </CommandList>
                 </Command>
             </PopoverContent>
@@ -295,6 +353,7 @@ export default function SmartPBEForm({ patientId, initialData, readOnly, onSave,
     const { fields: medFields, append: appendMed, remove: removeMed } = useFieldArray({ control: form.control, name: "history.meds" as any });
 
     const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
+    const [isListening, setIsListening] = useState(false);
 
     const { watch, setValue, control, handleSubmit } = form;
     const formData = watch();
@@ -417,6 +476,13 @@ export default function SmartPBEForm({ patientId, initialData, readOnly, onSave,
                     </div>
 
                     <div className="flex items-center gap-3">
+                        <AxiomCopilot
+                            specialty="Fisioterapeuta Sênior PBE"
+                            formSchemaName="PBE 5.0 Smart Assessment"
+                            onStatusChange={setIsListening}
+                            basePath="" // PBE uses top-level fields like 'qp', 'hma'
+                        />
+
                         <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
                             <DialogTrigger asChild>
                                 <Button
@@ -507,92 +573,183 @@ export default function SmartPBEForm({ patientId, initialData, readOnly, onSave,
                     >
                         <AccordionTrigger className="px-6 py-5 hover:no-underline flex gap-2 items-center text-left group">
                             <div className="flex items-center gap-3 flex-1">
-                                <Activity className={cn("h-5 w-5 transition-colors", openSection === 'anamnese' ? "text-blue-600" : "text-slate-400 group-hover:text-blue-500")} />
-                                <span className={cn("font-bold text-base tracking-tight", openSection === 'anamnese' ? "text-blue-950" : "text-slate-600")}>1. Anamnese & Queixa Principal</span>
+                                <Activity className={cn("h-5 w-5 transition-colors group-hover:animate-bounce", openSection === 'anamnese' ? "text-blue-600" : "text-slate-400 group-hover:text-blue-500")} />
+                                <span className={cn("font-bold text-base tracking-tight", openSection === 'anamnese' ? "text-blue-950" : "text-slate-600")}>1. Anamnese e Queixa Principal</span>
                             </div>
                             {isSectionFilled('anamnese') && (
                                 <Badge variant="outline" className="bg-blue-100 text-blue-700 border-none text-[10px] h-5 mr-4 font-black">PREENCHIDO</Badge>
                             )}
                         </AccordionTrigger>
                         <AccordionContent className="p-6 space-y-8 border-t border-slate-50">
-                            <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div className="w-1 h-4 bg-blue-500 rounded-full" />
-                                        <h4 className="font-black text-slate-800 uppercase text-xs tracking-widest">Identificação do Problema</h4>
+                            <div className="max-w-5xl mx-auto space-y-10">
+                                {/* Regional Mapping - Moved to Top per User Request */}
+                                <div className="space-y-6 bg-slate-50/50 p-8 rounded-[2.5rem] border border-slate-100 shadow-inner">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-1.5 h-6 bg-blue-600 rounded-full" />
+                                        <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-widest text-blue-700">Mapeamento das Regiões de Queixa</h4>
                                     </div>
-                                    <div className="space-y-4">
-                                        <FormField control={control} name="qp" render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-bold text-slate-500 uppercase">Queixa Principal (QP)</FormLabel>
-                                                <FormControl><Textarea {...field} placeholder="O que trouxe você aqui hoje?" className="min-h-[100px] rounded-xl border-slate-200 focus:ring-blue-500" /></FormControl>
-                                            </FormItem>
-                                        )} />
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <FormField control={control} name="painDuration" render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel className="text-xs font-bold text-slate-500 uppercase">Tempo de Evolução</FormLabel>
-                                                    <FormControl><Input {...field} placeholder="Ex: 3 meses" className="h-11 rounded-xl" /></FormControl>
-                                                </FormItem>
-                                            )} />
-                                            <FormField control={control} name="eva" render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel className="text-xs font-bold text-slate-500 uppercase">Dor Atual (EVA)</FormLabel>
-                                                    <FormControl>
-                                                        <div className="flex items-center gap-3 px-3 h-11 bg-slate-50 border rounded-xl overflow-hidden">
-                                                            <Thermometer className="h-4 w-4 text-orange-500" />
-                                                            <input type="range" min="0" max="10" className="flex-1 accent-blue-600" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
-                                                            <span className="text-lg font-black text-blue-700 w-6 text-center">{field.value}</span>
-                                                        </div>
-                                                    </FormControl>
-                                                </FormItem>
-                                            )} />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="space-y-6 bg-blue-50/30 p-6 rounded-2xl border border-blue-50">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div className="w-1 h-4 bg-blue-500 rounded-full" />
-                                        <h4 className="font-black text-slate-800 uppercase text-xs tracking-widest text-blue-800">Mapeamento de Regiões</h4>
-                                    </div>
-                                    <div className="space-y-4">
+                                    <div className="grid md:grid-cols-2 gap-8 items-start">
                                         <FormField control={control} name="anamnesis.mainRegions" render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-bold text-slate-500 uppercase">Regiões de Sintoma</FormLabel>
+                                            <FormItem className="space-y-4">
+                                                <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Regiões Ativas ({field.value?.length || 0})</FormLabel>
                                                 <FormControl>
-                                                    <div className="space-y-3">
-                                                        <div className="flex flex-wrap gap-2 mb-2">
-                                                            {(field.value || []).map((region: string) => (
-                                                                <Badge key={region} className="bg-blue-600 text-white pl-3 pr-1 py-1 rounded-lg flex items-center gap-2 shadow-sm">
-                                                                    {REGION_OPTIONS.find(r => r.id === region)?.label || region}
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        className="h-5 w-5 hover:bg-blue-700 text-white/70"
-                                                                        onClick={() => field.onChange((field.value || []).filter((r: string) => r !== region))}
-                                                                    >
-                                                                        <Trash2 className="h-3 w-3" />
-                                                                    </Button>
-                                                                </Badge>
-                                                            ))}
+                                                    <div className="space-y-4">
+                                                        <div className="flex flex-wrap gap-2 min-h-[48px] p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                                            {(field.value || []).length > 0 ? (
+                                                                (field.value || []).map((region: string) => (
+                                                                    <Badge key={region} className="bg-blue-600 hover:bg-blue-700 text-white pl-4 pr-1 py-1.5 rounded-xl flex items-center gap-2 shadow-sm animate-in zoom-in-90 border-none transition-all">
+                                                                        <span className="text-[10px] font-black uppercase tracking-tight">{REGION_OPTIONS.find(r => r.id === region)?.label || region}</span>
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-6 w-6 hover:bg-blue-800 text-white/70 rounded-lg group"
+                                                                            onClick={() => field.onChange((field.value || []).filter((r: string) => r !== region))}
+                                                                        >
+                                                                            <Trash2 className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
+                                                                        </Button>
+                                                                    </Badge>
+                                                                ))
+                                                            ) : (
+                                                                <p className="text-[10px] font-bold text-slate-300 italic uppercase py-2">Nenhuma região selecionada para protocolos regionais...</p>
+                                                            )}
                                                         </div>
                                                         <RegionSelector
-                                                            value=""
-                                                            onChange={(val) => {
-                                                                if (!(field.value || []).includes(val)) {
-                                                                    field.onChange([...(field.value || []), val]);
+                                                            selectedRegions={field.value || []}
+                                                            onToggleRegion={(val) => {
+                                                                const current = field.value || [];
+                                                                if (current.includes(val)) {
+                                                                    field.onChange(current.filter((r: string) => r !== val));
+                                                                } else {
+                                                                    field.onChange([...current, val]);
                                                                 }
                                                             }}
                                                         />
                                                     </div>
                                                 </FormControl>
-                                                <FormDescription className="text-[10px] leading-tight">Escolha todas as regiões que o paciente queixa dor para habilitar protocolos específicos.</FormDescription>
+                                            </FormItem>
+                                        )} />
+                                        <div className="p-6 bg-blue-600/5 rounded-3xl border border-blue-100 flex gap-4 items-start">
+                                            <div className="p-2 bg-blue-600 text-white rounded-xl">
+                                                <Target className="w-4 h-4" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <h6 className="text-[10px] font-black text-blue-900 uppercase tracking-widest">Protocolo PBE</h6>
+                                                <p className="text-[9px] font-bold text-blue-700/70 leading-relaxed uppercase tracking-tighter">
+                                                    A seleção da região focal carrega automaticamente os testes ortopédicos e escalas de funcionalidade padrão-ouro (EVIDÊNCIA NÍVEL 1A).
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid md:grid-cols-2 gap-10">
+                                    <div className="space-y-8">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className="w-1 h-5 bg-blue-500 rounded-full" />
+                                            <h4 className="font-black text-slate-800 uppercase text-xs tracking-widest">A Queixa do Paciente</h4>
+                                        </div>
+                                        <div className="space-y-6">
+                                            <FormField control={control} name="qp" render={({ field }) => (
+                                                <FormItem className="space-y-3">
+                                                    <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Queixa Principal (QP)</FormLabel>
+                                                    <FormControl>
+                                                        <Textarea
+                                                            {...field}
+                                                            placeholder="O que trouxe você aqui hoje? Descreva o sintoma principal..."
+                                                            className="min-h-[100px] rounded-2xl border-slate-200 focus:ring-blue-500 bg-white text-base font-medium shadow-sm"
+                                                        />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )} />
+                                            <div className="grid grid-cols-2 gap-6">
+                                                <FormField control={control} name="painDuration" render={({ field }) => (
+                                                    <FormItem className="space-y-3">
+                                                        <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tempo de Evolução</FormLabel>
+                                                        <FormControl><Input {...field} placeholder="Ex: 3 meses" className="h-12 rounded-xl border-slate-200 bg-white font-bold" /></FormControl>
+                                                    </FormItem>
+                                                )} />
+                                                <FormField control={control} name="eva" render={({ field }) => {
+                                                    const evaVal = Number(field.value) || 0;
+                                                    return (
+                                                        <FormItem className="space-y-3">
+                                                            <div className="flex justify-between items-end mb-1 px-1">
+                                                                <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dor Atual (EVA)</FormLabel>
+                                                                <span className={cn(
+                                                                    "text-xl font-black transition-colors",
+                                                                    evaVal >= 8 ? "text-red-500" : evaVal >= 4 ? "text-orange-500" : "text-emerald-500"
+                                                                )}>{evaVal}/10</span>
+                                                            </div>
+                                                            <FormControl>
+                                                                <div className="flex items-center gap-3 px-4 h-12 bg-white border border-slate-200 rounded-xl shadow-sm">
+                                                                    <Thermometer className={cn("h-4 w-4 transition-colors", evaVal >= 8 ? "text-red-500" : "text-orange-500")} />
+                                                                    <input
+                                                                        type="range"
+                                                                        min="0"
+                                                                        max="10"
+                                                                        className="flex-1 accent-blue-600 h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer"
+                                                                        {...field}
+                                                                        onChange={e => field.onChange(parseInt(e.target.value))}
+                                                                    />
+                                                                </div>
+                                                            </FormControl>
+                                                        </FormItem>
+                                                    );
+                                                }} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-8">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className="w-1 h-5 bg-blue-600 rounded-full" />
+                                            <h4 className="font-black text-slate-800 uppercase text-xs tracking-widest">Detalhamento Clínico</h4>
+                                        </div>
+                                        <FormField control={control} name="hma" render={({ field }) => (
+                                            <FormItem className="space-y-3">
+                                                <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">História da Moléstia Atual (HMA)</FormLabel>
+                                                <FormControl>
+                                                    <Textarea
+                                                        {...field}
+                                                        placeholder={(() => {
+                                                            const qpText = watch('qp')?.toLowerCase() || "";
+                                                            const hmaText = (field.value || "").toLowerCase();
+                                                            const text = qpText + " " + hmaText;
+                                                            const regions = watch('anamnesis.mainRegions') || [];
+
+                                                            if (isListening) {
+                                                                const currentText = (qpText + " " + hmaText).toLowerCase();
+                                                                const available = QUESTION_BANK.filter((q: any) =>
+                                                                    !currentText.split(' ').some(word => q.keywords.some((k: string) => word.includes(k)))
+                                                                );
+                                                                const suggestions = available.slice(0, 4);
+
+                                                                if (suggestions.length === 0) return "ANAMNESE COMPLETA! IA está processando os dados finais...";
+
+                                                                return "Assistente de IA ATIVO: Sugestões de perguntas:\n" +
+                                                                    suggestions.map((s, i) => `${i + 1}. ${s.text}`).join("\n");
+                                                            }
+                                                            return "Descreva o comportamento dos sintomas, fatores mecânicos e limitações funcionais...";
+                                                        })()}
+                                                        className="min-h-[188px] rounded-2xl border-slate-200 focus:ring-blue-500 bg-white text-base font-medium shadow-sm leading-relaxed"
+                                                    />
+                                                </FormControl>
                                             </FormItem>
                                         )} />
                                     </div>
                                 </div>
                             </div>
+
+                            {/* [NEW] Red Flag Checker - Driven by selected regions */}
+                            {(formData.anamnesis?.mainRegions || []).length > 0 && (
+                                <div className="max-w-5xl mx-auto pt-8">
+                                    <RedFlagChecker
+                                        regions={formData.anamnesis?.mainRegions || []}
+                                        values={formData.redFlags || {}}
+                                        onChange={(id, val) => setValue(`redFlags.${id}`, val)}
+                                    />
+                                </div>
+                            )}
                         </AccordionContent>
                     </AccordionItem>
 
@@ -608,7 +765,7 @@ export default function SmartPBEForm({ patientId, initialData, readOnly, onSave,
                     >
                         <AccordionTrigger className="px-6 py-5 hover:no-underline flex gap-2 items-center text-left group">
                             <div className="flex items-center gap-3 flex-1">
-                                <ClipboardList className={cn("h-5 w-5 transition-colors", openSection === 'efep' ? "text-emerald-600" : "text-slate-400 group-hover:text-emerald-500")} />
+                                <ClipboardList className={cn("h-5 w-5 transition-colors group-hover:animate-bounce", openSection === 'efep' ? "text-emerald-600" : "text-slate-400 group-hover:text-emerald-500")} />
                                 <span className={cn("font-bold text-base tracking-tight", openSection === 'efep' ? "text-emerald-950" : "text-slate-600")}>2. Funcionalidade (Score EFEP)</span>
                             </div>
                             <div className="flex items-center gap-4">
@@ -657,7 +814,7 @@ export default function SmartPBEForm({ patientId, initialData, readOnly, onSave,
                     >
                         <AccordionTrigger className="px-6 py-5 hover:no-underline flex gap-2 items-center text-left group">
                             <div className="flex items-center gap-3 flex-1">
-                                <CalendarClock className={cn("h-5 w-5 transition-colors", openSection === 'history' ? "text-indigo-600" : "text-slate-400 group-hover:text-indigo-500")} />
+                                <CalendarClock className={cn("h-5 w-5 transition-colors group-hover:animate-bounce", openSection === 'history' ? "text-indigo-600" : "text-slate-400 group-hover:text-indigo-500")} />
                                 <span className={cn("font-bold text-base tracking-tight", openSection === 'history' ? "text-indigo-950" : "text-slate-600")}>3. Histórico & Objetivos</span>
                             </div>
                             {isSectionFilled('history') && (
@@ -726,7 +883,7 @@ export default function SmartPBEForm({ patientId, initialData, readOnly, onSave,
                     >
                         <AccordionTrigger className="px-6 py-5 hover:no-underline flex gap-2 items-center text-left group">
                             <div className="flex items-center gap-3 flex-1">
-                                <Stethoscope className={cn("h-5 w-5 transition-colors", openSection === 'protocol' ? "text-orange-600" : "text-slate-400 group-hover:text-orange-500")} />
+                                <Stethoscope className={cn("h-5 w-5 transition-colors group-hover:animate-bounce", openSection === 'protocol' ? "text-orange-600" : "text-slate-400 group-hover:text-orange-500")} />
                                 <span className={cn("font-bold text-base tracking-tight", openSection === 'protocol' ? "text-orange-950" : "text-slate-600")}>4. Protocolos PBE Selecionados</span>
                             </div>
                             <div className="flex gap-2">
@@ -792,7 +949,7 @@ export default function SmartPBEForm({ patientId, initialData, readOnly, onSave,
                     >
                         <AccordionTrigger className="px-6 py-5 hover:no-underline flex gap-2 items-center text-left group">
                             <div className="flex items-center gap-3 flex-1">
-                                <Activity className={cn("h-5 w-5 transition-colors", openSection === 'functional' ? "text-purple-600" : "text-slate-400 group-hover:text-purple-500")} />
+                                <Activity className={cn("h-5 w-5 transition-colors group-hover:animate-bounce", openSection === 'functional' ? "text-purple-600" : "text-slate-400 group-hover:text-purple-500")} />
                                 <span className={cn("font-bold text-base tracking-tight", openSection === 'functional' ? "text-purple-950" : "text-slate-600")}>5. Métricas & Radar Funcional</span>
                             </div>
                             {isSectionFilled('functional') && (
@@ -852,7 +1009,7 @@ export default function SmartPBEForm({ patientId, initialData, readOnly, onSave,
                     >
                         <AccordionTrigger className="px-6 py-5 hover:no-underline flex gap-2 items-center text-left group">
                             <div className="flex items-center gap-3 flex-1">
-                                <ClipboardList className={cn("h-5 w-5 transition-colors", openSection === 'questionnaires' ? "text-blue-600" : "text-slate-400 group-hover:text-blue-500")} />
+                                <ClipboardList className={cn("h-5 w-5 transition-colors group-hover:animate-bounce", openSection === 'questionnaires' ? "text-blue-600" : "text-slate-400 group-hover:text-blue-500")} />
                                 <span className={cn("font-bold text-base tracking-tight", openSection === 'questionnaires' ? "text-blue-950" : "text-slate-600")}>6. Questionários Clínicos (PROMs)</span>
                             </div>
                             {(formData.plan?.questionnaires || []).length > 0 && (

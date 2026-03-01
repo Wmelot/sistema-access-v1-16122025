@@ -38,7 +38,7 @@ export const AnamneseSection = () => {
                 <section className="space-y-4">
                     <div className="flex items-center gap-2 mb-2">
                         <div className="h-8 w-1 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full" />
-                        <h2 className="text-xl font-black text-slate-800 tracking-tight">Anamnese & Queixa Principal</h2>
+                        <h2 className="text-xl font-black text-slate-800 tracking-tight">Anamnese e Queixa Principal</h2>
                     </div>
 
                     <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/40 space-y-6">

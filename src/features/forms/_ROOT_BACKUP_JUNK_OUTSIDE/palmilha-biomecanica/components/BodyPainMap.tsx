@@ -137,9 +137,9 @@ export const BodyPainMap = ({ value, onChange, readOnly = false }: BodyPainMapPr
                 <div className="bg-slate-50 border-b border-slate-200 px-2 py-1 flex items-center justify-between">
                     <span className="text-xs font-bold uppercase text-slate-500">Mapa de Dor</span>
                     <TabsList className="h-6">
-                        <TabsTrigger value="anterior" className="text-[10px] h-5 px-2">Frente</TabsTrigger>
-                        <TabsTrigger value="posterior" className="text-[10px] h-5 px-2">Costas</TabsTrigger>
-                        <TabsTrigger value="lateral" className="text-[10px] h-5 px-2">Lateral</TabsTrigger>
+                        <TabsTrigger value="anterior" className="text-[10px] h-5 px-2">Vista Anterior</TabsTrigger>
+                        <TabsTrigger value="posterior" className="text-[10px] h-5 px-2">Vista Posterior</TabsTrigger>
+                        <TabsTrigger value="lateral" className="text-[10px] h-5 px-2">Vista Lateral</TabsTrigger>
                         <TabsTrigger value="feet" className="text-[10px] h-5 px-2">Pés</TabsTrigger>
                     </TabsList>
                 </div>

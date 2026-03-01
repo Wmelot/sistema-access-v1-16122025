@@ -17,7 +17,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 const QUESTIONNAIRES_BY_CATEGORY = [
     {
         category: "Coluna Cervical",
-        regions: ["cervical"],
+        regions: ["coluna_cervical"],
         specialties: ["ortopedia"],
         items: [
             { id: "ndi", label: "NDI (Cervical)" },
@@ -26,7 +26,7 @@ const QUESTIONNAIRES_BY_CATEGORY = [
     },
     {
         category: "ATM (Temporomandibular)",
-        regions: ["face", "head"],
+        regions: ["atm"],
         specialties: ["ortopedia"],
         items: [
             { id: "fonseca", label: "Fonseca (Triagem DTM)" },
@@ -35,7 +35,7 @@ const QUESTIONNAIRES_BY_CATEGORY = [
     },
     {
         category: "Coluna Lombar",
-        regions: ["lombar", "sacroiliaca"],
+        regions: ["coluna_lombar"],
         specialties: ["ortopedia"],
         items: [
             { id: "oswestry", label: "Oswestry (Lombar)" },
@@ -54,7 +54,7 @@ const QUESTIONNAIRES_BY_CATEGORY = [
     },
     {
         category: "Cotovelo, Punho e Mão",
-        regions: ["cotovelo", "punho", "mao"],
+        regions: ["cotovelo_mao"],
         specialties: ["ortopedia"],
         items: [
             { id: "quickdash", label: "QuickDASH (Mm. Superior)" },
@@ -82,7 +82,7 @@ const QUESTIONNAIRES_BY_CATEGORY = [
     },
     {
         category: "Pé e Tornozelo",
-        regions: ["tornozelo", "pe"],
+        regions: ["tornozelo_pe"],
         specialties: ["ortopedia"],
         items: [
             { id: "lefs", label: "LEFS (Membro Inferior)" },
@@ -241,9 +241,7 @@ export function FunctionalAccordion({ openSection, isSectionFilled, sectionStyle
         >
             <AccordionTrigger className="px-8 py-6 hover:no-underline flex gap-2 items-center text-left group">
                 <div className="flex items-center gap-4 flex-1">
-                    <div className={cn("p-2 rounded-xl transition-colors", openSection === 'functionality' ? "bg-blue-500 text-white" : "bg-slate-100 text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500")}>
-                        <PencilRuler className="h-5 w-5" />
-                    </div>
+                    <PencilRuler className="h-5 w-5 transition-colors group-hover:animate-bounce" />
                     <div>
                         <span className={cn("font-black text-lg tracking-tight", openSection === 'functionality' ? "text-slate-900" : "text-slate-600")}>4. Funcionalidade & Escalas</span>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">EFEP, Questionários Regionais e Follow-up</p>

@@ -53,7 +53,7 @@ export function OccupationalHealthAccordion({ openSection, isSectionFilled, sect
             <AccordionTrigger className="px-8 py-6 hover:no-underline flex gap-2 items-center text-left group">
                 <div className="flex items-center gap-4 flex-1">
                     <div className={cn("p-2 rounded-xl transition-colors", openSection === 'occupational_health' ? "bg-amber-600 text-white" : "bg-slate-100 text-slate-400 group-hover:bg-amber-50 group-hover:text-amber-600")}>
-                        <Briefcase className="h-5 w-5" />
+                        <Briefcase className="h-5 w-5 transition-colors group-hover:animate-bounce" />
                     </div>
                     <div>
                         <span className={cn("font-black text-lg tracking-tight", openSection === 'occupational_health' ? "text-slate-900" : "text-slate-600")}>Saúde do Trabalho & Ergonomia</span>

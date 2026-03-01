@@ -31,7 +31,7 @@ export function LumbarSpineForm({ data, updateField, readOnly }: LumbarSpineForm
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-bold text-gray-800 flex items-center">
                         <FileText className="mr-2 text-indigo-500 h-5 w-5" />
-                        Indicadores & Questionários (PROMs)
+                        Indicadores e Questionários
                     </h3>
                     <button className="text-indigo-600 text-sm font-semibold flex items-center hover:underline">
                         Ir para Módulo de Follow-up <ExternalLink size={14} className="ml-1" />

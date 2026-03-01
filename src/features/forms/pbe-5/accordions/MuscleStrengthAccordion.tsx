@@ -16,6 +16,10 @@ const JOINT_MUSCLE_GROUPS: Record<string, { label: string; id: string; unit?: st
         { label: "Transverso Abdom. (Palpatório)", id: "transverse_palp", unit: "Padrão" },
         { label: "Stabilizer (Biofeedback)", id: "stabilizer", unit: "mmHg" },
     ],
+    atm: [
+        { label: "Masseter (Palpatório)", id: "masseter", unit: "Padrão" },
+        { label: "Temporal (Palpatório)", id: "temporalis", unit: "Padrão" },
+    ],
     coluna_cervical: [
         { label: "Flexores Profundos Cervicais", id: "deep_flexors", unit: "mmHg" },
         { label: "Trapézio Superior", id: "trapezius_sup", normKey: "abducao_de_ombro" },
@@ -130,7 +134,7 @@ export function MuscleStrengthAccordion({ openSection, isSectionFilled, sectionS
             <AccordionTrigger className="px-8 py-6 hover:no-underline flex gap-2 items-center text-left group">
                 <div className="flex items-center gap-4 flex-1">
                     <div className={cn("p-2 rounded-xl transition-colors", openSection === 'strength' ? "bg-orange-600 text-white" : "bg-slate-100 text-slate-400 group-hover:bg-orange-50 group-hover:text-orange-600")}>
-                        <Dumbbell className="h-5 w-5" />
+                        <Dumbbell className="h-5 w-5 transition-colors group-hover:animate-bounce" />
                     </div>
                     <div>
                         <span className={cn("font-black text-lg tracking-tight", openSection === 'strength' ? "text-slate-900" : "text-slate-600")}>6. Dinamometria & Força Muscular</span>

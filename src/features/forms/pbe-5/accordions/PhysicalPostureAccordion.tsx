@@ -50,7 +50,7 @@ export function PhysicalPostureAccordion({ openSection, isSectionFilled, section
             <AccordionTrigger className="hover:no-underline py-6 group">
                 <div className="flex items-center gap-4 w-full text-left">
                     <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-all duration-500", openSection === 'posture' ? "bg-purple-600 text-white shadow-lg rotate-12" : "bg-white text-slate-400 shadow-sm group-hover:text-purple-600")}>
-                        <Camera className="h-6 w-6" />
+                        <Camera className="h-6 w-6 transition-colors group-hover:animate-bounce" />
                     </div>
                     <div className="flex-1">
                         <div className="flex items-center gap-2">

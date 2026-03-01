@@ -29,8 +29,8 @@ export function PainMapAccordion({ openSection, isSectionFilled, sectionStyle, p
         >
             <AccordionTrigger className="px-5 py-4 hover:no-underline flex gap-2 items-center text-left group">
                 <div className="flex items-center gap-3 flex-1 text-base">
-                    <Target className={cn("h-5 w-5 transition-colors", sectionStyle.iconColor)} />
-                    <span className={cn("font-bold tracking-tight text-slate-700 group-hover:text-red-600 transition-colors")}>Mapa de Dor & Sintomas</span>
+                    <Target className={cn("h-5 w-5 transition-colors group-hover:animate-bounce", sectionStyle.iconColor)} />
+                    <span className={cn("font-bold tracking-tight text-slate-700 group-hover:text-red-600 transition-colors")}>Mapa de Dor e Sintomas</span>
                 </div>
                 {isSectionFilled('map') && <Badge variant="outline" className="bg-red-50 text-red-600 border-none text-[10px] h-5 mr-4 font-black tracking-widest uppercase">PREENCHIDO</Badge>}
             </AccordionTrigger>

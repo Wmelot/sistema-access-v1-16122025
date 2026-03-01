@@ -969,10 +969,10 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                 SECTION_STYLES['hma'].border
                                             )}
                                         >
-                                            <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left AccordionTrigger">
+                                            <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left AccordionTrigger group">
                                                 <div className="flex items-center gap-2 flex-1 text-base">
-                                                    <Ear className="h-5 w-5 text-blue-600" />
-                                                    <span>Anamnese & Queixa Principal</span>
+                                                    <Ear className="h-5 w-5 text-blue-600 transition-colors group-hover:animate-bounce" />
+                                                    <span>Anamnese e Queixa Principal</span>
                                                 </div>
                                                 {isSectionFilled('hma') && <Badge variant="outline" className="bg-slate-200 text-slate-600 border-none text-[9px] h-5 mr-4">PREENCHIDO</Badge>}
                                             </AccordionTrigger>
@@ -1022,9 +1022,9 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                 SECTION_STYLES['history'].border
                                             )}
                                         >
-                                            <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left">
+                                            <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left group">
                                                 <div className="flex items-center gap-2 flex-1 text-base">
-                                                    <Stethoscope className="h-5 w-5 text-green-600" />
+                                                    <Stethoscope className="h-5 w-5 text-green-600 transition-colors group-hover:animate-bounce" />
                                                     <span>Histórico Clínico</span>
                                                 </div>
                                                 {isSectionFilled('history') && <Badge variant="outline" className="bg-slate-200 text-slate-600 border-none text-[9px] h-5 mr-4">PREENCHIDO</Badge>}
@@ -1135,10 +1135,10 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                 SECTION_STYLES['map'].border
                                             )}
                                         >
-                                            <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left">
+                                            <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left group">
                                                 <div className="flex items-center gap-2 flex-1 text-base">
-                                                    <Target className="h-5 w-5 text-red-500" />
-                                                    <span>Mapa de Dor & Sintomas</span>
+                                                    <Target className="h-5 w-5 text-red-500 transition-colors group-hover:animate-bounce" />
+                                                    <span>Mapa de Dor e Sintomas</span>
                                                 </div>
                                                 {isSectionFilled('map') && <Badge variant="outline" className="bg-slate-200 text-slate-600 border-none text-[9px] h-5 mr-4">PREENCHIDO</Badge>}
                                             </AccordionTrigger>
@@ -1164,10 +1164,10 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                 SECTION_STYLES['efep'].border
                                             )}
                                         >
-                                            <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left">
+                                            <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left group">
                                                 <div className="flex items-center gap-2 flex-1 text-base">
-                                                    <PencilRuler className="h-5 w-5 text-orange-500" />
-                                                    <span>Funcionalidade (EFEP) & Questionários</span>
+                                                    <PencilRuler className="h-5 w-5 text-orange-500 transition-colors group-hover:animate-bounce" />
+                                                    <span>Escala Funcional Específica do Paciente (EFEP) e Questionários</span>
                                                 </div>
                                                 {isSectionFilled('efep') && <Badge variant="outline" className="bg-slate-200 text-slate-600 border-none text-[9px] h-5 mr-4">PREENCHIDO</Badge>}
                                             </AccordionTrigger>
@@ -1354,7 +1354,7 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                     <div className="space-y-4">
                                                         {/* 1. Régua de Tempo */}
                                                         <div className="space-y-2">
-                                                            <FormLabel className="text-[10px] font-bold text-purple-800 uppercase block">Régua de Envio (Múltipla Escolha)</FormLabel>
+                                                            <FormLabel className="text-[10px] font-bold text-purple-800 uppercase block">Prazos de Envio (Múltipla Escolha)</FormLabel>
                                                             <div className="flex flex-wrap gap-2">
                                                                 {[
                                                                     { l: "15 Dias", v: "15" },
@@ -1445,9 +1445,9 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                 SECTION_STYLES['sports'].border
                                             )}
                                         >
-                                            <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left">
+                                            <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left group">
                                                 <div className="flex items-center gap-2 flex-1 text-base">
-                                                    <Zap className="h-5 w-5 text-yellow-500" />
+                                                    <Zap className="h-5 w-5 text-yellow-500 transition-colors group-hover:animate-bounce" />
                                                     <span>Rotina Desportiva</span>
                                                 </div>
                                                 {isSectionFilled('sports') && <Badge variant="outline" className="bg-slate-200 text-slate-600 border-none text-[9px] h-5 mr-4">PREENCHIDO</Badge>}
@@ -1525,7 +1525,7 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                         >
                                             <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left group">
                                                 <div className="flex items-center gap-2 flex-1 text-base">
-                                                    <Footprints className="h-5 w-5 text-blue-500 group-hover:animate-bounce" />
+                                                    <Footprints className="h-5 w-5 text-blue-500 transition-colors group-hover:animate-bounce" />
                                                     <span>Tênis (Recomendação Técnica)</span>
                                                 </div>
                                                 <div className="flex items-center gap-2 mr-4">
@@ -1802,8 +1802,8 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
 
                                         {/* 2. ESTÁTICA */}
                                         <AccordionItem value="static" data-value="static" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'static' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['static'].border)}>
-                                            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
-                                                <Camera className="h-5 w-5 text-purple-600" />
+                                            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center group">
+                                                <Camera className="h-5 w-5 text-purple-600 transition-colors group-hover:animate-bounce" />
                                                 Avaliação Estática
                                             </AccordionTrigger>
                                             <AccordionContent className="p-4 space-y-6">
@@ -1866,8 +1866,8 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
 
                                         {/* 7. PONTUAÇÃO DETALHADA FPI-6 (Referência PDF p.2) */}
                                         <AccordionItem value="fpi_detail" data-value="fpi_detail" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'fpi_detail' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['fpi_detail'].border)}>
-                                            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
-                                                <Ruler className="h-5 w-5 text-indigo-500" />
+                                            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center group">
+                                                <Ruler className="h-5 w-5 text-indigo-500 transition-colors group-hover:animate-bounce" />
                                                 Foot Posture Index (FPI-6)
                                             </AccordionTrigger>
                                             <AccordionContent className="p-4 space-y-6">
@@ -1964,8 +1964,8 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                         </AccordionItem>
                                         {/* 8. ORTOSTATISMO - TESTES FUNCIONAIS (Ref: PDF p.4) */}
                                         <AccordionItem value="orto" data-value="orto" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'orto' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['orto'].border)}>
-                                            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
-                                                <Flame className="h-5 w-5 text-sky-600" />
+                                            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center group">
+                                                <Flame className="h-5 w-5 text-sky-600 transition-colors group-hover:animate-bounce" />
                                                 Testes Funcionais (Ortostatismo)
                                             </AccordionTrigger>
                                             <AccordionContent className="p-4 space-y-8">
@@ -2177,8 +2177,8 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
 
                                         {/* 10. DECÚBITO DORSAL - FLEXIBILIDADE E FORÇA (Ref: PDF p.3) */}
                                         <AccordionItem value="dorsal" data-value="dorsal" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'dorsal' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['dorsal'].border)}>
-                                            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
-                                                <ArrowBigUp className="h-5 w-5 text-emerald-600" />
+                                            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center group">
+                                                <ArrowBigUp className="h-5 w-5 text-emerald-600 transition-colors group-hover:animate-bounce" />
                                                 Testes Funcionais (Decúbito Dorsal)
                                             </AccordionTrigger>
                                             <AccordionContent className="p-4 space-y-8">
@@ -2218,7 +2218,7 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                 <div className="border-t pt-6 space-y-6">
                                                     <div className="flex items-center gap-2 mb-2">
                                                         <Flame className="w-4 h-4 text-orange-500" />
-                                                        <h4 className="font-black text-xs uppercase tracking-widest text-slate-700">Força Muscular (MMT 0-10)</h4>
+                                                        <h4 className="font-black text-xs uppercase tracking-widest text-slate-700">Força Muscular (0-10)</h4>
                                                     </div>
 
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -2267,8 +2267,8 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                         </AccordionItem>
                                         {/* 11. DECÚBITO VENTRAL - TORÇÃO E RIGIDEZ (Ref: PDF p.3) */}
                                         <AccordionItem value="ventral" data-value="ventral" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'ventral' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['ventral'].border)}>
-                                            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
-                                                <ArrowBigDown className="h-5 w-5 text-emerald-600" />
+                                            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center group">
+                                                <ArrowBigDown className="h-5 w-5 text-emerald-600 transition-colors group-hover:animate-bounce" />
                                                 Testes Funcionais (Decúbito Ventral)
                                             </AccordionTrigger>
                                             <AccordionContent className="p-4 space-y-6">
@@ -2329,8 +2329,8 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
 
                                         {/* 11.5 BAROPODOMETRIA (Ref: PDF p.2) */}
                                         <AccordionItem value="baropo" data-value="baropo" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'baropo' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['baropo'].border)}>
-                                            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
-                                                <Gauge className="h-5 w-5 text-rose-500" />
+                                            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center group">
+                                                <Gauge className="h-5 w-5 text-rose-500 transition-colors group-hover:animate-bounce" />
                                                 Baropodometria
                                             </AccordionTrigger>
                                             <AccordionContent className="p-4 space-y-4">
@@ -2359,8 +2359,8 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
 
                                         {/* 12. AVALIAÇÃO DINÂMICA (Ref: PDF p.2 e p.3) */}
                                         <AccordionItem value="dynamic" data-value="dynamic" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'dynamic' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['dynamic'].border)}>
-                                            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
-                                                <TimerReset className="h-5 w-5 text-violet-600" />
+                                            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center group">
+                                                <TimerReset className="h-5 w-5 text-violet-600 transition-colors group-hover:animate-bounce" />
                                                 Avaliação Dinâmica
                                             </AccordionTrigger>
                                             <AccordionContent className="p-4 space-y-8">
@@ -2643,8 +2643,8 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
 
                                         {/* 13. EXAMES E PLANO (COM MIC FUNCIONAL) */}
                                         <AccordionItem value="exams" data-value="exams" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'exams' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['exams'].border)}>
-                                            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
-                                                <FileText className="h-5 w-5 text-slate-500" />
+                                            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center group">
+                                                <FileText className="h-5 w-5 text-slate-500 transition-colors group-hover:animate-bounce" />
                                                 Exames complementares
                                             </AccordionTrigger>
                                             <AccordionContent className="p-4 space-y-4">
@@ -2667,9 +2667,9 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
 
                                         {/* 14. PLANO TERAPÊUTICO & EXERCÍCIOS (Ref: PDF p.4) */}
                                         <AccordionItem value="exercises" data-value="exercises" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'exercises' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['exercises'].border)}>
-                                            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
-                                                <PillBottle className="h-5 w-5 text-teal-600" />
-                                                Plano Terapêutico & Orientações
+                                            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center group">
+                                                <PillBottle className="h-5 w-5 text-teal-600 transition-colors group-hover:animate-bounce" />
+                                                Plano Terapêutico e Orientações
                                             </AccordionTrigger>
                                             <AccordionContent className="p-4 space-y-8">
 

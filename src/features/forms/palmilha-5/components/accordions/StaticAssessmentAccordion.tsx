@@ -54,10 +54,10 @@ export function StaticAssessmentAccordion({ openSection, isSectionFilled, sectio
                 <AccordionContent className="p-4 space-y-6 border-t border-slate-50">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-1">
-                            <FormLabel className="text-[10px] uppercase font-bold text-slate-500">Teste do Catálogo</FormLabel>
+                            <FormLabel className="text-[10px] uppercase font-bold text-slate-500">Teste do Catálogo (mm)</FormLabel>
                             <div className="flex gap-2">
-                                <Input placeholder="E (mm)" type="number" {...form.register("postural.teste_catalogo.left")} className="h-10 text-center font-bold" />
-                                <Input placeholder="D (mm)" type="number" {...form.register("postural.teste_catalogo.right")} className="h-10 text-center font-bold" />
+                                <Input placeholder="Esquerdo" type="number" {...form.register("postural.teste_catalogo.left")} className="h-10 text-center font-bold" />
+                                <Input placeholder="Direito" type="number" {...form.register("postural.teste_catalogo.right")} className="h-10 text-center font-bold" />
                             </div>
                         </div>
 
@@ -65,7 +65,7 @@ export function StaticAssessmentAccordion({ openSection, isSectionFilled, sectio
                             <FormLabel className="text-[10px] uppercase font-bold text-slate-500">Naviculômetro (mm)</FormLabel>
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                    <Input placeholder="E" type="number" {...form.register("postural.navicular.left")} className="h-10 text-center font-bold" />
+                                    <Input placeholder="Esquerdo" type="number" {...form.register("postural.navicular.left")} className="h-10 text-center font-bold" />
                                     {(() => {
                                         const status = checkNavicularStatus(Number(form.watch("postural.navicular.left")), Number(form.watch("postural.shoeSize"))) || { label: "Aguardando...", color: "bg-slate-100 text-slate-400" };
                                         return (
@@ -76,7 +76,7 @@ export function StaticAssessmentAccordion({ openSection, isSectionFilled, sectio
                                     })()}
                                 </div>
                                 <div>
-                                    <Input placeholder="D" type="number" {...form.register("postural.navicular.right")} className="h-10 text-center font-bold" />
+                                    <Input placeholder="Direito" type="number" {...form.register("postural.navicular.right")} className="h-10 text-center font-bold" />
                                     {(() => {
                                         const status = checkNavicularStatus(Number(form.watch("postural.navicular.right")), Number(form.watch("postural.shoeSize"))) || { label: "Aguardando...", color: "bg-slate-100 text-slate-400" };
                                         return (

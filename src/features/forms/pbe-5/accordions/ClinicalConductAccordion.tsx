@@ -46,9 +46,7 @@ export function ClinicalConductAccordion({ openSection, isSectionFilled, section
         >
             <AccordionTrigger className="px-8 py-6 hover:no-underline flex gap-2 items-center text-left group">
                 <div className="flex items-center gap-4 flex-1">
-                    <div className={cn("p-2 rounded-xl transition-colors", openSection === 'plan' ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-400 group-hover:bg-slate-200 group-hover:text-slate-900")}>
-                        <ClipboardCheck className="h-5 w-5" />
-                    </div>
+                    <ClipboardCheck className="h-5 w-5 transition-colors group-hover:animate-bounce" />
                     <div>
                         <span className={cn("font-black text-lg tracking-tight", openSection === 'plan' ? "text-slate-900" : "text-slate-600")}>8. Conduta Clínica & Planejamento</span>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Estratégia terapêutica e prescrições</p>

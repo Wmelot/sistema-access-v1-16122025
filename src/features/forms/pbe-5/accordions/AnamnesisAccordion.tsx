@@ -144,6 +144,21 @@ const RED_FLAGS_DATA: Record<string, { id: string; label: string; alerts: string
             label: "Instabilidade Cervical Alta",
             alerts: ["Sensação de cabeça pesada", "Nistagmo", "Parestesia global", "Sinal de Lhermitte"]
         },
+        {
+            id: "cervical_malignancy",
+            label: "Suspeita de Malignidade",
+            alerts: ["Histórico de Câncer", "Perda de peso inexplicada", "Dor constante que não cede ao repouso", "Idade > 50 anos"]
+        },
+        {
+            id: "cervical_fracture",
+            label: "Suspeita de Fratura",
+            alerts: ["Trauma de alta energia", "Dor severa à palpação de processos espinhosos", "Deformidade visível", "Uso crônico de corticoide"]
+        },
+        {
+            id: "cervical_infection",
+            label: "Suspeita de Infecção",
+            alerts: ["Febre / Calafrios", "Histórico de cirurgia recente", "Uso de drogas IV", "Malaise generalizado"]
+        },
     ],
     ombro: [
         {
@@ -165,8 +180,8 @@ const RED_FLAGS_DATA: Record<string, { id: string; label: string; alerts: string
         },
         {
             id: "knee_fracture",
-            label: "Fratura (Ottawa Knee Rules)",
-            alerts: ["Incapacidade de apoio", "Dor focal óssea pós-trauma", "Idade > 55 anos"]
+            label: "Suspeita de Fratura",
+            alerts: ["Incapacidade imediata de suportar peso (dar 4 passos)", "Dor focal óssea em Patela ou Cabeça da Fíbula", "Trauma de alta energia ou queda direta no joelho", "Idade > 55 anos"]
         },
     ],
     quadril: [
@@ -179,6 +194,11 @@ const RED_FLAGS_DATA: Record<string, { id: string; label: string; alerts: string
             id: "hip_fracture",
             label: "Fratura de Colo Femoral",
             alerts: ["Encurtamento do membro", "Rotação externa fixa", "Incapacidade de apoiar peso"]
+        },
+        {
+            id: "hip_septic_arthritis",
+            label: "Artrite Séptica (Quadril)",
+            alerts: ["Calor", "Rubor intenso", "Febre", "Incapacidade total de mover a articulação"]
         },
     ],
     atm: [
@@ -194,6 +214,60 @@ const RED_FLAGS_DATA: Record<string, { id: string; label: string; alerts: string
             ]
         },
     ],
+    tornozelo_pe: [
+        {
+            id: "ankle_fracture",
+            label: "SUSPEITA DE FRATURA",
+            alerts: [
+                "Incapacidade imediata de suportar peso (dar 4 passos)",
+                "Dor focal óssea em Maléolo (Medial ou Lateral)",
+                "Dor focal em Navicular ou Base do 5º Metatarso",
+                "Trauma de alta energia ou queda de altura"
+            ]
+        },
+        {
+            id: "ankle_tvd",
+            label: "TROMBOSE VENOSA PROFUNDA (TVP)",
+            alerts: [
+                "Edema unilateral na panturrilha/tornozelo",
+                "Calor e rubor localizado",
+                "Dor à palpação profunda da panturrilha",
+                "Pós-operatório recente de membros inferiores"
+            ]
+        },
+        {
+            id: "charcot_foot",
+            label: "NEUROARTROPATIA DE CHARCOT (PÉ DIABÉTICO)",
+            alerts: [
+                "Edema importante e indolor",
+                "Aumento de temperatura local sem febre sistêmica",
+                "Neuropatia periférica / Diabetes Mellitus instalada",
+                "Deformidade plantar progressiva (pé em balanço)"
+            ]
+        }
+    ],
+    cotovelo_mao: [
+        {
+            id: "wrist_fracture",
+            label: "FRATURA DE PUNHO / MÃO",
+            alerts: [
+                "Deformidade em 'garfo' (Sinal de Colles)",
+                "Dor na tabaqueira anatômica (Escafoide)",
+                "Edema e rubor severo pós-trauma",
+                "Incapacidade funcional total de preensão"
+            ]
+        },
+        {
+            id: "hand_infection",
+            label: "INFECÇÃO PROFUNDA / TENOSSINOVITE SÉPTICA",
+            alerts: [
+                "Sinais de Kanavel (Dedo em flexão, dor ao estender)",
+                "Aumento de volume cilíndrico do dedo (fusiforme)",
+                "Febre associada a ferimento penetrante",
+                "Calor e rubor ascendente"
+            ]
+        }
+    ]
 };
 
 interface AnamnesisAccordionProps {
@@ -202,12 +276,47 @@ interface AnamnesisAccordionProps {
     sectionStyle: { border: string; iconColor: string; bg: string };
 }
 
+const QUESTION_BANK = [
+    { text: "Há quanto tempo você sente essa dor?", keywords: ["tempo", "quanto tempo", "quando começou", "desde quando"] },
+    { text: "Como essa dor começou?", keywords: ["mecanismo", "como começou", "início", "causa", "acidente"] },
+    { text: "A dor irradia para algum outro lugar?", keywords: ["irradia", "irradiação", "para onde vai", "desce para", "sobe para"] },
+    { text: "Como é a sensação dessa dor? (Ex: pontada, queimação, aperto)", keywords: ["sensação", "tipo de dor", "queimação", "pontada", "peso", "formigamento"] },
+    { text: "O que faz a dor piorar?", keywords: ["piora", "movimento", "quando dói mais", "fator de piora"] },
+    { text: "O que faz a dor melhorar?", keywords: ["melhora", "repouso", "remédio", "fator de alívio"] },
+    { text: "A dor atrapalha o seu sono?", keywords: ["sono", "noite", "dormir", "acorda à noite"] },
+    { text: "Já sentiu isso antes?", keywords: ["antes", "recorrente", "outra vez", "passado", "histórico"] },
+    { text: "Você toma alguma medicação para isso?", keywords: ["remédio", "medicação", "anti-inflamatório", "analgésico"] },
+];
+
 export function AnamnesisAccordion({ openSection, isSectionFilled, sectionStyle }: AnamnesisAccordionProps) {
     const { register, watch, setValue, control } = useFormContext();
     const [openRegion, setOpenRegion] = React.useState(false);
 
+    const qp = watch('anamnesis.qp') || "";
+    const hma = watch('anamnesis.hma') || "";
     const evaValue = watch('anamnesis.eva') || 0;
     const selectedRegions = watch('anamnesis.mainRegions') || [];
+
+    // [NEW] Dynamic AI Interview Placeholder Logic
+    const hmaPlaceholder = React.useMemo(() => {
+        if (!qp) return "Aguardando queixa principal para sugerir perguntas...";
+
+        const fullText = (qp + " " + hma).toLowerCase();
+
+        // Filter out questions already answered (based on keywords)
+        const suggestions = QUESTION_BANK.filter((q: any) => {
+            return !q.keywords.some((kw: string) => fullText.includes(kw.toLowerCase()));
+        }).map((q: any) => q.text);
+
+        if (suggestions.length === 0) return "HMA Completa. Continue detalhando conforme necessário.";
+
+        // Special: If regions are selected but not mentioned in HMA detail
+        const regionPrompt = selectedRegions.length > 0 && !hma.includes("região")
+            ? `Como essa dor se comporta na região do ${REGION_OPTIONS.find(r => r.id === selectedRegions[0])?.label}? `
+            : "";
+
+        return `SUGESTÕES DE PERGUNTAS:\n${regionPrompt}${suggestions.slice(0, 4).map(s => `• ${s}`).join("\n")}`;
+    }, [qp, hma, selectedRegions]);
 
     return (
         <AccordionItem
@@ -222,10 +331,10 @@ export function AnamnesisAccordion({ openSection, isSectionFilled, sectionStyle 
             <AccordionTrigger className="px-8 py-6 hover:no-underline flex gap-2 items-center text-left group">
                 <div className="flex items-center gap-4 flex-1">
                     <div className={cn("p-2 rounded-xl transition-colors", openSection === 'anamnesis' ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600")}>
-                        <Activity className="h-5 w-5" />
+                        <Activity className="h-5 w-5 transition-colors group-hover:animate-bounce" />
                     </div>
                     <div>
-                        <span className={cn("font-black text-lg tracking-tight", openSection === 'anamnesis' ? "text-slate-900" : "text-slate-600")}>1. Anamnese & Queixa Principal</span>
+                        <span className={cn("font-black text-lg tracking-tight", openSection === 'anamnesis' ? "text-slate-900" : "text-slate-600")}>1. Anamnese e Queixa Principal</span>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Motivo da consulta e histórico atual</p>
                     </div>
                 </div>
@@ -343,17 +452,11 @@ export function AnamnesisAccordion({ openSection, isSectionFilled, sectionStyle 
                                 <FormLabel className="text-[11px] font-black text-slate-400 uppercase tracking-tighter ml-1">HMA (História da Moléstia Atual)</FormLabel>
                                 <Textarea
                                     {...register('anamnesis.hma')}
-                                    placeholder="Detalhamento dos sintomas, mecanismo de lesão, fatores de melhora e piora..."
+                                    placeholder={hmaPlaceholder}
                                     className="min-h-[120px] rounded-2xl border-slate-200 focus:ring-blue-500 bg-white text-base font-medium"
                                 />
                             </div>
 
-                            <div className="flex justify-end pt-2">
-                                <AxiomCopilot
-                                    specialty="Fisioterapeuta Sênior PBE"
-                                    formSchemaName="PBE 5.0: Anamnese"
-                                />
-                            </div>
                         </div>
                     </div>
 
@@ -361,7 +464,7 @@ export function AnamnesisAccordion({ openSection, isSectionFilled, sectionStyle 
                     <div className={cn("p-8 rounded-[2rem] border transition-all", sectionStyle.bg, openSection === 'anamnesis' ? "border-blue-100 shadow-inner" : "border-transparent")}>
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-1 h-5 bg-blue-600 rounded-full" />
-                            <h4 className="font-black text-slate-800 uppercase text-xs tracking-widest">Mapeamento de Regiões</h4>
+                            <h4 className="font-black text-slate-800 uppercase text-xs tracking-widest">Mapeamento das Regiões</h4>
                         </div>
 
                         <div className="space-y-6">
@@ -394,36 +497,55 @@ export function AnamnesisAccordion({ openSection, isSectionFilled, sectionStyle 
 
                             <Popover open={openRegion} onOpenChange={setOpenRegion}>
                                 <PopoverTrigger asChild>
-                                    <Button variant="outline" className="w-full justify-between h-14 bg-white border-slate-200 rounded-2xl shadow-sm hover:border-blue-300 hover:bg-blue-50/20 text-slate-700 font-bold transition-all">
+                                    <Button variant="outline" className="w-full justify-between h-14 bg-white border-slate-200 rounded-xl shadow-sm hover:border-blue-300 hover:bg-blue-50/10 text-slate-700 font-bold transition-all">
                                         <div className="flex items-center gap-2">
                                             <Search className="h-4 w-4 text-blue-500" />
-                                            <span>Adicionar Região...</span>
+                                            {selectedRegions.length === 0 ? "Adicionar Região..." : `${selectedRegions.length} Regiões Selecionadas`}
                                         </div>
                                         <ChevronsUpDown className="h-4 w-4 opacity-30" />
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-[340px] p-0 rounded-2xl overflow-hidden shadow-2xl border-slate-200" align="start">
-                                    <Command>
+                                <PopoverContent className="w-[350px] p-0 rounded-2xl overflow-hidden shadow-2xl border-slate-200" align="start">
+                                    <Command className="border-none">
                                         <CommandInput placeholder="Buscar região articular..." className="h-12 border-none ring-0 focus:ring-0" />
-                                        <CommandList className="max-h-[300px]">
-                                            <CommandEmpty>Nenhuma região encontrada.</CommandEmpty>
-                                            <CommandGroup heading="Articulações & Segmentos">
-                                                {REGION_OPTIONS.map(opt => (
-                                                    <CommandItem
-                                                        key={opt.id}
-                                                        disabled={selectedRegions.includes(opt.id)}
-                                                        onSelect={() => {
-                                                            if (!selectedRegions.includes(opt.id)) {
-                                                                setValue('anamnesis.mainRegions', [...selectedRegions, opt.id]);
-                                                            }
-                                                            setOpenRegion(false);
-                                                        }}
-                                                        className="py-3 px-4 flex items-center justify-between cursor-pointer data-[disabled]:opacity-30"
-                                                    >
-                                                        <span className="font-bold text-slate-700">{opt.label}</span>
-                                                        {!selectedRegions.includes(opt.id) && <Plus className="h-4 w-4 text-blue-500" />}
-                                                    </CommandItem>
-                                                ))}
+                                        <CommandList className="max-h-[400px] p-2 bg-white">
+                                            <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 mb-1">
+                                                Articulações & Segmentos
+                                            </div>
+                                            <CommandEmpty className="p-4 text-center text-slate-400 text-xs font-medium italic">Nenhuma região encontrada.</CommandEmpty>
+                                            <CommandGroup>
+                                                {REGION_OPTIONS.map(opt => {
+                                                    const isSelected = selectedRegions.includes(opt.id);
+                                                    return (
+                                                        <div
+                                                            key={opt.id}
+                                                            className={cn(
+                                                                "flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all mb-1 group",
+                                                                isSelected ? "bg-blue-50 text-blue-700 shadow-sm" : "hover:bg-slate-50 text-slate-600"
+                                                            )}
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                if (isSelected) {
+                                                                    setValue('anamnesis.mainRegions', selectedRegions.filter((id: string) => id !== opt.id));
+                                                                } else {
+                                                                    setValue('anamnesis.mainRegions', [...selectedRegions, opt.id]);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <Checkbox
+                                                                    checked={isSelected}
+                                                                    className={cn(
+                                                                        "h-5 w-5 rounded-md border-2 transition-all",
+                                                                        isSelected ? "bg-blue-600 border-blue-600 text-white" : "border-slate-300 group-hover:border-blue-300"
+                                                                    )}
+                                                                />
+                                                                <span className="text-sm font-black uppercase tracking-tight">{opt.label}</span>
+                                                            </div>
+                                                            {isSelected && <Plus className="h-3 w-3 text-blue-500 opacity-50" />}
+                                                        </div>
+                                                    );
+                                                })}
                                             </CommandGroup>
                                         </CommandList>
                                     </Command>

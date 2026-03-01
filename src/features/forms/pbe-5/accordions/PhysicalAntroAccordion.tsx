@@ -69,7 +69,7 @@ export function PhysicalAntroAccordion({ openSection, isSectionFilled, sectionSt
             <AccordionTrigger className="hover:no-underline py-6 group">
                 <div className="flex items-center gap-4 w-full text-left">
                     <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-all duration-500", openSection === 'antro' ? "bg-blue-600 text-white shadow-lg rotate-12" : "bg-white text-slate-400 shadow-sm group-hover:text-blue-600")}>
-                        <Ruler className="h-6 w-6" />
+                        <Ruler className="h-6 w-6 transition-all duration-500 group-hover:animate-bounce" />
                     </div>
                     <div className="flex-1">
                         <div className="flex items-center gap-2">

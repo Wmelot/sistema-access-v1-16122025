@@ -44,7 +44,7 @@ export function AnamnesisMetabolicAccordion({ openSection, isSectionFilled, sect
                     <div className="flex-1">
                         <div className="flex items-center gap-2">
                             <h3 className={cn("text-sm font-black uppercase tracking-widest", openSection === "hma" ? "text-slate-900" : "text-slate-500")}>
-                                Anamnese & Controle Metabólico
+                                Anamnese e Controle Metabólico
                             </h3>
                             {isFilled && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
                         </div>

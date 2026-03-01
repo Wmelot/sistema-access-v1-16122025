@@ -53,7 +53,7 @@ export function MetricsVitalsAccordion({ openSection, isSectionFilled, sectionSt
             <AccordionTrigger className="px-8 py-6 hover:no-underline flex gap-2 items-center text-left group">
                 <div className="flex items-center gap-4 flex-1">
                     <div className={cn("p-2 rounded-xl transition-colors", openSection === 'metrics' ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600")}>
-                        <Ruler className="h-5 w-5" />
+                        <Ruler className="h-5 w-5 transition-colors group-hover:animate-bounce" />
                     </div>
                     <div>
                         <span className={cn("font-black text-lg tracking-tight", openSection === 'metrics' ? "text-slate-900" : "text-slate-600")}>3. Métricas Biofísicas & Vitais</span>

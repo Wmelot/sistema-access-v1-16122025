@@ -166,7 +166,7 @@ export default function DiabeticFootForm({ patientId, initialData, onSave, patie
                         <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left">
                             <div className="flex items-center gap-2 flex-1 text-base">
                                 <Stethoscope className="h-5 w-5 text-blue-600" />
-                                <span>Anamnese & Controle Metabólico</span>
+                                <span>Anamnese e Controle Metabólico</span>
                             </div>
                         </AccordionTrigger>
                         <AccordionContent className="p-4 space-y-6">
@@ -537,7 +537,7 @@ export default function DiabeticFootForm({ patientId, initialData, onSave, patie
                         <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left">
                             <div className="flex items-center gap-2 flex-1 text-base">
                                 <Activity className="h-5 w-5 text-blue-600" />
-                                <span>Avaliação Funcional & Questionários</span>
+                                <span>Avaliação Funcional e Questionários</span>
                             </div>
                         </AccordionTrigger>
                         <AccordionContent className="p-4">

@@ -38,7 +38,7 @@ export function PlanAccordion({ openSection, isSectionFilled, sectionStyle, isIm
             <AccordionTrigger className="px-5 py-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left group">
                 <div className="flex items-center gap-3 flex-1 text-base">
                     <PillBottle className={cn("h-5 w-5 transition-colors group-hover:animate-bounce", sectionStyle.iconColor)} />
-                    <span className="font-bold tracking-tight text-slate-700 group-hover:text-teal-600 transition-colors">Plano Terapêutico & Orientações</span>
+                    <span className="font-bold tracking-tight text-slate-700 group-hover:text-teal-600 transition-colors">Plano Terapêutico e Orientações</span>
                 </div>
             </AccordionTrigger>
             <AccordionContent className="p-4 space-y-8 border-t border-slate-50">

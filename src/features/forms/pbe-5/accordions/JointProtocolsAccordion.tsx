@@ -100,7 +100,7 @@ export function JointProtocolsAccordion({ openSection, isSectionFilled, sectionS
             <AccordionTrigger className="px-8 py-6 hover:no-underline flex gap-2 items-center text-left group">
                 <div className="flex items-center gap-4 flex-1">
                     <div className={cn("p-2 rounded-xl transition-colors", openSection === 'protocols' ? "bg-purple-600 text-white" : "bg-slate-100 text-slate-400 group-hover:bg-purple-50 group-hover:text-purple-600")}>
-                        <Layers className="h-5 w-5" />
+                        <Layers className="h-5 w-5 transition-colors group-hover:animate-bounce" />
                     </div>
                     <div>
                         <span className={cn("font-black text-lg tracking-tight", openSection === 'protocols' ? "text-slate-900" : "text-slate-600")}>7. Protocolos Regionais (Específicos)</span>

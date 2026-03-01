@@ -102,8 +102,6 @@ export async function startQuickAttendance(
                 original_price: 0,
                 is_extra: true,
                 organization_id: organizationId,
-                // Flag it as a quick/draft attendance
-                is_quick_attendance: true,
             })
             .select('id')
             .single()

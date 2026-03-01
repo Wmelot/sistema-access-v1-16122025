@@ -60,8 +60,8 @@ export function FunctionalTestsAccordion({ openSection, isSectionFilled, section
 
     const directions = [
         { label: "Anterior", key: "Anterior" },
-        { label: "Postero Medial", key: "Post-Med" },
-        { label: "Postero Lateral", key: "Post-Lat" }
+        { label: "Póstero-Medial", key: "Post-Med" },
+        { label: "Póstero-Lateral", key: "Post-Lat" }
     ];
 
     return (
@@ -109,11 +109,11 @@ export function FunctionalTestsAccordion({ openSection, isSectionFilled, section
                         <FormLabel className="text-[10px] uppercase font-bold text-slate-500">Lunge Teste (º)</FormLabel>
                         <div className="grid grid-cols-2 gap-2">
                             <div>
-                                <Input placeholder="E" type="number" {...form.register("tests.lunge.left")} className="h-10 text-center font-bold" />
+                                <Input placeholder="Esquerdo" type="number" {...form.register("tests.lunge.left")} className="h-10 text-center font-bold" />
                                 <ReferenceStatus type="lunge" value={form.watch("tests.lunge.left")} />
                             </div>
                             <div>
-                                <Input placeholder="D" type="number" {...form.register("tests.lunge.right")} className="h-10 text-center font-bold" />
+                                <Input placeholder="Direito" type="number" {...form.register("tests.lunge.right")} className="h-10 text-center font-bold" />
                                 <ReferenceStatus type="lunge" value={form.watch("tests.lunge.right")} />
                             </div>
                         </div>
@@ -122,8 +122,8 @@ export function FunctionalTestsAccordion({ openSection, isSectionFilled, section
                     <div className="space-y-1">
                         <FormLabel className="text-[10px] uppercase font-bold text-slate-500">Comprimento Membro Inferior (cm)</FormLabel>
                         <div className="flex gap-2 border border-slate-200 rounded-lg p-1 bg-slate-50">
-                            <Input placeholder="E (cm)" type="number" {...form.register("tests.ybalance.legLength.left")} className="h-10 text-center font-bold bg-white" />
-                            <Input placeholder="D (cm)" type="number" {...form.register("tests.ybalance.legLength.right")} className="h-10 text-center font-bold bg-white" />
+                            <Input placeholder="Esquerdo" type="number" {...form.register("tests.ybalance.legLength.left")} className="h-10 text-center font-bold bg-white" />
+                            <Input placeholder="Direito" type="number" {...form.register("tests.ybalance.legLength.right")} className="h-10 text-center font-bold bg-white" />
                         </div>
                     </div>
                 </div>
@@ -131,9 +131,9 @@ export function FunctionalTestsAccordion({ openSection, isSectionFilled, section
                 {/* Y-BALANCE TESTE - NOVO LAYOUT SIMPLIFICADO */}
                 <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm overflow-hidden">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 pb-3 border-b border-slate-100 gap-3">
-                        <h4 className="font-bold text-sm text-slate-700">Y-Balance Teste Simples</h4>
+                        <h4 className="font-bold text-sm text-slate-700">Y-Balance Teste</h4>
                         <div className="flex items-center gap-4 text-[10px] bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
-                            <span className="font-bold uppercase text-slate-500">Dominância:</span>
+                            <span className="font-bold uppercase text-slate-500">Membro Inferior Dominante:</span>
                             <div className="flex items-center gap-1.5">
                                 <Checkbox id="dom-esq" checked={form.watch("tests.ybalance.dominance") === "left"} onCheckedChange={() => form.setValue("tests.ybalance.dominance", "left")} />
                                 <label htmlFor="dom-esq" className="cursor-pointer font-bold text-blue-600 uppercase">Esquerda</label>
@@ -243,7 +243,7 @@ export function FunctionalTestsAccordion({ openSection, isSectionFilled, section
                                 ) : null}
 
                                 {diffPm > 6 || diffPl > 6 ? (
-                                    <li className="text-red-700 font-bold"><span className="text-red-500">⚠ Assimetria Posterior &gt; 6cm:</span> Há uma diferença considerável de alcance nas direções postero-medial ou postero-lateral, indicando déficit de força/controle pélvico.</li>
+                                    <li className="text-red-700 font-bold"><span className="text-red-500">⚠ Assimetria Posterior &gt; 6cm:</span> Há uma diferença considerável de alcance nas direções póstero-medial ou póstero-lateral, indicando déficit de força/controle pélvico.</li>
                                 ) : (diffPm > 0 || diffPl > 0) ? (
                                     <li className="text-emerald-700"><span className="font-bold text-emerald-600">✓ Simetria Posterior Normal (≤ 6cm):</span> Distribuição de controle póstero-latero-medial equilibrada.</li>
                                 ) : null}

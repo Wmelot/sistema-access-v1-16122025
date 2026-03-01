@@ -1076,7 +1076,7 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                     <AccordionTrigger className="hover:no-underline py-4">
                                         <div className="flex items-center gap-2">
                                             <Activity className="h-5 w-5 text-indigo-500" />
-                                            <span className="text-lg font-semibold">1. Anamnese & Sinais Vitais</span>
+                                            <span className="text-lg font-semibold">1. Anamnese e Sinais Vitais</span>
                                         </div>
                                     </AccordionTrigger>
                                     <AccordionContent className="pt-2 pb-4 space-y-4">

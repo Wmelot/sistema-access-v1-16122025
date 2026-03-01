@@ -177,14 +177,14 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                 {/* AGACHAMENTO UNIPODAL */}
                 <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-6 shadow-sm">
                     <h4 className="font-bold text-slate-700 text-sm flex items-center gap-2">
-                        Agachamento Unipodal (Step Down)
+                        Agachamento Unipodal
                     </h4>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 divide-y md:divide-y-0 md:divide-x divide-slate-100">
                         {/* Lado Esquerdo */}
                         <div className="space-y-5 md:pr-4 pt-4 md:pt-0">
                             <div className="flex items-center gap-2 mb-2">
-                                <Badge className="bg-blue-600 hover:bg-blue-700 uppercase tracking-widest text-[10px] font-black h-6">Membro Esquerdo</Badge>
+                                <Badge className="bg-blue-600 hover:bg-blue-700 uppercase tracking-widest text-[10px] font-black h-6">Membro Inferior Esquerdo</Badge>
                             </div>
 
                             <div className="grid grid-cols-1 gap-4 text-xs font-semibold">
@@ -239,7 +239,7 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                         {/* Lado Direito */}
                         <div className="space-y-5 md:pl-4 pt-4 md:pt-0">
                             <div className="flex items-center gap-2 mb-2">
-                                <Badge className="bg-green-600 hover:bg-green-700 uppercase tracking-widest text-[10px] font-black h-6">Membro Direito</Badge>
+                                <Badge className="bg-green-600 hover:bg-green-700 uppercase tracking-widest text-[10px] font-black h-6">Membro Inferior Direito</Badge>
                             </div>
 
                             <div className="grid grid-cols-1 gap-4 text-xs font-semibold">
@@ -295,12 +295,12 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
 
                 {/* FOTOS DE MARCHA */}
                 <div className="p-5 bg-slate-50 border border-slate-100 rounded-xl shadow-sm">
-                    <h4 className="font-bold text-slate-700 text-sm mb-4">Mecânica de Corrida / Marcha 2D (Fases)</h4>
+                    <h4 className="font-bold text-slate-700 text-sm mb-4">Análise Mecânica da Marcha 2D (Fases)</h4>
 
                     <div className="space-y-8">
                         {/* Esquerda */}
                         <div className="space-y-3 bg-white p-4 rounded-xl border border-blue-100 shadow-sm">
-                            <span className="text-[10px] font-black uppercase flex items-center gap-2 text-blue-700 tracking-widest"><Footprints className="w-4 h-4 text-blue-500" /> Cinemática Perna Esquerda</span>
+                            <span className="text-[10px] font-black uppercase flex items-center gap-2 text-blue-700 tracking-widest"><Footprints className="w-4 h-4 text-blue-500" /> Membro Inferior Esquerdo</span>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <PasteUploadZone
                                     label="Respota à Carga (RC)"
@@ -325,7 +325,7 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
 
                         {/* Direita */}
                         <div className="space-y-3 bg-white p-4 rounded-xl border border-green-100 shadow-sm">
-                            <span className="text-[10px] font-black uppercase flex items-center gap-2 text-green-700 tracking-widest"><Footprints className="w-4 h-4 text-green-500" /> Cinemática Perna Direita</span>
+                            <span className="text-[10px] font-black uppercase flex items-center gap-2 text-green-700 tracking-widest"><Footprints className="w-4 h-4 text-green-500" /> Membro Inferior Direito</span>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <PasteUploadZone
                                     label="Resposta à Carga (RC)"

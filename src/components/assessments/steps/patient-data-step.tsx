@@ -40,7 +40,7 @@ export function PatientDataStep({ data, updateField, readOnly }: PatientDataStep
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <FileText className="w-5 h-5 text-primary" />
-                            Anamnese & Queixa
+                            Anamnese e Queixa Principal
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">

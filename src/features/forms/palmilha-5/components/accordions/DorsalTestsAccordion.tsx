@@ -196,7 +196,7 @@ export function DorsalTestsAccordion({ openSection, isSectionFilled, sectionStyl
                 <div className="border-t border-slate-100 pt-6 space-y-6">
                     <div className="flex items-center gap-2 mb-2">
                         <Flame className="w-4 h-4 text-orange-500" />
-                        <h4 className="font-black text-xs uppercase tracking-widest text-slate-700">Força Muscular (MMT 0-10)</h4>
+                        <h4 className="font-black text-xs uppercase tracking-widest text-slate-700">Força Muscular (0-10)</h4>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10">

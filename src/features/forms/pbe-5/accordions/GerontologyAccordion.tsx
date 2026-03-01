@@ -69,7 +69,7 @@ export function GerontologyAccordion({ openSection, isSectionFilled, sectionStyl
             <AccordionTrigger className="px-8 py-6 hover:no-underline flex gap-2 items-center text-left group">
                 <div className="flex items-center gap-4 flex-1">
                     <div className={cn("p-2 rounded-xl transition-colors", openSection === 'gerontology' ? "bg-purple-600 text-white" : "bg-slate-100 text-slate-400 group-hover:bg-purple-50 group-hover:text-purple-600")}>
-                        <Hourglass className="h-5 w-5" />
+                        <Hourglass className="h-5 w-5 transition-colors group-hover:animate-bounce" />
                     </div>
                     <div>
                         <span className={cn("font-black text-lg tracking-tight", openSection === 'gerontology' ? "text-slate-900" : "text-slate-600")}>Gerontologia (AGA)</span>

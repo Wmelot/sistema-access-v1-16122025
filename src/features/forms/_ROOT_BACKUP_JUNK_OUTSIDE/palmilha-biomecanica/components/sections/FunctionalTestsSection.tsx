@@ -37,7 +37,7 @@ const ClinicalSideBySide = ({
                                 {...field}
                                 type={type}
                                 className="h-9 text-sm text-center font-bold bg-white border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-lg shadow-sm"
-                                placeholder="Esq"
+                                placeholder="Esquerdo"
                             />
                         </FormControl>
                         {suffix && <span className="absolute right-2 top-2.5 text-[10px] text-gray-400 pointer-events-none font-bold">{suffix}</span>}
@@ -66,7 +66,7 @@ const ClinicalSideBySide = ({
                                 {...field}
                                 type={type}
                                 className="h-9 text-sm text-center font-bold bg-white border-slate-200 focus:border-green-400 focus:ring-2 focus:ring-green-100 rounded-lg shadow-sm"
-                                placeholder="Dir"
+                                placeholder="Direito"
                             />
                         </FormControl>
                         {suffix && <span className="absolute right-2 top-2.5 text-[10px] text-gray-400 pointer-events-none font-bold">{suffix}</span>}
@@ -113,7 +113,7 @@ export const FunctionalTestsSection = () => {
                         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
                             <div className="flex items-center gap-2 mb-4 border-b border-slate-50 pb-2">
                                 <Target className="w-5 h-5 text-indigo-500" />
-                                <h3 className="text-sm font-black uppercase text-slate-700">Mobilidade & Testes Específicos</h3>
+                                <h3 className="text-sm font-black uppercase text-slate-700">Mobilidade e Testes Específicos</h3>
                             </div>
                             <div className="space-y-1">
                                 <ClinicalSideBySide label="Jack Test (Grau 1-3)" leftName="exame_fisico.jack_test.left" rightName="exame_fisico.jack_test.right" control={control} referenceType="jack" />

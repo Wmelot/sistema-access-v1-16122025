@@ -294,7 +294,7 @@ export function BodyPainMap({ painPoints, onChange, customPoints = [], onCustomP
             <div className="flex flex-wrap gap-2 justify-between items-center p-2 mb-2 border border-slate-100 rounded-lg bg-slate-50 shadow-sm">
                 <div className="flex gap-2 items-center">
                     <Button type="button" variant="destructive" size="sm" onClick={handleClearAll} className="gap-2 focusable-element" disabled={readOnly}>
-                        <Trash2 className="w-4 h-4" /> Limpar Mapa
+                        <Trash2 className="w-4 h-4" /> Limpar
                     </Button>
                 </div>
                 <div className="flex-1 flex justify-center h-6 pointer-events-none">
@@ -306,7 +306,7 @@ export function BodyPainMap({ painPoints, onChange, customPoints = [], onCustomP
                 {/* ANTERIOR */}
                 <div ref={containerRefs.anterior} className={`relative aspect-[3/4] bg-slate-100 rounded-lg overflow-hidden border ${!readOnly && !isCalibration ? 'cursor-crosshair' : ''}`} onClick={(e) => handleBackgroundClick(e, 'anterior')}>
                     <img src="/body-map-anterior.jpg" className="w-full h-full object-cover opacity-90 mix-blend-multiply" alt="Anterior" />
-                    <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 text-white text-xs font-bold rounded uppercase pointer-events-none shadow">FRENTE</div>
+                    <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 text-white text-xs font-bold rounded uppercase pointer-events-none shadow">VISTA ANTERIOR</div>
                     {showStandard && Object.entries(coords.anterior || {}).map(([key, sides]) => (
                         Object.entries(sides as any).map(([side, pos]: any) => (
                             <Point key={`ant-${key}-${side}`} label={`${key} (${side})`} x={pos.x} y={pos.y} active={painPoints?.[key]?.[side]} onClick={() => togglePoint(key, side as 'left' | 'right')} onMouseDown={(e: any) => handleMouseDown(e, { type: 'standard', view: 'anterior', key, side })} onMouseEnter={() => setHoveredLabel(`${key} (${side === 'left' ? 'Esq' : 'Dir'})`)} onMouseLeave={() => setHoveredLabel(null)} readOnly={readOnly} isCalibration={isCalibration} />
@@ -317,7 +317,7 @@ export function BodyPainMap({ painPoints, onChange, customPoints = [], onCustomP
                 {/* POSTERIOR */}
                 <div ref={containerRefs.posterior} className={`relative aspect-[3/4] bg-slate-100 rounded-lg overflow-hidden border ${!readOnly && !isCalibration ? 'cursor-crosshair' : ''}`} onClick={(e) => handleBackgroundClick(e, 'posterior')}>
                     <img src="/body-map-posterior.jpg" className="w-full h-full object-cover opacity-90 mix-blend-multiply" alt="Posterior" />
-                    <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 text-white text-xs font-bold rounded uppercase pointer-events-none shadow">COSTAS</div>
+                    <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 text-white text-xs font-bold rounded uppercase pointer-events-none shadow">VISTA POSTERIOR</div>
                     {showStandard && Object.entries(coords.posterior || {}).map(([key, sides]) => (
                         Object.entries(sides as any).map(([side, pos]: any) => (
                             <Point key={`post-${key}-${side}`} label={`${key} (${side})`} x={pos.x} y={pos.y} active={painPoints?.[key]?.[side]} onClick={() => togglePoint(key, side as 'left' | 'right')} onMouseDown={(e: any) => handleMouseDown(e, { type: 'standard', view: 'posterior', key, side })} onMouseEnter={() => setHoveredLabel(`${key} (${side === 'left' ? 'Esq' : 'Dir'})`)} onMouseLeave={() => setHoveredLabel(null)} readOnly={readOnly} isCalibration={isCalibration} />
@@ -328,19 +328,18 @@ export function BodyPainMap({ painPoints, onChange, customPoints = [], onCustomP
             </div>
 
             <div className="space-y-2">
-                <h3 className="font-semibold text-sm text-slate-500 uppercase tracking-wider">Pontos de Dor nos Pés</h3>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <div ref={containerRefs.feetLeft} className={`relative aspect-square bg-slate-100 rounded-lg overflow-hidden border ${!readOnly && !isCalibration ? 'cursor-crosshair' : ''}`} onClick={(e) => handleBackgroundClick(e, 'feetLeft')}>
                             <img src="/body-map-feet.jpg" className="w-full h-full object-contain opacity-90 mix-blend-multiply" alt="Pé Esquerdo" />
-                            <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none"><span className="px-2 py-1 bg-slate-900/10 text-slate-600 text-xs rounded font-bold uppercase">Esquerdo</span></div>
+                            <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none"><span className="px-2 py-1 bg-slate-900/10 text-slate-600 text-xs rounded font-bold uppercase">PÉ ESQUERDO</span></div>
                             {customPoints.filter(p => p.view === 'feetLeft').map(p => <CustomPointMarker key={p.id} point={p} readOnly={readOnly} onUpdate={updateCustomPoint} onDelete={deleteCustomPoint} onMouseDown={(e: any) => handleMouseDown(e, { type: 'custom', view: 'feetLeft', id: p.id })} />)}
                         </div>
                     </div>
                     <div className="space-y-2">
                         <div ref={containerRefs.feetRight} className={`relative aspect-square bg-slate-100 rounded-lg overflow-hidden border ${!readOnly && !isCalibration ? 'cursor-crosshair' : ''}`} onClick={(e) => handleBackgroundClick(e, 'feetRight')}>
                             <img src="/body-map-feet.jpg" className="w-full h-full object-contain opacity-90 mix-blend-multiply scale-x-[-1]" alt="Pé Direito" />
-                            <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none"><span className="px-2 py-1 bg-slate-900/10 text-slate-600 text-xs rounded font-bold uppercase">Direito</span></div>
+                            <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none"><span className="px-2 py-1 bg-slate-900/10 text-slate-600 text-xs rounded font-bold uppercase">PÉ DIREITO</span></div>
                             {showStandard && Object.entries(coords.feet || {}).map(([key, sides]: any) => (
                                 sides.right ? <Point key={`feet-right-${key}`} label={`${key} (Right)`} x={sides.right.x} y={sides.right.y} active={painPoints?.[key]?.right} onClick={() => togglePoint(key, 'right')} onMouseDown={(e: any) => handleMouseDown(e, { type: 'standard', view: 'feetRight', key, side: 'right' })} onMouseEnter={() => setHoveredLabel(`${key}`)} onMouseLeave={() => setHoveredLabel(null)} readOnly={readOnly} isCalibration={isCalibration} /> : null
                             ))}

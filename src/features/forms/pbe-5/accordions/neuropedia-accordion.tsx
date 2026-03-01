@@ -30,7 +30,7 @@ export function NeuropediaAccordion({ openSection, isSectionFilled, sectionStyle
             <AccordionTrigger className="px-8 py-6 hover:no-underline flex gap-2 items-center text-left group">
                 <div className="flex items-center gap-4 flex-1">
                     <div className={cn("p-2 rounded-xl transition-colors", openSection === 'neuropedia' ? "bg-pink-500 text-white" : "bg-slate-100 text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-500")}>
-                        <Baby className="h-5 w-5" />
+                        <Baby className="h-5 w-5 transition-colors group-hover:animate-bounce" />
                     </div>
                     <div>
                         <span className={cn("font-black text-lg tracking-tight", openSection === 'neuropedia' ? "text-slate-900" : "text-slate-600")}>Neuropediatria Sênior</span>

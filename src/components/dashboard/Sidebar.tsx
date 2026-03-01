@@ -28,7 +28,8 @@ import {
     Megaphone,
     Shield,
     Activity,
-    FileSignature
+    FileSignature,
+    PenTool
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,8 @@ import { toast } from "sonner";
 import { useGlobalLoader } from "@/components/providers/global-loader-provider";
 import { CommandMenu } from "@/components/layout/command-menu";
 import { QuickAttendanceButton } from "@/features/attendance/components/QuickAttendanceButton";
+import { DraftsModalButton } from "@/features/attendance/components/DraftsModalButton";
+import { DraftCountBadge } from "@/features/attendance/components/DraftCountBadge";
 
 interface SidebarProps {
     logoUrl?: string;
@@ -157,14 +160,20 @@ export function SidebarContent({
                         <CommandMenu />
                     </div>
                 )}
-                {/* ── Atendimento Rápido ── */}
-                <QuickAttendanceButton isCollapsed={isCollapsed} />
+                {/* ── Ações Rápidas (Destacadas) ── */}
+                <div className="flex flex-col gap-1 py-4">
+                    <QuickAttendanceButton isCollapsed={isCollapsed} />
+                    <DraftsModalButton isCollapsed={isCollapsed} />
 
-                <nav className={cn("grid items-start px-2 text-base font-medium", isCollapsed ? "justify-center" : "lg:px-4 py-4 gap-1")}>
+                    <div className="mt-4 px-2">
+                        <ReminderWidget />
+                    </div>
+                </div>
 
-                    {/* ── Lembretes: sempre primeiro, separado ── */}
-                    <ReminderWidget />
-                    {!isCollapsed && <div className="my-2 border-t border-slate-100" />}
+                {!isCollapsed && <div className="mx-6 my-2 border-t border-slate-100" />}
+
+                <nav className={cn("grid items-start px-2 text-base font-medium", isCollapsed ? "justify-center" : "lg:px-4 py-2 gap-1")}>
+
 
                     {/* ── Menu principal — alfabético ── */}
                     {[
@@ -197,6 +206,7 @@ export function SidebarContent({
                                     locked={item.feature ? !checkFeature(item.feature) : false}
                                     onClick={onNavigate}
                                     showLoading={showLoading}
+                                    badge={item.badge}
                                 />
                             );
                         })}
@@ -209,7 +219,7 @@ export function SidebarContent({
     )
 }
 
-function NavItem({ id, href, icon: Icon, label, isCollapsed, locked = false, className, onClick, showLoading }: { id?: string, href: string, icon: any, label: string, isCollapsed: boolean, locked?: boolean, className?: string, onClick?: () => void, showLoading?: (msg?: string) => void }) {
+function NavItem({ id, href, icon: Icon, label, isCollapsed, locked = false, className, onClick, showLoading, badge }: { id?: string, href: string, icon: any, label: string, isCollapsed: boolean, locked?: boolean, className?: string, onClick?: () => void, showLoading?: (msg?: string) => void, badge?: React.ReactNode }) {
     const pathname = usePathname();
     if (locked) {
         return (
@@ -261,8 +271,20 @@ function NavItem({ id, href, icon: Icon, label, isCollapsed, locked = false, cla
             )}
             title={isCollapsed ? label : undefined}
         >
-            <Icon className="h-4 w-4" strokeWidth={2} />
-            {!isCollapsed && <span className="text-sm">{label}</span>}
+            <div className="relative">
+                <Icon className="h-4 w-4" strokeWidth={2} />
+                {isCollapsed && badge && (
+                    <div className="absolute -top-2 -right-2">
+                        {badge}
+                    </div>
+                )}
+            </div>
+            {!isCollapsed && (
+                <div className="flex items-center justify-between flex-1">
+                    <span className="text-sm">{label}</span>
+                    {badge}
+                </div>
+            )}
         </Link>
     )
 }

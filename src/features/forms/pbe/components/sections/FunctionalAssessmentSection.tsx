@@ -56,10 +56,10 @@ export function FunctionalAssessmentSection({ value, onChange, readonly, onOpenA
                 isFilled ? 'bg-slate-50 border-l-orange-500' : 'bg-card border-l-slate-200'
             )}
         >
-            <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left">
+            <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left group">
                 <div className="flex items-center gap-2 flex-1 text-base">
-                    <PencilRuler className="h-5 w-5 text-orange-500" />
-                    <span>Funcionalidade (EFEP) & Questionários</span>
+                    <PencilRuler className="h-5 w-5 text-orange-500 transition-colors group-hover:animate-bounce" />
+                    <span>Escala Funcional Específica do Paciente (EFEP) e Questionários</span>
                 </div>
                 {isFilled && <Badge variant="outline" className="bg-orange-100 text-orange-700 border-none text-[9px] h-5 mr-4">PREENCHIDO</Badge>}
             </AccordionTrigger>
@@ -192,7 +192,7 @@ export function FunctionalAssessmentSection({ value, onChange, readonly, onOpenA
                             </p>
 
                             <div className="space-y-3">
-                                <Label className="text-[10px] font-black text-purple-800 uppercase tracking-wider">Régua de Envio (Dias pós-alta/sessão)</Label>
+                                <Label className="text-[10px] font-black text-purple-800 uppercase tracking-wider">Prazos de Envio (Dias pós-alta/sessão)</Label>
                                 <div className="flex flex-wrap gap-2">
                                     {[
                                         { l: "15d", v: "15" },

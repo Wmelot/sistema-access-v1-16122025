@@ -46,7 +46,7 @@ export function WomensHealthAccordion({ openSection, isSectionFilled, sectionSty
             <AccordionTrigger className="px-8 py-6 hover:no-underline flex gap-2 items-center text-left group">
                 <div className="flex items-center gap-4 flex-1">
                     <div className={cn("p-2 rounded-xl transition-colors", openSection === 'womens_health' ? "bg-pink-600 text-white" : "bg-slate-100 text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-600")}>
-                        <Flower2 className="h-5 w-5" />
+                        <Flower2 className="h-5 w-5 transition-colors group-hover:animate-bounce" />
                     </div>
                     <div>
                         <span className={cn("font-black text-lg tracking-tight", openSection === 'womens_health' ? "text-slate-900" : "text-slate-600")}>Saúde da Mulher & Pélvica</span>

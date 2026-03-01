@@ -87,7 +87,7 @@ export function PBE5UnifiedReport({
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-[1000px] h-[90vh] p-0 overflow-hidden flex flex-col rounded-[40px] border-none shadow-2xl">
+            <DialogContent className="fixed top-24 right-8 bottom-8 left-[300px] max-w-none w-auto h-auto p-0 overflow-hidden flex flex-col rounded-[2.5rem] border-none shadow-2xl animate-in fade-in slide-in-from-right-4 duration-500 bg-slate-50/50 backdrop-blur-xl">
                 {/* Control Bar */}
                 <div className="p-4 bg-slate-900 flex justify-between items-center text-white no-print">
                     <div className="flex items-center gap-3">
@@ -109,7 +109,7 @@ export function PBE5UnifiedReport({
 
                 {/* Printable Area */}
                 <div className="flex-1 overflow-y-auto bg-slate-50 p-12 scrollbar-hide" id="axiom-report-content" ref={reportRef}>
-                    <div className="max-w-[210mm] mx-auto bg-white min-h-[297mm] shadow-sm rounded-none print:shadow-none p-16 space-y-12 text-slate-800 font-sans">
+                    <div className="max-w-5xl mx-auto bg-white min-h-[297mm] shadow-sm rounded-none print:shadow-none p-16 space-y-12 text-slate-800 font-sans">
 
                         {/* HEADER */}
                         <div className="flex justify-between items-start border-b-2 border-slate-100 pb-10">

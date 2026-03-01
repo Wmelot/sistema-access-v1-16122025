@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Textarea } from "@/components/ui/textarea"
-import { CheckCircle, DollarSign, FileText, Calendar as CalendarIcon, Printer, Clock, Sparkles, Loader2 } from "lucide-react"
+import { CheckCircle, DollarSign, FileText, Calendar as CalendarIcon, Printer, Clock, Sparkles, Loader2, Search, PenTool } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { toast } from "sonner"
@@ -21,6 +21,8 @@ const MySwal = withReactContent(Swal)
 import { createInvoice, getProducts } from "@/actions/patients" // Re-use logic
 import { createAppointment, updateAppointmentStatus, getAvailableSlots } from "@/actions/appointments"
 import { getServices } from "@/app/dashboard/[slug]/services/actions" // [LOAD SERVICES]
+import { linkPatientToAppointment } from "@/actions/attendance"
+import { getPatients } from "@/actions/patients"
 import { CurrencyInput } from "@/components/ui/currency-input"
 import { getReportTemplates } from "@/app/dashboard/[slug]/settings/reports/actions"
 import { getOrganizationSettings } from "@/app/dashboard/[slug]/settings/organization/actions"
@@ -56,6 +58,12 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     const [viewingTemplate, setViewingTemplate] = useState<any>(null)
     const [viewingPhysicalReport, setViewingPhysicalReport] = useState<any>(null) // [NEW]
     const [viewingBiomechanicsReport, setViewingBiomechanicsReport] = useState<any>(null) // [NEW]
+    const [selectedPatient, setSelectedPatient] = useState<any>(null)
+    const [isLinking, setIsLinking] = useState(false)
+    const [patientSearch, setPatientSearch] = useState("")
+    const [patientResults, setPatientResults] = useState<any[]>([])
+    const [isSearchingPatients, setIsSearchingPatients] = useState(false)
+
     const [fullRecord, setFullRecord] = useState<any>(null)
 
     // Fetch Record Data if recordId exists
@@ -299,8 +307,49 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
             setSelectedProfessionalId(appointment.professional_id)
             setSelectedServiceId(appointment.service_id || "")
             setCurrentServiceId(appointment.service_id || "")
+
+            // [NEW] Reset linking state
+            setSelectedPatient(null)
+            setPatientSearch("")
+            setPatientResults([])
         }
-    }, [open])
+    }, [open, appointment])
+
+    // [NEW] Debounced Patient Search
+    useEffect(() => {
+        if (!patientSearch || patientSearch.length < 2) {
+            setPatientResults([])
+            return
+        }
+
+        const timer = setTimeout(async () => {
+            setIsSearchingPatients(true)
+            try {
+                const res = await getPatients({ query: patientSearch, slug, limit: 10 })
+                setPatientResults(res.data || [])
+            } finally {
+                setIsSearchingPatients(false)
+            }
+        }, 500)
+
+        return () => clearTimeout(timer)
+    }, [patientSearch])
+
+    const handleLinkPatient = async (p: any) => {
+        setIsLinking(true)
+        try {
+            const res = await linkPatientToAppointment(appointment.id, p.id)
+            if (res.success) {
+                setSelectedPatient(p)
+                toast.success(`Atendimento vinculado a ${p.name}`)
+                router.refresh()
+            } else {
+                toast.error("Erro ao vincular: " + res.msg)
+            }
+        } finally {
+            setIsLinking(false)
+        }
+    }
 
     // Fetch Slots when Date or Professional Changes
     useEffect(() => {
@@ -387,6 +436,13 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
         try {
             const { createClient } = await import("@/lib/supabase/client")
             const supabase = createClient()
+
+            // [NEW] Guard for Quick Attendance
+            if (!patient.id) {
+                toast.error("Para gerar faturamento, primeiro vincule um paciente a este atendimento.")
+                setIsSavingFinance(false)
+                return
+            }
 
             // [FIX] Update Appointment with Selected Service and recalculate end_time
             // This ensures the appointment card on the schedule has the correct duration
@@ -613,10 +669,65 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                             </div>
                         </div>
 
+                        {/* [NEW] Quick Attendance Linking Section */}
+                        {step === 'finance' && !patient.id && !selectedPatient && (
+                            <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-200 mb-6 space-y-4 shadow-sm animate-in slide-in-from-top-4 duration-500">
+                                <div className="flex items-center gap-3 text-indigo-900 mb-2">
+                                    <div className="p-2 bg-indigo-100 rounded-lg">
+                                        <PenTool className="h-5 w-5 text-indigo-600" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <Label className="font-black text-sm uppercase tracking-tight">Vincular Paciente</Label>
+                                        <span className="text-xs font-medium opacity-70">Este é um atendimento rápido. Vincule a um paciente para gerar o faturamento.</span>
+                                    </div>
+                                </div>
+
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                    <Input
+                                        placeholder="Buscar por nome, CPF ou telefone..."
+                                        className="pl-10 h-12 bg-white border-indigo-100 rounded-xl focus-visible:ring-indigo-500"
+                                        value={patientSearch}
+                                        onChange={(e) => setPatientSearch(e.target.value)}
+                                    />
+                                    {isSearchingPatients && (
+                                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-slate-400" />
+                                    )}
+                                </div>
+
+                                {patientResults.length > 0 && (
+                                    <div className="bg-white rounded-xl border border-indigo-100 shadow-md overflow-hidden max-h-[220px] overflow-y-auto animate-in fade-in zoom-in-95">
+                                        {patientResults.map(p => (
+                                            <button
+                                                key={p.id}
+                                                className="w-full flex items-center justify-between p-3 hover:bg-slate-50 transition-colors border-b last:border-b-0 text-left"
+                                                onClick={() => handleLinkPatient(p)}
+                                                disabled={isLinking}
+                                            >
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-bold text-slate-800">{p.name}</span>
+                                                    <span className="text-[10px] text-slate-400 uppercase font-medium">{p.cpf || p.phone || 'Sem dados'}</span>
+                                                </div>
+                                                <div className="h-8 w-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                                    <CheckCircle className="h-4 w-4" />
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {patientSearch.length >= 2 && !isSearchingPatients && patientResults.length === 0 && (
+                                    <div className="text-center py-4 text-xs text-slate-400 font-bold uppercase tracking-widest bg-white rounded-xl border border-dashed border-indigo-200">
+                                        Nenhum paciente encontrado.
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         {/* Step 1: Finance */}
-                        {step === 'finance' && (
+                        {step === 'finance' && (patient.id || selectedPatient) && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-                                {/* [NEW] Force Service Confirmation if Generic or Missing */}
+                                {/* Service Confirmation Logic */}
                                 {(() => {
                                     const name = appointment.services?.name?.toLowerCase() || ""
                                     const notes = appointment.notes?.toLowerCase() || ""
@@ -1180,17 +1291,19 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                 BiomechanicsReport uses createPortal internally for fullscreen overlay.
                 The previous Dialog wrapper caused: 1) scroll blocking (overflow-hidden), 
                 2) redirect back after window.print() (Dialog closing on focus loss) */}
-            {viewingBiomechanicsReport && (
-                <BiomechanicsReport
-                    open={true}
-                    onClose={() => setViewingBiomechanicsReport(null)}
-                    data={viewingBiomechanicsReport}
-                    patient={patient}
-                    organizationName={orgSettings?.name}
-                    professional={professionals.find(p => p.id === appointment.professional_id)}
-                    organization={{ address: orgSettings?.address }}
-                />
-            )}
+            {
+                viewingBiomechanicsReport && (
+                    <BiomechanicsReport
+                        open={true}
+                        onClose={() => setViewingBiomechanicsReport(null)}
+                        data={viewingBiomechanicsReport}
+                        patient={patient}
+                        organizationName={orgSettings?.name}
+                        professional={professionals.find(p => p.id === appointment.professional_id)}
+                        organization={{ address: orgSettings?.address }}
+                    />
+                )
+            }
         </>
     )
 }

@@ -16,6 +16,8 @@ import { RapidAssessmentModal } from "@/features/forms/pbe/components/RapidAsses
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PBE5UnifiedReport } from "./components/reports/PBE5UnifiedReport";
 import { Textarea } from "@/components/ui/textarea";
+import { CompactPBE5Card } from "./components/CompactPBE5Card";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Modular Accordions
 import { AnamnesisAccordion } from "./accordions/AnamnesisAccordion";
@@ -24,6 +26,7 @@ import { MetricsVitalsAccordion } from "./accordions/MetricsVitalsAccordion";
 import { FunctionalAccordion } from "./accordions/FunctionalAccordion";
 import { MovementAssessmentAccordion } from "./accordions/MovementAssessmentAccordion";
 import { MuscleStrengthAccordion } from "./accordions/MuscleStrengthAccordion";
+import { PalpationAccordion } from "./accordions/PalpationAccordion";
 import { JointProtocolsAccordion } from "./accordions/JointProtocolsAccordion";
 import { NeuropediaAccordion } from "./accordions/neuropedia-accordion";
 import { NeuroAdultAccordion } from "./accordions/NeuroAdultAccordion";
@@ -31,9 +34,7 @@ import { CardioRespiratorioAccordion } from "./accordions/CardioRespiratorioAcco
 import { OccupationalHealthAccordion } from "./accordions/OccupationalHealthAccordion";
 import { GerontologyAccordion } from "./accordions/GerontologyAccordion";
 import { ClinicalConductAccordion } from "./accordions/ClinicalConductAccordion";
-// import { PhysicalAssessmentAccordion } from "./accordions/PhysicalAssessmentAccordion";
 import { WomensHealthAccordion } from "./accordions/WomensHealthAccordion";
-// import { BiomechanicsAccordion } from "./accordions/BiomechanicsAccordion";
 
 // Advanced Physical Assessment Modular Components
 import { PhysicalAntroAccordion } from "./accordions/PhysicalAntroAccordion";
@@ -42,6 +43,8 @@ import { PhysicalStrengthAccordion } from "./accordions/PhysicalStrengthAccordio
 import { PhysicalMobilityAccordion } from "./accordions/PhysicalMobilityAccordion";
 import { PhysicalPostureAccordion } from "./accordions/PhysicalPostureAccordion";
 import { PhysicalSportsAccordion } from "./accordions/PhysicalSportsAccordion";
+
+export const PBE5_ID = 'pbe-5';
 
 const SECTION_STYLES: Record<string, { border: string, iconColor: string, bg: string }> = {
     anamnesis: { border: "border-l-blue-600", iconColor: "text-blue-600", bg: "bg-blue-50/30" },
@@ -57,6 +60,7 @@ const SECTION_STYLES: Record<string, { border: string, iconColor: string, bg: st
     womens_health: { border: "border-l-pink-600", iconColor: "text-pink-600", bg: "bg-pink-50/30" },
     protocols: { border: "border-l-purple-600", iconColor: "text-purple-600", bg: "bg-purple-50/30" },
     neuropedia: { border: "border-l-pink-500", iconColor: "text-pink-500", bg: "bg-pink-50/30" },
+    palpation: { border: "border-l-rose-500", iconColor: "text-rose-500", bg: "bg-rose-50/30" },
     plan: { border: "border-l-slate-700", iconColor: "text-slate-700", bg: "bg-slate-50/30" },
 
     // Advanced Physics
@@ -73,18 +77,11 @@ const ALL_MENU_SECTIONS = [
     { id: 'clinical', label: 'Histórico Clínico', desc: 'Saúde e Lifestyle', specialties: ['all'] },
 
     { id: 'metrics', label: 'Biofísica & Vitais', desc: 'Sinais Vitais', specialties: ['all'] },
-    { id: 'functionality', label: 'Funcionalidade', desc: 'EFEP e Escalas', specialties: ['all'] },
 
-    // Advanced Physics (Conditional via advancedPhysical setting)
-    { id: 'antro', label: 'Composição Corporal', desc: 'Protocolo US', specialties: ['advanced_physical'] },
-    { id: 'cardio', label: 'Cardio VO2', desc: 'Performance Aeróbica', specialties: ['advanced_physical'] },
-    { id: 'strength_advanced', label: 'Dinamometria Avançada', desc: 'Z-Score Reference', specialties: ['advanced_physical'] },
-    { id: 'mobility', label: 'Mobilidade/Flex', desc: 'Wells & Leg Raise', specialties: ['advanced_physical'] },
-    { id: 'posture', label: 'Biofotogrametria', desc: 'Postura por Fotos', specialties: ['advanced_physical'] },
-    { id: 'sports', label: 'Rotina Desportiva', desc: 'IPAQ & Treino', specialties: ['advanced_physical'] },
-
+    { id: 'palpation', label: 'Palpação & Trigger Points', desc: 'Sensibilidade e Dor', specialties: ['ortopedia'] },
     { id: 'movement', label: 'Avaliação Movimento', desc: 'ADM e McKenzie', specialties: ['ortopedia'] },
-    { id: 'strength', label: 'Força Muscular', desc: 'Testes de Base', specialties: ['ortopedia'] },
+    { id: 'strength', label: 'Dinamometria & Força', desc: 'Testes Lafayette/HHD', specialties: ['ortopedia'] },
+    { id: 'functionality', label: 'Funcionalidade & Conduta', desc: 'Escalas e Plano', specialties: ['all'] },
     { id: 'protocols', label: 'Protocolos Regionais', desc: 'Ortopedia Clássica', specialties: ['ortopedia'] },
 
     { id: 'neuropedia', label: 'Neuropediatria', desc: 'Neurodesenvolvimento', specialties: ['neuropediatria'] },
@@ -107,6 +104,9 @@ interface PBE5FormProps {
     patient?: any;
     professional?: any;
     organization?: any;
+    selectedTemplateId?: string;
+    onTemplateChange?: (newTemplateId: string) => void;
+    templates?: any[];
 }
 
 export default function PBE5Form({
@@ -118,7 +118,10 @@ export default function PBE5Form({
     readonly = false,
     patient,
     professional,
-    organization
+    organization,
+    selectedTemplateId,
+    onTemplateChange,
+    templates
 }: PBE5FormProps) {
     const [openSection, setOpenSection] = useState("anamnesis");
     const [isSaving, setIsSaving] = useState(false);
@@ -126,6 +129,7 @@ export default function PBE5Form({
     const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
     const [feegowImportOpen, setFeegowImportOpen] = useState(false);
     const [feegowText, setFeegowText] = useState("");
+    const [isListening, setIsListening] = useState(false);
     const { setIsCollapsed } = useSidebar();
 
     useEffect(() => {
@@ -238,12 +242,6 @@ export default function PBE5Form({
         if (section === 'anamnesis') return !!data.qp || !!data.hma;
         if (section === 'clinical') return !!data.goals || data.meds?.length > 0 || data.comorbidities?.length > 0;
         if (section === 'metrics') return !!data.weight || !!data.hr;
-        if (section === 'functionality') {
-            const efep = data.efep || [];
-            const hasEfep = efep.some((f: any) => f.activity && f.score !== "");
-            const hasQuest = (form.getValues('conduct.questionnaires') || []).length > 0;
-            return hasEfep || hasQuest;
-        }
         if (section === 'movement') return Object.keys(data.active || {}).length > 0 || Object.keys(data.repeated || {}).length > 0;
         if (section === 'strength') return Object.keys(data).length > 0;
         if (section === 'protocols') return Object.keys(data).length > 0;
@@ -268,39 +266,99 @@ export default function PBE5Form({
 
     return (
         <FormProvider {...form}>
-            <div className="flex-1 flex flex-col lg:flex-row max-w-[1400px] mx-auto w-full px-4 py-8 relative z-10 gap-8">
+            <div className="flex-1 flex flex-col lg:flex-row max-w-[1400px] mx-auto w-full px-4 py-4 relative z-10 gap-8">
 
                 {/* SIDEBAR */}
                 <div className="hidden lg:flex flex-col gap-4 w-72 shrink-0 sticky top-8 self-start pt-2">
-                    <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex flex-col gap-2">
-                        <div className="flex items-center gap-3 mb-4 p-2 bg-indigo-50 rounded-2xl border border-indigo-100">
-                            <div className="h-10 w-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-                                <Bot className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Axiom PBE</h3>
-                                <div className="text-sm font-black text-indigo-900 leading-none">Versão 5.0</div>
-                            </div>
-                        </div>
+                    {/* Template Selector integrated into Sidebar (FOTO 4) */}
+                    <div className="bg-white rounded-3xl p-4 border border-slate-100 shadow-sm mb-2">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2 block">
+                            Modelo de Avaliação
+                        </span>
+                        <Select value={selectedTemplateId || PBE5_ID} onValueChange={onTemplateChange}>
+                            <SelectTrigger className="h-10 w-full bg-slate-50 border-slate-100 shadow-none rounded-2xl text-xs font-bold">
+                                <SelectValue placeholder="Selecionar" />
+                            </SelectTrigger>
+                            <SelectContent className="z-[9999]">
+                                <SelectItem value={PBE5_ID} className="font-bold text-indigo-700">PBE 5.0 — Avaliação</SelectItem>
+                                <SelectItem value="palmilha-5" className="font-bold text-blue-700">Palmilha 5.0 — Biomecânica</SelectItem>
+                                {templates?.filter((t: any) =>
+                                    t.id !== 'palmilha-5' &&
+                                    t.id !== PBE5_ID &&
+                                    !t.title?.includes('(SISTEMA)')
+                                ).map((t: any) => (
+                                    <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
+                    <CompactPBE5Card
+                        form={form}
+                        isSaving={isSaving}
+                        onSave={form.handleSubmit(async (data) => {
+                            setIsSaving(true);
+                            try {
+                                await onSave(data, true);
+                            } finally {
+                                setIsSaving(false);
+                            }
+                        })}
+                        onReport={() => setPreviewOpen(true)}
+                        onImport={() => setFeegowImportOpen(true)}
+                        onCopilotStatusChange={setIsListening}
+                    />
+
+                    <div className="bg-white rounded-[2.5rem] p-4 border border-slate-100 shadow-sm flex flex-wrap gap-2 mt-2 mb-20 overflow-hidden">
                         {menuSections.map((sec, idx) => {
                             const isFilled = isSectionFilled(sec.id);
-                            const curIdx = menuSections.findIndex(s => s.id === openSection);
+                            const curIdx = menuSections.findIndex((s: any) => s.id === openSection);
                             const isActive = curIdx === idx;
+
+                            let showAsCard = false;
+                            const total = menuSections.length;
+                            if (curIdx === 0) {
+                                showAsCard = idx <= 2;
+                            } else if (curIdx === total - 1) {
+                                showAsCard = idx >= total - 3;
+                            } else {
+                                showAsCard = idx >= curIdx - 1 && idx <= curIdx + 1;
+                            }
+
+                            // [NEW] Oval Capsules for items outside the 3-card window (FOTO 1 Logic)
+                            if (!showAsCard) {
+                                return (
+                                    <button
+                                        key={sec.id}
+                                        type="button"
+                                        onClick={() => setOpenSection(sec.id)}
+                                        title={sec.label}
+                                        className={cn(
+                                            "px-3 py-1.5 rounded-full border flex items-center justify-center font-black text-[9px] transition-all shadow-sm shrink-0 uppercase tracking-tighter whitespace-nowrap",
+                                            isFilled
+                                                ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100 ring-1 ring-emerald-500/20"
+                                                : "bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100"
+                                        )}
+                                    >
+                                        {sec.label}
+                                    </button>
+                                );
+                            }
+
                             return (
                                 <button
                                     key={sec.id}
                                     type="button"
                                     onClick={() => setOpenSection(sec.id)}
                                     className={cn(
-                                        "w-full text-left px-4 py-3 rounded-2xl flex items-center gap-3 transition-all group",
-                                        isActive ? "bg-slate-900 text-white shadow-xl" : "bg-transparent text-slate-400 hover:bg-slate-50"
+                                        "w-full text-left px-5 py-4 rounded-[2rem] flex items-center gap-3 transition-all",
+                                        isActive ? "bg-slate-900 text-white shadow-2xl scale-105 z-10" :
+                                            "bg-slate-50/50 text-slate-400 hover:bg-slate-100"
                                     )}
                                 >
                                     <div className="flex-1">
-                                        <div className={cn("text-[9px] font-black uppercase tracking-widest opacity-60", isActive ? "text-indigo-300" : "")}>Etapa {(idx + 1).toString().padStart(2, '0')}</div>
-                                        <div className={cn("text-[11px] font-black uppercase tracking-tight", isActive ? "text-white" : "text-slate-700")}>{sec.label}</div>
-                                        <div className={cn("text-[8px] font-bold opacity-50 uppercase tracking-tighter mt-0.5", isActive ? "text-slate-300" : "")}>{sec.desc}</div>
+                                        <div className={cn("text-[12px] font-black uppercase tracking-tight", isActive ? "text-white" : "text-slate-700")}>{sec.label}</div>
+                                        <div className={cn("text-[10px] font-bold opacity-60 mt-0.5", isActive ? "text-slate-200" : "text-slate-400")}>{sec.desc}</div>
                                     </div>
                                     {isFilled && <CheckCircle2 className={cn("w-4 h-4", isActive ? "text-emerald-400" : "text-emerald-500")} />}
                                 </button>
@@ -318,10 +376,6 @@ export default function PBE5Form({
                             return (
                                 <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm mb-2 flex items-center justify-between">
                                     <div>
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full">Protocolo PBE 5.0</div>
-                                            <Badge variant="outline" className="border-indigo-100 text-indigo-600 text-[10px] font-black uppercase">MODULAR</Badge>
-                                        </div>
                                         <h2 className="text-3xl font-black tracking-tight text-slate-800">{activeSec.label}</h2>
                                         <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">{activeSec.desc}</p>
                                     </div>
@@ -335,19 +389,13 @@ export default function PBE5Form({
                             <AnamnesisAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.anamnesis} />
                             <ClinicalHistoryAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.clinical} />
                             <MetricsVitalsAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.metrics} />
-                            <FunctionalAccordion
-                                openSection={openSection}
-                                isSectionFilled={isSectionFilled}
-                                sectionStyle={SECTION_STYLES.functionality}
-                                setIsAssessmentModalOpen={setIsAssessmentModalOpen}
-                            />
 
                             {/* Specialty Specific Accordions */}
                             {specialty === 'ortopedia' && (
                                 <>
+                                    <PalpationAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.palpation} />
                                     <MovementAssessmentAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.movement} />
                                     <MuscleStrengthAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.strength} patient={patient} />
-                                    <JointProtocolsAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.protocols} />
                                 </>
                             )}
 
@@ -405,6 +453,18 @@ export default function PBE5Form({
                                 />
                             )}
 
+                            {/* Core Functional / Conduta sections */}
+                            <FunctionalAccordion
+                                openSection={openSection}
+                                isSectionFilled={isSectionFilled}
+                                sectionStyle={SECTION_STYLES.functionality}
+                                setIsAssessmentModalOpen={setIsAssessmentModalOpen}
+                            />
+
+                            {specialty === 'ortopedia' && (
+                                <JointProtocolsAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.protocols} />
+                            )}
+
                             {/* Advanced Physical Assessment Mode (Cross-Specialty) */}
                             {advancedPhysical && (
                                 <>
@@ -416,8 +476,6 @@ export default function PBE5Form({
                                     <PhysicalSportsAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.sports} />
                                 </>
                             )}
-
-                            {/* Plan / Conduct always at the end */}
 
                             <ClinicalConductAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.plan} />
                         </Accordion>
@@ -477,54 +535,7 @@ export default function PBE5Form({
                     </div>
                 </div>
 
-                {/* FLOATING ACTION BAR (Padrão Palmilha 5.0) */}
-                {!hideButtons && (
-                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-white/50 backdrop-blur-md p-2 rounded-full border border-slate-200/50 shadow-2xl animate-in slide-in-from-bottom-5">
-                        <AxiomCopilot
-                            specialty="Fisioterapeuta Sênior PBE"
-                            formSchemaName="PBE 5.0"
-                        />
-
-                        {/* Botão Salvar (Outline) */}
-                        <Button
-                            type="button"
-                            onClick={form.handleSubmit(async (data) => {
-                                setIsSaving(true);
-                                try {
-                                    await onSave(data, true);
-                                    toast.success("Avaliação Salva com Sucesso!");
-                                } finally {
-                                    setIsSaving(false);
-                                }
-                            })}
-                            disabled={isSaving}
-                            className="rounded-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-sm h-12 px-6 font-bold flex items-center gap-2 transition-all active:scale-95"
-                        >
-                            {isSaving ? <Loader2 className="w-5 h-5 animate-spin text-blue-600" /> : <Save className="w-5 h-5 text-blue-600" />}
-                            Salvar
-                        </Button>
-
-                        {/* Botão Relatório PDF (Dark) */}
-                        <Button
-                            type="button"
-                            onClick={() => setPreviewOpen(true)}
-                            className="rounded-full bg-slate-900 hover:bg-slate-800 text-white shadow-lg h-12 px-6 font-bold flex items-center gap-2 transition-all active:scale-95 border border-slate-700"
-                        >
-                            <Eye className="w-5 h-5 text-blue-400" />
-                            Relatório
-                        </Button>
-
-                        {/* Botão Importar Feegow (Emerald) */}
-                        <Button
-                            type="button"
-                            onClick={() => setFeegowImportOpen(true)}
-                            className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg h-12 px-6 font-bold flex items-center gap-2 transition-all active:scale-95 border border-emerald-500"
-                        >
-                            <Zap className="w-5 h-5 text-emerald-100" />
-                            Importar
-                        </Button>
-                    </div>
-                )}
+                {/* FOOTER REMOVED - NOW IN SIDEBAR */}
 
                 {previewOpen && (
                     specialty === 'biomecanica' ? (
@@ -608,6 +619,6 @@ export default function PBE5Form({
                     </DialogContent>
                 </Dialog>
             </div>
-        </FormProvider>
+        </FormProvider >
     );
 }
