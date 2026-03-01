@@ -276,7 +276,17 @@ export default function PBE5Form({
             <div className="flex-1 flex flex-col lg:flex-row max-w-[1400px] mx-auto w-full px-4 py-4 relative z-10 gap-8">
 
                 {/* SIDEBAR */}
-                <div className="hidden lg:flex flex-col gap-4 w-72 shrink-0 sticky top-8 self-start pt-2">
+                <div
+                    className="hidden lg:flex flex-col gap-4 w-72 shrink-0 sticky top-4 self-start pt-2 h-[calc(100vh-2rem)] overflow-y-auto sidebar-scroll"
+                    style={{
+                        scrollbarWidth: 'none',
+                        msOverflowStyle: 'none',
+                    }}
+                >
+                    <style dangerouslySetInnerHTML={{
+                        __html: `
+                        .sidebar-scroll::-webkit-scrollbar { display: none; }
+                    `}} />
                     {/* Template Selector integrated into Sidebar (FOTO 4) */}
                     <div className="bg-white rounded-3xl p-4 border border-slate-100 shadow-sm mb-2">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2 block">
@@ -300,23 +310,25 @@ export default function PBE5Form({
                         </Select>
                     </div>
 
-                    <CompactPBE5Card
-                        form={form}
-                        isSaving={isSaving}
-                        onSave={form.handleSubmit(async (data) => {
-                            setIsSaving(true);
-                            try {
-                                await onSave(data, true);
-                            } finally {
-                                setIsSaving(false);
-                            }
-                        })}
-                        onReport={() => setPreviewOpen(true)}
-                        onImport={() => setFeegowImportOpen(true)}
-                        onCopilotStatusChange={setIsListening}
-                    />
+                    <div className="shrink-0">
+                        <CompactPBE5Card
+                            form={form}
+                            isSaving={isSaving}
+                            onSave={form.handleSubmit(async (data) => {
+                                setIsSaving(true);
+                                try {
+                                    await onSave(data, true);
+                                } finally {
+                                    setIsSaving(false);
+                                }
+                            })}
+                            onReport={() => setPreviewOpen(true)}
+                            onImport={() => setFeegowImportOpen(true)}
+                            onCopilotStatusChange={setIsListening}
+                        />
+                    </div>
 
-                    <div className="bg-white rounded-[2.5rem] p-4 border border-slate-100 shadow-sm flex flex-wrap gap-2 mt-2 mb-20 overflow-hidden">
+                    <div className="bg-white rounded-[2.5rem] p-4 border border-slate-100 shadow-sm flex flex-wrap gap-2 mt-2 mb-20 shrink-0">
                         {menuSections.map((sec, idx) => {
                             const isFilled = isSectionFilled(sec.id);
                             const curIdx = menuSections.findIndex((s: any) => s.id === openSection);
@@ -358,7 +370,7 @@ export default function PBE5Form({
                                     type="button"
                                     onClick={() => setOpenSection(sec.id)}
                                     className={cn(
-                                        "w-full text-left px-5 py-4 rounded-[2rem] flex items-center gap-3 transition-all",
+                                        "w-full text-left px-5 py-4 rounded-[2rem] flex items-center gap-3 transition-all shrink-0",
                                         isActive ? "bg-slate-900 text-white shadow-2xl scale-105 z-10" :
                                             "bg-slate-50/50 text-slate-400 hover:bg-slate-100"
                                     )}
@@ -375,7 +387,7 @@ export default function PBE5Form({
                 </div>
 
                 {/* MAIN CONTENT */}
-                <div className="space-y-6 flex flex-col items-center flex-1 w-full max-w-4xl mx-auto relative z-10 pb-20">
+                <div className="space-y-6 flex flex-col items-center flex-1 w-full max-w-4xl mx-auto relative z-10 pb-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-2 scrollbar-thin">
                     <div className="w-full">
                         {(() => {
                             const activeSec = menuSections.find(s => s.id === openSection);

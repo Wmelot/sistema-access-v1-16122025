@@ -98,10 +98,10 @@ export default function Palmilha5Form({
     const [isSaving, setIsSaving] = useState(false);
     const { setIsCollapsed } = useSidebar();
 
-    // Efeito para rolar para o topo quando uma seção for aberta
-    useEffect(() => {
+    // Efeito para rolar para o topo quando uma seção for aberta (Desativado para rolagem local)
+    /* useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, [openSection]);
+    }, [openSection]); */
 
     // Ocultar a barra lateral em qualquer formulário PBE para ampliar a tela
     useEffect(() => {
@@ -199,7 +199,17 @@ export default function Palmilha5Form({
             <div className="flex-1 flex flex-col lg:flex-row max-w-[1400px] mx-auto w-full px-4 py-4 relative z-10 gap-8">
 
                 {/* SIDEBAR ESQUERDA (DESKTOP) WIZARD MENU */}
-                <div className="hidden lg:flex flex-col gap-4 w-72 shrink-0 sticky top-8 self-start pt-2">
+                <div
+                    className="hidden lg:flex flex-col gap-4 w-72 shrink-0 sticky top-4 self-start pt-2 h-[calc(100vh-2rem)] overflow-y-auto sidebar-scroll"
+                    style={{
+                        scrollbarWidth: 'none',
+                        msOverflowStyle: 'none',
+                    }}
+                >
+                    <style dangerouslySetInnerHTML={{
+                        __html: `
+                        .sidebar-scroll::-webkit-scrollbar { display: none; }
+                    `}} />
                     {/* Template Selector integrated into Sidebar (FOTO 4) */}
                     <div className="bg-white rounded-3xl p-4 border border-slate-100 shadow-sm mb-2">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2 block">
@@ -223,23 +233,25 @@ export default function Palmilha5Form({
                         </Select>
                     </div>
 
-                    <CompactBiomechanicsCard
-                        form={form}
-                        isSaving={isSaving}
-                        onSave={form.handleSubmit(async (data) => {
-                            setIsSaving(true);
-                            try {
-                                await onSave(data, true);
-                            } finally {
-                                setIsSaving(false);
-                            }
-                        })}
-                        onReport={() => setPreviewOpen(true)}
-                        onImport={() => setFeegowImportOpen(true)}
-                        onCopilotStatusChange={setIsListening}
-                    />
+                    <div className="shrink-0">
+                        <CompactBiomechanicsCard
+                            form={form}
+                            isSaving={isSaving}
+                            onSave={form.handleSubmit(async (data) => {
+                                setIsSaving(true);
+                                try {
+                                    await onSave(data, true);
+                                } finally {
+                                    setIsSaving(false);
+                                }
+                            })}
+                            onReport={() => setPreviewOpen(true)}
+                            onImport={() => setFeegowImportOpen(true)}
+                            onCopilotStatusChange={setIsListening}
+                        />
+                    </div>
 
-                    <div className="bg-white rounded-[2.5rem] p-4 border border-slate-100 shadow-sm flex flex-wrap gap-2 mt-2 mb-20">
+                    <div className="bg-white rounded-[2.5rem] p-4 border border-slate-100 shadow-sm flex flex-wrap gap-2 mt-2 mb-20 shrink-0">
                         {MENU_SECTIONS.map((sec, idx) => {
                             const isFilled = isSectionFilled(sec.id);
                             const curIdx = MENU_SECTIONS.findIndex(s => s.id === openSection);
@@ -281,7 +293,7 @@ export default function Palmilha5Form({
                                     type="button"
                                     onClick={() => setOpenSection(sec.id)}
                                     className={cn(
-                                        "w-full text-left px-5 py-4 rounded-[2rem] flex items-center gap-3 transition-all",
+                                        "w-full text-left px-5 py-4 rounded-[2rem] flex items-center gap-3 transition-all shrink-0",
                                         isActive ? "bg-slate-900 text-white shadow-2xl scale-105 z-10" :
                                             "bg-slate-50/50 text-slate-400 hover:bg-slate-100"
                                     )}
@@ -298,7 +310,7 @@ export default function Palmilha5Form({
                 </div>
 
                 {/* ÁREA PRINCIPAL DO WIZARD (DIREITA) */}
-                <div className="space-y-6 flex flex-col items-center flex-1 w-full max-w-4xl mx-auto relative z-10 pb-20">
+                <div className="space-y-6 flex flex-col items-center flex-1 w-full max-w-4xl mx-auto relative z-10 pb-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-2 scrollbar-thin">
 
                     {/* CABEÇALHO DO PASSO ATUAL */}
                     <div className="w-full">
