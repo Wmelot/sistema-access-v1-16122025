@@ -1,5 +1,6 @@
 import React from "react";
 import { useFormContext, useWatch } from "react-hook-form";
+import { GlycemicScoreCalculator } from "./GlycemicScoreCalculator";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -138,26 +139,10 @@ export function InsensitiveFootAccordion({ openSection, isSectionFilled, section
                     {/* METABOLIC TAB */}
                     <TabsContent value="metabolic" className="p-6 space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="md:col-span-2">
+                                <GlycemicScoreCalculator />
+                            </div>
                             <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Controle da Glicemia</Label>
-                                    <div className="bg-teal-50/50 p-4 rounded-2xl border border-teal-100">
-                                        <div className="flex justify-between mb-3 text-teal-900 font-black text-xs uppercase">
-                                            <span>Estabilidade Glicêmica</span>
-                                            <span>{glucoseControl}/10</span>
-                                        </div>
-                                        <Slider
-                                            max={10}
-                                            step={1}
-                                            value={[glucoseControl]}
-                                            onValueChange={(v) => setValue("hma.glucoseControl", v[0])}
-                                        />
-                                        <div className="flex justify-between text-[8px] font-bold text-teal-600/60 mt-2 uppercase">
-                                            <span>Descontrolado</span>
-                                            <span>Excelente</span>
-                                        </div>
-                                    </div>
-                                </div>
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Medicamentos para Diabetes</Label>
                                     <Input {...register("hma.drugsInUse")} placeholder="Metformina, Insulina, Gliclazida..." className="h-10 text-sm" />

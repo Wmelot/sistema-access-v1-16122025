@@ -484,24 +484,25 @@ export default function GenericSandboxPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
-            <div className="fixed bottom-8 right-8 flex gap-3 z-50 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <Button
-                    onClick={() => setDialogOpen(true)}
-                    variant="outline"
-                    className="bg-white hover:bg-slate-50 border-slate-200 shadow-xl font-bold gap-2 text-slate-700 h-11 px-6 rounded-full"
-                >
-                    <Save className="w-4 h-4 text-blue-600" />
-                    Confirmar e Salvar
-                </Button>
-                <Button
-                    onClick={() => toast.info("Salve os dados primeiro para gerar o relatório.")}
-                    className="bg-slate-900 hover:bg-slate-800 text-white font-bold gap-2 shadow-xl h-11 px-8 rounded-full"
-                >
-                    <User className="w-4 h-4 text-blue-400" />
-                    Gerar Relatório PDF
-                </Button>
-            </div>
+            {!['pbe-5', 'palmilha-5'].includes(type) && (
+                <div className="fixed bottom-8 right-8 flex gap-3 z-50 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <Button
+                        onClick={() => setDialogOpen(true)}
+                        variant="outline"
+                        className="bg-white hover:bg-slate-50 border-slate-200 shadow-xl font-bold gap-2 text-slate-700 h-11 px-6 rounded-full"
+                    >
+                        <Save className="w-4 h-4 text-blue-600" />
+                        Confirmar e Salvar
+                    </Button>
+                    <Button
+                        onClick={() => toast.info("Salve os dados primeiro para gerar o relatório.")}
+                        className="bg-slate-900 hover:bg-slate-800 text-white font-bold gap-2 shadow-xl h-11 px-8 rounded-full"
+                    >
+                        <User className="w-4 h-4 text-blue-400" />
+                        Gerar Relatório PDF
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }
