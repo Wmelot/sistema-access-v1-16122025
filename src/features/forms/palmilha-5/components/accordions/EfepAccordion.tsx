@@ -92,6 +92,13 @@ const QUESTIONNAIRES_BY_CATEGORY = [
             { id: "tampa_kinesiophobia", label: "Tampa (Cinesiofobia)" },
             { id: "mcgill_short", label: "McGill (Dor)" }
         ]
+    },
+    {
+        category: "Neuropatia / Pé Diabético",
+        items: [
+            { id: "mnsi", label: "MNSI (Neuropatia Diabética)" },
+            { id: "diabetes_control", label: "Score Glicêmico" }
+        ]
     }
 ];
 
@@ -100,7 +107,7 @@ const QUESTIONNAIRES = QUESTIONNAIRES_BY_CATEGORY.flatMap(c => c.items);
 const ExtraQuestionnaireSelector = ({ value, onChange, selectedCategories }: { value: string, onChange: (v: string) => void, selectedCategories: string[] }) => {
     const filteredCategories = useMemo(() => {
         // "Geral & Dor" and "Saúde Pélvica" are always relevant or based on specialty, but for now let's show them as "Geral"
-        const alwaysVisible = ["Geral & Dor"];
+        const alwaysVisible = ["Geral & Dor", "Neuropatia / Pé Diabético"];
 
         if (selectedCategories.length === 0) return QUESTIONNAIRES_BY_CATEGORY;
 

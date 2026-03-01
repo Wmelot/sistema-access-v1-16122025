@@ -127,16 +127,26 @@ const QUESTIONNAIRES_BY_CATEGORY = [
             { id: "tampa_kinesiophobia", label: "Tampa (Cinesiofobia)" },
             { id: "mcgill_short", label: "McGill (Dor)" }
         ]
+    },
+    {
+        category: "Neuropatia / Pé Diabético",
+        specialties: ["diabetes"], // special marker
+        items: [
+            { id: "mnsi", label: "MNSI (Neuropatia Diabética)" },
+            { id: "diabetes_control", label: "Score Glicêmico" }
+        ]
     }
 ];
 
 const QUESTIONNAIRES = QUESTIONNAIRES_BY_CATEGORY.flatMap(c => c.items);
 
-const ExtraQuestionnaireSelector = ({ value, onChange, specialty, regions }: { value: string, onChange: (v: string) => void, specialty: string, regions: string[] }) => {
+const ExtraQuestionnaireSelector = ({ value, onChange, specialty, regions, hasDiabetes }: { value: string, onChange: (v: string) => void, specialty: string, regions: string[], hasDiabetes?: boolean }) => {
     const [open, setOpen] = React.useState(false);
 
     const filteredCategories = QUESTIONNAIRES_BY_CATEGORY.filter(cat => {
         if (cat.specialties?.includes('all')) return true;
+        if (cat.specialties?.includes('diabetes') && (hasDiabetes || regions?.includes('tornozelo_pe'))) return true;
+
         if (cat.specialties?.includes(specialty)) {
             // If specialty matches, further filter ortopedia by regions if regions are provided
             if (specialty === 'ortopedia' && cat.regions && regions?.length > 0) {
@@ -330,12 +340,12 @@ export function FunctionalAccordion({ openSection, isSectionFilled, sectionStyle
                         </div>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-8">
+                    <div className="space-y-8">
                         <div className="space-y-4">
-                            <div className="flex flex-col gap-3 min-h-[160px] p-1">
+                            <div className="grid md:grid-cols-2 gap-3 min-h-[160px] p-1">
                                 {questionnaires.length > 0 ? (
                                     questionnaires.map((q: any, idx: number) => (
-                                        <div key={idx} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl group transition-all hover:border-indigo-200 shadow-sm hover:shadow-md">
+                                        <div key={idx} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl group transition-all hover:border-indigo-200 shadow-sm hover:shadow-md h-fit">
                                             <div className="flex items-center gap-3">
                                                 <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner">
                                                     <FileText className="h-5 w-5" />
@@ -362,20 +372,21 @@ export function FunctionalAccordion({ openSection, isSectionFilled, sectionStyle
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="flex-1 border-2 border-dashed border-slate-100 rounded-3xl bg-slate-50/50 flex flex-col items-center justify-center p-6 text-center">
+                                    <div className="col-span-1 border-2 border-dashed border-slate-100 rounded-3xl bg-slate-50/50 flex flex-col items-center justify-center p-6 text-center">
                                         <ClipboardList className="h-8 w-8 text-slate-200 mb-2" />
                                         <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-relaxed">Nenhum questionário<br />adicionado à consulta</p>
                                     </div>
                                 )}
                             </div>
 
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 w-full">
                                 <div className="flex-1">
                                     <ExtraQuestionnaireSelector
                                         value={extraQuestionnaire}
                                         onChange={(v) => setValue("conduct.extraQuestionnaire", v)}
                                         specialty={watch('clinical.specialty')}
                                         regions={watch('anamnesis.mainRegions')}
+                                        hasDiabetes={watch('clinical.comorbidities')?.includes('Diabetes Mellitus')}
                                     />
                                 </div>
                                 <Button
@@ -406,73 +417,71 @@ export function FunctionalAccordion({ openSection, isSectionFilled, sectionStyle
                                 Enviaremos um <span className="text-purple-900">Link Inteligente</span> via WhatsApp/E-mail nas datas selecionadas para monitorar a evolução.
                             </p>
 
-                            <div className="space-y-4 relative z-10">
-                                <div className="space-y-2">
+                            <div className="space-y-4 relative z-10 bg-white p-6 rounded-[2rem] border border-purple-100 shadow-sm">
+                                <div className="space-y-4">
                                     <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest block ml-1">Prazos de envio das Reavaliações</span>
                                     <div className="flex flex-wrap gap-2">
                                         {[
-                                            { l: "15 DIAS", v: "15" },
-                                            { l: "30 DIAS", v: "30" },
-                                            { l: "45 DIAS", v: "45" },
-                                            { l: "60 DIAS", v: "60" },
-                                            { l: "90 DIAS", v: "90" }
+                                            { l: "15 Dias", v: "15" },
+                                            { l: "30 Dias", v: "30" },
+                                            { l: "45 Dias", v: "45" },
+                                            { l: "60 Dias", v: "60" },
+                                            { l: "90 Dias", v: "90" },
+                                            { l: "120 Dias", v: "120" }
                                         ].map((opt) => {
                                             const isChecked = followUpDays.includes(opt.v);
                                             return (
-                                                <button
-                                                    key={opt.v}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const novo = isChecked
-                                                            ? followUpDays.filter((i: string) => i !== opt.v)
-                                                            : [...followUpDays, opt.v];
-                                                        setValue('conduct.followUpDays', novo);
-                                                    }}
-                                                    className={cn(
-                                                        "h-10 px-4 rounded-xl text-[10px] font-black transition-all border shadow-sm",
-                                                        isChecked
-                                                            ? "bg-purple-600 border-purple-600 text-white shadow-purple-200"
-                                                            : "bg-white border-purple-100 text-purple-600 hover:border-purple-300"
-                                                    )}
-                                                >
-                                                    {opt.l}
-                                                </button>
+                                                <label key={opt.v} className={cn(
+                                                    "flex items-center gap-2 border-2 px-4 py-2 rounded-xl cursor-pointer transition-all min-w-[70px] justify-center",
+                                                    isChecked ? "bg-purple-600 border-purple-600 text-white shadow-md scale-105" : "bg-white border-purple-100 text-purple-400 hover:border-purple-300"
+                                                )}>
+                                                    <Checkbox
+                                                        className={cn("hidden", isChecked && "border-white")}
+                                                        checked={isChecked}
+                                                        onCheckedChange={(checked) => {
+                                                            const novo = checked
+                                                                ? [...followUpDays, opt.v]
+                                                                : followUpDays.filter((i: string) => i !== opt.v);
+                                                            setValue('conduct.followUpDays', novo);
+                                                        }}
+                                                    />
+                                                    <span className="text-xs font-black uppercase">{opt.l}</span>
+                                                </label>
                                             )
                                         })}
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col gap-2 relative z-10">
-                                    <div className="flex items-center gap-2 opacity-75">
-                                        <Checkbox checked disabled className="border-purple-300" />
-                                        <span className="text-xs text-purple-900 font-medium tracking-tight uppercase">Funcionalidade (As 3 atividades acima)</span>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                                    <div className="flex flex-col gap-3 px-1 py-4">
+                                        <div className="flex items-center gap-3 group">
+                                            <Checkbox checked disabled className="border-purple-300 data-[state=checked]:bg-purple-400" />
+                                            <span className="text-[11px] text-purple-900 font-bold uppercase tracking-tight opacity-70">Funcionalidade (As 3 atividades acima)</span>
+                                        </div>
+                                        <label className="flex items-center gap-3 cursor-pointer group" onClick={() => setValue('conduct.monitorPain', !watch('conduct.monitorPain'))}>
+                                            <Checkbox
+                                                checked={!!watch('conduct.monitorPain')}
+                                                onCheckedChange={(c) => setValue('conduct.monitorPain', c)}
+                                                className="data-[state=checked]:bg-purple-600 border-purple-300 h-5 w-5 rounded-md"
+                                            />
+                                            <span className="text-[11px] text-purple-900 font-black uppercase tracking-tight group-hover:text-purple-600">Intensidade da Dor (EVA)</span>
+                                        </label>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <Checkbox
-                                            checked={watch('conduct.monitorPain')}
-                                            onCheckedChange={(c) => setValue('conduct.monitorPain', c)}
-                                            className="data-[state=checked]:bg-purple-600 border-purple-300"
-                                        />
-                                        <span className="text-xs text-purple-900 font-medium tracking-tight uppercase">Nível de Dor (Escala EVA)</span>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div className="space-y-4 relative z-10">
-                                <div className="space-y-2 bg-white p-4 rounded-2xl border border-purple-100 shadow-sm">
-                                    <h6 className="text-[10px] font-black text-purple-800 uppercase tracking-widest mb-3">Canal de Envio Preferencial</h6>
-                                    <div className="flex flex-col gap-2">
+                                    <div className="space-y-3 bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100 h-full shadow-sm">
+                                        <h6 className="text-[10px] font-black text-indigo-800 uppercase tracking-widest mb-1">Canal de Monitoramento</h6>
                                         <Select defaultValue="whatsapp">
-                                            <SelectTrigger className="w-full h-10 text-[10px] font-bold border-purple-100 bg-purple-50/10 rounded-xl">
+                                            <SelectTrigger className="bg-white border-indigo-200 text-indigo-900 h-10 font-bold rounded-xl text-xs shadow-sm">
                                                 <SelectValue placeholder="Selecione o canal..." />
                                             </SelectTrigger>
-                                            <SelectContent className="z-[500]">
-                                                <SelectItem value="whatsapp" className="text-[10px] font-bold py-2">WhatsApp</SelectItem>
-                                                <SelectItem value="email" className="text-[10px] font-bold py-2">E-mail</SelectItem>
+                                            <SelectContent position="popper" side="bottom" className="z-[110] rounded-xl">
+                                                <SelectItem value="whatsapp" className="font-bold py-2">WhatsApp</SelectItem>
+                                                <SelectItem value="email" className="font-bold py-2">E-mail</SelectItem>
+                                                <SelectItem value="manual" className="font-bold py-2">Coleta Presencial</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter px-1 mt-1 leading-tight opacity-70">
-                                            O link será gerado automaticamente ao salvar a avaliação.
+                                            O link será gerado automaticamente.
                                         </p>
                                     </div>
                                 </div>

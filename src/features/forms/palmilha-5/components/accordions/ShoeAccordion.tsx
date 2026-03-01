@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useFormContext } from "react-hook-form";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Footprints, BookOpen, Search, Youtube, Info, Database, Loader2, Zap, ThumbsUp, Activity, Ruler, Bone, AlertCircle, Scan, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -300,53 +301,90 @@ export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, orga
                 </div>
             </AccordionTrigger>
             <AccordionContent className="p-4 space-y-6 border-t border-slate-50">
-                <div className={cn("p-5 rounded-2xl border-2 flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 transition-all shadow-sm", shoeRecommendations.color)}>
-                    <div className="flex-shrink-0 w-16 h-16 bg-white/80 rounded-xl flex items-center justify-center text-3xl shadow-sm border border-white">
-                        {shoeRecommendations.image}
-                    </div>
-                    <div className="flex-1 text-center md:text-left">
-                        <Badge className="mb-2 text-[10px] uppercase font-black tracking-widest bg-white/20 hover:bg-white/30 text-current border-none">
-                            {shoeRecommendations.feature}
-                        </Badge>
-                        <h4 className="font-bold text-lg leading-tight mb-1">{shoeRecommendations.text}</h4>
-                        <p className="text-sm leading-relaxed font-medium opacity-90 italic">
-                            {shoeRecommendations.details}
-                        </p>
-                    </div>
-                </div>
-
                 {isInsensitiveFoot ? (
-                    <div className="space-y-4">
-                        <Label className="text-[11px] font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
-                            <Scan className="w-4 h-4 text-teal-600" /> Características do Calçado Atual
-                        </Label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {SHOE_FEATURES.map(feature => {
-                                const current: string[] = form.watch("footwear.features") || [];
-                                const checked = current.includes(feature);
-                                return (
-                                    <div
-                                        key={feature}
-                                        className={cn(
-                                            "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer",
-                                            checked ? "bg-teal-50 border-teal-200" : "bg-white border-slate-100 hover:border-teal-100"
-                                        )}
-                                        onClick={() => {
-                                            const curr = form.getValues("footwear.features") || [];
-                                            form.setValue("footwear.features",
-                                                checked ? curr.filter((i: string) => i !== feature) : [...curr, feature]
-                                            );
-                                        }}
-                                    >
-                                        <Checkbox checked={checked} />
-                                        <span className="text-xs font-bold text-slate-600">{feature}</span>
-                                    </div>
-                                );
-                            })}
+                    <Tabs defaultValue="current" className="w-full animate-in fade-in zoom-in-95 duration-300">
+                        <div className="flex justify-center mb-6">
+                            <TabsList className="grid w-full max-w-md grid-cols-2 bg-teal-50/50 p-1.5 rounded-full border border-teal-100/50">
+                                <TabsTrigger value="current" className="rounded-full data-[state=active]:bg-teal-600 data-[state=active]:text-white font-black text-[10px] tracking-widest uppercase py-2 transition-all">Calçado Atual</TabsTrigger>
+                                <TabsTrigger value="recommendation" className="rounded-full data-[state=active]:bg-teal-600 data-[state=active]:text-white font-black text-[10px] tracking-widest uppercase py-2 transition-all">Recomendação Terapêutica</TabsTrigger>
+                            </TabsList>
                         </div>
-                    </div>
+
+                        <TabsContent value="current" className="space-y-4">
+                            {(!form.watch("footwear.features") || form.watch("footwear.features").length === 0) && (
+                                <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-red-700 animate-in fade-in">
+                                    <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <h4 className="font-black text-[10px] uppercase tracking-widest mb-1">Atenção: Calçado Inadequado</h4>
+                                        <p className="text-xs font-medium leading-relaxed">
+                                            Nenhuma característica terapêutica identificada no calçado atual. Pacientes com neuropatia ou histórico de úlcera <strong className="font-bold">precisam</strong> de calçados com sola rígida (rocker), bico largo, sem costuras e com boa profundidade para evitar novas lesões.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <Label className="text-[11px] font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+                                <Scan className="w-4 h-4 text-teal-600" /> Marque as características presentes no calçado do paciente
+                            </Label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {SHOE_FEATURES.map(feature => {
+                                    const current: string[] = form.watch("footwear.features") || [];
+                                    const checked = current.includes(feature);
+                                    return (
+                                        <div
+                                            key={feature}
+                                            className={cn(
+                                                "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer",
+                                                checked ? "bg-teal-50 border-teal-200" : "bg-white border-slate-100 hover:border-teal-100"
+                                            )}
+                                            onClick={() => {
+                                                const curr = form.getValues("footwear.features") || [];
+                                                form.setValue("footwear.features",
+                                                    checked ? curr.filter((i: string) => i !== feature) : [...curr, feature]
+                                                );
+                                            }}
+                                        >
+                                            <Checkbox checked={checked} />
+                                            <span className="text-xs font-bold text-slate-600">{feature}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="recommendation">
+                            <div className={cn("p-5 rounded-2xl border-2 flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 transition-all shadow-sm", shoeRecommendations.color)}>
+                                <div className="flex-shrink-0 w-16 h-16 bg-white/80 rounded-xl flex items-center justify-center text-3xl shadow-sm border border-white">
+                                    {shoeRecommendations.image}
+                                </div>
+                                <div className="flex-1 text-center md:text-left">
+                                    <Badge className="mb-2 text-[10px] uppercase font-black tracking-widest bg-white/20 hover:bg-white/30 text-current border-none">
+                                        {shoeRecommendations.feature}
+                                    </Badge>
+                                    <h4 className="font-bold text-lg leading-tight mb-1">{shoeRecommendations.text}</h4>
+                                    <p className="text-sm leading-relaxed font-medium opacity-90 italic">
+                                        {shoeRecommendations.details}
+                                    </p>
+                                </div>
+                            </div>
+                        </TabsContent>
+                    </Tabs>
                 ) : (
                     <div className="space-y-6">
+                        <div className={cn("p-5 rounded-2xl border-2 flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 transition-all shadow-sm", shoeRecommendations.color)}>
+                            <div className="flex-shrink-0 w-16 h-16 bg-white/80 rounded-xl flex items-center justify-center text-3xl shadow-sm border border-white">
+                                {shoeRecommendations.image}
+                            </div>
+                            <div className="flex-1 text-center md:text-left">
+                                <Badge className="mb-2 text-[10px] uppercase font-black tracking-widest bg-white/20 hover:bg-white/30 text-current border-none">
+                                    {shoeRecommendations.feature}
+                                </Badge>
+                                <h4 className="font-bold text-lg leading-tight mb-1">{shoeRecommendations.text}</h4>
+                                <p className="text-sm leading-relaxed font-medium opacity-90 italic">
+                                    {shoeRecommendations.details}
+                                </p>
+                            </div>
+                        </div>
                         <div className="flex justify-start">
                             <Popover open={searchOpen} onOpenChange={setSearchOpen}>
                                 <PopoverTrigger asChild>
@@ -638,9 +676,10 @@ export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, orga
                                 </Badge>
                             </div>
                         </div>
-                    </div>
-                )}
-            </AccordionContent>
-        </AccordionItem>
+                    </div >
+                )
+                }
+            </AccordionContent >
+        </AccordionItem >
     );
 }

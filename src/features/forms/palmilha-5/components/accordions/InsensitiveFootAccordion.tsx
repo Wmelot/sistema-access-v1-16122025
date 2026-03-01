@@ -1,6 +1,8 @@
 import React from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { GlycemicScoreCalculator } from "./GlycemicScoreCalculator";
+import { InteractiveDermatomeMap } from "@/features/forms/pbe-5/components/neurological/InteractiveDermatomeMap";
+import { EcnEvaluation } from "./EcnEvaluation";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -100,6 +102,16 @@ export function InsensitiveFootAccordion({ openSection, isSectionFilled, section
 
     const activeIwgdf = IWGDF_LEVELS.find(l => l.value === String(iwgdfLevel)) || IWGDF_LEVELS[0];
 
+    const getITBStatusView = (val: number | null) => {
+        if (val === null) return null;
+        const status = checkITBStatus(val);
+        return (
+            <div className={cn("text-[9px] font-black mt-2 px-2 py-1 rounded w-full flex justify-center items-center text-center uppercase tracking-tighter leading-tight", status.color)}>
+                {status.label}
+            </div>
+        );
+    };
+
     return (
         <AccordionItem
             value="insensitive_foot"
@@ -120,21 +132,26 @@ export function InsensitiveFootAccordion({ openSection, isSectionFilled, section
                 </Badge>
             </AccordionTrigger>
             <AccordionContent className="p-0 border-t border-teal-100">
-                <Tabs defaultValue="metabolic" className="w-full">
-                    <TabsList className="w-full justify-start h-12 bg-slate-50 border-b rounded-none p-0">
-                        <TabsTrigger value="metabolic" className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-teal-500 rounded-none h-full px-6 text-[10px] font-black uppercase tracking-widest">
-                            <Stethoscope className="w-4 h-4 mr-2" /> Metabólico
-                        </TabsTrigger>
-                        <TabsTrigger value="vascular" className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-teal-500 rounded-none h-full px-6 text-[10px] font-black uppercase tracking-widest">
-                            <HeartPulse className="w-4 h-4 mr-2" /> Vascular
-                        </TabsTrigger>
-                        <TabsTrigger value="neuropathic" className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-teal-500 rounded-none h-full px-6 text-[10px] font-black uppercase tracking-widest">
-                            <Zap className="w-4 h-4 mr-2" /> Neuropático
-                        </TabsTrigger>
-                        <TabsTrigger value="classification" className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-teal-500 rounded-none h-full px-6 text-[10px] font-black uppercase tracking-widest">
-                            <ShieldCheck className="w-4 h-4 mr-2" /> Classificação
-                        </TabsTrigger>
-                    </TabsList>
+                <Tabs defaultValue="metabolic" className="w-full flex justify-center flex-col pt-6">
+                    <div className="px-6 flex justify-center">
+                        <TabsList className="flex w-full md:w-auto min-w-[300px] bg-teal-50/50 p-1.5 rounded-full mb-2 border border-teal-100/50 shadow-inner">
+                            <TabsTrigger value="metabolic" className="flex-1 rounded-full data-[state=active]:bg-teal-600 data-[state=active]:text-white font-black text-[10px] tracking-widest uppercase py-2.5 transition-all data-[state=active]:shadow-lg text-teal-700/60">
+                                <Stethoscope className="w-3.5 h-3.5 mr-2" /> Metabólico
+                            </TabsTrigger>
+                            <TabsTrigger value="inspection" className="flex-1 rounded-full data-[state=active]:bg-teal-600 data-[state=active]:text-white font-black text-[10px] tracking-widest uppercase py-2.5 transition-all data-[state=active]:shadow-lg text-teal-700/60">
+                                <Scan className="w-3.5 h-3.5 mr-2" /> Inspeção
+                            </TabsTrigger>
+                            <TabsTrigger value="vascular" className="flex-1 rounded-full data-[state=active]:bg-teal-600 data-[state=active]:text-white font-black text-[10px] tracking-widest uppercase py-2.5 transition-all data-[state=active]:shadow-lg text-teal-700/60">
+                                <HeartPulse className="w-3.5 h-3.5 mr-2" /> Vascular
+                            </TabsTrigger>
+                            <TabsTrigger value="neuropathic" className="flex-1 rounded-full data-[state=active]:bg-teal-600 data-[state=active]:text-white font-black text-[10px] tracking-widest uppercase py-2.5 transition-all data-[state=active]:shadow-lg text-teal-700/60">
+                                <Zap className="w-3.5 h-3.5 mr-2" /> Neuropático
+                            </TabsTrigger>
+                            <TabsTrigger value="classification" className="flex-1 rounded-full data-[state=active]:bg-teal-600 data-[state=active]:text-white font-black text-[10px] tracking-widest uppercase py-2.5 transition-all data-[state=active]:shadow-lg text-teal-700/60">
+                                <ShieldCheck className="w-3.5 h-3.5 mr-2" /> Risco
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
 
                     {/* METABOLIC TAB */}
                     <TabsContent value="metabolic" className="p-6 space-y-6">
@@ -142,18 +159,74 @@ export function InsensitiveFootAccordion({ openSection, isSectionFilled, section
                             <div className="md:col-span-2">
                                 <GlycemicScoreCalculator />
                             </div>
-                            <div className="space-y-4">
+                            <div className="md:col-span-2 space-y-4">
                                 <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Medicamentos para Diabetes</Label>
-                                    <Input {...register("hma.drugsInUse")} placeholder="Metformina, Insulina, Gliclazida..." className="h-10 text-sm" />
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Avaliação Nutricional / Dieta</Label>
+                                    <Textarea {...register("hma.diet")} placeholder="Descreva a frequência e aderência à dieta prescrita..." className="min-h-[100px] text-sm" />
                                 </div>
                             </div>
+                        </div>
+                    </TabsContent>
+
+                    {/* INSPECTION TAB */}
+                    <TabsContent value="inspection" className="p-6 space-y-8 animate-in fade-in zoom-in-95 duration-300">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Atividade Física e Dieta</Label>
-                                    <Textarea {...register("hma.physicalActivity")} placeholder="Descreva a rotina de exercícios e adesão à dieta..." className="min-h-[100px] text-sm" />
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-600 flex items-center gap-2">Pé Esquerdo</h4>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {["Calosidades", "Micoses", "Temp. Alterada", "Deformidades", "Amputações", "Fissuras", "Edema", "Hiperemia", "Úlcera/Ferida"].map(item => {
+                                        const rName = `inspection.left.${item.toLowerCase().replace(/[^a-z]/g, '')}`;
+                                        return (
+                                            <label key={item} className={cn(
+                                                "flex items-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold cursor-pointer transition-all",
+                                                watch(rName) ? "bg-blue-50 border-blue-200 text-blue-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                                            )}>
+                                                <Checkbox
+                                                    checked={!!watch(rName)}
+                                                    onCheckedChange={(checked) => setValue(rName, !!checked)}
+                                                    className="rounded-lg h-4 w-4"
+                                                />
+                                                <span className="truncate">{item}</span>
+                                            </label>
+                                        );
+                                    })}
                                 </div>
                             </div>
+
+                            <div className="space-y-4">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600 flex items-center gap-2">Pé Direito</h4>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {["Calosidades", "Micoses", "Temp. Alterada", "Deformidades", "Amputações", "Fissuras", "Edema", "Hiperemia", "Úlcera/Ferida"].map(item => {
+                                        const rName = `inspection.right.${item.toLowerCase().replace(/[^a-z]/g, '')}`;
+                                        return (
+                                            <label key={item} className={cn(
+                                                "flex items-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold cursor-pointer transition-all",
+                                                watch(rName) ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                                            )}>
+                                                <Checkbox
+                                                    checked={!!watch(rName)}
+                                                    onCheckedChange={(checked) => setValue(rName, !!checked)}
+                                                    className="rounded-lg h-4 w-4"
+                                                />
+                                                <span className="truncate">{item}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-50/50 p-5 rounded-2xl border border-dashed border-slate-200 space-y-3">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Higiene e Corte das Unhas</Label>
+                            <select
+                                {...register('inspection.nails')}
+                                className="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                            >
+                                <option value="">Selecionar avaliação...</option>
+                                <option value="adequado">Adequado (Corte reto, sem encravar)</option>
+                                <option value="regular">Regular (Corte curto demais ou irregular)</option>
+                                <option value="critico">Crítico (Encravada / Onicomicose severa)</option>
+                            </select>
                         </div>
                     </TabsContent>
 
@@ -178,68 +251,146 @@ export function InsensitiveFootAccordion({ openSection, isSectionFilled, section
                             <div className="bg-slate-50 p-6 rounded-2xl border flex flex-col items-center justify-center gap-4">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Índice Tornozelo-Braço (ITB)</Label>
                                 <div className="flex gap-6">
-                                    <div className="text-center space-y-1">
+                                    <div className="text-center space-y-1 flex-1 flex flex-col items-center">
                                         <div className="text-[9px] font-black text-blue-600 uppercase">Esquerdo</div>
-                                        <div className={cn("text-2xl font-black p-2 rounded-xl border", itbResults.left ? "bg-white" : "bg-slate-100 text-slate-400")}>
+                                        <div className={cn("text-2xl font-black p-2 rounded-xl border w-24 text-center", itbResults.left ? "bg-white" : "bg-slate-100 text-slate-400")}>
                                             {itbResults.left || "--"}
                                         </div>
+                                        {getITBStatusView(itbResults.left)}
                                     </div>
-                                    <div className="text-center space-y-1">
+                                    <div className="text-center space-y-1 flex-1 flex flex-col items-center">
                                         <div className="text-[9px] font-black text-emerald-600 uppercase">Direito</div>
-                                        <div className={cn("text-2xl font-black p-2 rounded-xl border", itbResults.right ? "bg-white" : "bg-slate-100 text-slate-400")}>
+                                        <div className={cn("text-2xl font-black p-2 rounded-xl border w-24 text-center", itbResults.right ? "bg-white" : "bg-slate-100 text-slate-400")}>
                                             {itbResults.right || "--"}
                                         </div>
+                                        {getITBStatusView(itbResults.right)}
                                     </div>
                                 </div>
-                                <p className="text-[8px] font-bold text-slate-400 text-center uppercase tracking-tighter">
-                                    Normal: 0.9–1.3 | Isquemia: &lt;0.9
-                                </p>
+                            </div>
+
+                            {/* PULSOS */}
+                            <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                                <div className="space-y-4">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Pulso Pedioso</Label>
+                                    <div className="flex gap-2">
+                                        {["Normal", "Ausente"].map(opt => (
+                                            <button
+                                                key={opt}
+                                                type="button"
+                                                onClick={() => setValue("vascular.pedisPulse", opt)}
+                                                className={cn(
+                                                    "flex-1 py-3 rounded-2xl border text-xs font-black uppercase tracking-widest transition-all",
+                                                    (watch("vascular.pedisPulse") || "Normal") === opt
+                                                        ? opt === "Normal" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-red-50 text-red-600 border-red-200"
+                                                        : "bg-white text-slate-400 border-slate-200 hover:border-slate-300"
+                                                )}
+                                            >
+                                                {opt}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Pulso Tibial Posterior</Label>
+                                    <div className="flex gap-2">
+                                        {["Normal", "Ausente"].map(opt => (
+                                            <button
+                                                key={opt}
+                                                type="button"
+                                                onClick={() => setValue("vascular.tibialPulse", opt)}
+                                                className={cn(
+                                                    "flex-1 py-3 rounded-2xl border text-xs font-black uppercase tracking-widest transition-all",
+                                                    (watch("vascular.tibialPulse") || "Normal") === opt
+                                                        ? opt === "Normal" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-red-50 text-red-600 border-red-200"
+                                                        : "bg-white text-slate-400 border-slate-200 hover:border-slate-300"
+                                                )}
+                                            >
+                                                {opt}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </TabsContent>
 
                     {/* NEUROPATHIC TAB */}
-                    <TabsContent value="neuropathic" className="p-6 space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                            {(["left", "right"] as const).map(side => {
-                                const preserved = totalPreserved(side);
-                                return (
-                                    <div key={side} className="space-y-4">
-                                        <div className="flex justify-between items-end border-b pb-2">
-                                            <Label className="text-sm font-black uppercase tracking-widest text-slate-800">
-                                                Pé {side === "left" ? "Esquerdo" : "Direito"}
-                                            </Label>
-                                            <span className={cn(
-                                                "text-[10px] font-black px-2 py-0.5 rounded-full uppercase",
-                                                preserved === 4 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
-                                            )}>
-                                                {preserved}/4 preservados
-                                            </span>
+                    <TabsContent value="neuropathic" className="p-6 space-y-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                            {/* Monofilamento */}
+                            <div className="space-y-6">
+                                <div className="space-y-1">
+                                    <Label className="text-sm font-black uppercase tracking-widest text-slate-800 flex justify-between border-b pb-2">
+                                        Sensibilidade Protetora
+                                        <span className="text-[10px] font-black bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                                            MONOFILAMENTO 10g
+                                        </span>
+                                    </Label>
+                                </div>
+                                {(["left", "right"] as const).map(side => {
+                                    const preserved = totalPreserved(side);
+                                    return (
+                                        <div key={side} className="space-y-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <Label className="text-xs font-black uppercase tracking-widest text-slate-600">
+                                                    Pé {side === "left" ? "Esquerdo" : "Direito"}
+                                                </Label>
+                                                <span className={cn(
+                                                    "text-[9px] font-black px-2 py-0.5 rounded-md uppercase border",
+                                                    preserved === 4 ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-red-50 text-red-600 border-red-200"
+                                                )}>
+                                                    {preserved}/4 preservados
+                                                </span>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {MONOFILAMENT_POINTS.map(point => {
+                                                    const path = `neuropathic.${side}.${point.id}`;
+                                                    return (
+                                                        <div key={point.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-white hover:border-blue-200 transition-colors">
+                                                            <Checkbox
+                                                                id={`${side}-${point.id}`}
+                                                                checked={!!watch(path)}
+                                                                onCheckedChange={(checked) => setValue(path, !!checked)}
+                                                            />
+                                                            <label htmlFor={`${side}-${point.id}`} className="text-[10px] font-black uppercase tracking-tight text-slate-600 cursor-pointer">
+                                                                {point.label}
+                                                            </label>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {MONOFILAMENT_POINTS.map(point => {
-                                                const path = `neuropathic.${side}.${point.id}`;
-                                                return (
-                                                    <div key={point.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-white">
-                                                        <Checkbox
-                                                            id={`${side}-${point.id}`}
-                                                            checked={!!watch(path)}
-                                                            onCheckedChange={(checked) => setValue(path, !!checked)}
-                                                        />
-                                                        <label htmlFor={`${side}-${point.id}`} className="text-xs font-bold text-slate-600 cursor-pointer">
-                                                            {point.label}
-                                                        </label>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
+
+                                <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex gap-3 text-amber-900 text-[10px] items-start mt-4">
+                                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                    <p className="font-medium leading-relaxed">A perda de sensibilidade protetora no monofilamento em <strong>qualquer ponto</strong> configura risco aumentado para úlceras (IWGDF ≥ 1).</p>
+                                </div>
+                            </div>
+
+                            {/* Mapa Dermatômico */}
+                            <div className="space-y-4">
+                                <Label className="text-sm font-black uppercase tracking-widest text-slate-800 flex justify-between border-b pb-2 mb-4">
+                                    Mapa de Dermátomos
+                                    <span className="text-[10px] font-black bg-indigo-50 text-indigo-600 border border-indigo-100 px-2 py-0.5 rounded-full">
+                                        OPCIONAL
+                                    </span>
+                                </Label>
+                                <div className="scale-95 origin-top">
+                                    <InteractiveDermatomeMap
+                                        selected={watch('neuropathic.dermatomes') || []}
+                                        onSelectionChange={(ids) => setValue('neuropathic.dermatomes', ids)}
+                                    />
+                                </div>
+                            </div>
                         </div>
-                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex gap-3 text-amber-900 text-[10px] items-center">
-                            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-                            <p><strong>Atenção:</strong> A perda de sensibilidade protetora em qualquer ponto configura risco aumentado para úlcera (IWGDF ≥ 1).</p>
+
+                        <div className="pt-6 border-t border-slate-100">
+                            <EcnEvaluation
+                                initialValues={watch('neuropathic.ecn')}
+                                onScoreChange={(score: number, details: any) => setValue('neuropathic.ecn', { score, ...details })}
+                            />
                         </div>
                     </TabsContent>
 

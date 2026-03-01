@@ -17,7 +17,6 @@ export function GlycemicScoreCalculator({ className }: GlycemicScoreCalculatorPr
     const hba1c = watch("hma.glycemic.hba1c");
     const fasting = watch("hma.glycemic.fasting");
     const postPrandial = watch("hma.glycemic.postPrandial");
-    const isElderlyOverride = watch("hma.glycemic.isElderly");
 
     const patient = watch("patient");
 
@@ -30,14 +29,7 @@ export function GlycemicScoreCalculator({ className }: GlycemicScoreCalculatorPr
         return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
     }, [patient?.birthDate]);
 
-    const isElderly = isElderlyOverride ?? (age !== null && age >= 65);
-
-    // If override isn't set but we detected age, initialize it to avoid hydration mismatches (optional)
-    React.useEffect(() => {
-        if (isElderlyOverride === undefined && age !== null) {
-            setValue("hma.glycemic.isElderly", age >= 65);
-        }
-    }, [age, isElderlyOverride, setValue]);
+    const isElderly = age !== null && age >= 65;
 
     const scores = useMemo(() => {
         let hba1cScore = null;
@@ -157,16 +149,6 @@ export function GlycemicScoreCalculator({ className }: GlycemicScoreCalculatorPr
                         Axiom Score Glicêmico
                     </Label>
                     <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-tight">Cálculo inteligente ponderado pela HbA1c (50%) e idades</p>
-                </div>
-                <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border">
-                    <Label htmlFor="elderly-toggle" className="text-[10px] uppercase font-bold text-slate-600 cursor-pointer">
-                        Meta Idoso (Suave)
-                    </Label>
-                    <Switch
-                        id="elderly-toggle"
-                        checked={!!isElderly}
-                        onCheckedChange={(val) => setValue("hma.glycemic.isElderly", val)}
-                    />
                 </div>
             </div>
 

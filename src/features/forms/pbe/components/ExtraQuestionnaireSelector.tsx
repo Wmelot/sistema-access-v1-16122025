@@ -85,6 +85,13 @@ export const QUESTIONNAIRES_BY_CATEGORY = [
             { id: "tampa_kinesiophobia", label: "Tampa (Cinesiofobia)" },
             { id: "mcgill_short", label: "McGill (Dor)" }
         ]
+    },
+    {
+        category: "Neuropatia / Pé Diabético",
+        items: [
+            { id: "mnsi", label: "MNSI (Neuropatia Diabética)" },
+            { id: "diabetes_control", label: "Score Glicêmico" }
+        ]
     }
 ];
 

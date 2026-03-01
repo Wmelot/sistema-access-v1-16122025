@@ -861,101 +861,102 @@ export function AttendanceClient({
 
 
                         <TabsContent value="evolution" className="flex-1 overflow-hidden mt-0">
-                            {/* Card Header Design (FOTO 1/2 Style Integration) - Hidden for Modern Forms (PBE/Palmilha 5) */}
-                            {!['palmilha-5', 'e0000000-0000-0000-0000-000000000005', PBE5_ID].includes(selectedTemplateId) && (
-                                <div className="bg-white border rounded-xl p-2.5 sm:p-3 mb-1.5 sm:mb-3 flex items-center justify-between shadow-sm">
-                                    <div className="flex items-center gap-3 overflow-hidden flex-1">
-                                        <div className="h-10 w-10 bg-indigo-50 border border-indigo-100 rounded-lg hidden sm:flex items-center justify-center text-indigo-600">
-                                            <FileText className="h-5 w-5" />
-                                        </div>
-                                        <div className="h-8 w-8 bg-indigo-50 border border-indigo-100 rounded-lg flex sm:hidden items-center justify-center text-indigo-600 shrink-0">
-                                            <FileText className="h-4 w-4" />
-                                        </div>
-                                        <div className="flex flex-col min-w-0 flex-1">
-                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
-                                                Formulário
-                                            </span>
-                                            <Select value={selectedTemplateId || undefined} onValueChange={handleTemplateChange}>
-                                                <SelectTrigger
-                                                    id="attendance-template-select"
-                                                    className="h-8 sm:h-9 py-1 px-3 w-full max-w-[200px] sm:max-w-[280px] bg-white border-slate-200 shadow-none rounded-lg text-xs sm:text-sm font-bold"
-                                                >
-                                                    <div className="flex items-center gap-2 overflow-hidden">
-                                                        <SelectValue placeholder="Selecionar" className="truncate" />
-                                                    </div>
-                                                </SelectTrigger>
-                                                <SelectContent
-                                                    className="w-[90vw] sm:w-[350px] z-[9999]"
-                                                    align="start"
-                                                >
-                                                    {/* AVALIAÇÃO CLÍNICA */}
-                                                    <SelectGroup>
-                                                        <div className="px-3 py-2 text-[10px] font-black text-indigo-500 uppercase tracking-widest border-b border-indigo-50 mb-1">Avaliação Clínica</div>
-                                                        <SelectItem value={PBE5_ID} className="py-3 cursor-pointer font-black text-indigo-700 bg-indigo-50/50 focus:bg-indigo-100">PBE 5.0 — Avaliação Completa</SelectItem>
-                                                        <SelectItem value="diabetic_foot_system" className="py-3 cursor-pointer font-medium text-teal-700 focus:bg-teal-50">Pé Insensível — Protocolo IWGDF</SelectItem>
-                                                    </SelectGroup>
-
-                                                    {/* BIOMECÂNICA */}
-                                                    <SelectGroup>
-                                                        <Separator className="my-1" />
-                                                        <div className="px-2 py-1.5 text-[10px] font-black text-blue-400 uppercase tracking-widest">Biomecânica e Palmilha</div>
-                                                        <SelectItem value="palmilha-5" className="py-2.5 text-blue-700 font-bold bg-blue-50/50 cursor-pointer">Palmilha 5.0 </SelectItem>
-                                                    </SelectGroup>
-                                                    {/* EVOLUÇÃO */}
-                                                    <SelectGroup>
-                                                        <Separator className="my-1" />
-                                                        <div className="px-2 py-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest">Evolução Clínica</div>
-                                                        {(() => {
-                                                            const clinicalTemplate = templates.find(t =>
-                                                                t.title?.toLowerCase().includes('evolução clínica & ia')
-                                                            );
-                                                            return (
-                                                                <SelectItem
-                                                                    value={clinicalTemplate?.id || CLINICAL_EVOLUTION_ID}
-                                                                    className="py-2.5 text-indigo-700 font-bold bg-indigo-50/50 cursor-pointer"
-                                                                >
-                                                                    {clinicalTemplate?.title || 'Evolução Clínica & IA'}
-                                                                </SelectItem>
-                                                            );
-                                                        })()}
-                                                        {filteredTemplates
-                                                            .filter(t => ![
-                                                                PHYSICAL_ASSESSMENT_ID, SMART_ASSESSMENT_ID,
-                                                                WOMENS_HEALTH_ID, 'womens_health_system',
-                                                                PBE5_ID, 'palmilha-5', PALMILHA_V3_ID, PALMILHA_ORIGINAL_ID,
-                                                                ULTIMATE_PBE_ID, TREE_WIZARD_ID, CLINICAL_EVOLUTION_ID,
-                                                                'e0000000-0000-0000-0000-000000000001',
-                                                                'e0000000-0000-0000-0000-000000000004'
-                                                            ].includes(t.id))
-                                                            .filter(t => !t.title?.toLowerCase().includes('palmilha'))
-                                                            .filter(t => !t.title?.toLowerCase().includes('pbe'))
-                                                            .filter(t => !t.title?.toLowerCase().includes('wizard'))
-                                                            .filter(t => !t.title?.toLowerCase().includes('tree'))
-                                                            .filter(t => !t.title?.toLowerCase().includes('avaliação física'))
-                                                            .filter(t => !t.title?.toLowerCase().includes('saúde da mulher'))
-                                                            .filter(t => !t.title?.toLowerCase().includes('pélvica'))
-                                                            .filter(t => !t.title?.toLowerCase().includes('concept'))
-                                                            .filter(t => !t.title?.toLowerCase().includes('ultimate'))
-                                                            .filter(t => !t.title?.toLowerCase().includes('inteligente'))
-                                                            .filter(t => !t.title?.toLowerCase().includes('insensível'))
-                                                            .filter(t => !t.title?.toLowerCase().includes('diabético'))
-                                                            .map(t => (
-                                                                <SelectItem key={t.id} value={t.id} className="font-medium py-2.5 cursor-pointer">
-                                                                    {t.title}
-                                                                </SelectItem>
-                                                            ))}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
+                            {/* Card Header Design (FOTO 1/2 Style Integration) - Hidden on Desktop for Modern Forms (PBE/Palmilha 5) */}
+                            <div className={cn(
+                                "bg-white border rounded-xl p-2.5 sm:p-3 mb-1.5 sm:mb-3 flex items-center justify-between shadow-sm",
+                                ['palmilha-5', 'e0000000-0000-0000-0000-000000000005', PBE5_ID].includes(selectedTemplateId) ? "lg:hidden" : ""
+                            )}>
+                                <div className="flex items-center gap-3 overflow-hidden flex-1">
+                                    <div className="h-10 w-10 bg-indigo-50 border border-indigo-100 rounded-lg hidden sm:flex items-center justify-center text-indigo-600">
+                                        <FileText className="h-5 w-5" />
                                     </div>
+                                    <div className="h-8 w-8 bg-indigo-50 border border-indigo-100 rounded-lg flex sm:hidden items-center justify-center text-indigo-600 shrink-0">
+                                        <FileText className="h-4 w-4" />
+                                    </div>
+                                    <div className="flex flex-col min-w-0 flex-1">
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                                            Formulário
+                                        </span>
+                                        <Select value={selectedTemplateId || undefined} onValueChange={handleTemplateChange}>
+                                            <SelectTrigger
+                                                id="attendance-template-select"
+                                                className="h-8 sm:h-9 py-1 px-3 w-full max-w-[200px] sm:max-w-[280px] bg-white border-slate-200 shadow-none rounded-lg text-xs sm:text-sm font-bold"
+                                            >
+                                                <div className="flex items-center gap-2 overflow-hidden">
+                                                    <SelectValue placeholder="Selecionar" className="truncate" />
+                                                </div>
+                                            </SelectTrigger>
+                                            <SelectContent
+                                                className="w-[90vw] sm:w-[350px] z-[9999]"
+                                                align="start"
+                                            >
+                                                {/* AVALIAÇÃO CLÍNICA */}
+                                                <SelectGroup>
+                                                    <div className="px-3 py-2 text-[10px] font-black text-indigo-500 uppercase tracking-widest border-b border-indigo-50 mb-1">Avaliação Clínica</div>
+                                                    <SelectItem value={PBE5_ID} className="py-3 cursor-pointer font-black text-indigo-700 bg-indigo-50/50 focus:bg-indigo-100">PBE 5.0 — Avaliação Completa</SelectItem>
+                                                    <SelectItem value="diabetic_foot_system" className="py-3 cursor-pointer font-medium text-teal-700 focus:bg-teal-50">Pé Insensível — Protocolo IWGDF</SelectItem>
+                                                </SelectGroup>
 
-                                    <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100 shrink-0">
-                                        <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Sincronizado</span>
+                                                {/* BIOMECÂNICA */}
+                                                <SelectGroup>
+                                                    <Separator className="my-1" />
+                                                    <div className="px-2 py-1.5 text-[10px] font-black text-blue-400 uppercase tracking-widest">Biomecânica e Palmilha</div>
+                                                    <SelectItem value="palmilha-5" className="py-2.5 text-blue-700 font-bold bg-blue-50/50 cursor-pointer">Palmilha 5.0 </SelectItem>
+                                                </SelectGroup>
+                                                {/* EVOLUÇÃO */}
+                                                <SelectGroup>
+                                                    <Separator className="my-1" />
+                                                    <div className="px-2 py-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest">Evolução Clínica</div>
+                                                    {(() => {
+                                                        const clinicalTemplate = templates.find(t =>
+                                                            t.title?.toLowerCase().includes('evolução clínica & ia')
+                                                        );
+                                                        return (
+                                                            <SelectItem
+                                                                value={clinicalTemplate?.id || CLINICAL_EVOLUTION_ID}
+                                                                className="py-2.5 text-indigo-700 font-bold bg-indigo-50/50 cursor-pointer"
+                                                            >
+                                                                {clinicalTemplate?.title || 'Evolução Clínica & IA'}
+                                                            </SelectItem>
+                                                        );
+                                                    })()}
+                                                    {filteredTemplates
+                                                        .filter(t => ![
+                                                            PHYSICAL_ASSESSMENT_ID, SMART_ASSESSMENT_ID,
+                                                            WOMENS_HEALTH_ID, 'womens_health_system',
+                                                            PBE5_ID, 'palmilha-5', PALMILHA_V3_ID, PALMILHA_ORIGINAL_ID,
+                                                            ULTIMATE_PBE_ID, TREE_WIZARD_ID, CLINICAL_EVOLUTION_ID,
+                                                            'e0000000-0000-0000-0000-000000000001',
+                                                            'e0000000-0000-0000-0000-000000000004'
+                                                        ].includes(t.id))
+                                                        .filter(t => !t.title?.toLowerCase().includes('palmilha'))
+                                                        .filter(t => !t.title?.toLowerCase().includes('pbe'))
+                                                        .filter(t => !t.title?.toLowerCase().includes('wizard'))
+                                                        .filter(t => !t.title?.toLowerCase().includes('tree'))
+                                                        .filter(t => !t.title?.toLowerCase().includes('avaliação física'))
+                                                        .filter(t => !t.title?.toLowerCase().includes('saúde da mulher'))
+                                                        .filter(t => !t.title?.toLowerCase().includes('pélvica'))
+                                                        .filter(t => !t.title?.toLowerCase().includes('concept'))
+                                                        .filter(t => !t.title?.toLowerCase().includes('ultimate'))
+                                                        .filter(t => !t.title?.toLowerCase().includes('inteligente'))
+                                                        .filter(t => !t.title?.toLowerCase().includes('insensível'))
+                                                        .filter(t => !t.title?.toLowerCase().includes('diabético'))
+                                                        .map(t => (
+                                                            <SelectItem key={t.id} value={t.id} className="font-medium py-2.5 cursor-pointer">
+                                                                {t.title}
+                                                            </SelectItem>
+                                                        ))}
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
-                            )}
+
+                                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100 shrink-0">
+                                    <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Sincronizado</span>
+                                </div>
+                            </div>
 
                             <Card className="flex flex-col h-full border-0 shadow-none bg-slate-50/50 w-full pt-0">
                                 <ScrollArea className="flex-1 -mr-4 pr-4">
