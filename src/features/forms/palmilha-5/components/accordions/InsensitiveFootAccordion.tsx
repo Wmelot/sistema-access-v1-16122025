@@ -79,7 +79,9 @@ export function InsensitiveFootAccordion({ openSection, isSectionFilled, section
     const glucoseControl = watch("hma.glucoseControl") ?? 5;
     const vasc = useWatch({ control, name: "vascular" });
     const neuropathic = useWatch({ control, name: "neuropathic" });
+    const inspection = useWatch({ control, name: "inspection" });
     const iwgdfLevel = watch("classification.iwgdfLevel") || "0";
+    const hmaHistory = watch("hma.history") || "";
 
     const itbResults = React.useMemo(() => {
         const brachialMax = Math.max(
@@ -95,10 +97,52 @@ export function InsensitiveFootAccordion({ openSection, isSectionFilled, section
         };
     }, [vasc]);
 
-    const totalPreserved = (side: "left" | "right") => {
+    const totalPreserved = React.useCallback((side: "left" | "right") => {
         const sideData = neuropathic?.[side] || {};
         return MONOFILAMENT_POINTS.filter(p => sideData[p.id]).length;
-    };
+    }, [neuropathic]);
+
+    React.useEffect(() => {
+        const hasAmputation =
+            Boolean(inspection?.left?.amputaes) ||
+            Boolean(inspection?.right?.amputaes) ||
+            hmaHistory.toLowerCase().includes("amputa");
+
+        const hasUlcer =
+            Boolean(inspection?.left?.lceraferida) ||
+            Boolean(inspection?.right?.lceraferida) ||
+            hmaHistory.toLowerCase().includes("úlcera") ||
+            hmaHistory.toLowerCase().includes("ulcera");
+
+        const hasDeformity =
+            Boolean(inspection?.left?.deformidades) ||
+            Boolean(inspection?.right?.deformidades);
+
+        const lops =
+            (neuropathic?.ecn?.score >= 3) ||
+            (totalPreserved("left") < 4) ||
+            (totalPreserved("right") < 4);
+
+        const pad =
+            vasc?.pedisPulse === "Ausente" ||
+            vasc?.tibialPulse === "Ausente" ||
+            (itbResults.left !== null && (itbResults.left < 0.9 || itbResults.left > 1.3)) ||
+            (itbResults.right !== null && (itbResults.right < 0.9 || itbResults.right > 1.3));
+
+        let newLevel = "0";
+
+        if (hasUlcer || hasAmputation) {
+            newLevel = "3";
+        } else if ((lops && pad) || (lops && hasDeformity) || (pad && hasDeformity)) {
+            newLevel = "2";
+        } else if (lops || pad) {
+            newLevel = "1";
+        }
+
+        if (iwgdfLevel !== newLevel) {
+            setValue("classification.iwgdfLevel", newLevel, { shouldDirty: true });
+        }
+    }, [inspection, neuropathic, vasc, itbResults, hmaHistory, iwgdfLevel, setValue, totalPreserved]);
 
     const activeIwgdf = IWGDF_LEVELS.find(l => l.value === String(iwgdfLevel)) || IWGDF_LEVELS[0];
 

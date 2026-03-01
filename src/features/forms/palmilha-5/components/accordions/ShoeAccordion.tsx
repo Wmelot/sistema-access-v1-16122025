@@ -352,7 +352,7 @@ export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, orga
                             </div>
                         </TabsContent>
 
-                        <TabsContent value="recommendation">
+                        <TabsContent value="recommendation" className="space-y-6">
                             <div className={cn("p-5 rounded-2xl border-2 flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 transition-all shadow-sm", shoeRecommendations.color)}>
                                 <div className="flex-shrink-0 w-16 h-16 bg-white/80 rounded-xl flex items-center justify-center text-3xl shadow-sm border border-white">
                                     {shoeRecommendations.image}
@@ -365,6 +365,36 @@ export function ShoeAccordion({ openSection, isSectionFilled, sectionStyle, orga
                                     <p className="text-sm leading-relaxed font-medium opacity-90 italic">
                                         {shoeRecommendations.details}
                                     </p>
+                                </div>
+                            </div>
+
+                            <div className="pt-2 border-t border-slate-100">
+                                <Label className="text-[11px] font-black text-slate-700 uppercase tracking-widest flex items-center gap-2 mb-4">
+                                    <ShieldCheck className="w-4 h-4 text-teal-600" /> Marque as características recomendadas para o paciente
+                                </Label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {SHOE_FEATURES.map(feature => {
+                                        const recommended: string[] = form.watch("footwear.recommendedFeatures") || [];
+                                        const checked = recommended.includes(feature);
+                                        return (
+                                            <div
+                                                key={feature}
+                                                className={cn(
+                                                    "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer",
+                                                    checked ? "bg-teal-50 border-teal-200" : "bg-white border-slate-100 hover:border-teal-100"
+                                                )}
+                                                onClick={() => {
+                                                    const curr = form.getValues("footwear.recommendedFeatures") || [];
+                                                    form.setValue("footwear.recommendedFeatures",
+                                                        checked ? curr.filter((i: string) => i !== feature) : [...curr, feature]
+                                                    );
+                                                }}
+                                            >
+                                                <Checkbox checked={checked} />
+                                                <span className="text-xs font-bold text-slate-600">{feature}</span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </TabsContent>

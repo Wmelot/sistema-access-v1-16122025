@@ -315,6 +315,29 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
         }
     }, [open, appointment])
 
+    // [NEW] Automatic IWGDF Rescheduling Alert
+    useEffect(() => {
+        if (open && step === 'schedule' && fullRecord?.content?.classification?.iwgdfLevel) {
+            const iwgdf = Number(fullRecord.content.classification.iwgdfLevel);
+            if (iwgdf > 0 && !returnDate) {
+                let monthsToAdd = 0;
+                if (iwgdf === 1) monthsToAdd = 6;
+                else if (iwgdf === 2) monthsToAdd = 3;
+                else if (iwgdf === 3) monthsToAdd = 1;
+
+                if (monthsToAdd > 0) {
+                    const futureDate = new Date();
+                    futureDate.setMonth(futureDate.getMonth() + monthsToAdd);
+                    setReturnDate(futureDate);
+                    toast.info(`Retorno recomendado p/ ${monthsToAdd} mes(es) (IWGDF Nível ${iwgdf}). Verifique disponibilidade na agenda!`, {
+                        icon: '⚠️',
+                        duration: 5000
+                    });
+                }
+            }
+        }
+    }, [open, step, fullRecord, returnDate]);
+
     // [NEW] Debounced Patient Search
     useEffect(() => {
         if (!patientSearch || patientSearch.length < 2) {

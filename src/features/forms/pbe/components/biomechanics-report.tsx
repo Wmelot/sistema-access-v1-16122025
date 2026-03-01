@@ -252,6 +252,38 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
     const finalShoeRec = useMemo(() => {
         if (shoeRec) return shoeRec;
 
+        const qp = hma.qp?.toLowerCase() || "";
+        const historyText = hma.history?.toLowerCase() || "";
+        const comorbidities = vals.history?.comorbidities || [];
+        const regions = hma.mainRegions || vals.anamnesis?.mainRegions || [];
+        const hasDiabet = qp.includes("diabet") || historyText.includes("diabet") || comorbidities.some((c: string) => c.toLowerCase().includes("diabet"));
+        const hasSensibilityLoss = qp.includes("sensibilid") || historyText.includes("sensibilid");
+        const hasAmputation = qp.includes("amputa") || historyText.includes("amputa");
+        const isInsensitiveFoot = hasDiabet || hasSensibilityLoss || hasAmputation || regions.includes("insensitive_foot");
+
+        if (isInsensitiveFoot) {
+            const currentFeatures = vals.footwear?.features || [];
+            const recommendedFeatures = vals.footwear?.recommendedFeatures || [];
+
+            const isAdequate = recommendedFeatures.length > 0 && recommendedFeatures.every((f: string) => currentFeatures.includes(f));
+
+            if (isAdequate) {
+                return {
+                    text: "Calçado Atual Adequado",
+                    image: "✅",
+                    feature: "Mantenha o Uso",
+                    desc: "O calçado atual do paciente já apresenta as características adequadas e necessárias para a sua condição. Mantenha o uso do calçado atual para prevenção de lesões."
+                };
+            } else {
+                return {
+                    text: "Calçado Terapêutico Sugerido",
+                    image: "🛡️",
+                    feature: recommendedFeatures.length > 0 ? recommendedFeatures.join(" | ") : "PROTEÇÃO MÁXIMA",
+                    desc: "Para pés insensíveis, priorize calçados com as características recomendadas acima para redistribuição de pressão e prevenção de formação de feridas ou ulcerações."
+                };
+            }
+        }
+
         if (vals.shoe && vals.shoe.isInjured !== undefined) {
             const flow = getShoeRecommendationFlow(vals.shoe);
             return {
@@ -269,7 +301,7 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
             feature: res.traits.join(" | "),
             desc: res.description
         };
-    }, [shoeRec, vals]);
+    }, [shoeRec, vals, hma]);
 
     // Toggle helper
     const toggleSection = (section: string) => {
