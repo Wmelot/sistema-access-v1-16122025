@@ -91,6 +91,13 @@ const ALL_MENU_SECTIONS = [
     { id: 'gerontology', label: 'Gerontologia', desc: 'Avaliação Geriátrica Ampla', specialties: ['gerontologia'] },
     { id: 'womens_health', label: 'Saúde da Mulher', desc: 'Pélvica e Obstétrica', specialties: ['saude_mulher'] },
 
+    { id: 'antro', label: 'Antropometria', desc: 'Composição Corporal', specialties: ['advanced_physical'] },
+    { id: 'cardio', label: 'Capacidade Cardio', desc: 'VO2 Max e Estresse', specialties: ['advanced_physical'] },
+    { id: 'strength_advanced', label: 'Força Avançada', desc: 'Dinamometria HHD', specialties: ['advanced_physical'] },
+    { id: 'mobility', label: 'Mobilidade & Estabilidade', desc: 'Flexibilidade e Core', specialties: ['advanced_physical'] },
+    { id: 'posture', label: 'Posturografia', desc: 'Análise Fotogramétrica', specialties: ['advanced_physical'] },
+    { id: 'sports', label: 'Rotina Esportiva', desc: 'IPAQ e Gasto Kcal', specialties: ['advanced_physical'] },
+
     { id: 'plan', label: 'Conduta Clínica', desc: 'Estratégia & Plano', specialties: ['all'] }
 ];
 
