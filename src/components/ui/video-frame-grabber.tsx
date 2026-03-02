@@ -86,39 +86,39 @@ export function VideoFrameGrabberModal({ open, onClose, slots, onCaptureToSlot, 
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className={cn(
-                "bg-white border-none rounded-[2rem] shadow-2xl p-0 overflow-hidden w-full",
-                hasSlots ? "max-w-6xl sm:max-w-6xl md:max-w-6xl" : "max-w-3xl sm:max-w-3xl md:max-w-3xl"
+                "bg-white border-none rounded-[2rem] shadow-2xl p-0 overflow-y-auto w-[95vw] max-h-[90vh]",
+                hasSlots ? "max-w-[95vw] xl:max-w-[90vw] 2xl:max-w-[1600px]" : "max-w-3xl"
             )} showCloseButton={false}>
-                <DialogHeader className="p-6 pb-2 border-b border-slate-100">
+                <DialogHeader className="p-6 pb-2 border-b border-slate-100 sticky top-0 bg-white z-20">
                     <DialogTitle className="flex items-center gap-2 font-black text-slate-800 uppercase tracking-tight">
                         <Video className="w-5 h-5 text-purple-600" />
-                        Laboratório de Marcha (Video Frame Extractor)
+                        Laboratório de ExtrAção Dinâmica (Video Frame)
                     </DialogTitle>
                     <DialogDescription className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
-                        Faça o upload do vídeo da caminhada, deslize até a fase desejada (RC, AM, FI) e capture a foto de cada etapa.
+                        Faça o upload do vídeo da avaliação, deslize até a fase desejada e capture a foto de cada etapa.
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="p-6 bg-slate-50 flex flex-col lg:flex-row gap-8 items-start min-h-[500px]">
 
                     {/* VIDEO SECTION */}
-                    <div className={cn("flex-1 w-full flex flex-col items-center justify-center", hasSlots ? "" : "col-span-1 lg:col-span-2")}>
+                    <div className={cn("flex-1 w-full flex flex-col items-center justify-start max-h-[600px]", hasSlots ? "" : "col-span-1 lg:col-span-2")}>
                         {!videoSrc ? (
-                            <div className="flex flex-col items-center gap-4 py-10 w-full">
+                            <div className="flex flex-col items-center justify-center h-[400px] gap-4 w-full">
                                 <div className="flex flex-col sm:flex-row gap-4 items-center justify-center w-full">
-                                    <label className="relative overflow-hidden cursor-pointer flex flex-col items-center justify-center w-48 h-40 border-2 border-dashed border-purple-200 rounded-3xl bg-purple-50 hover:bg-purple-100/50 hover:border-purple-300 transition-colors shadow-sm">
+                                    <div className="relative group overflow-hidden w-48 h-40 border-2 border-dashed border-purple-200 rounded-3xl bg-purple-50 hover:bg-purple-100/50 hover:border-purple-300 transition-colors shadow-sm flex flex-col items-center justify-center">
                                         <Camera className="w-8 h-8 text-purple-600 mb-2 pointer-events-none" />
                                         <span className="font-black text-purple-700 uppercase tracking-widest text-[11px] text-center px-4 pointer-events-none">Gravar Agora</span>
                                         <span className="text-[9px] text-purple-500 font-bold uppercase mt-1 tracking-widest text-center px-4 pointer-events-none">Abrir Câmera</span>
-                                        <input type="file" accept="video/*" capture="environment" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" title="" onChange={handleFile} />
-                                    </label>
+                                        <input type="file" accept="video/*" capture="environment" className="absolute inset-0 w-full h-full opacity-0 outline-none cursor-pointer z-10 block" title="Gravar Agora" onChange={handleFile} />
+                                    </div>
 
-                                    <label className="relative overflow-hidden cursor-pointer flex flex-col items-center justify-center w-48 h-40 border-2 border-dashed border-slate-300 rounded-3xl bg-white hover:bg-slate-50 hover:border-slate-400 transition-colors shadow-sm">
+                                    <div className="relative group overflow-hidden w-48 h-40 border-2 border-dashed border-slate-300 rounded-3xl bg-white hover:bg-slate-50 hover:border-slate-400 transition-colors shadow-sm flex flex-col items-center justify-center">
                                         <Upload className="w-8 h-8 text-slate-400 mb-2 pointer-events-none" />
                                         <span className="font-black text-slate-600 uppercase tracking-widest text-[11px] text-center px-4 pointer-events-none">Da Galeria</span>
                                         <span className="text-[9px] text-slate-400 font-bold uppercase mt-1 tracking-widest text-center px-4 pointer-events-none">Arquivo do Aparelho</span>
-                                        <input type="file" accept="video/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" title="" onChange={handleFile} />
-                                    </label>
+                                        <input type="file" accept="video/*" className="absolute inset-0 w-full h-full opacity-0 outline-none cursor-pointer z-10 block" title="Da Galeria" onChange={handleFile} />
+                                    </div>
                                 </div>
                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center max-w-xs">
                                     Envie um único vídeo (ex: caminhada inteira) para fatiar todos os frames em sequência. O arquivo ficará apenas localmente para extração.
