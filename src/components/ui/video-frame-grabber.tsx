@@ -133,7 +133,11 @@ export function VideoFrameGrabberModal({ open, onClose, slots, onCaptureToSlot, 
                                     className="w-full max-h-[500px] bg-black rounded-xl shadow-lg ring-4 ring-slate-900/5 object-contain"
                                     playsInline
                                 />
-                                <div className="flex gap-4 items-center bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
+                                <div className="flex gap-4 items-center bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
+                                    <Button variant="ghost" size="sm" onClick={() => onClose()} className="text-[10px] font-black uppercase text-red-500 hover:bg-red-50 px-4">
+                                        Descartar
+                                    </Button>
+                                    <div className="w-px h-6 bg-slate-200" />
                                     <Button variant="ghost" size="sm" onClick={() => skipFrame(-1)} className="text-xs font-bold uppercase tracking-widest text-slate-600 hover:text-purple-600 hover:bg-purple-50">
                                         <ChevronLeft className="w-4 h-4 mr-1" /> Frame
                                     </Button>
@@ -141,6 +145,14 @@ export function VideoFrameGrabberModal({ open, onClose, slots, onCaptureToSlot, 
                                     <Button variant="ghost" size="sm" onClick={() => skipFrame(1)} className="text-xs font-bold uppercase tracking-widest text-slate-600 hover:text-purple-600 hover:bg-purple-50">
                                         Frame <ChevronRight className="w-4 h-4 ml-1" />
                                     </Button>
+                                    {hasSlots && (
+                                        <>
+                                            <div className="w-px h-6 bg-slate-200" />
+                                            <Button size="sm" onClick={() => onClose()} className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase h-8 px-6 rounded-xl shadow-lg shadow-emerald-500/20">
+                                                Concluir
+                                            </Button>
+                                        </>
+                                    )}
                                 </div>
                                 <canvas ref={canvasRef} className="hidden" />
                             </div>
@@ -183,35 +195,7 @@ export function VideoFrameGrabberModal({ open, onClose, slots, onCaptureToSlot, 
 
                 </div>
 
-                <DialogFooter className="p-6 border-t border-slate-100 bg-white">
-                    <div className="flex w-full justify-between items-center">
-                        <Button variant="ghost" onClick={onClose} className="uppercase font-bold tracking-widest text-xs text-slate-400 hover:text-red-500">
-                            Cancelar / Descartar
-                        </Button>
-
-                        <div className="flex items-center gap-4">
-                            {!hasSlots && videoSrc && (
-                                <Button
-                                    onClick={captureToGlobal}
-                                    className="bg-purple-600 hover:bg-purple-700 text-white uppercase font-black tracking-widest text-xs px-8 h-12 rounded-xl shadow-lg shadow-purple-500/20 flex items-center gap-2"
-                                >
-                                    <Camera className="w-4 h-4" />
-                                    Extrair Frame
-                                </Button>
-                            )}
-
-                            {hasSlots && (
-                                <Button
-                                    onClick={onClose}
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white uppercase font-black tracking-widest text-xs px-8 h-12 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-2"
-                                >
-                                    <CheckCircle2 className="w-5 h-5" />
-                                    Concluir Fatiamento
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                </DialogFooter>
+                {/* Footer removed to move buttons to the center bar */}
             </DialogContent>
         </Dialog>
     );

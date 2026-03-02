@@ -44,11 +44,13 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
         // 1. DADOS BÁSICOS E METADADOS
         // -------------------------------------------------------------------------
         const now = new Date();
-        // Ajuste para Horário de Brasília (GMT-3) caso o servidor esteja em UTC
+        const timestamp = Math.floor(now.getTime() / 1000);
+
+        // Ajuste para Horário de Brasília (GMT-3) apenas para a data em formato string
         const brazilTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
-        const timestamp = Math.floor(brazilTime.getTime() / 1000);
         const orderDate = brazilTime.toISOString().split('T')[0];
-        // Dados Sensíveis (Padrão AXIOM)
+
+        // Dados Sensíveis (Padrão AXIOM) - EXACT KEYS FROM PREVIOUS SEMI-WORKING STATE
         const sensitiveData = {
             timestamp: timestamp,
             Email_paciente: (patientData.email || "").toLowerCase(),
@@ -57,7 +59,7 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             Nome_Paciente: (patientData.nome || "").toUpperCase()
         };
 
-        // 2. Criptografia node-forge
+        // 2. Encryption
         let base64Payload;
         try {
             const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
@@ -68,45 +70,22 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             });
             base64Payload = forge.util.encode64(encrypted);
         } catch (e: any) {
-            console.error("❌ Erro na Criptografia:", e.message);
-            return { success: false, error: "Falha ao criptografar dados: " + e.message };
+            return { success: false, error: "Falha na criptografia: " + e.message };
         }
-
-        // Map helpers
-        const mapArco = (a: string) => {
-            if (!a) return "Medio";
-            if (a.includes("Baixo")) return "Baixo";
-            if (a.includes("Alto")) return "Alto";
-            return "Medio";
-        };
-
-        const mapFlex = (f: string) => {
-            if (!f) return "Flexivel";
-            const t = f.toLowerCase();
-            if (t.includes("rígido") || t.includes("rigido")) return "Rigido";
-            return "Flexivel";
-        };
 
         const extractNumericValue = (s: string) => {
             if (!s || s.includes("Sem correção") || s === "0" || s.includes("Neutro") || s === "Nenhuma" || s === "") return 0;
-
-            // Suporte a negativos e decimais (ex: -12, 0.5)
             const match = s.match(/-?\d+(\.\d+)?/);
             if (!match) return 0;
-
             let val = parseFloat(match[0]);
-
-            // Garantia extra para inversão/supinação se o regex não pegar o sinal mas o texto contiver a palavra
             if (val > 0 && (s.toLowerCase().includes("negativo") || s.toLowerCase().includes("supin"))) {
                 val = -val;
             }
-
             return val;
         };
 
         const mapArcoDisplay = (s: string) => {
             if (!s) return "";
-            if (typeof s !== 'string') return s;
             if (s.includes("Baixo")) return "Baixo";
             if (s.includes("Médio")) return "Médio";
             if (s.includes("Alto")) return "Alto";
@@ -115,55 +94,31 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
 
         const mapBooleanToSimNao = (val: any) => val ? "Sim" : "Não";
 
-        // 3. Info - Enviando chaves em Duplicidade (CamelCase e lowercase) para garantir captura pelo dashboard
-        // [FIX] Flattening the body based on Cloud Function logs showing root-level extraction.
+        // 3. Info - Mandatory fields for the Cloud Function processing
         const info = {
             Nome_Paciente: (patientData.nome || "").toUpperCase(),
             Email_Paciente: (patientData.email || "").toLowerCase(),
             IdFisio: [activeUserEmail.toLowerCase()],
-
-            Cobertura: (orderData.general?.cobertura || "EVA Azul").replace(/\s/g, ""),
-            // 1. DADOS DE IDENTIFICAÇÃO E METADADOS
-            timestamp: timestamp,
+            LocalPedido: "AXIOM",
             orderDate: orderDate,
+            timestamp: timestamp,
             Email_paciente: (patientData.email || "").toLowerCase(),
             Email_fisio: (activeUserEmail || "").toLowerCase(),
             Nome_paciente: (patientData.nome || "").toUpperCase(),
             CPF: patientData.cpf || "",
 
-            // 2. BIOMECÂNICA - PÉ DIREITO (Várias nomenclaturas para segurança)
+            // Biomechanical Data (Optional but usually processed)
             Antepe_Dir: extractNumericValue(orderData.rightFoot?.antepe || ""),
             Retrope_Dir: extractNumericValue(orderData.rightFoot?.retrope || ""),
             Arco_Dir: mapArcoDisplay(orderData.rightFoot?.arco || ""),
             Elevacao_Dir: extractNumericValue(orderData.rightFoot?.elevacao || ""),
             Borda_Dir: orderData.rightFoot?.borda?.includes("Borda") ? "Borda" : "Não",
 
-            antepe_dir: extractNumericValue(orderData.rightFoot?.antepe || ""),
-            retrope_dir: extractNumericValue(orderData.rightFoot?.retrope || ""),
-            arco_dir: mapArcoDisplay(orderData.rightFoot?.arco || ""),
-            elevacao_dir: extractNumericValue(orderData.rightFoot?.elevacao || ""),
-            borda_dir: orderData.rightFoot?.borda?.includes("Borda") ? "Borda" : "Não",
-
-            // 3. BIOMECÂNICA - PÉ ESQUERDO (Várias nomenclaturas para segurança)
             Antepe_Esq: extractNumericValue(orderData.leftFoot?.antepe || ""),
             Retrope_Esq: extractNumericValue(orderData.leftFoot?.retrope || ""),
             Arco_Esq: mapArcoDisplay(orderData.leftFoot?.arco || ""),
             Elevacao_Esq: extractNumericValue(orderData.leftFoot?.elevacao || ""),
             Borda_Esq: orderData.leftFoot?.borda?.includes("Borda") ? "Borda" : "Não",
-
-            antepe_esq: extractNumericValue(orderData.leftFoot?.antepe || ""),
-            retrope_esq: extractNumericValue(orderData.leftFoot?.retrope || ""),
-            arco_esq: mapArcoDisplay(orderData.leftFoot?.arco || ""),
-            elevacao_esq: extractNumericValue(orderData.leftFoot?.elevacao || ""),
-            borda_esq: orderData.leftFoot?.borda?.includes("Borda") ? "Borda" : "Não",
-
-            // 4. ALÍVIOS, PADs E ABSORÇÃO
-            Alivio1_dir: orderData.rightFoot?.pads?.['Alívio 1º Metatarso'] ? "Sim" : "Não",
-            Alivio1_esq: orderData.leftFoot?.pads?.['Alívio 1º Metatarso'] ? "Sim" : "Não",
-            Alivio23_dir: orderData.rightFoot?.pads?.['Alívio 2/3º Metatarso'] ? "Sim" : "Não",
-            Alivio23_esq: orderData.leftFoot?.pads?.['Alívio 2/3º Metatarso'] ? "Sim" : "Não",
-            Alivio45_dir: orderData.rightFoot?.pads?.['Alívio 4/5º Metatarso'] ? "Sim" : "Não",
-            Alivio45_esq: orderData.leftFoot?.pads?.['Alívio 4/5º Metatarso'] ? "Sim" : "Não",
 
             barra_dir: orderData.rightFoot?.pads?.['Barra'] ? "Barra" : "Não",
             barra_esq: orderData.leftFoot?.pads?.['Barra'] ? "Barra" : "Não",
@@ -171,10 +126,8 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             absorcao_esq: (orderData.leftFoot?.absorcao?.includes("Absorção")) ? "Sim" : "Não",
             gota_perda: mapBooleanToSimNao(!!orderData.rightFoot?.pads?.['Gota'] || !!orderData.leftFoot?.pads?.['Gota']),
 
-            // 5. ARQUIVOS E IMAGENS
             fileE: orderData.fileE || "UExhY2Vob2xkZXI=",
-            fileD: orderData.fileD || "UExhY2Vob2xkZXI=",
-            Debug_Raw_Keys: Object.keys(orderData.rightFoot || {}).join(", ")
+            fileD: orderData.fileD || "UExhY2Vob2xkZXI="
         };
 
         console.log("📤 [sendOrderToPropulsao] PAYLOAD INFO:", JSON.stringify(info, null, 2));
@@ -190,8 +143,7 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             headers: headers,
             body: JSON.stringify({
                 ...info,
-                payload: base64Payload,
-                info: info // Keep it here too for double safety
+                payload: base64Payload
             }),
             cache: 'no-store'
         });

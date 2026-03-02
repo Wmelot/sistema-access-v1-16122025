@@ -110,6 +110,17 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
     const [deliveryDate, setDeliveryDate] = useState('')
     const [isRegisteringDelivery, setIsRegisteringDelivery] = useState(false)
 
+    // Sync back to parent form
+    useEffect(() => {
+        if (!form) return
+        const currentData = {
+            produto, tipoPalmilha, cobertura, tamanho,
+            leftFoot, rightFoot, reportText,
+            fileE, fileD
+        }
+        form.setValue("insole", currentData, { shouldDirty: true })
+    }, [produto, tipoPalmilha, cobertura, tamanho, leftFoot, rightFoot, reportText, fileE, fileD, form])
+
     // Update Helper
     const updateFoot = (side: 'left' | 'right', field: keyof FootConfig, value: any) => {
         const setter = side === 'left' ? setLeftFoot : setRightFoot
@@ -140,6 +151,21 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
 
         if (data.plan?.deliveryDate) {
             setDeliveryDate(data.plan.deliveryDate)
+        }
+
+        // LOAD PREVIOUSLY SAVED INSOLE CONFIG
+        if (data.insole) {
+            const i = data.insole
+            if (i.produto) setProduto(i.produto)
+            if (i.tipoPalmilha) setTipoPalmilha(i.tipoPalmilha)
+            if (i.cobertura) setCobertura(i.cobertura)
+            if (i.tamanho) setTamanho(i.tamanho)
+            if (i.leftFoot) setLeftFoot(i.leftFoot)
+            if (i.rightFoot) setRightFoot(i.rightFoot)
+            if (i.reportText) setReportText(i.reportText)
+            if (i.fileE) setFileE(i.fileE)
+            if (i.fileD) setFileD(i.fileD)
+            return // Skip automation if we have local data already
         }
 
         const shoeSize = Number(data.postural?.shoeSize)
@@ -647,34 +673,50 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                                             {isLoading ? <Loader2 className="animate-spin" /> : <>ENVIAR PARA FÁBRICA <Send className="ml-2 w-4 h-4" /></>}
                                         </Button>
                                     ) : (
-                                        <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-center text-green-800 text-sm">
-                                            {propulsaoStatus?.success ? (
-                                                <div className="mb-6 p-4 rounded-lg bg-green-50 border border-green-200 text-green-800 flex items-start gap-3 justify-between">
-                                                    <div className="flex gap-3">
-                                                        <CheckCircle className="w-5 h-5 mt-0.5" />
-                                                        <div>
-                                                            <h4 className="font-bold">Pedido Aceito pela Propulsão!</h4>
-                                                            <p className="text-sm text-green-700 mt-1">
-                                                                {propulsaoStatus?.orderNumber ? (
-                                                                    <>Pedido gerado: <span className="font-mono font-bold bg-green-100 px-1 rounded">#{propulsaoStatus.orderNumber}</span>. Os dados foram entregues à fábrica.</>
-                                                                ) : (
-                                                                    "Os dados criptografados foram entregues à fábrica."
-                                                                )}
-                                                            </p>
+                                        <div className="flex flex-col gap-3">
+                                            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-center text-green-800 text-sm">
+                                                {propulsaoStatus?.success ? (
+                                                    <div className="mb-2 p-2 rounded-lg bg-green-50 text-green-800 flex items-start gap-3 justify-between">
+                                                        <div className="flex gap-3">
+                                                            <CheckCircle className="w-5 h-5 mt-0.5" />
+                                                            <div className="text-left">
+                                                                <h4 className="font-bold">Pedido Aceito pela Propulsão!</h4>
+                                                                <p className="text-sm text-green-700 mt-1">
+                                                                    {propulsaoStatus?.orderNumber ? (
+                                                                        <>Pedido gerado: <span className="font-mono font-bold bg-green-100 px-1 rounded">#{propulsaoStatus.orderNumber}</span>. Os dados foram entregues à fábrica.</>
+                                                                    ) : (
+                                                                        "Os dados criptografados foram entregues à fábrica."
+                                                                    )}
+                                                                </p>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            ) : (
-                                                <p className="font-bold flex items-center justify-center gap-2">
-                                                    <CheckCircle2 className="w-4 h-4" />
-                                                    SALVO NO PRONTUÁRIO
-                                                </p>
-                                            )}
-                                            {propulsaoStatus && !propulsaoStatus.success && (
-                                                <p className="text-[10px] text-red-500 mt-1 font-medium italic">
-                                                    Erro no envio: {propulsaoStatus.error}
-                                                </p>
-                                            )}
+                                                ) : (
+                                                    <p className="font-bold flex items-center justify-center gap-2">
+                                                        <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                                        SALVO NO PRONTUÁRIO
+                                                    </p>
+                                                )}
+                                                {propulsaoStatus && !propulsaoStatus.success && (
+                                                    <p className="text-[10px] text-red-500 mt-1 font-medium italic">
+                                                        Erro no envio: {propulsaoStatus.error}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            <Button
+                                                variant="outline"
+                                                className="w-full font-bold border-blue-200 text-blue-700 hover:bg-blue-50 active:scale-95 transition-transform"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    console.log("Resetting order state...");
+                                                    setPropulsaoStatus(null);
+                                                    setIsSent(false);
+                                                }}
+                                            >
+                                                {propulsaoStatus?.success ? "NOVO PEDIDO / REPETIR" : "TENTAR NOVAMENTE"}
+                                            </Button>
                                         </div>
                                     )}
                                 </div>

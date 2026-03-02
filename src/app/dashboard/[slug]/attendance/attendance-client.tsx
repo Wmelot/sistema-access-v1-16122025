@@ -23,7 +23,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import QRCode from "react-qr-code"
 
+import { getLocalIp } from "@/actions/network"
 import { saveAttendanceRecord, finishAttendance, startAttendance, deleteAttendanceRecord, alignAppointmentService } from "@/actions/attendance"
 import { QuestionnairesTab } from "@/app/dashboard/[slug]/patients/components/QuestionnairesTab" // [UPDATED]
 import { FormRenderer } from "@/components/forms/FormRenderer"
@@ -51,6 +53,7 @@ import AdvancedSmartAssessment from "@/features/forms/smart-assessment/component
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
 import { formatPhoneDisplay } from '@/utils/format-phone'
+import RemoteMobileView from "./components/RemoteMobileView"
 
 const MySwal = withReactContent(Swal);
 
@@ -171,6 +174,7 @@ export function AttendanceClient({
     const ULTIMATE_PBE_ID = 'ultimate_pbe_system'
     const TREE_WIZARD_ID = 'tree_wizard_system'
     const PBE5_ID = 'pbe-5' // PBE 5.0 — Nova Geração
+    const PBE5_UUID = 'e0000000-0000-0000-0000-000000000010'
 
     // The "assessments" tab is for LISTING past assessments. The "evolution" tab is for PERFORMING the action (form).
     // So both modes use the 'evolution' tab to fill the form.
@@ -282,7 +286,19 @@ export function AttendanceClient({
     const [currentRecord, setCurrentRecord] = useState<any>(existingRecord)
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [isCreatingRecord, setIsCreatingRecord] = useState(false)
-    const [isFinishDialogOpen, setIsFinishDialogOpen] = useState(false) // [NEW]
+    const [isFinishDialogOpen, setIsFinishDialogOpen] = useState(false)
+    const [isQRModalOpen, setIsQRModalOpen] = useState(false)
+    const [localIpAddress, setLocalIpAddress] = useState<string | null>(null)
+    const isRemoteMode = searchParams.get('remote') === 'true'
+
+    // Fetch the computer's LAN IP for mobile scanning if on localhost
+    useEffect(() => {
+        if (isQRModalOpen && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+            getLocalIp().then((ip) => {
+                if (ip) setLocalIpAddress(ip)
+            })
+        }
+    }, [isQRModalOpen])
 
     // [NEW] Auto-open finish dialog when ?finish=true is in URL
     useEffect(() => {
@@ -509,7 +525,7 @@ export function AttendanceClient({
 
 
 
-        if (newTemplateId === SMART_ASSESSMENT_ID || newTemplateId === WOMENS_HEALTH_ID || newTemplateId === PALMILHA_V3_ID || newTemplateId === 'palmilha-5' || newTemplate?.title?.includes('Palmilha')) {
+        if (newTemplateId === PBE5_ID || newTemplateId === PBE5_UUID || newTemplateId === SMART_ASSESSMENT_ID || newTemplateId === WOMENS_HEALTH_ID || newTemplateId === PALMILHA_V3_ID || newTemplateId === 'palmilha-5' || newTemplate?.title?.includes('Palmilha')) {
             newRecordType = 'assessment'
         }
 
@@ -722,6 +738,21 @@ export function AttendanceClient({
 
     if (!mounted) return null
 
+    if (isRemoteMode) {
+        return (
+            <RemoteMobileView
+                patient={patient}
+                appointment={appointment}
+                currentRecord={currentRecord}
+                onUpdate={handleFocusUpdate}
+                onSave={async () => {
+                    await handleFocusSave('all', currentRecord.content, 'Sincronização Mobile');
+                }}
+                onClose={() => router.push(window.location.pathname)}
+            />
+        )
+    }
+
     return (
         <div className="h-[calc(100vh-4rem)] flex flex-col">
             {/* ... Header ... */}
@@ -778,6 +809,17 @@ export function AttendanceClient({
                                 <Stopwatch startTime={currentRecord?.created_at || appointment.updated_at || appointment.start_time} />
                             </div>
                         )}
+                        {/* Botão Conectar Mobile (FOTO 1/2) */}
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsQRModalOpen(true)}
+                            className="hidden lg:flex h-9 rounded-xl border-indigo-200 bg-indigo-50/30 text-indigo-700 hover:bg-indigo-100/50 hover:text-indigo-800 font-bold gap-2 px-4 shadow-sm"
+                        >
+                            <ScanFace className="w-4 h-4" />
+                            Conectar Celular
+                        </Button>
+
                         <Button
                             variant="default"
                             size="sm"
@@ -864,7 +906,7 @@ export function AttendanceClient({
                             {/* Card Header Design (FOTO 1/2 Style Integration) - Hidden on Desktop for Modern Forms (PBE/Palmilha 5) */}
                             <div className={cn(
                                 "bg-white border rounded-xl p-2.5 sm:p-3 mb-1.5 sm:mb-3 flex items-center justify-between shadow-sm",
-                                ['palmilha-5', 'e0000000-0000-0000-0000-000000000005', PBE5_ID].includes(selectedTemplateId) ? "lg:hidden" : ""
+                                ['palmilha-5', 'e0000000-0000-0000-0000-000000000005', PBE5_ID, PBE5_UUID].includes(selectedTemplateId) ? "lg:hidden" : ""
                             )}>
                                 <div className="flex items-center gap-3 overflow-hidden flex-1">
                                     <div className="h-10 w-10 bg-indigo-50 border border-indigo-100 rounded-lg hidden sm:flex items-center justify-center text-indigo-600">
@@ -877,7 +919,14 @@ export function AttendanceClient({
                                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
                                             Formulário
                                         </span>
-                                        <Select value={selectedTemplateId || undefined} onValueChange={handleTemplateChange}>
+                                        <Select
+                                            value={
+                                                selectedTemplateId === PBE5_UUID || selectedTemplateId === PBE5_ID ? PBE5_ID :
+                                                    selectedTemplateId === 'e0000000-0000-0000-0000-000000000005' || selectedTemplateId === 'palmilha-5' ? 'palmilha-5' :
+                                                        selectedTemplateId || undefined
+                                            }
+                                            onValueChange={handleTemplateChange}
+                                        >
                                             <SelectTrigger
                                                 id="attendance-template-select"
                                                 className="h-8 sm:h-9 py-1 px-3 w-full max-w-[200px] sm:max-w-[280px] bg-white border-slate-200 shadow-none rounded-lg text-xs sm:text-sm font-bold"
@@ -1081,7 +1130,7 @@ export function AttendanceClient({
                                         </Dialog>
 
                                         {/* ✅ PBE 5.0 — FORMULÁRIO PRINCIPAL */}
-                                        {(selectedTemplateId === PBE5_ID) ? (
+                                        {(selectedTemplateId === PBE5_ID || selectedTemplateId === PBE5_UUID) ? (
                                             <PBE5Form
                                                 patientId={patient.id}
                                                 initialData={currentRecord?.content}
@@ -1356,6 +1405,56 @@ export function AttendanceClient({
                 templateType={selectedTemplateId === PHYSICAL_ASSESSMENT_ID || selectedTemplate?.title === 'Avaliação Física Avançada' || selectedTemplateId === SMART_ASSESSMENT_ID ? 'smart' : 'default'}
             />
 
+            {/* QR Code Remote Connection Modal */}
+            <Dialog open={isQRModalOpen} onOpenChange={setIsQRModalOpen}>
+                <DialogContent className="max-w-sm rounded-[40px] p-8 border-none shadow-2xl bg-white text-center">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black text-slate-900 flex flex-col items-center gap-4">
+                            <div className="p-4 bg-indigo-100 rounded-[2rem] text-indigo-600">
+                                <ScanFace className="w-10 h-10" />
+                            </div>
+                            Captura Mobile QR
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-500 font-bold px-4">
+                            Escaneie para transformar seu celular em uma ferramenta de captura (Fotos e Voz).
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-8 flex flex-col items-center justify-center">
+                        <div className="p-6 bg-white border-8 border-indigo-50 rounded-[2.5rem] shadow-inner mb-6">
+                            <QRCode
+                                value={typeof window !== 'undefined' ? (
+                                    window.location.hostname === 'localhost' && localIpAddress
+                                        ? `http://${localIpAddress}:${window.location.port}${window.location.pathname}?remote=true`
+                                        : `${window.location.origin}${window.location.pathname}?remote=true`
+                                ) : ''}
+                                size={200}
+                                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                                viewBox={`0 0 256 256`}
+                                fgColor="#4f46e5"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-100 font-black px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest">
+                                Conexão Segura Ativa
+                            </Badge>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter text-center">
+                                Use a câmera do celular p/ conectar instantaneamente
+                            </p>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            variant="ghost"
+                            onClick={() => setIsQRModalOpen(false)}
+                            className="w-full h-12 rounded-2xl font-black text-slate-400 hover:text-slate-600"
+                        >
+                            FECHAR
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div >
     )
 }

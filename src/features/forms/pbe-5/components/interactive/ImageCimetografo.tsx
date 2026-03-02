@@ -19,8 +19,9 @@ interface Connection {
 interface Angle {
     p1: string;
     vertex: string;
-    p2: string;
+    p2?: string; // Optional if we use deviation
     label: string;
+    type?: 'standard' | 'deviation'; // standard=3 points, deviation=angle with vertical line at vertex
 }
 
 interface LevelCheck {
@@ -54,13 +55,13 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
 
     // Initialize points based on mode or saved data
     useEffect(() => {
-        if (savedPoints && savedPoints.length > 0) {
-            setPoints(savedPoints);
-            return;
-        }
+        let defaultPoints: Point[] = [];
+        let newConnections: Connection[] = [];
+        let newAngles: Angle[] = [];
+        let newLevelChecks: LevelCheck[] = [];
 
-        if (mode === 'posture_anterior' && points.length === 0) {
-            setPoints([
+        if (mode === 'posture_anterior') {
+            defaultPoints = [
                 { id: 'acromio_d', label: 'Acrômio D', x: 30, y: 30 },
                 { id: 'acromio_e', label: 'Acrômio E', x: 70, y: 30 },
                 { id: 'eias_d', label: 'EIAS D', x: 35, y: 60 },
@@ -69,8 +70,8 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
                 { id: 'joelho_e', label: 'Joelho E', x: 62, y: 80 },
                 { id: 'tornozelo_d', label: 'Tornozelo D', x: 40, y: 95 },
                 { id: 'tornozelo_e', label: 'Tornozelo E', x: 60, y: 95 },
-            ]);
-            setConnections([
+            ];
+            newConnections = [
                 { from: 'acromio_d', to: 'acromio_e' },
                 { from: 'eias_d', to: 'eias_e' },
                 { from: 'joelho_d', to: 'joelho_e' },
@@ -79,60 +80,60 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
                 { from: 'eias_e', to: 'joelho_e' },
                 { from: 'joelho_d', to: 'tornozelo_d' },
                 { from: 'joelho_e', to: 'tornozelo_e' },
-            ]);
-            setAngles([
+            ];
+            newAngles = [
                 { p1: 'eias_d', vertex: 'joelho_d', p2: 'tornozelo_d', label: 'Ângulo Joelho D' },
                 { p1: 'eias_e', vertex: 'joelho_e', p2: 'tornozelo_e', label: 'Ângulo Joelho E' }
-            ]);
-            setLevelChecks([
+            ];
+            newLevelChecks = [
                 { p1: 'acromio_d', p2: 'acromio_e' },
                 { p1: 'eias_d', p2: 'eias_e' },
                 { p1: 'joelho_d', p2: 'joelho_e' },
                 { p1: 'tornozelo_d', p2: 'tornozelo_e' }
-            ]);
-        } else if (mode === 'posture_posterior' && points.length === 0) {
-            setPoints([
+            ];
+        } else if (mode === 'posture_posterior') {
+            defaultPoints = [
                 { id: 'acromio_d', label: 'Acrômio D', x: 70, y: 30 },
                 { id: 'acromio_e', label: 'Acrômio E', x: 30, y: 30 },
                 { id: 'eips_d', label: 'EIPS D', x: 65, y: 60 },
                 { id: 'eips_e', label: 'EIPS E', x: 35, y: 60 },
-            ]);
-            setConnections([
+            ];
+            newConnections = [
                 { from: 'acromio_d', to: 'acromio_e' },
                 { from: 'eips_d', to: 'eips_e' },
                 { from: 'acromio_d', to: 'eips_d' },
                 { from: 'acromio_e', to: 'eips_e' }
-            ]);
-            setLevelChecks([
+            ];
+            newLevelChecks = [
                 { p1: 'acromio_d', p2: 'acromio_e' },
                 { p1: 'eips_d', p2: 'eips_e' }
-            ]);
-        } else if (mode === 'posture_lateral' && points.length === 0) {
-            setPoints([
+            ];
+        } else if (mode === 'posture_lateral') {
+            defaultPoints = [
                 { id: 'trago', label: 'Trago', x: 50, y: 15 },
                 { id: 'acromio', label: 'Acrômio', x: 50, y: 30 },
                 { id: 'trocanter', label: 'Trocanter', x: 50, y: 60 },
                 { id: 'maleolo', label: 'Maléolo', x: 50, y: 95 },
-            ]);
-            setConnections([
+            ];
+            newConnections = [
                 { from: 'trago', to: 'acromio' },
                 { from: 'acromio', to: 'trocanter' },
                 { from: 'trocanter', to: 'maleolo' },
-            ]);
-            setAngles([
+            ];
+            newAngles = [
                 { p1: 'trago', vertex: 'acromio', p2: 'trocanter', label: 'Alinhamento Cervico-Torácico' },
                 { p1: 'acromio', vertex: 'trocanter', p2: 'maleolo', label: 'Alinhamento Tronco-Membro' }
-            ]);
-        } else if (mode === 'lower_limb_anterior' && points.length === 0) {
-            setPoints([
-                { id: 'eias_d', label: 'EIAS D', x: 35, y: 40 },
-                { id: 'eias_e', label: 'EIAS E', x: 65, y: 40 },
+            ];
+        } else if (mode === 'lower_limb_anterior') {
+            defaultPoints = [
+                { id: 'eias_d', label: 'EIAS D / Pelve', x: 35, y: 40 },
+                { id: 'eias_e', label: 'EIAS E / Pelve', x: 65, y: 40 },
                 { id: 'joelho_d', label: 'Joelho D', x: 38, y: 70 },
                 { id: 'joelho_e', label: 'Joelho E', x: 62, y: 70 },
                 { id: 'tornozelo_d', label: 'Tornozelo D', x: 40, y: 95 },
                 { id: 'tornozelo_e', label: 'Tornozelo E', x: 60, y: 95 },
-            ]);
-            setConnections([
+            ];
+            newConnections = [
                 { from: 'eias_d', to: 'eias_e' },
                 { from: 'joelho_d', to: 'joelho_e' },
                 { from: 'tornozelo_d', to: 'tornozelo_e' },
@@ -140,26 +141,26 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
                 { from: 'eias_e', to: 'joelho_e' },
                 { from: 'joelho_d', to: 'tornozelo_d' },
                 { from: 'joelho_e', to: 'tornozelo_e' },
-            ]);
-            setAngles([
+            ];
+            newAngles = [
                 { p1: 'eias_d', vertex: 'joelho_d', p2: 'tornozelo_d', label: 'Ângulo Joelho D' },
                 { p1: 'eias_e', vertex: 'joelho_e', p2: 'tornozelo_e', label: 'Ângulo Joelho E' }
-            ]);
-            setLevelChecks([
+            ];
+            newLevelChecks = [
                 { p1: 'eias_d', p2: 'eias_e' },
                 { p1: 'joelho_d', p2: 'joelho_e' },
                 { p1: 'tornozelo_d', p2: 'tornozelo_e' }
-            ]);
-        } else if (mode === 'lower_limb_posterior' && points.length === 0) {
-            setPoints([
-                { id: 'eips_d', label: 'EIPS D', x: 65, y: 40 },
-                { id: 'eips_e', label: 'EIPS E', x: 35, y: 40 },
+            ];
+        } else if (mode === 'lower_limb_posterior') {
+            defaultPoints = [
+                { id: 'eips_d', label: 'EIPS D / Pelve', x: 65, y: 40 },
+                { id: 'eips_e', label: 'EIPS E / Pelve', x: 35, y: 40 },
                 { id: 'joelho_d', label: 'Joelho Post D', x: 62, y: 70 },
                 { id: 'joelho_e', label: 'Joelho Post E', x: 38, y: 70 },
                 { id: 'calcaneo_d', label: 'Calcâneo D', x: 60, y: 95 },
                 { id: 'calcaneo_e', label: 'Calcâneo E', x: 40, y: 95 },
-            ]);
-            setConnections([
+            ];
+            newConnections = [
                 { from: 'eips_d', to: 'eips_e' },
                 { from: 'joelho_d', to: 'joelho_e' },
                 { from: 'calcaneo_d', to: 'calcaneo_e' },
@@ -167,27 +168,38 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
                 { from: 'eips_e', to: 'joelho_e' },
                 { from: 'joelho_d', to: 'calcaneo_d' },
                 { from: 'joelho_e', to: 'calcaneo_e' },
-            ]);
-            setLevelChecks([
+            ];
+            newLevelChecks = [
                 { p1: 'eips_d', p2: 'eips_e' },
                 { p1: 'joelho_d', p2: 'joelho_e' },
                 { p1: 'calcaneo_d', p2: 'calcaneo_e' }
-            ]);
-        } else if (mode === 'hindfoot' && points.length === 0) {
-            setPoints([
+            ];
+        } else if (mode === 'hindfoot') {
+            defaultPoints = [
                 { id: 'panturrilha', label: 'Centro da Panturrilha', x: 50, y: 55 },
                 { id: 'talus', label: 'Tálus', x: 50, y: 75 },
                 { id: 'calcaneo', label: 'Centro do Calcâneo', x: 50, y: 90 },
-            ]);
-            setConnections([
+            ];
+            newConnections = [
                 { from: 'panturrilha', to: 'talus' },
                 { from: 'talus', to: 'calcaneo' },
-            ]);
-            setAngles([
-                { p1: 'panturrilha', vertex: 'talus', p2: 'calcaneo', label: 'Ângulo de Retropé' }
-            ]);
+            ];
+            newAngles = [
+                { p1: 'talus', vertex: 'talus', p2: 'calcaneo', type: 'deviation', label: 'Eversão/Inversão' } // Changed to vertical deviation
+            ];
         }
-    }, [mode, points.length]);
+
+        setConnections(newConnections);
+        setAngles(newAngles);
+        setLevelChecks(newLevelChecks);
+
+        // Somente aplicamos pontos default se não houver savedPoints
+        if (savedPoints && savedPoints.length > 0) {
+            setPoints(savedPoints);
+        } else if (points.length === 0) {
+            setPoints(defaultPoints);
+        }
+    }, [mode, savedPoints]);
 
     // Redraw connections and angles
     useEffect(() => {
@@ -279,29 +291,50 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
 
         // Calculate and Draw Angles
         angles.forEach(angleInfo => {
-            if ((angleInfo as any).isLineIntersection) {
-                // Special case for Hindfoot (Angle between two lines)
-                const a = getPoint((angleInfo as any).p1);
-                const b = getPoint((angleInfo as any).line1);
-                const c = getPoint((angleInfo as any).line2);
-                const d = getPoint((angleInfo as any).p2);
-                if (a && b && c && d) {
-                    const a1 = Math.atan2(b.y - a.y, b.x - a.x);
-                    const a2 = Math.atan2(d.y - c.y, d.x - c.x);
-                    let ang = Math.abs((a1 - a2) * (180 / Math.PI));
-                    // Normalize to sharp angle
-                    if (ang > 180) ang = 360 - ang;
-                    if (ang > 90) ang = 180 - ang;
+            if (angleInfo.type === 'deviation') {
+                const vertex = getPoint(angleInfo.vertex);
+                const p2 = getPoint(angleInfo.p2!);
 
-                    ctx.fillStyle = '#f8fafc';
+                if (vertex && p2) {
+                    const vx = getPx(vertex.x, rect.width), vy = getPx(vertex.y, rect.height);
+                    const x2 = getPx(p2.x, rect.width), y2 = getPx(p2.y, rect.height);
+
+                    // Vertical line fixed
+                    ctx.beginPath();
+                    ctx.setLineDash([5, 5]);
+                    ctx.moveTo(vx, vy);
+                    ctx.lineTo(vx, vy - 100);
+                    ctx.lineTo(vx, vy + 100);
+                    ctx.strokeStyle = '#94a3b8';
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // Calculate deviation angle from vertical
+                    const angleRad = Math.atan2(x2 - vx, y2 - vy); // relative to vertical Y
+                    let deviationDeg = angleRad * (180 / Math.PI);
+                    deviationDeg = Math.abs(deviationDeg); // keep it positive for display
+
+                    // Draw Text
+                    ctx.fillStyle = '#ffffff';
                     ctx.font = 'bold 12px Inter';
-                    ctx.fillText(`${ang.toFixed(1)}°`, getPx(c.x, rect.width) + 15, getPx(c.y, rect.height));
+                    const txt = `${deviationDeg.toFixed(1)}°`;
+                    const tw = ctx.measureText(txt).width;
+                    let tx = vx + 15;
+                    let ty = vy + 15;
+
+                    ctx.fillStyle = '#2563eb'; // blue bg
+                    ctx.beginPath();
+                    ctx.roundRect(tx - 4, ty - 12, tw + 8, 16, 4);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(txt, tx, ty);
                 }
             } else {
                 // Standard 3-point angle
                 const p1 = getPoint(angleInfo.p1);
                 const vertex = getPoint(angleInfo.vertex);
-                const p2 = getPoint(angleInfo.p2);
+                const p2 = getPoint(angleInfo.p2!);
 
                 if (p1 && vertex && p2) {
                     const x1 = getPx(p1.x, rect.width), y1 = getPx(p1.y, rect.height);
@@ -325,7 +358,6 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
                     ctx.fillStyle = '#ffffff';
                     ctx.font = 'bold 12px Inter';
 
-                    // Background pill for text
                     const txt = `${Math.round(angleDeg)}°`;
                     const tw = ctx.measureText(txt).width;
                     let tx = vx + 25;
@@ -432,81 +464,181 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
 
     // Function to generate a flattened base64 with the canvas drawings
     const finalize = () => {
-        if (!onFinalize || !imageRef.current || !canvasRef.current) return;
+        if (!onFinalize || !imageRef.current || !containerRef.current || !canvasRef.current) return;
 
         const img = imageRef.current;
+        const container = containerRef.current;
         const mainCanvas = canvasRef.current;
 
-        // Create a temporary canvas with the image's natural dimensions
         const offscreen = document.createElement('canvas');
         offscreen.width = img.naturalWidth;
         offscreen.height = img.naturalHeight;
         const octx = offscreen.getContext('2d');
         if (!octx) return;
 
-        // 1. Draw original image
-        octx.drawImage(img, 0, 0);
+        const Iw = img.naturalWidth;
+        const Ih = img.naturalHeight;
+        const rect = container.getBoundingClientRect();
+        const Cw = rect.width;
+        const Ch = rect.height;
 
-        // 2. Draw lines and angles at natural scale
-        const scaleX = img.naturalWidth / mainCanvas.width;
-        const scaleY = img.naturalHeight / mainCanvas.height;
+        // 1. Manually calculate 'object-contain' rendered size & offsets
+        // This is necessary because img.getBoundingClientRect() returns the element box, not the pixels
+        const k = Math.min(Cw / Iw, Ch / Ih);
+        const Dw = Iw * k;
+        const Dh = Ih * k;
+        const offsetX = (Cw - Dw) / 2;
+        const offsetY = (Ch - Dh) / 2;
 
-        // Helper to get raw coordinates at natural scale
-        const getPxX = (percent: number) => (percent / 100) * img.naturalWidth;
-        const getPxY = (percent: number) => (percent / 100) * img.naturalHeight;
+        const s = Math.max(1, 1 / k); // Relative scale for lines
+
+        const getNatX = (percent: number) => (((percent / 100) * Cw) - offsetX) / k;
+        const getNatY = (percent: number) => (((percent / 100) * Ch) - offsetY) / k;
+
         const getPoint = (id: string) => points.find(p => p.id === id);
 
+        // 1. Draw original image
+        octx.fillStyle = '#ffffff';
+        octx.fillRect(0, 0, Iw, Ih);
+        octx.drawImage(img, 0, 0, Iw, Ih);
+
         // Connections
-        octx.lineWidth = 2 * scaleX;
+        octx.lineWidth = 2 * s;
         octx.strokeStyle = '#ef4444';
         connections.forEach(conn => {
             const p1 = getPoint(conn.from);
             const p2 = getPoint(conn.to);
             if (p1 && p2) {
                 octx.beginPath();
-                octx.moveTo(getPxX(p1.x), getPxY(p1.y));
-                octx.lineTo(getPxX(p2.x), getPxY(p2.y));
+                octx.moveTo(getNatX(p1.x), getNatY(p1.y));
+                octx.lineTo(getNatX(p2.x), getNatY(p2.y));
                 octx.stroke();
             }
         });
 
-        // Angles
-        angles.forEach(angleInfo => {
-            const p1 = getPoint(angleInfo.p1);
-            const vertex = getPoint(angleInfo.vertex);
-            const p2 = getPoint(angleInfo.p2);
+        // Level Checks
+        octx.setLineDash([10 * s, 10 * s]);
+        levelChecks.forEach(lvl => {
+            const p1 = getPoint(lvl.p1);
+            const p2 = getPoint(lvl.p2);
+            if (p1 && p2) {
+                const x1 = getNatX(p1.x);
+                const y1 = getNatY(p1.y);
+                const x2 = getNatX(p2.x);
+                const y2 = getNatY(p2.y);
 
-            if (p1 && vertex && p2) {
-                const x1 = getPxX(p1.x), y1 = getPxY(p1.y);
-                const vx = getPxX(vertex.x), vy = getPxY(vertex.y);
-                const x2 = getPxX(p2.x), y2 = getPxY(p2.y);
+                const cx = (x1 + x2) / 2;
+                const cy = (y1 + y2) / 2;
+                const width = Math.abs(x2 - x1) + (60 * s);
 
-                const angle1 = Math.atan2(y1 - vy, x1 - vx);
-                const angle2 = Math.atan2(y2 - vy, x2 - vx);
-                let angleDeg = Math.abs(angle1 - angle2) * (180 / Math.PI);
-                if (angleDeg > 180) angleDeg = 360 - angleDeg;
-
-                // Arc
+                octx.strokeStyle = '#94a3b8'; // slate-400
+                octx.lineWidth = 1.5 * s;
                 octx.beginPath();
-                octx.arc(vx, vy, 20 * scaleX, Math.min(angle1, angle2), Math.max(angle1, angle2));
-                octx.strokeStyle = '#fbbf24';
-                octx.lineWidth = 4 * scaleX;
+                octx.moveTo(cx - width / 2, cy);
+                octx.lineTo(cx + width / 2, cy);
                 octx.stroke();
 
-                // Text
-                const txt = `${Math.round(angleDeg)}°`;
-                octx.font = `bold ${14 * scaleX}px Inter`;
-                const tw = octx.measureText(txt).width;
-                let tx = vx + 25 * scaleX;
-                let ty = vy - 10 * scaleY;
+                const angleRad = Math.atan2(Math.abs(y2 - y1), Math.abs(x2 - x1));
+                let angleDeg = angleRad * (180 / Math.PI);
 
-                octx.fillStyle = '#2563eb';
-                octx.beginPath();
-                octx.roundRect(tx - 4 * scaleX, ty - 14 * scaleY, tw + 8 * scaleX, 18 * scaleY, 4 * scaleX);
-                octx.fill();
+                const leftPoint = x1 < x2 ? p1 : p2;
+                const rightPoint = x1 < x2 ? p2 : p1;
+                const higherMsg = leftPoint.y < rightPoint.y ? 'Elev. Esq' : 'Elev. Dir';
 
-                octx.fillStyle = '#ffffff';
-                octx.fillText(txt, tx, ty);
+                octx.font = `bold ${12 * s}px Inter`;
+                if (angleDeg > 1.0) {
+                    const txt = `${angleDeg.toFixed(1)}° (${higherMsg})`;
+                    const tw = octx.measureText(txt).width;
+
+                    octx.fillStyle = '#fef2f2';
+                    octx.beginPath();
+                    octx.roundRect(cx - tw / 2 - (4 * s), cy - (20 * s), tw + (8 * s), (18 * s), (4 * s));
+                    octx.fill();
+
+                    octx.fillStyle = '#ef4444';
+                    octx.fillText(txt, cx - tw / 2, cy - (6 * s));
+                } else {
+                    const txt = "Alinhado";
+                    const tw = octx.measureText(txt).width;
+                    octx.fillStyle = '#10b981';
+                    octx.fillText(txt, cx - tw / 2, cy - (6 * s));
+                }
+            }
+        });
+        octx.setLineDash([]);
+
+        // Angles
+        angles.forEach(angleInfo => {
+            if (angleInfo.type === 'deviation') {
+                const vertex = getPoint(angleInfo.vertex);
+                const p2 = getPoint(angleInfo.p2!);
+
+                if (vertex && p2) {
+                    const vx = getNatX(vertex.x), vy = getNatY(vertex.y);
+                    const x2 = getNatX(p2.x), y2 = getNatY(p2.y);
+
+                    octx.beginPath();
+                    octx.setLineDash([5 * s, 5 * s]);
+                    octx.moveTo(vx, vy);
+                    octx.lineTo(vx, vy - (100 * s));
+                    octx.lineTo(vx, vy + (100 * s));
+                    octx.strokeStyle = '#94a3b8';
+                    octx.lineWidth = 2 * s;
+                    octx.stroke();
+                    octx.setLineDash([]);
+
+                    const angleRad = Math.atan2(x2 - vx, y2 - vy);
+                    let deviationDeg = Math.abs(angleRad * (180 / Math.PI));
+
+                    const txt = `${deviationDeg.toFixed(1)}°`;
+                    octx.font = `bold ${14 * s}px Inter`;
+                    const tw = octx.measureText(txt).width;
+                    let tx = vx + (15 * s);
+                    let ty = vy + (15 * s);
+
+                    octx.fillStyle = '#2563eb';
+                    octx.beginPath();
+                    octx.roundRect(tx - (4 * s), ty - (14 * s), tw + (8 * s), (18 * s), (4 * s));
+                    octx.fill();
+
+                    octx.fillStyle = '#ffffff';
+                    octx.fillText(txt, tx, ty);
+                }
+            } else {
+                const p1 = getPoint(angleInfo.p1);
+                const vertex = getPoint(angleInfo.vertex);
+                const p2 = getPoint(angleInfo.p2!);
+
+                if (p1 && vertex && p2) {
+                    const x1 = getNatX(p1.x), y1 = getNatY(p1.y);
+                    const vx = getNatX(vertex.x), vy = getNatY(vertex.y);
+                    const x2 = getNatX(p2.x), y2 = getNatY(p2.y);
+
+                    const angle1 = Math.atan2(y1 - vy, x1 - vx);
+                    const angle2 = Math.atan2(y2 - vy, x2 - vx);
+                    let angleDeg = Math.abs(angle1 - angle2) * (180 / Math.PI);
+                    if (angleDeg > 180) angleDeg = 360 - angleDeg;
+
+                    octx.beginPath();
+                    octx.arc(vx, vy, 20 * s, Math.min(angle1, angle2), Math.max(angle1, angle2));
+                    octx.strokeStyle = '#fbbf24';
+                    octx.lineWidth = 4 * s;
+                    octx.stroke();
+
+                    const txt = `${Math.round(angleDeg)}°`;
+                    octx.font = `bold ${14 * s}px Inter`;
+                    const tw = octx.measureText(txt).width;
+                    let tx = vx + (25 * s);
+                    let ty = vy - (10 * s);
+
+                    octx.fillStyle = '#2563eb';
+                    octx.beginPath();
+                    octx.roundRect(tx - (4 * s), ty - (14 * s), tw + (8 * s), (18 * s), (4 * s));
+                    octx.fill();
+
+                    octx.fillStyle = '#ffffff';
+                    octx.fillText(txt, tx, ty);
+                }
             }
         });
 
@@ -562,13 +694,13 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
                                 "absolute w-6 h-6 -ml-3 -mt-3 rounded-full border-2 cursor-grab active:cursor-grabbing flex items-center justify-center transition-all duration-300 z-30",
                                 isInteracting
                                     ? "bg-red-500 border-white scale-125 z-50 shadow-lg shadow-red-500/50 opacity-100"
-                                    : "bg-white/20 border-white/40 opacity-0 hover:opacity-100" // Hidden by default, appears on hover
+                                    : "bg-white/40 border-white/60 hover:opacity-100" // Visível mas discrêto
                             )}
                             style={{ left: `${p.x}%`, top: `${p.y}%` }}
                         >
                             <div className={cn(
                                 "w-1.5 h-1.5 rounded-full transition-colors",
-                                isInteracting ? "bg-white" : "bg-red-500 shadow-sm"
+                                isInteracting ? "bg-white" : "bg-red-600 shadow-sm"
                             )} />
 
                             {/* Permanent Label if interacting */}

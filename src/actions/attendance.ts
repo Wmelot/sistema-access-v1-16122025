@@ -278,6 +278,7 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
         'tree_wizard_system': 'e0000000-0000-0000-0000-000000000007',
         'pbe_concept_system': 'e0000000-0000-0000-0000-000000000008',
         'diabetic_foot_system': 'e0000000-0000-0000-0000-000000000009',
+        'pbe-5': 'e0000000-0000-0000-0000-000000000010',
     };
 
     const toUUID = (id: any) => {
@@ -586,7 +587,7 @@ export async function alignAppointmentService(appointmentId: string, templateId:
             targetServiceName = "Consulta palmilha"
         } else if (templateId === WOMENS_HEALTH_ID) {
             targetServiceName = "Consulta fisioterapia pélvica"
-        } else if ([SMART_ASSESSMENT_ID, ULTIMATE_PBE_ID, TREE_WIZARD_ID, PHYSICAL_ASSESSMENT_ID, 'pbe_concept_system', 'diabetic_foot_system'].includes(templateId)) {
+        } else if ([SMART_ASSESSMENT_ID, ULTIMATE_PBE_ID, TREE_WIZARD_ID, PHYSICAL_ASSESSMENT_ID, 'pbe_concept_system', 'diabetic_foot_system', 'e0000000-0000-0000-0000-000000000010'].includes(templateId)) {
             targetServiceName = "Consulta fisioterapia"
         } else if (templateId === CLINICAL_EVOLUTION_ID || templateId === SYSTEM_EVOLUTION_ID) {
             targetServiceName = "Atendimento de fisioterapia"

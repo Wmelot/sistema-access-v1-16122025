@@ -297,7 +297,14 @@ export default function PBE5Form({
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2 block">
                             Modelo de Avaliação
                         </span>
-                        <Select value={selectedTemplateId || PBE5_ID} onValueChange={onTemplateChange}>
+                        <Select
+                            value={
+                                selectedTemplateId === 'e0000000-0000-0000-0000-000000000010' || selectedTemplateId === PBE5_ID ? PBE5_ID :
+                                    selectedTemplateId === 'e0000000-0000-0000-0000-000000000005' || selectedTemplateId === 'palmilha-5' ? 'palmilha-5' :
+                                        selectedTemplateId || PBE5_ID
+                            }
+                            onValueChange={onTemplateChange}
+                        >
                             <SelectTrigger className="h-10 w-full bg-slate-50 border-slate-100 shadow-none rounded-2xl text-xs font-bold">
                                 <SelectValue placeholder="Selecionar" />
                             </SelectTrigger>
