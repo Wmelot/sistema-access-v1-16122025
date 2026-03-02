@@ -345,6 +345,26 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
             _record_type: finalRecordType || 'evolution'
         }
 
+        // [FIX] Auto-seed missing system templates on Vercel/Prod if they don't exist
+        if (finalTemplateId && finalTemplateId.startsWith('e0000000-0000-0000-0000-')) {
+            const { count } = await adminSupabase
+                .from('form_templates')
+                .select('*', { count: 'exact', head: true })
+                .eq('id', finalTemplateId);
+
+            if (count === 0) {
+                const key = Object.keys(SYSTEM_UUID_MAP).find(k => SYSTEM_UUID_MAP[k] === finalTemplateId) || 'Template de Sistema';
+                await adminSupabase.from('form_templates').insert({
+                    id: finalTemplateId,
+                    title: key.toUpperCase(),
+                    type: finalRecordType || 'assessment',
+                    is_active: true,
+                    description: 'Template nativo auto-gerado pelo sistema.',
+                    organization_id: orgId // Usamos a org local para vincular
+                });
+            }
+        }
+
         if (effectiveRecordId) {
             // Check 24h Lock (LGPD) - Usando Admin para leitura mas respeitando a lógica
             const { data: existingRecord } = await adminSupabase

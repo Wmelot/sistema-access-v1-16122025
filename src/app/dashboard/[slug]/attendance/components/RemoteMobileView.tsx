@@ -1,13 +1,25 @@
 "use client";
 
 import React, { useState } from "react";
-import { Mic, Camera, LayoutGrid, Check, ArrowLeft, Loader2, Sparkles, Database, Save } from "lucide-react";
+import { Mic, Camera, LayoutGrid, Check, ArrowLeft, Loader2, Sparkles, Database, Save, Info, Video } from "lucide-react";
+import { VideoFrameGrabberModal } from "@/components/ui/video-frame-grabber";
+import { AxiomNivelCamera } from "@/components/ui/axiom-nivel-camera";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AxiomCopilot } from "@/components/copilot/AxiomCopilot";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useForm, FormProvider } from "react-hook-form";
+
+const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = error => reject(error);
+    });
+};
 
 interface RemoteMobileViewProps {
     patient: any;
@@ -30,6 +42,29 @@ export default function RemoteMobileView({
 }: RemoteMobileViewProps) {
     const [isSaving, setIsSaving] = useState(false);
     const [view, setView] = useState<'hub' | 'copilot' | 'camera'>('hub');
+    const [isGrabberOpen, setIsGrabberOpen] = useState(false);
+
+    // Nivel Camera State
+    const [isNivelOpen, setIsNivelOpen] = useState(false);
+    const [activeNivelSlot, setActiveNivelSlot] = useState<{ id: string, label: string } | null>(null);
+
+    const methods = useForm({
+        defaultValues: {
+            qp: currentRecord?.content?.qp || "",
+            ...currentRecord?.content
+        }
+    });
+
+    // Keep parent updated with Copilot voice changes (e.g., QP, regions)
+    React.useEffect(() => {
+        const subscription = methods.watch((value, { name }) => {
+            if (name) {
+                // If it changes, sync upward so when we save we have the freshest data
+                onUpdate(name, methods.getValues(name));
+            }
+        });
+        return () => subscription.unsubscribe();
+    }, [methods, onUpdate]);
 
     const handleInternalSave = async () => {
         setIsSaving(true);
@@ -97,47 +132,98 @@ export default function RemoteMobileView({
                     </button>
 
                     <div className="p-4 bg-white rounded-[2.5rem] border border-slate-100 shadow-inner">
-                        <AxiomCopilot
-                            basePath={basePath}
-                            compact={true}
-                            onStatusChange={(isListening) => {
-                                if (!isListening) handleInternalSave();
-                            }}
-                        />
+                        <FormProvider {...methods}>
+                            <AxiomCopilot
+                                basePath={basePath}
+                                compact={true}
+                                onStatusChange={(isListening) => {
+                                    if (!isListening) handleInternalSave();
+                                }}
+                            />
+                        </FormProvider>
                     </div>
 
-                    {/* 2. Captura Postural (Camera) */}
-                    <button
-                        className="w-full bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-lg flex items-center justify-between group active:scale-95 transition-transform overflow-hidden relative"
-                    >
-                        <div className="flex items-center gap-6">
-                            <div className="h-16 w-16 bg-purple-50 rounded-[1.5rem] flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors shadow-sm">
-                                <Camera className="h-8 w-8" />
+                    {/* 2. Captura Postural (Camera) Menu Toggle */}
+                    {view === 'hub' ? (
+                        <button
+                            onClick={() => setView('camera')}
+                            className="w-full bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-lg flex items-center justify-between group active:scale-95 transition-transform relative"
+                        >
+                            <div className="flex items-center gap-6">
+                                <div className="h-16 w-16 bg-purple-50 rounded-[1.5rem] flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors shadow-sm">
+                                    <Camera className="h-8 w-8" />
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="text-lg font-black text-slate-800 leading-none">Câmera e Mídia</h3>
+                                    <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-tighter">Escolher campo para foto/vídeo</p>
+                                </div>
                             </div>
-                            <div className="text-left">
-                                <h3 className="text-lg font-black text-slate-800 leading-none">Fotos de Postura</h3>
-                                <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-tighter">Anterior, Posterior, Perfil</p>
+                            <LayoutGrid className="h-5 w-5 text-purple-400 group-hover:scale-125 transition-transform" />
+                        </button>
+                    ) : (
+                        <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-inner space-y-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Selecionar Campo</h3>
+                                <Button variant="ghost" size="sm" onClick={() => setView('hub')} className="text-slate-400 hover:text-slate-600 uppercase text-[10px] font-bold">Voltar</Button>
                             </div>
+                            {[
+                                { id: 'posture.photos.anterior', label: 'Postura Anterior', icon: Camera, color: 'text-blue-500', accept: 'image/*' },
+                                { id: 'posture.photos.posterior', label: 'Postura Posterior', icon: Camera, color: 'text-blue-500', accept: 'image/*' },
+                                { id: 'posture.photos.left', label: 'Perfil Esquerdo', icon: Camera, color: 'text-indigo-500', accept: 'image/*' },
+                                { id: 'posture.photos.right', label: 'Perfil Direito', icon: Camera, color: 'text-indigo-500', accept: 'image/*' },
+                                { id: 'movement.gaitPhotos.midstance_left', label: 'Marcha (Apoio E)', title: 'Retropé', icon: Camera, color: 'text-emerald-500', accept: 'image/*' },
+                                { id: 'movement.gaitPhotos.midstance_right', label: 'Marcha (Apoio D)', title: 'Retropé', icon: Camera, color: 'text-emerald-500', accept: 'image/*' },
+                                { id: 'movement.gaitPhotos.running_heel_strike', label: 'Corrida (Retropé)', icon: Camera, color: 'text-emerald-500', accept: 'image/*' },
+                            ].map((slot) => (
+                                <div key={slot.id} className="relative w-full bg-slate-50 p-4 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between overflow-hidden active:scale-95 transition-transform">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 bg-white rounded-2xl flex items-center justify-center shadow-sm">
+                                            <slot.icon className={`h-5 w-5 ${slot.color}`} />
+                                        </div>
+                                        <div>
+                                            {slot.title && <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{slot.title}</p>}
+                                            <h4 className="text-xs font-black text-slate-700 uppercase">{slot.label}</h4>
+                                        </div>
+                                    </div>
+                                    {currentRecord?.content?.[slot.id.split('.')[0]]?.[slot.id.split('.')[1]]?.[slot.id.split('.')[2]] && (
+                                        <Check className="h-5 w-5 text-emerald-500" />
+                                    )}
+                                    {/* Use Axiom Nivel Camera for Photos */}
+                                    <button
+                                        onClick={() => {
+                                            setActiveNivelSlot({ id: slot.id, label: slot.label });
+                                            setIsNivelOpen(true);
+                                        }}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        title={`Abrir Câmera para ${slot.label}`}
+                                    />
+                                </div>
+                            ))}
+                            <div className="mt-4 p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex gap-3">
+                                <Info className="h-4 w-4 text-indigo-500 shrink-0 mt-0.5" />
+                                <p className="text-[10px] text-indigo-700 font-bold leading-relaxed">
+                                    Tire a foto usando este celular e ela aparecerá instantaneamente no PBE 5.0 aberto no computador.
+                                </p>
+                            </div>
+
+                            <hr className="my-2 border-slate-100" />
+
+                            <button
+                                onClick={() => setIsGrabberOpen(true)}
+                                className="w-full bg-emerald-50 p-6 rounded-[2rem] border border-emerald-100 shadow-sm flex items-center justify-between group active:scale-95 transition-transform"
+                            >
+                                <div className="flex items-center gap-5">
+                                    <div className="h-12 w-12 bg-white rounded-[1rem] flex items-center justify-center text-emerald-600 shadow-sm">
+                                        <Video className="h-6 w-6" />
+                                    </div>
+                                    <div className="text-left">
+                                        <h4 className="text-sm font-black text-emerald-700 uppercase">Extrair de Vídeo</h4>
+                                        <p className="text-[10px] font-bold text-emerald-600/70 mt-0.5 uppercase tracking-widest">Grave e fatie os quadros</p>
+                                    </div>
+                                </div>
+                            </button>
                         </div>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            capture="environment"
-                            className="absolute inset-0 opacity-0 cursor-pointer"
-                            onChange={async (e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                    toast.loading("Subindo foto para o computador...");
-                                    // Future: Real upload to storage
-                                    // For now, let's just toast
-                                    setTimeout(() => {
-                                        toast.dismiss();
-                                        toast.success("Foto enviada com sucesso!");
-                                    }, 2000);
-                                }
-                            }}
-                        />
-                    </button>
+                    )}
                 </div>
 
                 {/* Quick Info Field */}
@@ -163,6 +249,48 @@ export default function RemoteMobileView({
                     {isSaving ? "Sincronizando..." : "Sincronizar Dados"}
                 </Button>
             </footer>
+
+            <VideoFrameGrabberModal
+                open={isGrabberOpen}
+                onClose={() => setIsGrabberOpen(false)}
+                slots={[
+                    { id: 'movement.gaitPhotos.midstance_left', label: 'Apoio Médio (Pé E)', value: currentRecord?.content?.movement?.gaitPhotos?.midstance_left || null },
+                    { id: 'movement.gaitPhotos.midstance_right', label: 'Apoio Médio (Pé D)', value: currentRecord?.content?.movement?.gaitPhotos?.midstance_right || null },
+                    { id: 'movement.gaitPhotos.running_heel_strike', label: 'Corrida (Retropé)', value: currentRecord?.content?.movement?.gaitPhotos?.running_heel_strike || null },
+                ]}
+                onCaptureToSlot={async (id, base64) => {
+                    const loadingToast = toast.loading("Processando frame...");
+                    try {
+                        onUpdate(id, base64);
+                        await handleInternalSave();
+                        toast.success("Frame extraído e salvo no computador!", { id: loadingToast });
+                    } catch (err) {
+                        toast.error("Falha ao salvar frame.", { id: loadingToast });
+                    }
+                }}
+            />
+
+            {/* Axiom Nivel 3D Camera */}
+            <AxiomNivelCamera
+                open={isNivelOpen}
+                onClose={() => {
+                    setIsNivelOpen(false);
+                    setActiveNivelSlot(null);
+                }}
+                title={activeNivelSlot?.label || "Captura"}
+                onCapture={async (base64: string) => {
+                    if (activeNivelSlot) {
+                        const loadingToast = toast.loading(`Salvando ${activeNivelSlot.label}...`);
+                        try {
+                            onUpdate(activeNivelSlot.id, base64);
+                            await handleInternalSave();
+                            toast.success("Foto salva e calibrada em 90 graus!", { id: loadingToast });
+                        } catch (err) {
+                            toast.error("Erro ao salvar foto calibrada.", { id: loadingToast });
+                        }
+                    }
+                }}
+            />
         </div>
     );
 }
