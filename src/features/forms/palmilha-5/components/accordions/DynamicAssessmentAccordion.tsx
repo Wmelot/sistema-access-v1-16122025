@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { TimerReset, Footprints, Info } from "lucide-react";
+import { TimerReset, Footprints, Info, Video } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label as FormLabel } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -181,9 +181,19 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
 
                 {/* AGACHAMENTO UNIPODAL */}
                 <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-6 shadow-sm">
-                    <h4 className="font-bold text-slate-700 text-sm flex items-center gap-2">
-                        Agachamento Unipodal
-                    </h4>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                        <h4 className="font-bold text-slate-700 text-sm flex items-center gap-2">
+                            Agachamento Unipodal
+                        </h4>
+                        <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setGrabberMode("squat"); }}
+                            className="text-[10px] bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors px-3 py-1.5 rounded uppercase font-black tracking-widest flex items-center justify-center gap-2 shadow-sm w-fit shrink-0"
+                            title="Abrir Laboratório de Fatiamento"
+                        >
+                            <Video className="w-4 h-4" />
+                            Vídeo Laboratório
+                        </button>
+                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 divide-y md:divide-y-0 md:divide-x divide-slate-100">
                         {/* Lado Esquerdo */}
@@ -310,7 +320,17 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
 
                 {/* FOTOS DE MARCHA */}
                 <div className="p-5 bg-slate-50 border border-slate-100 rounded-xl shadow-sm">
-                    <h4 className="font-bold text-slate-700 text-sm mb-4">Análise Mecânica da Marcha 2D (Fases)</h4>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                        <h4 className="font-bold text-slate-700 text-sm">Análise Mecânica da Marcha 2D (Fases)</h4>
+                        <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setGrabberMode("gait"); }}
+                            className="text-[10px] bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors px-3 py-1.5 rounded uppercase font-black tracking-widest flex items-center justify-center gap-2 shadow-sm w-fit shrink-0"
+                            title="Abrir Laboratório de Fatiamento"
+                        >
+                            <Video className="w-4 h-4" />
+                            Vídeo Laboratório
+                        </button>
+                    </div>
 
                     <div className="space-y-8">
                         {/* Esquerda */}
@@ -432,10 +452,10 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                 onClose={() => setGrabberMode(null)}
                 slots={grabberMode === 'gait' ? [
                     { id: 'tests.gait_photos.left.initial', label: 'RC Esq.', value: form.watch('tests.gait_photos.left.initial') || null },
-                    { id: 'tests.gait_photos.left.mid', label: 'AM Esq.', value: form.watch('tests.gait_photos.left.mid') || null },
-                    { id: 'tests.gait_photos.left.terminal', label: 'FI Esq.', value: form.watch('tests.gait_photos.left.terminal') || null },
                     { id: 'tests.gait_photos.right.initial', label: 'RC Dir.', value: form.watch('tests.gait_photos.right.initial') || null },
+                    { id: 'tests.gait_photos.left.mid', label: 'AM Esq.', value: form.watch('tests.gait_photos.left.mid') || null },
                     { id: 'tests.gait_photos.right.mid', label: 'AM Dir.', value: form.watch('tests.gait_photos.right.mid') || null },
+                    { id: 'tests.gait_photos.left.terminal', label: 'FI Esq.', value: form.watch('tests.gait_photos.left.terminal') || null },
                     { id: 'tests.gait_photos.right.terminal', label: 'FI Dir.', value: form.watch('tests.gait_photos.right.terminal') || null },
                 ] : grabberMode === 'squat' ? [
                     { id: 'tests.single_squat.photo_left', label: 'Agachamento Esq.', value: form.watch('tests.single_squat.photo_left') || null },

@@ -104,12 +104,22 @@ export function VideoFrameGrabberModal({ open, onClose, slots, onCaptureToSlot, 
                     {/* VIDEO SECTION */}
                     <div className={cn("flex-1 w-full flex flex-col items-center justify-center", hasSlots ? "" : "col-span-1 lg:col-span-2")}>
                         {!videoSrc ? (
-                            <div className="flex flex-col items-center gap-4 py-20">
-                                <label className="cursor-pointer flex flex-col items-center justify-center w-64 h-48 border-2 border-dashed border-slate-300 rounded-3xl bg-white hover:bg-purple-50 hover:border-purple-300 transition-colors">
-                                    <Upload className="w-10 h-10 text-purple-300 mb-2" />
-                                    <span className="font-bold text-slate-500 uppercase tracking-widest text-xs">Carregar Vídeo</span>
-                                    <input type="file" accept="video/*" className="hidden" onChange={handleFile} />
-                                </label>
+                            <div className="flex flex-col items-center gap-4 py-10 w-full">
+                                <div className="flex flex-col sm:flex-row gap-4 items-center justify-center w-full">
+                                    <label className="relative overflow-hidden cursor-pointer flex flex-col items-center justify-center w-48 h-40 border-2 border-dashed border-purple-200 rounded-3xl bg-purple-50 hover:bg-purple-100/50 hover:border-purple-300 transition-colors shadow-sm">
+                                        <Camera className="w-8 h-8 text-purple-600 mb-2 pointer-events-none" />
+                                        <span className="font-black text-purple-700 uppercase tracking-widest text-[11px] text-center px-4 pointer-events-none">Gravar Agora</span>
+                                        <span className="text-[9px] text-purple-500 font-bold uppercase mt-1 tracking-widest text-center px-4 pointer-events-none">Abrir Câmera</span>
+                                        <input type="file" accept="video/*" capture="environment" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" title="" onChange={handleFile} />
+                                    </label>
+
+                                    <label className="relative overflow-hidden cursor-pointer flex flex-col items-center justify-center w-48 h-40 border-2 border-dashed border-slate-300 rounded-3xl bg-white hover:bg-slate-50 hover:border-slate-400 transition-colors shadow-sm">
+                                        <Upload className="w-8 h-8 text-slate-400 mb-2 pointer-events-none" />
+                                        <span className="font-black text-slate-600 uppercase tracking-widest text-[11px] text-center px-4 pointer-events-none">Da Galeria</span>
+                                        <span className="text-[9px] text-slate-400 font-bold uppercase mt-1 tracking-widest text-center px-4 pointer-events-none">Arquivo do Aparelho</span>
+                                        <input type="file" accept="video/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" title="" onChange={handleFile} />
+                                    </label>
+                                </div>
                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center max-w-xs">
                                     Envie um único vídeo (ex: caminhada inteira) para fatiar todos os frames em sequência. O arquivo ficará apenas localmente para extração.
                                 </p>

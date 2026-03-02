@@ -167,17 +167,16 @@ export function PhotoAnalyzer({ src, mode, onUpdate }: PhotoAnalyzerProps) {
             ]);
         } else if (mode === 'hindfoot' && points.length === 0) {
             setPoints([
-                { id: 'panturrilha_sup', label: 'Panturrilha Sup', x: 50, y: 60 },
-                { id: 'panturrilha_inf', label: 'Panturrilha Inf', x: 50, y: 80 },
-                { id: 'calcaneo_sup', label: 'Calcâneo Sup', x: 50, y: 85 },
-                { id: 'calcaneo_inf', label: 'Calcâneo Inf', x: 50, y: 95 },
+                { id: 'panturrilha', label: 'Centro da Panturrilha', x: 50, y: 55 },
+                { id: 'talus', label: 'Tálus', x: 50, y: 75 },
+                { id: 'calcaneo', label: 'Centro do Calcâneo', x: 50, y: 90 },
             ]);
             setConnections([
-                { from: 'panturrilha_sup', to: 'panturrilha_inf' },
-                { from: 'calcaneo_sup', to: 'calcaneo_inf' },
+                { from: 'panturrilha', to: 'talus' },
+                { from: 'talus', to: 'calcaneo' },
             ]);
             setAngles([
-                { p1: 'panturrilha_sup', line1: 'panturrilha_inf', p2: 'calcaneo_inf', line2: 'calcaneo_sup', label: 'Eversão/Inversão', isLineIntersection: true } as any
+                { p1: 'panturrilha', vertex: 'talus', p2: 'calcaneo', label: 'Ângulo de Retropé' }
             ]);
         }
     }, [mode, points.length]);
