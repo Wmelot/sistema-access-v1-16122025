@@ -103,16 +103,6 @@ export function PasteUploadZone({ label, value, onChange, className, capture, on
         <div className="space-y-2 relative group w-full">
             <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">{label}</span>
-                {!preview && onGrabFrame && (
-                    <button
-                        onClick={triggerGrabFrame}
-                        className="text-[10px] bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors px-2 py-0.5 rounded uppercase font-black tracking-widest flex items-center gap-1 opacity-0 group-hover:opacity-100"
-                        title="Extrair Frame de Vídeo"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
-                        Vídeo
-                    </button>
-                )}
             </div>
 
             <div
