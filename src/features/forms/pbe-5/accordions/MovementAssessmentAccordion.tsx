@@ -12,6 +12,11 @@ import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { PhotoAnalyzer } from "../components/interactive/ImageCimetografo";
+import { Camera, Video } from "lucide-react";
+import { VideoFrameGrabberModal } from "@/components/ui/video-frame-grabber";
+
 const MUSCLE_SUGGESTIONS = [
     "Glúteo Máximo", "Glúteo Médio", "Glúteo Mínimo",
     "Isquiotibiais", "Quadríceps", "Bíceps Femoral", "Semitendíneo", "Semimembranáceo",
@@ -286,6 +291,20 @@ export function MovementAssessmentAccordion({ openSection, isSectionFilled, sect
 
     const activeMode = watch('movement.active_mode') || 'simplified';
     const selectedRegions = watch('anamnesis.mainRegions') || [];
+    const gaitPhotos = watch('movement.gaitPhotos') || {}; // Keep watching form state
+    const [analyzerView, setAnalyzerView] = React.useState<string | null>(null);
+    const [grabberOpen, setGrabberOpen] = React.useState<boolean>(false); // Added grabberOpen state
+
+    const handlePhotoUpload = (view: string, file: File | null) => {
+        if (file) {
+            const url = URL.createObjectURL(file);
+            setValue(`movement.gaitPhotos.${view}`, url, { shouldDirty: true, shouldValidate: true });
+        }
+    };
+
+    const removePhoto = (view: string) => {
+        setValue(`movement.gaitPhotos.${view}`, null, { shouldDirty: true, shouldValidate: true });
+    };
 
     const getStatusInfo = (val: string, normal: number) => {
         const num = parseFloat(val);
@@ -476,8 +495,9 @@ export function MovementAssessmentAccordion({ openSection, isSectionFilled, sect
                         <TabsList className="bg-slate-100/50 p-1.5 rounded-[1.2rem] h-auto border border-slate-100 shadow-inner">
                             <TabsTrigger value="active" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">Ativa</TabsTrigger>
                             <TabsTrigger value="passive" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">Passiva</TabsTrigger>
-                            <TabsTrigger value="repeated" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">Repetidos</TabsTrigger>
-                            <TabsTrigger value="sahrmann" className="rounded-xl px-8 py-2.5 font-black text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">Dominância</TabsTrigger>
+                            <TabsTrigger value="repeated" className="rounded-xl px-8 py-2.5 font-black text-[0.15em] uppercase tracking-[0.15em] data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">Repetidos</TabsTrigger>
+                            <TabsTrigger value="sahrmann" className="rounded-xl px-8 py-2.5 font-black text-[0.15em] uppercase tracking-[0.15em] data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">Dominância</TabsTrigger>
+                            <TabsTrigger value="gait" className="rounded-xl px-8 py-2.5 font-black text-[0.15em] uppercase tracking-[0.15em] data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg active:scale-95 transition-all">Marcha e Eversão</TabsTrigger>
                         </TabsList>
                     </div>
 
@@ -640,8 +660,118 @@ export function MovementAssessmentAccordion({ openSection, isSectionFilled, sect
                             </Button>
                         </div>
                     </TabsContent>
+
+                    <TabsContent value="gait" className="animate-in fade-in zoom-in-95 duration-500 space-y-12">
+                        <div className="bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100 flex gap-4">
+                            <Camera className="h-5 w-5 text-emerald-600 mt-1 shrink-0" />
+                            <div>
+                                <h6 className="text-[11px] font-black text-emerald-900 uppercase tracking-widest mb-1">Biomecânica Dinâmica - Retropé</h6>
+                                <p className="text-[10px] text-emerald-700 leading-relaxed font-bold opacity-80 uppercase tracking-tighter">
+                                    Adicione quadros de vídeo ou fotos da marcha e corrida em vista posterior. O sistema calculará o grau exato de eversão/inversão.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {['midstance_left', 'midstance_right', 'running_heel_strike'].map((view) => {
+                                const url = gaitPhotos[view];
+                                const label = view === 'midstance_left' ? 'Apoio Médio (Pé E)' : view === 'midstance_right' ? 'Apoio Médio (Pé D)' : 'Corrida (Retropé)';
+
+                                return (
+                                    <div key={view} className="space-y-3">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1 block text-center italic">{label}</label>
+                                        <div className={cn(
+                                            "relative h-64 rounded-[2rem] border-2 border-dashed transition-all overflow-hidden flex flex-col items-center justify-center gap-2 group",
+                                            url ? "border-emerald-600" : "border-slate-200 bg-slate-50 hover:bg-emerald-50/30 hover:border-emerald-300"
+                                        )}>
+                                            {url ? (
+                                                <>
+                                                    <img src={url} alt={label} className="absolute inset-0 w-full h-full object-cover" />
+                                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 backdrop-blur-sm">
+                                                        <Button size="icon" variant="secondary" className="rounded-full h-10 w-10 text-blue-600 hover:text-blue-700 bg-white" onClick={() => setAnalyzerView(view)}>
+                                                            <Activity className="h-5 w-5" />
+                                                        </Button>
+                                                        <Button size="icon" variant="destructive" className="rounded-full h-10 w-10" onClick={() => removePhoto(view)}>
+                                                            <Trash2 className="h-5 w-5" />
+                                                        </Button>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="flex flex-col items-center justify-center gap-2 p-2 w-full h-full pointer-events-none">
+                                                        <Camera className="h-8 w-8 text-emerald-300 group-hover:text-emerald-600 transition-all pointer-events-none" />
+                                                        <h6 className="text-[10px] font-black text-slate-400 uppercase tracking-tighter text-center leading-tight">
+                                                            Clique p/ Enviar<br />(ou Finder)
+                                                        </h6>
+                                                    </div>
+                                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                                                        <button
+                                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setGrabberOpen(true); }}
+                                                            className="text-[10px] bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors px-2 py-1 rounded uppercase font-black tracking-widest flex items-center gap-1 shadow-sm"
+                                                            title="Extrair Frame de Vídeo"
+                                                        >
+                                                            <Video className="w-3 h-3" />
+                                                            Vídeo
+                                                        </button>
+                                                    </div>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        className="absolute inset-0 opacity-0 cursor-pointer"
+                                                        title=""
+                                                        onChange={(e) => handlePhotoUpload(view, e.target.files?.[0] || null)}
+                                                    />
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </TabsContent>
                 </Tabs>
             </AccordionContent>
+
+            <Dialog open={!!analyzerView} onOpenChange={() => setAnalyzerView(null)}>
+                <DialogContent className="max-w-5xl p-0 overflow-hidden bg-slate-50 border-none rounded-[2rem] gap-0">
+                    <DialogHeader className="p-6 bg-white border-b border-slate-100 text-center">
+                        <DialogTitle className="text-xl font-black text-slate-800 uppercase tracking-widest">
+                            Análise de Eversão do Calcâneo
+                        </DialogTitle>
+                        <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
+                            Arraste os pontos para a linha central da panturrilha e linha central do calcâneo longo.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="p-8 pb-0">
+                        {analyzerView && gaitPhotos[analyzerView] && (
+                            <PhotoAnalyzer
+                                src={gaitPhotos[analyzerView]}
+                                mode="hindfoot"
+                            />
+                        )}
+                    </div>
+
+                    <DialogFooter className="mr-8 mb-6 mt-6">
+                        <Button variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl uppercase font-black tracking-widest text-xs h-12 px-8" onClick={() => setAnalyzerView(null)}>
+                            Concluir Análise
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <VideoFrameGrabberModal
+                open={grabberOpen}
+                onClose={() => setGrabberOpen(false)}
+                slots={[
+                    { id: 'midstance_left', label: 'Apoio Médio (Pé E)', value: gaitPhotos['midstance_left'] || null },
+                    { id: 'midstance_right', label: 'Apoio Médio (Pé D)', value: gaitPhotos['midstance_right'] || null },
+                    { id: 'running_heel_strike', label: 'Corrida (Retropé)', value: gaitPhotos['running_heel_strike'] || null },
+                ]}
+                onCaptureToSlot={(id, base64) => {
+                    setValue(`movement.gaitPhotos.${id}`, base64, { shouldDirty: true, shouldValidate: true });
+                }}
+            />
         </AccordionItem>
     );
 }

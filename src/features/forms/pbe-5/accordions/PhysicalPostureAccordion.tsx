@@ -8,6 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Camera, Activity, CheckCircle2, ShieldCheck, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { PhotoAnalyzer } from "../components/interactive/ImageCimetografo";
 
 interface PhysicalPostureAccordionProps {
     openSection: string;
@@ -26,6 +30,7 @@ export function PhysicalPostureAccordion({ openSection, isSectionFilled, section
     const isFilled = isSectionFilled('posture');
     const photos = watch('posture.photos') || {};
     const observations = watch('posture.observations') || [];
+    const [analyzerView, setAnalyzerView] = React.useState<string | null>(null);
 
     const handlePhotoUpload = (view: string, file: File | null) => {
         if (file) {
@@ -78,7 +83,10 @@ export function PhysicalPostureAccordion({ openSection, isSectionFilled, section
                                     {url ? (
                                         <>
                                             <img src={url} alt={label} className="absolute inset-0 w-full h-full object-cover" />
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm">
+                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 backdrop-blur-sm">
+                                                <Button size="icon" variant="secondary" className="rounded-full h-10 w-10 text-emerald-600 hover:text-emerald-700 bg-white" onClick={() => setAnalyzerView(view)}>
+                                                    <Activity className="h-5 w-5" />
+                                                </Button>
                                                 <Button size="icon" variant="destructive" className="rounded-full h-10 w-10" onClick={() => removePhoto(view)}>
                                                     <Trash2 className="h-5 w-5" />
                                                 </Button>
@@ -86,14 +94,17 @@ export function PhysicalPostureAccordion({ openSection, isSectionFilled, section
                                         </>
                                     ) : (
                                         <>
-                                            <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:text-purple-600 group-hover:scale-110 transition-all">
-                                                <Camera className="h-6 w-6" />
+                                            <div className="flex flex-col items-center justify-center gap-2 p-2 w-full h-full pointer-events-none">
+                                                <Camera className="h-8 w-8 text-purple-300 group-hover:text-purple-600 transition-all pointer-events-none" />
+                                                <h6 className="text-[10px] font-black text-slate-400 uppercase tracking-tighter text-center leading-tight">
+                                                    Clique p/ Enviar<br />(ou Finder)
+                                                </h6>
                                             </div>
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Clique p/ Enviar</span>
                                             <input
                                                 type="file"
                                                 accept="image/*"
                                                 className="absolute inset-0 opacity-0 cursor-pointer"
+                                                title=""
                                                 onChange={(e) => handlePhotoUpload(view, e.target.files?.[0] || null)}
                                             />
                                         </>
@@ -104,33 +115,95 @@ export function PhysicalPostureAccordion({ openSection, isSectionFilled, section
                     })}
                 </div>
 
-                {/* Posture Checklist */}
-                <div className="space-y-6 pt-4 border-t border-slate-100">
-                    <div className="flex items-center gap-3">
-                        <div className="w-1 h-4 bg-purple-600 rounded-full" />
-                        <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Checklist de Desvios Posturais</h4>
+                {/* Posture Observations & AI Formatting */}
+                <div className="space-y-4 pt-6 mt-8 border-t border-slate-100">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-1.5 h-6 bg-purple-600 rounded-full" />
+                            <h4 className="font-black text-slate-800 uppercase text-xs tracking-widest">Observações Posturais Adicionais</h4>
+                        </div>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            className="bg-purple-100 text-purple-700 hover:bg-purple-200 font-bold text-[10px] uppercase tracking-widest gap-2 rounded-xl"
+                            onClick={async () => {
+                                const currentText = watch('posture.freeText') || '';
+                                if (!currentText) {
+                                    toast.error('Escreva alguma observação primeiro para a IA analisar.');
+                                    return;
+                                }
+
+                                const loadingToast = toast.loading('Analisando postura com IA...');
+                                try {
+                                    const res = await fetch('/api/ai/copilot', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            action: 'format_posture',
+                                            text: currentText,
+                                            systemPrompt: 'Você é um fisioterapeuta especialista. O usuário inseriu observações posturais soltas. Reescreva-as num texto corrido, altamente profissional e estruturado (Padrão MAGE), focado apenas no que foi relatado, sem inventar dados.'
+                                        })
+                                    });
+                                    if (res.ok) {
+                                        const data = await res.json();
+                                        setValue('posture.freeText', data.result || data.text || data.response, { shouldDirty: true, shouldValidate: true });
+                                        toast.success('Texto formatado pela IA!', { id: loadingToast });
+                                    } else {
+                                        toast.error('Erro na IA', { id: loadingToast });
+                                    }
+                                } catch (e) {
+                                    toast.error('Erro de conexão com a IA', { id: loadingToast });
+                                }
+                            }}
+                        >
+                            <Activity className="w-4 h-4" />
+                            Analisar e Corrigir (IA)
+                        </Button>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {POSTURE_CHECKS.map(item => {
-                            const active = observations.includes(item);
-                            return (
-                                <button
-                                    key={item}
-                                    type="button"
-                                    onClick={() => toggleObservation(item)}
-                                    className={cn(
-                                        "p-4 rounded-2xl border text-left transition-all flex items-center justify-between group h-full",
-                                        active ? "bg-purple-600 border-purple-600 text-white shadow-lg" : "bg-white border-slate-100 text-slate-600 hover:border-purple-200"
-                                    )}
-                                >
-                                    <span className={cn("text-[10px] font-black uppercase leading-tight max-w-[80%]", active ? "text-white" : "text-slate-700")}>{item}</span>
-                                    {active ? <ShieldCheck className="w-4 h-4 text-purple-200" /> : <div className="h-2 w-2 rounded-full border border-slate-200 group-hover:border-purple-300" />}
-                                </button>
-                            );
-                        })}
-                    </div>
+
+                    <Textarea
+                        placeholder="Descreva as alterações posturais (ex: ombro D mais alto, escoliose à C à esquerda, anteriorização de cabeça...). Ao terminar, clique em 'Analisar (IA)' para padronizar o texto."
+                        className="min-h-[120px] resize-none text-sm p-4 rounded-2xl bg-slate-50 border-slate-200 focus:bg-white focus:border-purple-400 focus:ring-purple-400"
+                        value={watch('posture.freeText') || ''}
+                        onChange={(e: any) => setValue('posture.freeText', e.target.value, { shouldDirty: true })}
+                    />
                 </div>
             </AccordionContent>
+
+            <Dialog open={!!analyzerView} onOpenChange={() => setAnalyzerView(null)}>
+                <DialogContent className="max-w-5xl p-0 overflow-hidden bg-slate-50 border-none rounded-[2rem] gap-0">
+                    <DialogHeader className="p-6 bg-white border-b border-slate-100 text-center">
+                        <DialogTitle className="text-xl font-black text-slate-800 uppercase tracking-widest">
+                            Cimetógrafo Digital - {analyzerView === 'anterior' ? 'Vista Anterior' : analyzerView === 'posterior' ? 'Vista Posterior' : analyzerView === 'left' ? 'Lateral Esquerda' : 'Lateral Direita'}
+                        </DialogTitle>
+                        <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
+                            Arraste os pontos para as marcações anatômicas. O zoom auxilia na precisão. Os ângulos são calculados automaticamente.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="p-8 pb-0">
+                        {analyzerView && photos[analyzerView] && (
+                            <PhotoAnalyzer
+                                src={photos[analyzerView]}
+                                mode={
+                                    analyzerView === 'anterior' ? 'posture_anterior' :
+                                        analyzerView === 'posterior' ? 'posture_posterior' : 'posture_lateral'
+                                }
+                            />
+                        )}
+                    </div>
+
+                    <DialogFooter className="p-6 bg-white border-t border-slate-100 flex items-center justify-center">
+                        <Button
+                            onClick={() => setAnalyzerView(null)}
+                            className="bg-purple-600 hover:bg-purple-700 text-white font-black uppercase tracking-widest text-[10px] h-12 rounded-xl px-12"
+                        >
+                            <CheckCircle2 className="w-4 h-4 mr-2" />
+                            Finalizar Análise
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AccordionItem>
     );
 }

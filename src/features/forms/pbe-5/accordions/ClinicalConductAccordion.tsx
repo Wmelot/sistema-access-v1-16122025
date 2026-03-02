@@ -1,17 +1,16 @@
-"use client";
-
-import React from "react";
+import React, { useState } from "react";
 import { useFormContext, useFieldArray } from "react-hook-form";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { Target, Plus, Trash2, ClipboardCheck, Sparkles, Send, Calendar, Mic, Activity, Info as InfoIcon } from "lucide-react";
+import { Target, Plus, Trash2, ClipboardCheck, Sparkles, Send, Calendar, Mic, Activity, Info as InfoIcon, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AudioTextarea } from "@/features/forms/pbe/components/audio-textarea";
 import { ExerciseCombobox } from "@/features/forms/pbe/components/ExerciseCombobox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 interface ClinicalConductAccordionProps {
     openSection: string;
@@ -20,18 +19,111 @@ interface ClinicalConductAccordionProps {
 }
 
 export function ClinicalConductAccordion({ openSection, isSectionFilled, sectionStyle }: ClinicalConductAccordionProps) {
-    const { register, watch, setValue, control } = useFormContext();
+    const { register, watch, setValue, control, getValues } = useFormContext();
     const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({
         control,
         name: "plan.exercises"
     });
-    const [isAnalyzing, setIsAnalyzing] = React.useState(false);
+
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [aiModalOpen, setAiModalOpen] = useState(false);
+    const [aiResult, setAiResult] = useState<any>(null);
+
+    const [isEvidenceLoading, setIsEvidenceLoading] = useState(false);
+    const [evidenceModalOpen, setEvidenceModalOpen] = useState(false);
+    const [evidenceResult, setEvidenceResult] = useState("");
     const selectedRegions = watch('anamnesis.mainRegions') || [];
 
-    const handleSuggestProtocol = () => {
-        if (selectedRegions.length === 0) return;
+    const handleSuggestProtocol = async () => {
         setIsAnalyzing(true);
-        setTimeout(() => setIsAnalyzing(false), 2000);
+        const allData = getValues();
+        try {
+            const res = await fetch('/api/ai/copilot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'clinical_protocol',
+                    data: allData,
+                    systemPrompt: 'Você é um fisioterapeuta expert analisando todos os dados da ficha de avaliação. Retorne um JSON estrito contendo: { "redFlags": ["alerta 1"], "yellowFlags": ["alerta 2"], "prognosis": "texto do prognostico", "interventions": "texto corrido com sugestão de conduta", "suggestedExercises": [{ "name": "Nome", "sets": "3", "reps": "12" }] }'
+                })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                let parsed = data.result || data.response || data;
+                if (typeof parsed === 'string') {
+                    try {
+                        // Strip markdown formatting like ```json
+                        const cleanStr = parsed.replace(/```json/g, '').replace(/```/g, '').trim();
+                        parsed = JSON.parse(cleanStr);
+                    } catch (e) {
+                        // Default fallback if JSON fails
+                        parsed = {
+                            prognosis: "Não foi possível extrair um prognóstico estruturado.",
+                            interventions: parsed,
+                            redFlags: [],
+                            yellowFlags: [],
+                            suggestedExercises: []
+                        };
+                    }
+                }
+                setAiResult(parsed);
+                setAiModalOpen(true);
+            } else {
+                const errData = await res.json().catch(() => ({}));
+                toast.error(`Erro ao gerar protocolo: ${errData.error || res.statusText}`);
+            }
+        } catch (e: any) {
+            toast.error(`Falha de conexão com a IA: ${e.message}`);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const handleFetchEvidence = async () => {
+        setIsEvidenceLoading(true);
+        const allData = getValues();
+        try {
+            const res = await fetch('/api/ai/copilot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'fetch_evidence',
+                    data: allData,
+                    systemPrompt: 'Você é um pesquisador em fisioterapia. Baseado nos achados clínicos do paciente, escreva um resumo rico trazendo as diretrizes cínicas mais recentes (PubMed, PEDro) com bom poder metodológico sobre a patologia. Use markdown para formatar o texto.'
+                })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setEvidenceResult(data.result || data.response || data.text || '');
+                setEvidenceModalOpen(true);
+            } else {
+                const errData = await res.json().catch(() => ({}));
+                toast.error(`Erro ao buscar evidências: ${errData.error || res.statusText}`);
+            }
+        } catch (e: any) {
+            toast.error(`Erro na requisição: ${e.message}`);
+        } finally {
+            setIsEvidenceLoading(false);
+        }
+    };
+
+    const applyAIToForm = () => {
+        if (!aiResult) return;
+
+        // Append exercises
+        if (aiResult.suggestedExercises?.length) {
+            aiResult.suggestedExercises.forEach((ex: any) => {
+                appendExercise({ name: ex.name, sets: ex.sets || '3', reps: ex.reps || '12', load: ex.load || '' });
+            });
+        }
+
+        // Populate orientations
+        const currentOri = getValues('plan.orientations') || '';
+        const newOri = `PROGNÓSTICO:\n${aiResult.prognosis || ''}\n\nINTERVENÇÕES:\n${aiResult.interventions || ''}`;
+        setValue('plan.orientations', currentOri ? currentOri + '\n\n' + newOri : newOri, { shouldDirty: true });
+
+        setAiModalOpen(false);
+        toast.success("Condutas e Exercícios aplicados na avaliação!");
     };
 
     return (
@@ -222,8 +314,13 @@ export function ClinicalConductAccordion({ openSection, isSectionFilled, section
                                         <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
                                             Acesse as diretrizes mais recentes sobre a patologia do paciente diretamente da literatura científica.
                                         </p>
-                                        <Button variant="outline" className="w-full h-12 border-indigo-200 text-indigo-700 font-black rounded-xl flex items-center justify-center gap-2 group transition-all hover:bg-indigo-50">
-                                            <Activity className="h-4 w-4" />
+                                        <Button
+                                            variant="outline"
+                                            onClick={handleFetchEvidence}
+                                            disabled={isEvidenceLoading || selectedRegions.length === 0}
+                                            className="w-full h-12 border-indigo-200 text-indigo-700 font-black rounded-xl flex items-center justify-center gap-2 group transition-all hover:bg-indigo-50"
+                                        >
+                                            {isEvidenceLoading ? <Activity className="h-4 w-4 animate-spin" /> : <Activity className="h-4 w-4" />}
                                             <span>Principais Evidências</span>
                                         </Button>
                                     </div>
@@ -234,6 +331,154 @@ export function ClinicalConductAccordion({ openSection, isSectionFilled, section
                     </div>
                 </div>
             </AccordionContent>
+
+            {/* AI Protocol Dialog */}
+            <Dialog open={aiModalOpen} onOpenChange={setAiModalOpen}>
+                <DialogContent className="max-w-4xl p-0 overflow-hidden bg-slate-50 border-none rounded-[2rem] gap-0">
+                    <DialogHeader className="p-8 bg-white border-b border-slate-100 pb-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="h-10 w-10 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+                                <Sparkles className="h-5 w-5" />
+                            </div>
+                            <DialogTitle className="text-2xl font-black text-slate-800">Protocolo Clínico Axiom</DialogTitle>
+                        </div>
+                        <DialogDescription className="text-slate-500 font-medium">Recomendações terapêuticas geradas pela IA baseadas na avaliação clínica.</DialogDescription>
+                    </DialogHeader>
+
+                    <div className="p-8 max-h-[60vh] overflow-y-auto space-y-8 scrollbar-thin">
+                        {aiResult?.redFlags?.length > 0 && (
+                            <div className="bg-red-50 border-2 border-red-200 p-6 rounded-[2rem]">
+                                <h4 className="font-black text-red-800 uppercase tracking-widest text-xs mb-4 flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+                                    Bandeiras Vermelhas
+                                </h4>
+                                <ul className="list-disc list-inside space-y-2 text-sm text-red-900 font-medium">
+                                    {aiResult.redFlags.map((flag: string, i: number) => <li key={i}>{flag}</li>)}
+                                </ul>
+                            </div>
+                        )}
+
+                        {aiResult?.yellowFlags?.length > 0 && (
+                            <div className="bg-amber-50 border-2 border-amber-200 p-6 rounded-[2rem]">
+                                <h4 className="font-black text-amber-800 uppercase tracking-widest text-xs mb-4 flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-amber-500" />
+                                    Bandeiras Amarelas
+                                </h4>
+                                <ul className="list-disc list-inside space-y-2 text-sm text-amber-900 font-medium">
+                                    {aiResult.yellowFlags.map((flag: string, i: number) => <li key={i}>{flag}</li>)}
+                                </ul>
+                            </div>
+                        )}
+
+                        <div className="space-y-4">
+                            <h4 className="font-black text-slate-800 uppercase tracking-widest text-xs flex items-center gap-2">
+                                <Target className="w-4 h-4 text-indigo-500" /> Prognóstico
+                            </h4>
+                            <p className="text-slate-600 text-sm leading-relaxed bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">{aiResult?.prognosis}</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <h4 className="font-black text-slate-800 uppercase tracking-widest text-xs flex items-center gap-2">
+                                <Activity className="w-4 h-4 text-emerald-500" /> Intervenções Sugeridas
+                            </h4>
+                            <article className="text-slate-600 text-sm leading-relaxed bg-white p-6 rounded-3xl border border-slate-100 shadow-sm whitespace-pre-line">
+                                {aiResult?.interventions}
+                            </article>
+                        </div>
+
+                        {aiResult?.suggestedExercises?.length > 0 && (
+                            <div className="space-y-4">
+                                <h4 className="font-black text-slate-800 uppercase tracking-widest text-xs flex items-center gap-2">
+                                    <ClipboardCheck className="w-4 h-4 text-blue-500" /> Exercícios
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {aiResult.suggestedExercises.map((ex: any, i: number) => (
+                                        <div key={i} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
+                                            <div className="h-10 w-10 bg-slate-50 flex items-center justify-center rounded-xl text-slate-400 font-black text-xs">{ex.sets}x{ex.reps}</div>
+                                            <div>
+                                                <h5 className="font-bold text-sm text-slate-800 leading-tight">{ex.name}</h5>
+                                                {ex.load && <Badge variant="secondary" className="mt-2 text-[9px] bg-slate-50 text-slate-500">{ex.load}</Badge>}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter className="p-6 bg-white border-t border-slate-100 sm:justify-between">
+                        <Button variant="ghost" onClick={() => setAiModalOpen(false)} className="rounded-xl font-bold uppercase tracking-widest text-[10px] h-12 px-6">Fechar</Button>
+                        <Button onClick={applyAIToForm} className="rounded-xl font-bold uppercase tracking-widest text-[10px] h-12 px-8 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-600/20 gap-2">
+                            <CheckCircle2 className="w-4 h-4" /> Importar para o Formulário
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Evidence Dialog */}
+            <Dialog open={evidenceModalOpen} onOpenChange={setEvidenceModalOpen}>
+                <DialogContent className="max-w-3xl p-0 overflow-hidden bg-white border-none rounded-[2rem] gap-0">
+                    <DialogHeader className="p-8 bg-slate-900 border-none pb-8 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-8 opacity-10">
+                            <InfoIcon className="h-32 w-32 text-indigo-400" />
+                        </div>
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="h-10 w-10 bg-indigo-500/20 rounded-2xl flex items-center justify-center text-indigo-300">
+                                    <Activity className="h-5 w-5" />
+                                </div>
+                                <DialogTitle className="text-2xl font-black text-white">Evidências Científicas</DialogTitle>
+                            </div>
+                            <DialogDescription className="text-slate-400 font-medium">Revisão rápida da literatura para o seu paciente.</DialogDescription>
+                        </div>
+                    </DialogHeader>
+
+                    <div className="p-8 max-h-[60vh] overflow-y-auto space-y-6 scrollbar-thin">
+                        <article className="prose prose-sm prose-slate max-w-none prose-headings:font-black prose-headings:tracking-tight prose-a:text-indigo-600">
+                            {evidenceResult ? (
+                                <div className="whitespace-pre-wrap leading-relaxed space-y-4">
+                                    {evidenceResult.split('\n\n').map((paragraph: string, i: number) => {
+                                        if (paragraph.startsWith('#')) {
+                                            const level = paragraph.match(/^#+/)?.[0].length || 1;
+                                            const text = paragraph.replace(/^#+\s/, '');
+                                            if (level === 1 || level === 2) return <h3 key={i} className="text-lg font-black text-slate-800 mt-6 mb-2">{text}</h3>;
+                                            return <h4 key={i} className="text-base font-bold text-slate-700 mt-4 mb-2">{text}</h4>;
+                                        }
+                                        if (paragraph.startsWith('-')) {
+                                            const items = paragraph.split('\n');
+                                            return (
+                                                <ul key={i} className="list-disc list-inside space-y-2 pl-2">
+                                                    {items.map((item, j) => <li key={j} className="text-slate-600">{item.replace(/^-\s*/, '')}</li>)}
+                                                </ul>
+                                            );
+                                        }
+                                        // Quick bold parsing
+                                        const boldParsed = paragraph.split(/(\*\*.*?\*\*)/g).map((part, index) => {
+                                            if (part.startsWith('**') && part.endsWith('**')) {
+                                                return <strong key={index} className="font-bold text-slate-800">{part.slice(2, -2)}</strong>;
+                                            }
+                                            return part;
+                                        });
+
+                                        return <p key={i} className="text-slate-600 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">{boldParsed}</p>;
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="animate-pulse space-y-4">
+                                    <div className="h-4 bg-slate-100 rounded w-3/4"></div>
+                                    <div className="h-4 bg-slate-100 rounded w-full"></div>
+                                    <div className="h-4 bg-slate-100 rounded w-5/6"></div>
+                                </div>
+                            )}
+                        </article>
+                    </div>
+
+                    <DialogFooter className="p-6 bg-slate-50 border-t border-slate-100 sm:justify-start">
+                        <Button variant="outline" onClick={() => setEvidenceModalOpen(false)} className="rounded-xl font-bold uppercase tracking-widest text-[10px] h-12 px-6">Fechar Leitura</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </AccordionItem>
     );
 }

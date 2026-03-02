@@ -44,6 +44,7 @@ import { PhysicalStrengthAccordion } from "./accordions/PhysicalStrengthAccordio
 import { PhysicalMobilityAccordion } from "./accordions/PhysicalMobilityAccordion";
 import { PhysicalPostureAccordion } from "./accordions/PhysicalPostureAccordion";
 import { PhysicalSportsAccordion } from "./accordions/PhysicalSportsAccordion";
+import { ExamsAccordion } from "./accordions/ExamsAccordion";
 
 export const PBE5_ID = 'pbe-5';
 
@@ -62,6 +63,7 @@ const SECTION_STYLES: Record<string, { border: string, iconColor: string, bg: st
     protocols: { border: "border-l-purple-600", iconColor: "text-purple-600", bg: "bg-purple-50/30" },
     neuropedia: { border: "border-l-pink-500", iconColor: "text-pink-500", bg: "bg-pink-50/30" },
     palpation: { border: "border-l-rose-500", iconColor: "text-rose-500", bg: "bg-rose-50/30" },
+    exams: { border: "border-l-cyan-600", iconColor: "text-cyan-600", bg: "bg-cyan-50/30" },
     plan: { border: "border-l-slate-700", iconColor: "text-slate-700", bg: "bg-slate-50/30" },
 
     // Advanced Physics
@@ -76,14 +78,15 @@ const SECTION_STYLES: Record<string, { border: string, iconColor: string, bg: st
 const ALL_MENU_SECTIONS = [
     { id: 'anamnesis', label: 'Anamnese', desc: 'Queixa Principal e História da Moléstia Atual', specialties: ['all'] },
     { id: 'clinical', label: 'Histórico Clínico', desc: 'História Pregressa e Medicamentos', specialties: ['all'] },
-
     { id: 'metrics', label: 'Biofísica & Vitais', desc: 'Sinais Vitais', specialties: ['all'] },
 
-    { id: 'palpation', label: 'Palpação e Trigger Points', desc: 'Sensibilidade e Dor', specialties: ['ortopedia'] },
+    { id: 'functionality', label: 'Funcionalidade e Conduta', desc: 'Escalas e Plano', specialties: ['all'] },
+    { id: 'posture', label: 'Avaliação Postural', desc: 'Análise Fotogramétrica', specialties: ['ortopedia', 'advanced_physical'] },
     { id: 'movement', label: 'Avaliação Movimento', desc: 'ADM e McKenzie', specialties: ['ortopedia'] },
     { id: 'strength', label: 'Dinamometria e Força', desc: 'Testes Lafayette/HHD', specialties: ['ortopedia'] },
-    { id: 'functionality', label: 'Funcionalidade e Conduta', desc: 'Escalas e Plano', specialties: ['all'] },
     { id: 'protocols', label: 'Protocolos Regionais', desc: 'Ortopedia Clássica', specialties: ['ortopedia'] },
+    { id: 'palpation', label: 'Palpação e Trigger Points', desc: 'Sensibilidade e Dor', specialties: ['ortopedia'] },
+    { id: 'exams', label: 'Exames Complementares', desc: 'Laudos (RX, RNM)', specialties: ['all', 'ortopedia'] },
 
     { id: 'neuropedia', label: 'Neuropediatria', desc: 'Neurodesenvolvimento', specialties: ['neuropediatria'] },
     { id: 'neuro_adult', label: 'Neurofuncional Adulto', desc: 'Funcionalidade e Controle', specialties: ['neurofuncional_adulto'] },
@@ -96,7 +99,6 @@ const ALL_MENU_SECTIONS = [
     { id: 'cardio', label: 'Capacidade Cardio', desc: 'VO2 Max e Estresse', specialties: ['advanced_physical'] },
     { id: 'strength_advanced', label: 'Força Avançada', desc: 'Dinamometria HHD', specialties: ['advanced_physical'] },
     { id: 'mobility', label: 'Mobilidade & Estabilidade', desc: 'Flexibilidade e Core', specialties: ['advanced_physical'] },
-    { id: 'posture', label: 'Posturografia', desc: 'Análise Fotogramétrica', specialties: ['advanced_physical'] },
     { id: 'sports', label: 'Rotina Esportiva', desc: 'IPAQ e Gasto Kcal', specialties: ['advanced_physical'] },
 
     { id: 'plan', label: 'Conduta Clínica', desc: 'Estratégia & Plano', specialties: ['all'] }
@@ -412,12 +414,23 @@ export default function PBE5Form({
                             <ClinicalHistoryAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.clinical} />
                             <MetricsVitalsAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.metrics} />
 
+                            {/* Core Functional / Conduta sections (Moved up for Ortho) */}
+                            <FunctionalAccordion
+                                openSection={openSection}
+                                isSectionFilled={isSectionFilled}
+                                sectionStyle={SECTION_STYLES.functionality}
+                                setIsAssessmentModalOpen={setIsAssessmentModalOpen}
+                            />
+
                             {/* Specialty Specific Accordions */}
                             {specialty === 'ortopedia' && (
                                 <>
-                                    <PalpationAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.palpation} />
+                                    <PhysicalPostureAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.posture} />
                                     <MovementAssessmentAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.movement} />
                                     <MuscleStrengthAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.strength} patient={patient} />
+                                    <JointProtocolsAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.protocols} />
+                                    <PalpationAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.palpation} />
+                                    <ExamsAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.exams} />
                                 </>
                             )}
 
@@ -475,18 +488,6 @@ export default function PBE5Form({
                                 />
                             )}
 
-                            {/* Core Functional / Conduta sections */}
-                            <FunctionalAccordion
-                                openSection={openSection}
-                                isSectionFilled={isSectionFilled}
-                                sectionStyle={SECTION_STYLES.functionality}
-                                setIsAssessmentModalOpen={setIsAssessmentModalOpen}
-                            />
-
-                            {specialty === 'ortopedia' && (
-                                <JointProtocolsAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.protocols} />
-                            )}
-
                             {/* Advanced Physical Assessment Mode (Cross-Specialty) */}
                             {advancedPhysical && (
                                 <>
@@ -494,7 +495,7 @@ export default function PBE5Form({
                                     <PhysicalCardioAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.cardio} />
                                     <PhysicalStrengthAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.strength_advanced} />
                                     <PhysicalMobilityAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.mobility} />
-                                    <PhysicalPostureAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.posture} />
+                                    {specialty !== 'ortopedia' && <PhysicalPostureAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.posture} />}
                                     <PhysicalSportsAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.sports} />
                                 </>
                             )}
