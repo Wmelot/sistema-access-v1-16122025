@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { PhotoAnalyzer } from "../components/interactive/ImageCimetografo";
 import { Camera, Video } from "lucide-react";
@@ -686,7 +686,7 @@ export function MovementAssessmentAccordion({ openSection, isSectionFilled, sect
                                         )}>
                                             {url ? (
                                                 <>
-                                                    <img src={url} alt={label} className="absolute inset-0 w-full h-full object-cover" />
+                                                    <img src={watch(`movement.gaitPhotosAnalyzed.${view}`) || url} alt={label} className="absolute inset-0 w-full h-full object-cover" />
                                                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 backdrop-blur-sm">
                                                         <Button size="icon" variant="secondary" className="rounded-full h-10 w-10 text-blue-600 hover:text-blue-700 bg-white" onClick={() => setAnalyzerView(view)}>
                                                             <Activity className="h-5 w-5" />
@@ -747,13 +747,25 @@ export function MovementAssessmentAccordion({ openSection, isSectionFilled, sect
                         {analyzerView && gaitPhotos[analyzerView] && (
                             <PhotoAnalyzer
                                 src={gaitPhotos[analyzerView]}
+                                savedPoints={watch(`movement.gaitPointsAnalyzed.${analyzerView}`)}
                                 mode="hindfoot"
+                                onFinalize={(base64, pts) => {
+                                    setValue(`movement.gaitPhotosAnalyzed.${analyzerView}`, base64, { shouldDirty: true });
+                                    setValue(`movement.gaitPointsAnalyzed.${analyzerView}`, pts, { shouldDirty: true });
+                                    setAnalyzerView(null);
+                                    toast.success("Análise de marcha processada!");
+                                }}
                             />
                         )}
                     </div>
 
-                    <DialogFooter className="mr-8 mb-6 mt-6">
-                        <Button variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl uppercase font-black tracking-widest text-xs h-12 px-8" onClick={() => setAnalyzerView(null)}>
+                    <DialogFooter className="mr-8 mb-6 mt-6 flex gap-4">
+                        <Button
+                            variant="default"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl uppercase font-black tracking-widest text-xs h-12 px-8"
+                            onClick={() => (window as any).finalizeCimetografo?.()}
+                        >
+                            <CheckCircle2 className="w-4 h-4 mr-2" />
                             Concluir Análise
                         </Button>
                     </DialogFooter>

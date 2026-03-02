@@ -105,8 +105,11 @@ export default function GenericSandboxPage() {
         }
     }
 
-    const handleInitialSave = (data: any) => {
+    const handleInitialSave = (data: any, triggerDialog?: boolean) => {
         setPendingData(data);
+        if (triggerDialog) {
+            setDialogOpen(true);
+        }
     };
 
     const handleFinalSave = async (force: boolean = false) => {
@@ -128,6 +131,7 @@ export default function GenericSandboxPage() {
                 'womens-health': 'womens_health_system',
                 'pbe': 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c',
                 'pbe-5': 'pbe_5_system',
+                'palmilha-5': 'palmilha_5_system',
                 'physical': 'f33bb240-c1be-4201-adf2-e5a59229d056',
                 'ultimate-pbe': 'ultimate_pbe_system',
                 'diabetic-foot': 'diabetic_foot_system',
@@ -276,9 +280,12 @@ export default function GenericSandboxPage() {
             const templateIdMap: Record<string, string> = {
                 'womens-health': 'womens_health_system',
                 'pbe': 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c',
+                'pbe-5': 'pbe_5_system',
+                'palmilha-5': 'palmilha_5_system',
                 'physical': 'f33bb240-c1be-4201-adf2-e5a59229d056',
                 'ultimate-pbe': 'ultimate_pbe_system',
-                'diabetic-foot': 'diabetic_foot_system'
+                'diabetic-foot': 'diabetic_foot_system',
+                'smart-wizard': 'tree_wizard_system'
             };
             const specificTemplateId = templateIdMap[type];
 

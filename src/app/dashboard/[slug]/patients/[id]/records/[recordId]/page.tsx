@@ -141,7 +141,7 @@ export default async function RecordPage({
     const isPalmilhaV3 = resolvedTemplateId === 'fde183ad-1c20-4d6c-9efb-89d08f483cf2' ||
         (record.content?.isV3 === true);
 
-    const isPBE5 = resolvedTemplateId === 'pbe-5' ||
+    const isPBE5 = resolvedTemplateId === 'pbe-5' || resolvedTemplateId === 'pbe_5_system' ||
         finalTemplate.title?.toLowerCase().includes('pbe 5') ||
         finalTemplate.title?.toLowerCase().includes('pbe5');
 

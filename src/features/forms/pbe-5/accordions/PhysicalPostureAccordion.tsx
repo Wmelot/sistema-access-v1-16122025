@@ -82,7 +82,7 @@ export function PhysicalPostureAccordion({ openSection, isSectionFilled, section
                                 )}>
                                     {url ? (
                                         <>
-                                            <img src={url} alt={label} className="absolute inset-0 w-full h-full object-cover" />
+                                            <img src={watch(`posture.photosAnalyzed.${view}`) || url} alt={label} className="absolute inset-0 w-full h-full object-cover" />
                                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 backdrop-blur-sm">
                                                 <Button size="icon" variant="secondary" className="rounded-full h-10 w-10 text-emerald-600 hover:text-emerald-700 bg-white" onClick={() => setAnalyzerView(view)}>
                                                     <Activity className="h-5 w-5" />
@@ -185,17 +185,24 @@ export function PhysicalPostureAccordion({ openSection, isSectionFilled, section
                         {analyzerView && photos[analyzerView] && (
                             <PhotoAnalyzer
                                 src={photos[analyzerView]}
+                                savedPoints={watch(`posture.pointsAnalyzed.${analyzerView}`)}
                                 mode={
                                     analyzerView === 'anterior' ? 'posture_anterior' :
                                         analyzerView === 'posterior' ? 'posture_posterior' : 'posture_lateral'
                                 }
+                                onFinalize={(base64, pts) => {
+                                    setValue(`posture.photosAnalyzed.${analyzerView}`, base64, { shouldDirty: true });
+                                    setValue(`posture.pointsAnalyzed.${analyzerView}`, pts, { shouldDirty: true });
+                                    setAnalyzerView(null);
+                                    toast.success("Análise processada com sucesso!");
+                                }}
                             />
                         )}
                     </div>
 
                     <DialogFooter className="p-6 bg-white border-t border-slate-100 flex items-center justify-center">
                         <Button
-                            onClick={() => setAnalyzerView(null)}
+                            onClick={() => (window as any).finalizeCimetografo?.()}
                             className="bg-purple-600 hover:bg-purple-700 text-white font-black uppercase tracking-widest text-[10px] h-12 rounded-xl px-12"
                         >
                             <CheckCircle2 className="w-4 h-4 mr-2" />

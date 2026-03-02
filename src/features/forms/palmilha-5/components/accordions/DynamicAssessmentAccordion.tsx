@@ -26,7 +26,7 @@ interface DynamicAssessmentAccordionProps {
 export function DynamicAssessmentAccordion({ openSection, isSectionFilled, sectionStyle }: DynamicAssessmentAccordionProps) {
     const form = useFormContext();
     const [isMounted, setIsMounted] = useState(false);
-    const [analyzerFile, setAnalyzerFile] = useState<{ url: string; mode: "lower_limb_anterior" | "lower_limb_posterior" | "hindfoot" | "posture_lateral"; title: string } | null>(null);
+    const [analyzerFile, setAnalyzerFile] = useState<{ url: string; mode: "lower_limb_anterior" | "lower_limb_posterior" | "hindfoot" | "posture_lateral"; title: string; fieldPath: string } | null>(null);
     const [grabberMode, setGrabberMode] = useState<'squat' | 'gait' | null>(null);
 
     useEffect(() => {
@@ -244,12 +244,12 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                             <div className="pt-2">
                                 <label className="text-slate-400 font-bold text-[10px] tracking-wider uppercase mb-2 block text-center">Registro Fotográfico Frontal</label>
                                 <PasteUploadZone
-                                    value={form.watch("tests.single_squat.photo_left")}
+                                    value={form.watch(`tests.photosAnalyzed.squat_left`) || form.watch("tests.single_squat.photo_left")}
                                     onChange={(v) => form.setValue("tests.single_squat.photo_left", v)}
                                     className="aspect-[3/4] w-48 object-cover mx-auto ring-4 ring-slate-50 rounded-xl"
                                     onAnalyze={() => {
                                         const url = form.watch("tests.single_squat.photo_left");
-                                        if (url) setAnalyzerFile({ url, mode: "lower_limb_anterior", title: "Cimetógrafo Digital - Agachamento Frontal" });
+                                        if (url) setAnalyzerFile({ url, mode: "lower_limb_anterior", title: "Cimetógrafo Digital - Agachamento Frontal", fieldPath: "squat_left" });
                                     }}
                                     onGrabFrame={() => setGrabberMode("squat")}
                                 />
@@ -304,12 +304,12 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                             <div className="pt-2">
                                 <label className="text-slate-400 font-bold text-[10px] tracking-wider uppercase mb-2 block text-center">Registro Fotográfico Frontal</label>
                                 <PasteUploadZone
-                                    value={form.watch("tests.single_squat.photo_right")}
+                                    value={form.watch(`tests.photosAnalyzed.squat_right`) || form.watch("tests.single_squat.photo_right")}
                                     onChange={(v) => form.setValue("tests.single_squat.photo_right", v)}
                                     className="aspect-[3/4] w-48 object-cover mx-auto ring-4 ring-slate-50 rounded-xl"
                                     onAnalyze={() => {
                                         const url = form.watch("tests.single_squat.photo_right");
-                                        if (url) setAnalyzerFile({ url, mode: "lower_limb_anterior", title: "Cimetógrafo Digital - Agachamento Frontal" });
+                                        if (url) setAnalyzerFile({ url, mode: "lower_limb_anterior", title: "Cimetógrafo Digital - Agachamento Frontal", fieldPath: "squat_right" });
                                     }}
                                     onGrabFrame={() => setGrabberMode("squat")}
                                 />
@@ -339,34 +339,34 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <PasteUploadZone
                                     label="Respota à Carga (RC)"
-                                    value={form.watch("tests.gait_photos.left.initial")}
+                                    value={form.watch(`tests.photosAnalyzed.gait_left_rc`) || form.watch("tests.gait_photos.left.initial")}
                                     onChange={(v) => form.setValue("tests.gait_photos.left.initial", v)}
                                     className="aspect-[3/4] w-full object-cover"
                                     onAnalyze={() => {
                                         const url = form.watch("tests.gait_photos.left.initial");
-                                        if (url) setAnalyzerFile({ url, mode: "hindfoot", title: "Cimetógrafo Calcâneo - Marcha RC" });
+                                        if (url) setAnalyzerFile({ url, mode: "hindfoot", title: "Cimetógrafo Calcâneo - Marcha RC", fieldPath: "gait_left_rc" });
                                     }}
                                     onGrabFrame={() => setGrabberMode("gait")}
                                 />
                                 <PasteUploadZone
                                     label="Apoio Médio (AM)"
-                                    value={form.watch("tests.gait_photos.left.mid")}
+                                    value={form.watch(`tests.photosAnalyzed.gait_left_am`) || form.watch("tests.gait_photos.left.mid")}
                                     onChange={(v) => form.setValue("tests.gait_photos.left.mid", v)}
                                     className="aspect-[3/4] w-full object-cover"
                                     onAnalyze={() => {
                                         const url = form.watch("tests.gait_photos.left.mid");
-                                        if (url) setAnalyzerFile({ url, mode: "hindfoot", title: "Cimetógrafo Calcâneo - Marcha AM" });
+                                        if (url) setAnalyzerFile({ url, mode: "hindfoot", title: "Cimetógrafo Calcâneo - Marcha AM", fieldPath: "gait_left_am" });
                                     }}
                                     onGrabFrame={() => setGrabberMode("gait")}
                                 />
                                 <PasteUploadZone
                                     label="Fase de Impulsão (FI)"
-                                    value={form.watch("tests.gait_photos.left.terminal")}
+                                    value={form.watch(`tests.photosAnalyzed.gait_left_fi`) || form.watch("tests.gait_photos.left.terminal")}
                                     onChange={(v) => form.setValue("tests.gait_photos.left.terminal", v)}
                                     className="aspect-[3/4] w-full object-cover"
                                     onAnalyze={() => {
                                         const url = form.watch("tests.gait_photos.left.terminal");
-                                        if (url) setAnalyzerFile({ url, mode: "hindfoot", title: "Cimetógrafo Calcâneo - Marcha FI" });
+                                        if (url) setAnalyzerFile({ url, mode: "hindfoot", title: "Cimetógrafo Calcâneo - Marcha FI", fieldPath: "gait_left_fi" });
                                     }}
                                     onGrabFrame={() => setGrabberMode("gait")}
                                 />
@@ -379,34 +379,34 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <PasteUploadZone
                                     label="Resposta à Carga (RC)"
-                                    value={form.watch("tests.gait_photos.right.initial")}
+                                    value={form.watch(`tests.photosAnalyzed.gait_right_rc`) || form.watch("tests.gait_photos.right.initial")}
                                     onChange={(v) => form.setValue("tests.gait_photos.right.initial", v)}
                                     className="aspect-[3/4] w-full object-cover"
                                     onAnalyze={() => {
                                         const url = form.watch("tests.gait_photos.right.initial");
-                                        if (url) setAnalyzerFile({ url, mode: "hindfoot", title: "Cimetógrafo Calcâneo - Marcha RC" });
+                                        if (url) setAnalyzerFile({ url, mode: "hindfoot", title: "Cimetógrafo Calcâneo - Marcha RC", fieldPath: "gait_right_rc" });
                                     }}
                                     onGrabFrame={() => setGrabberMode("gait")}
                                 />
                                 <PasteUploadZone
                                     label="Apoio Médio (AM)"
-                                    value={form.watch("tests.gait_photos.right.mid")}
+                                    value={form.watch(`tests.photosAnalyzed.gait_right_am`) || form.watch("tests.gait_photos.right.mid")}
                                     onChange={(v) => form.setValue("tests.gait_photos.right.mid", v)}
                                     className="aspect-[3/4] w-full object-cover"
                                     onAnalyze={() => {
                                         const url = form.watch("tests.gait_photos.right.mid");
-                                        if (url) setAnalyzerFile({ url, mode: "hindfoot", title: "Cimetógrafo Calcâneo - Marcha AM" });
+                                        if (url) setAnalyzerFile({ url, mode: "hindfoot", title: "Cimetógrafo Calcâneo - Marcha AM", fieldPath: "gait_right_am" });
                                     }}
                                     onGrabFrame={() => setGrabberMode("gait")}
                                 />
                                 <PasteUploadZone
                                     label="Fase de Impulsão (FI)"
-                                    value={form.watch("tests.gait_photos.right.terminal")}
+                                    value={form.watch(`tests.photosAnalyzed.gait_right_fi`) || form.watch("tests.gait_photos.right.terminal")}
                                     onChange={(v) => form.setValue("tests.gait_photos.right.terminal", v)}
                                     className="aspect-[3/4] w-full object-cover"
                                     onAnalyze={() => {
                                         const url = form.watch("tests.gait_photos.right.terminal");
-                                        if (url) setAnalyzerFile({ url, mode: "hindfoot", title: "Cimetógrafo Calcâneo - Marcha FI" });
+                                        if (url) setAnalyzerFile({ url, mode: "hindfoot", title: "Cimetógrafo Calcâneo - Marcha FI", fieldPath: "gait_right_fi" });
                                     }}
                                     onGrabFrame={() => setGrabberMode("gait")}
                                 />
@@ -430,13 +430,18 @@ export function DynamicAssessmentAccordion({ openSection, isSectionFilled, secti
                             <PhotoAnalyzer
                                 src={analyzerFile.url}
                                 mode={analyzerFile.mode as any}
-                                onUpdate={() => { }}
+                                savedPoints={form.watch(`tests.pointsAnalyzed.${analyzerFile.fieldPath}`)}
+                                onFinalize={(canvasUrl, points) => {
+                                    form.setValue(`tests.photosAnalyzed.${analyzerFile.fieldPath}`, canvasUrl);
+                                    form.setValue(`tests.pointsAnalyzed.${analyzerFile.fieldPath}`, points);
+                                    setAnalyzerFile(null);
+                                }}
                             />
                         </div>
 
                         <DialogFooter className="px-8 pb-4">
                             <button
-                                onClick={() => setAnalyzerFile(null)}
+                                onClick={() => (window as any).finalizeCimetografo?.()}
                                 className="w-full sm:w-auto px-10 h-12 bg-violet-600 hover:bg-violet-700 text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>

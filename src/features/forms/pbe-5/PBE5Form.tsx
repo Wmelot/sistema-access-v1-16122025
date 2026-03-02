@@ -159,10 +159,10 @@ export default function PBE5Form({
             cardio: { method: "rockport", timeMin: "", heartRate: "", distance: "" },
             strength: {},
             mobility: { wells: "", legRaiseRight: "", legRaiseLeft: "", shoulderReachRight: "", shoulderReachLeft: "" },
-            posture: { photos: {}, observations: [] },
+            posture: { photos: {}, observations: [], photosAnalyzed: {}, pointsAnalyzed: {} },
             sports: { activity: "", frequency: "", duration: "", ipaq: "" },
             functionality: { efep: [{ activity: "", score: "" }] },
-            movement: { active: {}, passive: {}, repeated: {} },
+            movement: { active: {}, passive: {}, repeated: {}, gaitPhotosAnalyzed: {}, gaitPointsAnalyzed: {} },
             conduct: { questionnaires: [], extraQuestionnaire: "none", followUpDays: [], monitorPain: true },
             protocols: {},
             neuropedia: {

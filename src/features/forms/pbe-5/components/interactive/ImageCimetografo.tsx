@@ -32,9 +32,11 @@ interface PhotoAnalyzerProps {
     src: string;
     mode: 'posture_anterior' | 'posture_posterior' | 'posture_lateral' | 'hindfoot' | 'lower_limb_anterior' | 'lower_limb_posterior';
     onUpdate?: (points: Point[]) => void;
+    onFinalize?: (base64: string, points: Point[]) => void;
+    savedPoints?: Point[];
 }
 
-export function PhotoAnalyzer({ src, mode, onUpdate }: PhotoAnalyzerProps) {
+export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: PhotoAnalyzerProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const imageRef = useRef<HTMLImageElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -48,9 +50,15 @@ export function PhotoAnalyzer({ src, mode, onUpdate }: PhotoAnalyzerProps) {
     const [draggingPoint, setDraggingPoint] = useState<string | null>(null);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [imageLoaded, setImageLoaded] = useState(false);
+    const [hoveringPoint, setHoveringPoint] = useState<string | null>(null);
 
-    // Initialize points based on mode
+    // Initialize points based on mode or saved data
     useEffect(() => {
+        if (savedPoints && savedPoints.length > 0) {
+            setPoints(savedPoints);
+            return;
+        }
+
         if (mode === 'posture_anterior' && points.length === 0) {
             setPoints([
                 { id: 'acromio_d', label: 'Acrômio D', x: 30, y: 30 },
@@ -422,10 +430,104 @@ export function PhotoAnalyzer({ src, mode, onUpdate }: PhotoAnalyzerProps) {
 
     const isDragging = draggingPoint !== null;
 
+    // Function to generate a flattened base64 with the canvas drawings
+    const finalize = () => {
+        if (!onFinalize || !imageRef.current || !canvasRef.current) return;
+
+        const img = imageRef.current;
+        const mainCanvas = canvasRef.current;
+
+        // Create a temporary canvas with the image's natural dimensions
+        const offscreen = document.createElement('canvas');
+        offscreen.width = img.naturalWidth;
+        offscreen.height = img.naturalHeight;
+        const octx = offscreen.getContext('2d');
+        if (!octx) return;
+
+        // 1. Draw original image
+        octx.drawImage(img, 0, 0);
+
+        // 2. Draw lines and angles at natural scale
+        const scaleX = img.naturalWidth / mainCanvas.width;
+        const scaleY = img.naturalHeight / mainCanvas.height;
+
+        // Helper to get raw coordinates at natural scale
+        const getPxX = (percent: number) => (percent / 100) * img.naturalWidth;
+        const getPxY = (percent: number) => (percent / 100) * img.naturalHeight;
+        const getPoint = (id: string) => points.find(p => p.id === id);
+
+        // Connections
+        octx.lineWidth = 2 * scaleX;
+        octx.strokeStyle = '#ef4444';
+        connections.forEach(conn => {
+            const p1 = getPoint(conn.from);
+            const p2 = getPoint(conn.to);
+            if (p1 && p2) {
+                octx.beginPath();
+                octx.moveTo(getPxX(p1.x), getPxY(p1.y));
+                octx.lineTo(getPxX(p2.x), getPxY(p2.y));
+                octx.stroke();
+            }
+        });
+
+        // Angles
+        angles.forEach(angleInfo => {
+            const p1 = getPoint(angleInfo.p1);
+            const vertex = getPoint(angleInfo.vertex);
+            const p2 = getPoint(angleInfo.p2);
+
+            if (p1 && vertex && p2) {
+                const x1 = getPxX(p1.x), y1 = getPxY(p1.y);
+                const vx = getPxX(vertex.x), vy = getPxY(vertex.y);
+                const x2 = getPxX(p2.x), y2 = getPxY(p2.y);
+
+                const angle1 = Math.atan2(y1 - vy, x1 - vx);
+                const angle2 = Math.atan2(y2 - vy, x2 - vx);
+                let angleDeg = Math.abs(angle1 - angle2) * (180 / Math.PI);
+                if (angleDeg > 180) angleDeg = 360 - angleDeg;
+
+                // Arc
+                octx.beginPath();
+                octx.arc(vx, vy, 20 * scaleX, Math.min(angle1, angle2), Math.max(angle1, angle2));
+                octx.strokeStyle = '#fbbf24';
+                octx.lineWidth = 4 * scaleX;
+                octx.stroke();
+
+                // Text
+                const txt = `${Math.round(angleDeg)}°`;
+                octx.font = `bold ${14 * scaleX}px Inter`;
+                const tw = octx.measureText(txt).width;
+                let tx = vx + 25 * scaleX;
+                let ty = vy - 10 * scaleY;
+
+                octx.fillStyle = '#2563eb';
+                octx.beginPath();
+                octx.roundRect(tx - 4 * scaleX, ty - 14 * scaleY, tw + 8 * scaleX, 18 * scaleY, 4 * scaleX);
+                octx.fill();
+
+                octx.fillStyle = '#ffffff';
+                octx.fillText(txt, tx, ty);
+            }
+        });
+
+        const base64 = offscreen.toDataURL('image/jpeg', 0.9);
+        onFinalize(base64, points);
+    };
+
+    // Expose finalize function via window for simplicity in this bridge or use a ref in real life
+    // But since we are hacking specific accordions, let's use a button inside the component if needed
+    // Actually, let's just make it call onFinalize whenever points update, and we manage it in the parent? 
+    // No, better a manual finalize to avoid heavy processing.
+
+    // Add a ghost effect to the component to signal it's ready
+    useEffect(() => {
+        (window as any).finalizeCimetografo = finalize;
+    }, [points, connections, angles, imageLoaded]);
+
     return (
         <div
             ref={containerRef}
-            className="relative w-full h-[500px] bg-slate-100 rounded-3xl overflow-hidden border border-slate-200 select-none touch-none"
+            className="relative w-full h-[500px] bg-slate-100 rounded-3xl overflow-hidden border border-slate-200 select-none touch-none shadow-inner"
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
@@ -448,26 +550,36 @@ export function PhotoAnalyzer({ src, mode, onUpdate }: PhotoAnalyzerProps) {
 
             {/* Draggable Points */}
             <div className="absolute inset-0 z-20">
-                {points.map(p => (
-                    <div
-                        key={p.id}
-                        onPointerDown={(e) => handlePointerDown(e, p.id)}
-                        className={cn(
-                            "absolute w-5 h-5 -ml-2.5 -mt-2.5 rounded-full border-2 cursor-grab active:cursor-grabbing flex items-center justify-center transition-transform hover:scale-125 z-30",
-                            draggingPoint === p.id ? "bg-red-500 border-white scale-150 z-50 shadow-lg shadow-red-500/50" : "bg-white border-red-500 shadow-sm"
-                        )}
-                        style={{ left: `${p.x}%`, top: `${p.y}%` }}
-                    >
-                        <div className="w-1.5 h-1.5 bg-red-500 rounded-full" />
+                {points.map(p => {
+                    const isInteracting = draggingPoint === p.id || hoveringPoint === p.id;
+                    return (
+                        <div
+                            key={p.id}
+                            onPointerDown={(e) => handlePointerDown(e, p.id)}
+                            onMouseEnter={() => setHoveringPoint(p.id)}
+                            onMouseLeave={() => setHoveringPoint(null)}
+                            className={cn(
+                                "absolute w-6 h-6 -ml-3 -mt-3 rounded-full border-2 cursor-grab active:cursor-grabbing flex items-center justify-center transition-all duration-300 z-30",
+                                isInteracting
+                                    ? "bg-red-500 border-white scale-125 z-50 shadow-lg shadow-red-500/50 opacity-100"
+                                    : "bg-white/20 border-white/40 opacity-0 hover:opacity-100" // Hidden by default, appears on hover
+                            )}
+                            style={{ left: `${p.x}%`, top: `${p.y}%` }}
+                        >
+                            <div className={cn(
+                                "w-1.5 h-1.5 rounded-full transition-colors",
+                                isInteracting ? "bg-white" : "bg-red-500 shadow-sm"
+                            )} />
 
-                        {/* Tooltip Label */}
-                        {draggingPoint !== p.id && (
-                            <div className="absolute top-6 whitespace-nowrap bg-black/70 text-white text-[9px] px-1.5 py-0.5 rounded font-bold pointer-events-none">
-                                {p.label}
-                            </div>
-                        )}
-                    </div>
-                ))}
+                            {/* Permanent Label if interacting */}
+                            {isInteracting && (
+                                <div className="absolute top-7 left-1/2 -translate-x-1/2 bg-slate-900/90 text-[8px] font-black text-white px-2 py-0.5 rounded uppercase tracking-widest whitespace-nowrap backdrop-blur-sm">
+                                    {p.label}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
 
             {/* Magnification Zoom Lens */}

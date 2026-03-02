@@ -1093,7 +1093,7 @@ export function AttendanceClient({
                                                 onTemplateChange={handleTemplateChange}
                                                 templates={templates}
                                             />
-                                        ) : (selectedTemplateId === 'palmilha-5' || selectedTemplateId === 'e0000000-0000-0000-0000-000000000005') ? (
+                                        ) : (selectedTemplateId === 'palmilha-5' || selectedTemplateId === 'palmilha_5_system' || selectedTemplateId === 'e0000000-0000-0000-0000-000000000005') ? (
                                             <Palmilha5Form
                                                 initialData={currentRecord?.content}
                                                 patientId={patient.id}

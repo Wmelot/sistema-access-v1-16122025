@@ -425,7 +425,11 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                     fileD: fileD || "UExhY2Vob2xkZXI="
                 },
                 { nome: patientName, email: patientEmail },
-                { id: professional?.email || professional?.id || 'contato@axiom.com', nome: professional?.full_name || 'Fisioterapeuta', address: professional?.address || 'Axiom' }
+                {
+                    email: professional?.email || professional?.id || 'contato@axiom.com',
+                    nome: professional?.full_name || 'Fisioterapeuta',
+                    address: professional?.address || 'Axiom'
+                }
             )
 
             setPropulsaoStatus(propulsaoRes)
@@ -651,7 +655,11 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                                                         <div>
                                                             <h4 className="font-bold">Pedido Aceito pela Propulsão!</h4>
                                                             <p className="text-sm text-green-700 mt-1">
-                                                                Os dados criptografados foram entregues à fábrica.
+                                                                {propulsaoStatus?.orderNumber ? (
+                                                                    <>Pedido gerado: <span className="font-mono font-bold bg-green-100 px-1 rounded">#{propulsaoStatus.orderNumber}</span>. Os dados foram entregues à fábrica.</>
+                                                                ) : (
+                                                                    "Os dados criptografados foram entregues à fábrica."
+                                                                )}
                                                             </p>
                                                         </div>
                                                     </div>

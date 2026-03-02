@@ -110,6 +110,9 @@ export async function saveSandboxAssessment(
             case 'womens-health':
                 templateTitleQuery = 'Saúde da Mulher'
                 break
+            case 'pbe-5':
+                templateTitleQuery = 'PBE 5.0'
+                break
             case 'pbe':
             case 'advanced-pbe':
             case 'smart-assessment':
@@ -124,6 +127,9 @@ export async function saveSandboxAssessment(
             case 'ultimate-pbe':
                 templateTitleQuery = 'Ultimate PBE'
                 break
+            case 'palmilha-5':
+                templateTitleQuery = 'Palmilha 5.0'
+                break
             case 'palmilha':
             case 'palmilha-v3':
                 templateTitleQuery = 'Palmilha'
@@ -132,8 +138,27 @@ export async function saveSandboxAssessment(
                 templateTitleQuery = 'Avaliação'
         }
 
-        // Find Template
-        let templateId = specificTemplateId
+        // Map System Strings to valid Seeded UUIDs just like in attendance.ts
+        const SYSTEM_UUID_MAP: Record<string, string> = {
+            'palmilha-5': 'e0000000-0000-0000-0000-000000000005',
+            'palmilha_5_system': 'e0000000-0000-0000-0000-000000000005',
+            'system-physical-assessment': 'e0000000-0000-0000-0000-000000000002',
+            'womens_health_system': 'e0000000-0000-0000-0000-000000000003',
+            'clinical_evolution_system': 'e0000000-0000-0000-0000-000000000004',
+            'ultimate_pbe_system': 'e0000000-0000-0000-0000-000000000006',
+            'tree_wizard_system': 'e0000000-0000-0000-0000-000000000007',
+            'pbe_concept_system': 'e0000000-0000-0000-0000-000000000008',
+            'diabetic_foot_system': 'e0000000-0000-0000-0000-000000000009',
+        };
+
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        let templateId = specificTemplateId;
+
+        if (templateId && SYSTEM_UUID_MAP[templateId]) {
+            templateId = SYSTEM_UUID_MAP[templateId];
+        } else if (templateId && !uuidRegex.test(templateId)) {
+            templateId = undefined; // Force lookup instead of passing an invalid syntax string
+        }
 
         if (!templateId) {
             const { data: templates } = await adminSupabase
