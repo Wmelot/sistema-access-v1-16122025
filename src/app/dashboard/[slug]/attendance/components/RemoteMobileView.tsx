@@ -171,9 +171,12 @@ export default function RemoteMobileView({
                                 { id: 'posture.photos.posterior', label: 'Postura Posterior', icon: Camera, color: 'text-blue-500', accept: 'image/*' },
                                 { id: 'posture.photos.left', label: 'Perfil Esquerdo', icon: Camera, color: 'text-indigo-500', accept: 'image/*' },
                                 { id: 'posture.photos.right', label: 'Perfil Direito', icon: Camera, color: 'text-indigo-500', accept: 'image/*' },
-                                { id: 'movement.gaitPhotos.midstance_left', label: 'Marcha (Apoio E)', title: 'Retropé', icon: Camera, color: 'text-emerald-500', accept: 'image/*' },
-                                { id: 'movement.gaitPhotos.midstance_right', label: 'Marcha (Apoio D)', title: 'Retropé', icon: Camera, color: 'text-emerald-500', accept: 'image/*' },
-                                { id: 'movement.gaitPhotos.running_heel_strike', label: 'Corrida (Retropé)', icon: Camera, color: 'text-emerald-500', accept: 'image/*' },
+                                { id: 'movement.gaitPhotos.rc_left', label: 'RC Esq', title: 'Pisada', icon: Camera, color: 'text-emerald-500', accept: 'image/*' },
+                                { id: 'movement.gaitPhotos.am_left', label: 'AM Esq', title: 'Pisada', icon: Camera, color: 'text-emerald-500', accept: 'image/*' },
+                                { id: 'movement.gaitPhotos.fi_left', label: 'FI Esq', title: 'Pisada', icon: Camera, color: 'text-emerald-500', accept: 'image/*' },
+                                { id: 'movement.gaitPhotos.rc_right', label: 'RC Dir', title: 'Pisada', icon: Camera, color: 'text-emerald-600', accept: 'image/*' },
+                                { id: 'movement.gaitPhotos.am_right', label: 'AM Dir', title: 'Pisada', icon: Camera, color: 'text-emerald-600', accept: 'image/*' },
+                                { id: 'movement.gaitPhotos.fi_right', label: 'FI Dir', title: 'Pisada', icon: Camera, color: 'text-emerald-600', accept: 'image/*' },
                             ].map((slot) => (
                                 <div key={slot.id} className="relative w-full bg-slate-50 p-4 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between overflow-hidden active:scale-95 transition-transform">
                                     <div className="flex items-center gap-4">
@@ -209,7 +212,11 @@ export default function RemoteMobileView({
                             <hr className="my-2 border-slate-100" />
 
                             <button
-                                onClick={() => setIsGrabberOpen(true)}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setIsGrabberOpen(true);
+                                }}
                                 className="w-full bg-emerald-50 p-6 rounded-[2rem] border border-emerald-100 shadow-sm flex items-center justify-between group active:scale-95 transition-transform"
                             >
                                 <div className="flex items-center gap-5">

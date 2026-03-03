@@ -114,7 +114,25 @@ export default async function SlugLayout({
                 }
                 userProfile.email = user.email || '';
             }
+
+            // [SECURITY] Prevent non-master users from accessing other organizations' slugs
+            if (userProfile.role !== 'Master' && settings && userProfile.organizationId !== settings.id) {
+                console.warn(`[Layout] USER ${user.email} BLOCKED: Tried to access '${slug}' but belongs to ID ${userProfile.organizationId}. Redirecting...`);
+                const adminClient = await createAdminClient();
+                const { data: userOrg } = await adminClient
+                    .from('organizations')
+                    .select('slug')
+                    .eq('id', userProfile.organizationId)
+                    .single();
+
+                if (userOrg) {
+                    redirect(`/dashboard/${userOrg.slug}`);
+                } else {
+                    redirect('/login?error=no_organization');
+                }
+            }
         } catch (e) {
+            if ((e as any).digest?.includes('NEXT_REDIRECT')) throw e;
             console.error("Layout profile fetch error:", e)
         }
     }

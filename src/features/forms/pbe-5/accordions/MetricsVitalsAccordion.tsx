@@ -121,27 +121,37 @@ export function MetricsVitalsAccordion({ openSection, isSectionFilled, sectionSt
                             <h4 className="font-black text-slate-800 uppercase text-xs tracking-widest">Antropometria</h4>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-6">
-                            <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-3">
-                                <FormLabel className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-3">
+                                <FormLabel className="flex items-center gap-2 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                     <WeightIcon className="h-3.5 w-3.5 text-emerald-500" /> Peso (kg)
                                 </FormLabel>
                                 <Input
                                     {...register('metrics.weight')}
                                     type="number"
                                     placeholder="00.0"
-                                    className="h-14 rounded-xl border-slate-200 bg-white text-2xl font-black text-slate-700 focus:ring-emerald-500"
+                                    className="h-12 rounded-xl border-slate-200 bg-white text-xl font-black text-slate-700 focus:ring-emerald-500"
                                 />
                             </div>
-                            <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-3">
-                                <FormLabel className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-3">
+                                <FormLabel className="flex items-center gap-2 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                     <Ruler className="h-3.5 w-3.5 text-emerald-500" /> Altura (cm)
                                 </FormLabel>
                                 <Input
                                     {...register('metrics.height')}
                                     type="number"
                                     placeholder="000"
-                                    className="h-14 rounded-xl border-slate-200 bg-white text-2xl font-black text-slate-700 focus:ring-emerald-500"
+                                    className="h-12 rounded-xl border-slate-200 bg-white text-xl font-black text-slate-700 focus:ring-emerald-500"
+                                />
+                            </div>
+                            <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-3">
+                                <FormLabel className="flex items-center gap-2 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                    <Activity className="h-3.5 w-3.5 text-emerald-500" /> Numeração
+                                </FormLabel>
+                                <Input
+                                    {...register('metrics.shoeSize')}
+                                    placeholder="Ex: 43"
+                                    className="h-12 rounded-xl border-slate-200 bg-white text-xl font-black text-slate-700 focus:ring-emerald-500"
                                 />
                             </div>
                         </div>

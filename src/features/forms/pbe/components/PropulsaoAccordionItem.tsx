@@ -168,7 +168,7 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
             return // Skip automation if we have local data already
         }
 
-        const shoeSize = Number(data.postural?.shoeSize)
+        const shoeSize = data.postural?.shoeSize || data.metrics?.shoeSize
         if (shoeSize) setTamanho(String(shoeSize))
 
         const mapStatusToArc = (label: string) => {
@@ -411,7 +411,7 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
         }
 
         // --- VALIDAÇÕES DE DADOS OBRIGATÓRIOS ---
-        const nomeLimpo = patientName.trim();
+        const nomeLimpo = (patientName || 'Paciente Teste').trim();
         if (nomeLimpo.split(' ').length < 2 || nomeLimpo.toUpperCase() === "PACIENTE TESTE") {
             toast.error("O pedido exige o NOME COMPLETO do paciente. Por favor, atualize o cadastro.");
             return;
@@ -558,7 +558,8 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                                     <div className="relative">
                                         <Footprints className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                                         <input
-                                            type="number"
+                                            type="text"
+                                            inputMode="numeric"
                                             value={tamanho}
                                             onChange={(e) => setTamanho(e.target.value)}
                                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 pl-9"

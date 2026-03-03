@@ -10,7 +10,8 @@ import { Card } from "@/components/ui/card";
 import {
     Flower2, Baby, Activity, ShieldCheck, Info, UserCheck,
     Heart, Droplets, Ruler, Scale, RefreshCw, Layers,
-    Waves, Thermometer, ClipboardList, PenTool, Search, Zap
+    Waves, Thermometer, ClipboardList, PenTool, Search, Zap,
+    Link2, Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,16 +23,55 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { WomensHealthRichProtocol } from "./protocols/WomensHealthRichProtocol";
+import { generatePortalToken } from "@/app/dashboard/[slug]/patients/actions/voiding-diary";
+import { toast } from "sonner";
 
 interface WomensHealthHealthAccordionProps {
     openSection: string;
     isSectionFilled: (section: string) => boolean;
     sectionStyle: { border: string; iconColor: string; bg: string };
     setIsAssessmentModalOpen?: (isOpen: boolean) => void;
+    patientId?: string;
 }
 
-export function WomensHealthAccordion({ openSection, isSectionFilled, sectionStyle, setIsAssessmentModalOpen }: WomensHealthHealthAccordionProps) {
+export function WomensHealthAccordion({ openSection, isSectionFilled, sectionStyle, setIsAssessmentModalOpen, patientId }: WomensHealthHealthAccordionProps) {
     const isFilled = isSectionFilled('womens_health');
+    const [isGenerating, setIsGenerating] = useState(false);
+
+    const handleGenerateDiary = async () => {
+        try {
+            const pathSegments = window.location.pathname.split('/');
+            const patientIndex = pathSegments.indexOf('patients');
+
+            // Allow patientId to be passed via props (from PBE5Form/attendance) or extracted from URL
+            const resolvedPatientId = patientId || (patientIndex !== -1 ? pathSegments[patientIndex + 1] : null);
+
+            const slugIndex = pathSegments.indexOf('dashboard');
+            const slug = slugIndex !== -1 ? pathSegments[slugIndex + 1] : undefined;
+
+            if (!resolvedPatientId || resolvedPatientId === 'sandbox') {
+                toast.error("Para gerar o link, você deve estar no prontuário do paciente.");
+                return;
+            }
+
+            setIsGenerating(true);
+            const loadingToast = toast.loading("Gerando portal da paciente...");
+
+            const res = await generatePortalToken(resolvedPatientId, slug);
+
+            if (res.success && res.url) {
+                await navigator.clipboard.writeText(res.url);
+                toast.success("Link enviado direto pelo WhatsApp da paciente (Z-API)! E copiado também.", { id: loadingToast });
+            } else {
+                toast.error(res.error || "Erro ao gerar link", { id: loadingToast });
+            }
+        } catch (e) {
+            toast.error("Erro inesperado");
+            setIsGenerating(false);
+        } finally {
+            setIsGenerating(false);
+        }
+    };
 
     return (
         <AccordionItem
@@ -61,6 +101,16 @@ export function WomensHealthAccordion({ openSection, isSectionFilled, sectionSty
             </AccordionTrigger>
             <AccordionContent className="px-0 pb-0 border-t border-slate-50">
                 <div className="p-8">
+                    <div className="mb-6 flex justify-end">
+                        <Button
+                            onClick={handleGenerateDiary}
+                            disabled={isGenerating}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-[1rem] shadow-sm font-black uppercase text-[10px] tracking-widest gap-2 h-10 px-5"
+                        >
+                            {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
+                            Gerar Portal / Diário Miccional
+                        </Button>
+                    </div>
                     <WomensHealthRichProtocol />
                 </div>
 

@@ -31,9 +31,35 @@ interface TenantResponsibleManagerProps {
 export function TenantResponsibleManager({ tenantId, maxPros, usedPros, usagePercent, owner, profiles }: TenantResponsibleManagerProps) {
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [isListOpen, setIsListOpen] = useState(false)
+    const [isPasswordResetOpen, setIsPasswordResetOpen] = useState(false)
+    const [selectedUser, setSelectedUser] = useState<any>(null)
+    const [newPassword, setNewPassword] = useState('12345678')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [isLoading, setIsLoading] = useState(false)
+    const [isResetting, setIsResetting] = useState(false)
+
+    async function handleResetPassword() {
+        if (!selectedUser || !newPassword || !password) {
+            toast.error('Preencha a nova senha e sua senha master')
+            return
+        }
+
+        setIsResetting(true)
+        const { resetUserPassword } = await import('../actions')
+        const result = await resetUserPassword(selectedUser.id, newPassword, password)
+        setIsResetting(false)
+
+        if (result.error) {
+            toast.error(result.error)
+        } else {
+            toast.success(`Senha de ${selectedUser.full_name} alterada para: ${newPassword}`)
+            setIsPasswordResetOpen(false)
+            setNewPassword('12345678')
+            setPassword('')
+            setSelectedUser(null)
+        }
+    }
 
     async function handleUpdate() {
         if (!email) {
@@ -226,7 +252,18 @@ export function TenantResponsibleManager({ tenantId, maxPros, usedPros, usagePer
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Badge variant="outline" className="text-xs capitalize">{profile.role || 'user'}</Badge>
-                                        {/* You can add more status indicators here if available */}
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 w-8 p-0 text-zinc-400 hover:text-red-600 hover:bg-red-50"
+                                            onClick={() => {
+                                                setSelectedUser(profile)
+                                                setIsPasswordResetOpen(true)
+                                            }}
+                                            title="Resetar Senha"
+                                        >
+                                            <Edit2 className="w-3.5 h-3.5" />
+                                        </Button>
                                     </div>
                                 </div>
                             ))
@@ -239,6 +276,52 @@ export function TenantResponsibleManager({ tenantId, maxPros, usedPros, usagePer
 
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsListOpen(false)}>Fechar</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Dialog to Reset Password */}
+            <Dialog open={isPasswordResetOpen} onOpenChange={setIsPasswordResetOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Users className="w-5 h-5 text-red-500" />
+                            Resetar Senha: {selectedUser?.full_name?.split(' ')[0]}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Isso alterará a senha de acesso do usuário para o valor definido abaixo.
+                            <b> Esta ação requer sua senha master.</b>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label>Nova Senha para o Usuário</Label>
+                            <Input
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder="Pelo menos 8 caracteres"
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Sua Senha Master (Confirmação)</Label>
+                            <Input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Digite sua senha administrativa"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsPasswordResetOpen(false)}>Cancelar</Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleResetPassword}
+                            disabled={isResetting || !newPassword || !password}
+                        >
+                            {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Resetar Senha Agora
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

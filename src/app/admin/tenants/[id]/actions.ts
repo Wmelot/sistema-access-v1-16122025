@@ -421,3 +421,30 @@ export async function saveTenantZapiConfig(tenantId: string, zapiConfig: any) {
     revalidatePath(`/admin/tenants/${tenantId}`);
     return { success: true };
 }
+
+export async function resetUserPassword(userId: string, newPassword: string, masterPassword: string) {
+    // 1. Verify Master Password for security
+    const isVerified = await verifyAdminPassword(masterPassword);
+    if (!isVerified) {
+        return { error: 'Senha administrativa incorreta. Ação abortada.' };
+    }
+
+    if (!newPassword || newPassword.length < 8) {
+        return { error: 'A nova senha deve ter pelo menos 8 caracteres.' };
+    }
+
+    const supabase = createAdminClient();
+
+    // 2. Update the user password in Supabase Auth
+    const { error } = await supabase.auth.admin.updateUserById(
+        userId,
+        { password: newPassword }
+    );
+
+    if (error) {
+        console.error('Error resetting password:', error);
+        return { error: `Erro ao resetar senha: ${error.message}` };
+    }
+
+    return { success: true };
+}

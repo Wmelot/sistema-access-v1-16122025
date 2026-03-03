@@ -27,9 +27,9 @@ export function AxiomNivelCamera({ open, onClose, onCapture, title = "Captura de
     const [gamma, setGamma] = useState<number | null>(null); // Y axis (left/right tilt - ROLL)
     const [isLevel, setIsLevel] = useState(false);
 
-    // Tolerância para ambos os eixos (graus p/ frente-tras e lado-lado)
-    const TOLERANCE_PITCH = 3;
-    const TOLERANCE_ROLL = 3;
+    // Tolerância para ambos os eixos (graus p/ frente-tras e lado-lado) - Aumentada de 3 para 4 a pedido
+    const TOLERANCE_PITCH = 4;
+    const TOLERANCE_ROLL = 4;
 
     const stopCamera = useCallback(() => {
         if (stream) {
@@ -45,9 +45,9 @@ export function AxiomNivelCamera({ open, onClose, onCapture, title = "Captura de
         try {
             const mediaStream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    facingMode: 'environment', // Traseira
-                    width: { ideal: 3840, min: 1920 }, // Exige 4K, cai pra 1080p se não der
-                    height: { ideal: 2160, min: 1080 }
+                    facingMode: { ideal: 'environment' },
+                    width: { ideal: 3840 },
+                    height: { ideal: 2160 },
                 },
                 audio: false
             });
@@ -85,6 +85,10 @@ export function AxiomNivelCamera({ open, onClose, onCapture, title = "Captura de
     };
 
     const startSensors = useCallback(() => {
+        let lastBeta = 90;
+        let lastGamma = 0;
+        let isInitialized = false;
+
         const handleOrientation = (event: DeviceOrientationEvent) => {
             // Se o aparelho estiver em Portrait (em pé):
             // Beta mede o quão tombado pra frente/trás (+90 é reta. 0 é flat na mesa tela p cima)
@@ -104,13 +108,24 @@ export function AxiomNivelCamera({ open, onClose, onCapture, title = "Captura de
             if (currentBeta > 90) currentBeta = 180 - currentBeta;
             if (currentBeta < -90) currentBeta = -180 - currentBeta;
 
-            setAlpha(event.alpha);
-            setBeta(currentBeta);
-            setGamma(currentGamma);
+            // Filtro Passa Baixa (Low-pass filter) para suavizar a tremedeira
+            if (!isInitialized) {
+                lastBeta = currentBeta;
+                lastGamma = currentGamma;
+                isInitialized = true;
+            } else {
+                // Fator de Suavização: 0.15 (15% novo valor, 85% valor antigo) = Mais suave e menos nervoso
+                lastBeta = lastBeta + (currentBeta - lastBeta) * 0.15;
+                lastGamma = lastGamma + (currentGamma - lastGamma) * 0.15;
+            }
 
-            // Calcula o desvio (Diferença para BETA = 90 e GAMMA = 0)
-            const pitchDeviation = Math.abs(90 - Math.abs(currentBeta)); // O quão longe de 90
-            const rollDeviation = Math.abs(currentGamma); // O quão longe de 0
+            setAlpha(event.alpha);
+            setBeta(lastBeta);
+            setGamma(lastGamma);
+
+            // Calcula o desvio (Diferença para BETA = 90 e GAMMA = 0) usando os valores suavizados
+            const pitchDeviation = Math.abs(90 - Math.abs(lastBeta)); // O quão longe de 90
+            const rollDeviation = Math.abs(lastGamma); // O quão longe de 0
 
             if (pitchDeviation <= TOLERANCE_PITCH && rollDeviation <= TOLERANCE_ROLL) {
                 setIsLevel(true);
@@ -211,12 +226,12 @@ export function AxiomNivelCamera({ open, onClose, onCapture, title = "Captura de
     return (
         <div className="fixed inset-0 z-[200] bg-black text-white flex flex-col font-sans">
             {/* HUD Header */}
-            <div className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between z-10 bg-gradient-to-b from-black/80 to-transparent">
-                <div>
+            <div className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between z-10 bg-gradient-to-b from-black/30 to-transparent pointer-events-none">
+                <div className="pointer-events-auto">
                     <h2 className="text-sm font-black uppercase tracking-widest text-emerald-400 drop-shadow-md">{title}</h2>
                     <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest drop-shadow">WebRTC 4K Lens</p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md">
+                <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md pointer-events-auto">
                     <X className="h-6 w-6" />
                 </Button>
             </div>
@@ -301,13 +316,13 @@ export function AxiomNivelCamera({ open, onClose, onCapture, title = "Captura de
 
 
                         {/* Topo / Rodapé Escuros P/ Contraste */}
-                        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-black to-transparent pointer-events-none" />
+                        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
                     </>
                 )}
             </div>
 
             {/* Ações (Bottom) */}
-            <div className="bg-black border-t border-white/10 p-8 flex items-center justify-center h-32 shrink-0 z-10">
+            <div className="bg-black/90 border-t border-white/10 p-8 flex items-center justify-center h-32 shrink-0 z-10">
                 {capturedImage ? (
                     <div className="flex items-center gap-6 w-full max-w-sm">
                         <Button variant="outline" onClick={retakeCapture} className="flex-1 bg-transparent border-white/30 text-white hover:bg-white/10 h-16 rounded-[2rem] font-black uppercase tracking-widest text-xs">

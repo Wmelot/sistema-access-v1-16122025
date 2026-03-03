@@ -673,12 +673,18 @@ export function MovementAssessmentAccordion({ openSection, isSectionFilled, sect
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {['midstance_left', 'midstance_right', 'running_heel_strike'].map((view) => {
-                                const url = gaitPhotos[view];
-                                const label = view === 'midstance_left' ? 'Apoio Médio (Pé E)' : view === 'midstance_right' ? 'Apoio Médio (Pé D)' : 'Corrida (Retropé)';
+                            {[
+                                { id: 'rc_left', label: 'RC Esq' },
+                                { id: 'am_left', label: 'AM Esq' },
+                                { id: 'fi_left', label: 'FI Esq' },
+                                { id: 'rc_right', label: 'RC Dir' },
+                                { id: 'am_right', label: 'AM Dir' },
+                                { id: 'fi_right', label: 'FI Dir' }
+                            ].map(({ id, label }) => {
+                                const url = gaitPhotos[id];
 
                                 return (
-                                    <div key={view} className="space-y-3">
+                                    <div key={id} className="space-y-3">
                                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1 block text-center italic">{label}</label>
                                         <div className={cn(
                                             "relative h-64 rounded-[2rem] border-2 border-dashed transition-all overflow-hidden flex flex-col items-center justify-center gap-2 group",
@@ -686,12 +692,12 @@ export function MovementAssessmentAccordion({ openSection, isSectionFilled, sect
                                         )}>
                                             {url ? (
                                                 <>
-                                                    <img src={watch(`movement.gaitPhotosAnalyzed.${view}`) || url} alt={label} className="absolute inset-0 w-full h-full object-cover" />
+                                                    <img src={watch(`movement.gaitPhotosAnalyzed.${id}`) || url} alt={label} className="absolute inset-0 w-full h-full object-cover" />
                                                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 backdrop-blur-sm">
-                                                        <Button size="icon" variant="secondary" className="rounded-full h-10 w-10 text-blue-600 hover:text-blue-700 bg-white" onClick={() => setAnalyzerView(view)}>
+                                                        <Button size="icon" variant="secondary" className="rounded-full h-10 w-10 text-blue-600 hover:text-blue-700 bg-white" onClick={() => setAnalyzerView(id)}>
                                                             <Activity className="h-5 w-5" />
                                                         </Button>
-                                                        <Button size="icon" variant="destructive" className="rounded-full h-10 w-10" onClick={() => removePhoto(view)}>
+                                                        <Button size="icon" variant="destructive" className="rounded-full h-10 w-10" onClick={() => removePhoto(id)}>
                                                             <Trash2 className="h-5 w-5" />
                                                         </Button>
                                                     </div>
@@ -719,7 +725,7 @@ export function MovementAssessmentAccordion({ openSection, isSectionFilled, sect
                                                         accept="image/*"
                                                         className="absolute inset-0 opacity-0 cursor-pointer"
                                                         title=""
-                                                        onChange={(e) => handlePhotoUpload(view, e.target.files?.[0] || null)}
+                                                        onChange={(e) => handlePhotoUpload(id, e.target.files?.[0] || null)}
                                                     />
                                                 </>
                                             )}
@@ -776,9 +782,12 @@ export function MovementAssessmentAccordion({ openSection, isSectionFilled, sect
                 open={grabberOpen}
                 onClose={() => setGrabberOpen(false)}
                 slots={[
-                    { id: 'midstance_left', label: 'Apoio Médio (Pé E)', value: gaitPhotos['midstance_left'] || null },
-                    { id: 'midstance_right', label: 'Apoio Médio (Pé D)', value: gaitPhotos['midstance_right'] || null },
-                    { id: 'running_heel_strike', label: 'Corrida (Retropé)', value: gaitPhotos['running_heel_strike'] || null },
+                    { id: 'rc_left', label: 'RC Esq', value: gaitPhotos['rc_left'] || null },
+                    { id: 'am_left', label: 'AM Esq', value: gaitPhotos['am_left'] || null },
+                    { id: 'fi_left', label: 'FI Esq', value: gaitPhotos['fi_left'] || null },
+                    { id: 'rc_right', label: 'RC Dir', value: gaitPhotos['rc_right'] || null },
+                    { id: 'am_right', label: 'AM Dir', value: gaitPhotos['am_right'] || null },
+                    { id: 'fi_right', label: 'FI Dir', value: gaitPhotos['fi_right'] || null },
                 ]}
                 onCaptureToSlot={(id, base64) => {
                     setValue(`movement.gaitPhotos.${id}`, base64, { shouldDirty: true, shouldValidate: true });

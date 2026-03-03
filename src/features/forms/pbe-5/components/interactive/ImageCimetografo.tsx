@@ -176,6 +176,8 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
             ];
         } else if (mode === 'hindfoot') {
             defaultPoints = [
+                { id: 'pelve_d', label: 'Pelve D', x: 65, y: 45 },
+                { id: 'pelve_e', label: 'Pelve E', x: 35, y: 45 },
                 { id: 'panturrilha', label: 'Centro da Panturrilha', x: 50, y: 55 },
                 { id: 'talus', label: 'Tálus', x: 50, y: 75 },
                 { id: 'calcaneo', label: 'Centro do Calcâneo', x: 50, y: 90 },
@@ -186,6 +188,9 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
             ];
             newAngles = [
                 { p1: 'talus', vertex: 'talus', p2: 'calcaneo', type: 'deviation', label: 'Eversão/Inversão' } // Changed to vertical deviation
+            ];
+            newLevelChecks = [
+                { p1: 'pelve_d', p2: 'pelve_e' }
             ];
         }
 
@@ -247,9 +252,9 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
                 // Need horizontal line from center
                 const cx = (x1 + x2) / 2;
                 const cy = (y1 + y2) / 2;
-                const width = Math.abs(x2 - x1) + 60;
+                const width = Math.abs(x2 - x1) + 120; // make horizontal line a bit wider
 
-                ctx.strokeStyle = '#94a3b8'; // slate-400
+                ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)'; // highly transparent slate-400
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(cx - width / 2, cy);
@@ -265,6 +270,14 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
                 const rightPoint = x1 < x2 ? p2 : p1;
                 const higherMsg = leftPoint.y < rightPoint.y ? 'Elev. Esq' : 'Elev. Dir';
 
+                // Quality segment between points
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = angleDeg <= 1.0 ? '#10b981' : '#f59e0b'; // Green if Level, Amber if tilted
+                ctx.stroke();
+
                 ctx.font = 'bold 10px Inter';
                 if (angleDeg > 1.0) {
                     ctx.fillStyle = '#ef4444'; // Red for tilt
@@ -278,11 +291,6 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
                     ctx.fill();
 
                     ctx.fillStyle = '#ef4444';
-                    ctx.fillText(txt, cx - tw / 2, cy - 5);
-                } else {
-                    ctx.fillStyle = '#10b981'; // Green for level
-                    const txt = "Alinhado";
-                    const tw = ctx.measureText(txt).width;
                     ctx.fillText(txt, cx - tw / 2, cy - 5);
                 }
             }
@@ -303,9 +311,10 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
                     ctx.beginPath();
                     ctx.setLineDash([5, 5]);
                     ctx.moveTo(vx, vy);
-                    ctx.lineTo(vx, vy - 100);
-                    ctx.lineTo(vx, vy + 100);
-                    ctx.strokeStyle = '#94a3b8';
+                    ctx.lineTo(vx, vy - 150);
+                    ctx.lineTo(vx, vy + 150);
+                    ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)'; // highly transparent slate-400
+                    ctx.lineWidth = 1;
                     ctx.stroke();
                     ctx.setLineDash([]);
 
@@ -425,13 +434,20 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
         const ctx = zoom.getContext('2d');
         if (!ctx) return;
 
-        // Image natural dimensions vs displayed dimensions
+        // Image natural vs displayed dimensions taking object-contain into account
         const rect = containerRef.current.getBoundingClientRect();
-        const scaleX = img.naturalWidth / rect.width;
-        const scaleY = img.naturalHeight / rect.height;
+        const Iw = img.naturalWidth;
+        const Ih = img.naturalHeight;
+        if (!Iw || !Ih) return;
 
-        const srcX = x * scaleX;
-        const srcY = y * scaleY;
+        const k = Math.min(rect.width / Iw, rect.height / Ih);
+        const Dw = Iw * k;
+        const Dh = Ih * k;
+        const offsetX = (rect.width - Dw) / 2;
+        const offsetY = (rect.height - Dh) / 2;
+
+        const srcX = (x - offsetX) / k;
+        const srcY = (y - offsetY) / k;
 
         const zoomLevel = 3;
         const lensSize = 50; // Radius in src pixels to capture
@@ -529,10 +545,10 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
 
                 const cx = (x1 + x2) / 2;
                 const cy = (y1 + y2) / 2;
-                const width = Math.abs(x2 - x1) + (60 * s);
+                const width = Math.abs(x2 - x1) + (120 * s); // matching wider horizontal line
 
-                octx.strokeStyle = '#94a3b8'; // slate-400
-                octx.lineWidth = 1.5 * s;
+                octx.strokeStyle = 'rgba(148, 163, 184, 0.3)'; // transparent slate-400
+                octx.lineWidth = Math.max(1, 1 * s);
                 octx.beginPath();
                 octx.moveTo(cx - width / 2, cy);
                 octx.lineTo(cx + width / 2, cy);
@@ -545,6 +561,14 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
                 const rightPoint = x1 < x2 ? p2 : p1;
                 const higherMsg = leftPoint.y < rightPoint.y ? 'Elev. Esq' : 'Elev. Dir';
 
+                // Quality segment between points
+                octx.beginPath();
+                octx.moveTo(x1, y1);
+                octx.lineTo(x2, y2);
+                octx.lineWidth = 3 * s;
+                octx.strokeStyle = angleDeg <= 1.0 ? '#10b981' : '#f59e0b'; // Green if level, Amber if tilted
+                octx.stroke();
+
                 octx.font = `bold ${12 * s}px Inter`;
                 if (angleDeg > 1.0) {
                     const txt = `${angleDeg.toFixed(1)}° (${higherMsg})`;
@@ -556,11 +580,6 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
                     octx.fill();
 
                     octx.fillStyle = '#ef4444';
-                    octx.fillText(txt, cx - tw / 2, cy - (6 * s));
-                } else {
-                    const txt = "Alinhado";
-                    const tw = octx.measureText(txt).width;
-                    octx.fillStyle = '#10b981';
                     octx.fillText(txt, cx - tw / 2, cy - (6 * s));
                 }
             }
@@ -580,10 +599,10 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
                     octx.beginPath();
                     octx.setLineDash([5 * s, 5 * s]);
                     octx.moveTo(vx, vy);
-                    octx.lineTo(vx, vy - (100 * s));
-                    octx.lineTo(vx, vy + (100 * s));
-                    octx.strokeStyle = '#94a3b8';
-                    octx.lineWidth = 2 * s;
+                    octx.lineTo(vx, vy - (150 * s));
+                    octx.lineTo(vx, vy + (150 * s));
+                    octx.strokeStyle = 'rgba(148, 163, 184, 0.3)'; // transparent
+                    octx.lineWidth = Math.max(1, 1 * s);
                     octx.stroke();
                     octx.setLineDash([]);
 
@@ -691,16 +710,16 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
                             onMouseEnter={() => setHoveringPoint(p.id)}
                             onMouseLeave={() => setHoveringPoint(null)}
                             className={cn(
-                                "absolute w-6 h-6 -ml-3 -mt-3 rounded-full border-2 cursor-grab active:cursor-grabbing flex items-center justify-center transition-all duration-300 z-30",
+                                "absolute w-6 h-6 -ml-3 -mt-3 rounded-full cursor-grab active:cursor-grabbing flex items-center justify-center transition-all duration-300 z-30",
                                 isInteracting
-                                    ? "bg-red-500 border-white scale-125 z-50 shadow-lg shadow-red-500/50 opacity-100"
-                                    : "bg-white/40 border-white/60 hover:opacity-100" // Visível mas discrêto
+                                    ? "bg-red-500 border-2 border-white scale-125 z-50 shadow-lg shadow-red-500/50 opacity-100"
+                                    : "bg-transparent opacity-60 hover:opacity-100"
                             )}
                             style={{ left: `${p.x}%`, top: `${p.y}%` }}
                         >
                             <div className={cn(
                                 "w-1.5 h-1.5 rounded-full transition-colors",
-                                isInteracting ? "bg-white" : "bg-red-600 shadow-sm"
+                                isInteracting ? "bg-white" : "bg-red-600/40 shadow-sm"
                             )} />
 
                             {/* Permanent Label if interacting */}

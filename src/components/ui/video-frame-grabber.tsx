@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Video, Camera, Upload, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Maximize, Minimize } from "lucide-react";
 
 export interface VideoSlot {
     id: string;
@@ -23,6 +24,9 @@ export function VideoFrameGrabberModal({ open, onClose, slots, onCaptureToSlot, 
     const [videoSrc, setVideoSrc] = useState<string | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [zoomLevel, setZoomLevel] = useState(1);
 
     // Clean up object URL when closing or unmounting
     useEffect(() => {
@@ -81,6 +85,28 @@ export function VideoFrameGrabberModal({ open, onClose, slots, onCaptureToSlot, 
         }
     };
 
+    const toggleFullscreen = async () => {
+        if (!document.fullscreenElement) {
+            if (containerRef.current?.requestFullscreen) {
+                await containerRef.current.requestFullscreen();
+                setIsFullscreen(true);
+            }
+        } else {
+            if (document.exitFullscreen) {
+                await document.exitFullscreen();
+                setIsFullscreen(false);
+            }
+        }
+    };
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
     const hasSlots = slots && slots.length > 0;
 
     return (
@@ -125,25 +151,108 @@ export function VideoFrameGrabberModal({ open, onClose, slots, onCaptureToSlot, 
                                 </p>
                             </div>
                         ) : (
-                            <div className="w-full flex flex-col items-center gap-4">
-                                <video
-                                    ref={videoRef}
-                                    src={videoSrc}
-                                    controls
-                                    className="w-full max-h-[500px] bg-black rounded-xl shadow-lg ring-4 ring-slate-900/5 object-contain"
-                                    playsInline
-                                />
-                                <div className="flex gap-4 items-center bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
-                                    <Button variant="ghost" size="sm" onClick={() => onClose()} className="text-[10px] font-black uppercase text-red-500 hover:bg-red-50 px-4">
+                            <div ref={containerRef} className={cn("w-full flex flex-col items-center gap-4 bg-slate-50 transition-all", isFullscreen && "bg-black justify-center p-4")}>
+                                <div className="relative w-full flex justify-center overflow-hidden">
+                                    <video
+                                        ref={videoRef}
+                                        src={videoSrc}
+                                        controls={!isFullscreen} // Hide native controls in fullscreen to not clash with our zoom/tools
+                                        muted
+                                        className={cn("w-full bg-black shadow-lg ring-4 ring-slate-900/5 object-contain transition-transform", isFullscreen ? "max-h-[85vh] rounded-none" : "max-h-[500px] rounded-xl")}
+                                        style={isFullscreen ? { transform: `scale(${zoomLevel})` } : undefined}
+                                        playsInline
+                                    />
+                                    <Button
+                                        variant="secondary"
+                                        size="icon"
+                                        onClick={toggleFullscreen}
+                                        className="absolute top-4 left-4 z-10 bg-black/50 text-white hover:bg-black/70 rounded-full"
+                                    >
+                                        {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                                    </Button>
+                                    {isFullscreen && hasSlots && (
+                                        <>
+                                            {/* LEFT SIDE ORGANOGRAM */}
+                                            <div className="absolute top-1/2 -translate-y-1/2 left-6 z-10 flex flex-col gap-3">
+                                                <div className="text-white text-[10px] font-black tracking-widest uppercase bg-black/50 px-3 py-1 rounded w-fit text-center mx-auto mb-2 border border-white/20">Pé Esquerdo</div>
+                                                {slots?.filter(s => s.label.toUpperCase().includes('ESQ')).map((slot, index) => (
+                                                    <Button
+                                                        key={slot.id}
+                                                        size="sm"
+                                                        variant={slot.value ? "secondary" : "default"}
+                                                        className={cn(
+                                                            "text-[10px] font-black uppercase tracking-widest w-28 justify-start",
+                                                            slot.value ? "bg-emerald-500/90 text-white" : "bg-purple-600/90 text-white hover:bg-purple-700 hover:scale-105"
+                                                        )}
+                                                        onClick={() => captureToSlot(slot.id)}
+                                                    >
+                                                        {slot.value ? <CheckCircle2 className="w-4 h-4 mr-2 shrink-0" /> : <Camera className="w-4 h-4 mr-2 shrink-0" />}
+                                                        <span className="truncate">{slot.label}</span>
+                                                    </Button>
+                                                ))}
+                                            </div>
+
+                                            {/* RIGHT SIDE ORGANOGRAM */}
+                                            <div className="absolute top-1/2 -translate-y-1/2 right-6 z-10 flex flex-col gap-3">
+                                                <div className="text-white text-[10px] font-black tracking-widest uppercase bg-black/50 px-3 py-1 rounded w-fit text-center mx-auto mb-2 border border-white/20">Pé Direito</div>
+                                                {slots?.filter(s => s.label.toUpperCase().includes('DIR')).map((slot, index) => (
+                                                    <Button
+                                                        key={slot.id}
+                                                        size="sm"
+                                                        variant={slot.value ? "secondary" : "default"}
+                                                        className={cn(
+                                                            "text-[10px] font-black uppercase tracking-widest w-28 justify-start",
+                                                            slot.value ? "bg-emerald-500/90 text-white" : "bg-purple-600/90 text-white hover:bg-purple-700 hover:scale-105"
+                                                        )}
+                                                        onClick={() => captureToSlot(slot.id)}
+                                                    >
+                                                        {slot.value ? <CheckCircle2 className="w-4 h-4 mr-2 shrink-0" /> : <Camera className="w-4 h-4 mr-2 shrink-0" />}
+                                                        <span className="truncate">{slot.label}</span>
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                            {/* FALLBACK FOR OTHER SLOTS */}
+                                            {slots?.filter(s => !s.label.toUpperCase().includes('ESQ') && !s.label.toUpperCase().includes('DIR')).length > 0 && (
+                                                <div className="absolute top-4 right-4 z-10 flex gap-2">
+                                                    {slots?.filter(s => !s.label.toUpperCase().includes('ESQ') && !s.label.toUpperCase().includes('DIR')).map((slot, index) => (
+                                                        <Button
+                                                            key={slot.id}
+                                                            size="sm"
+                                                            variant={slot.value ? "secondary" : "default"}
+                                                            className={cn(
+                                                                "text-[10px] font-black uppercase tracking-widest",
+                                                                slot.value ? "bg-emerald-500/80 text-white" : "bg-purple-600/80 text-white hover:bg-purple-700 hover:scale-105"
+                                                            )}
+                                                            onClick={() => captureToSlot(slot.id)}
+                                                        >
+                                                            {slot.value ? <CheckCircle2 className="w-4 h-4 mr-1" /> : <Camera className="w-4 h-4 mr-1" />}
+                                                            {slot.label || `FOTO ${index + 1}`}
+                                                        </Button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                                <div className={cn("flex gap-2 items-center bg-white p-1 rounded-2xl border border-slate-200 shadow-sm z-20", isFullscreen && "bg-slate-900 border-slate-800 text-white")}>
+                                    <Button variant="ghost" size="sm" onClick={() => onClose()} className="text-[10px] font-black uppercase text-red-500 hover:bg-red-50 px-3">
                                         Descartar
                                     </Button>
-                                    <div className="w-px h-6 bg-slate-200" />
-                                    <Button variant="ghost" size="sm" onClick={() => skipFrame(-1)} className="text-xs font-bold uppercase tracking-widest text-slate-600 hover:text-purple-600 hover:bg-purple-50">
-                                        <ChevronLeft className="w-4 h-4 mr-1" /> Frame
+                                    <div className="w-px h-6 bg-slate-200 opacity-50" />
+                                    {isFullscreen && (
+                                        <>
+                                            <Button variant="ghost" size="sm" onClick={() => setZoomLevel(z => Math.max(1, z - 0.5))} className="px-2 text-slate-400 hover:text-white">-</Button>
+                                            <span className="text-[10px] font-black tracking-widest w-8 text-center">{zoomLevel}x</span>
+                                            <Button variant="ghost" size="sm" onClick={() => setZoomLevel(z => Math.min(4, z + 0.5))} className="px-2 text-slate-400 hover:text-white">+</Button>
+                                            <div className="w-px h-6 bg-slate-200 opacity-50" />
+                                        </>
+                                    )}
+                                    <Button variant="ghost" size="sm" onClick={() => skipFrame(-1)} className={cn("text-xs font-bold uppercase tracking-widest hover:text-purple-600 hover:bg-purple-50", isFullscreen ? "text-slate-300" : "text-slate-600")}>
+                                        <ChevronLeft className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Frame</span>
                                     </Button>
-                                    <div className="w-px h-6 bg-slate-200" />
-                                    <Button variant="ghost" size="sm" onClick={() => skipFrame(1)} className="text-xs font-bold uppercase tracking-widest text-slate-600 hover:text-purple-600 hover:bg-purple-50">
-                                        Frame <ChevronRight className="w-4 h-4 ml-1" />
+                                    <div className="w-px h-6 bg-slate-200 opacity-50" />
+                                    <Button variant="ghost" size="sm" onClick={() => skipFrame(1)} className={cn("text-xs font-bold uppercase tracking-widest hover:text-purple-600 hover:bg-purple-50", isFullscreen ? "text-slate-300" : "text-slate-600")}>
+                                        <span className="hidden sm:inline">Frame</span> <ChevronRight className="w-4 h-4 sm:ml-1" />
                                     </Button>
                                     {hasSlots && (
                                         <>

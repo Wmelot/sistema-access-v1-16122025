@@ -45,6 +45,7 @@ import { PhysicalMobilityAccordion } from "./accordions/PhysicalMobilityAccordio
 import { PhysicalPostureAccordion } from "./accordions/PhysicalPostureAccordion";
 import { PhysicalSportsAccordion } from "./accordions/PhysicalSportsAccordion";
 import { ExamsAccordion } from "./accordions/ExamsAccordion";
+import { parsePBE5FeegowText } from "./utils/pbe5-feegow-parser";
 
 export const PBE5_ID = 'pbe-5';
 
@@ -108,6 +109,7 @@ interface PBE5FormProps {
     patientId: string;
     initialData?: any;
     onSave: (data: any, force?: boolean) => Promise<any> | void;
+    onFinish?: () => void;
     hideHeader?: boolean;
     hideButtons?: boolean;
     readonly?: boolean;
@@ -123,6 +125,7 @@ export default function PBE5Form({
     patientId,
     initialData,
     onSave,
+    onFinish,
     hideHeader = false,
     hideButtons = false,
     readonly = false,
@@ -236,10 +239,51 @@ export default function PBE5Form({
     const [debouncedData] = useDebounce(form.watch(), 2000);
 
     const handleFeegowImport = () => {
-        if (!feegowText) return;
-        setFeegowImportOpen(false);
-        setFeegowText("");
-        toast.success("Sincronização Feegow concluída!");
+        if (!feegowText.trim()) return;
+
+        try {
+            const parsedData = parsePBE5FeegowText(feegowText);
+            if (!parsedData) throw new Error("Parsed data is empty");
+
+            // Merge with current state
+            const currentValues = form.getValues();
+
+            // Map individual sections to avoid overwriting everything
+            if (parsedData.anamnesis) {
+                form.setValue("anamnesis", { ...currentValues.anamnesis, ...parsedData.anamnesis }, { shouldDirty: true, shouldValidate: true });
+            }
+            if (parsedData.clinical) {
+                form.setValue("clinical", { ...currentValues.clinical, ...parsedData.clinical }, { shouldDirty: true, shouldValidate: true });
+            }
+            if (parsedData.metrics) {
+                form.setValue("metrics", { ...currentValues.metrics, ...parsedData.metrics }, { shouldDirty: true, shouldValidate: true });
+            }
+            if (parsedData.sports) {
+                form.setValue("sports", { ...currentValues.sports, ...parsedData.sports }, { shouldDirty: true, shouldValidate: true });
+            }
+            if (parsedData.mobility) {
+                form.setValue("mobility", { ...currentValues.mobility, ...parsedData.mobility }, { shouldDirty: true, shouldValidate: true });
+            }
+            if (parsedData.posture) {
+                form.setValue("posture", { ...currentValues.posture, ...parsedData.posture }, { shouldDirty: true, shouldValidate: true });
+            }
+            if (parsedData.movement) {
+                form.setValue("movement", { ...currentValues.movement, ...parsedData.movement }, { shouldDirty: true, shouldValidate: true });
+            }
+            if (parsedData.conduct) {
+                form.setValue("conduct", { ...currentValues.conduct, ...parsedData.conduct }, { shouldDirty: true, shouldValidate: true });
+            }
+            if (parsedData.protocols) {
+                form.setValue("protocols", { ...currentValues.protocols, ...parsedData.protocols }, { shouldDirty: true, shouldValidate: true });
+            }
+
+            setFeegowImportOpen(false);
+            setFeegowText("");
+            toast.success("Sincronização Feegow concluída!");
+        } catch (error) {
+            console.error("Feegow Import Error:", error);
+            toast.error("Erro ao processar o texto do Feegow.");
+        }
     };
 
     useEffect(() => {
@@ -326,14 +370,28 @@ export default function PBE5Form({
                         <CompactPBE5Card
                             form={form}
                             isSaving={isSaving}
-                            onSave={form.handleSubmit(async (data) => {
-                                setIsSaving(true);
-                                try {
-                                    await onSave(data, true);
-                                } finally {
-                                    setIsSaving(false);
+                            onSave={form.handleSubmit(
+                                async (data) => {
+                                    setIsSaving(true);
+                                    try {
+                                        if (!patientId || patientId === 'sandbox') {
+                                            await onSave(data, true);
+                                            if (onFinish) {
+                                                onFinish();
+                                            }
+                                            return;
+                                        }
+                                        await onSave(data, true);
+                                        toast.success("Avaliação salva corretamente.");
+                                    } finally {
+                                        setIsSaving(false);
+                                    }
+                                },
+                                (errors) => {
+                                    console.error("Zod Validation Errors:", errors);
+                                    toast.error("Erro ao salvar! Verifique os campos obrigatórios vazios nas abas.");
                                 }
-                            })}
+                            )}
                             onReport={() => setIsReportSelectorOpen(true)}
                             onImport={() => setFeegowImportOpen(true)}
                             onCopilotStatusChange={setIsListening}
@@ -492,6 +550,7 @@ export default function PBE5Form({
                                     isSectionFilled={isSectionFilled}
                                     sectionStyle={SECTION_STYLES.womens_health}
                                     setIsAssessmentModalOpen={setIsAssessmentModalOpen}
+                                    patientId={patientId}
                                 />
                             )}
 
@@ -569,17 +628,30 @@ export default function PBE5Form({
                                             <Button
                                                 type="button"
                                                 disabled={isSaving}
-                                                onClick={form.handleSubmit(async (data) => {
-                                                    setIsSaving(true);
-                                                    try {
-                                                        await onSave(data, true);
-                                                        toast.success("PBE 5.0 Salva!");
-                                                    } catch (e) {
-                                                        toast.error("Erro ao salvar");
-                                                    } finally {
-                                                        setIsSaving(false);
+                                                onClick={form.handleSubmit(
+                                                    async (data) => {
+                                                        setIsSaving(true);
+                                                        try {
+                                                            if (!patientId || patientId === 'sandbox') {
+                                                                if (onFinish) {
+                                                                    await onSave(data, true);
+                                                                    onFinish();
+                                                                    return;
+                                                                }
+                                                            }
+                                                            await onSave(data, true);
+                                                            toast.success("PBE 5.0 Salva!");
+                                                        } catch (e) {
+                                                            toast.error("Erro ao salvar");
+                                                        } finally {
+                                                            setIsSaving(false);
+                                                        }
+                                                    },
+                                                    (errors) => {
+                                                        console.error("Zod Validation Errors:", errors);
+                                                        toast.error("Preencha os campos obrigatórios. Verifique as abas destacadas.", { duration: 5000 });
                                                     }
-                                                })}
+                                                )}
                                                 className="h-14 rounded-2xl px-10 font-black text-[11px] uppercase tracking-wider bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-105 transition-all shadow-xl shadow-emerald-500/20"
                                             >
                                                 {isSaving ? <Loader2 className="w-5 h-5 mr-3 animate-spin" /> : <Save className="w-5 h-5 mr-3" />}
@@ -683,11 +755,7 @@ export default function PBE5Form({
 
                         <DialogFooter className="gap-3 sm:gap-0">
                             <Button variant="ghost" type="button" onClick={() => setFeegowImportOpen(false)} className="rounded-2xl font-bold">Cancelar</Button>
-                            <Button type="button" onClick={() => {
-                                // Simple mock for now as per user preference for identical UI
-                                toast.success("Importação iniciada...");
-                                setFeegowImportOpen(false);
-                            }} className="bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl px-10 h-14">PROCESSAR AGORA</Button>
+                            <Button type="button" onClick={handleFeegowImport} className="bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl px-10 h-14">PROCESSAR AGORA</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>

@@ -610,28 +610,104 @@ export function AttendanceClient({
 
     const handleFinish = async () => {
         if (!patient.id) {
+            let userAction = null;
             const confirm = await MySwal.fire({
                 title: 'O que deseja fazer?',
                 text: 'Este atendimento ainda não possui um paciente vinculado.',
                 icon: 'question',
                 showCancelButton: true,
                 showDenyButton: true,
-                confirmButtonText: '⚡ Salvar Rascunho',
-                denyButtonText: '👤 Vincular Paciente',
-                cancelButtonText: 'Continuar editando',
-                confirmButtonColor: '#ff9800',
-                denyButtonColor: '#4f46e5',
-                reverseButtons: true
+                confirmButtonText: '➕ Criar Novo',
+                denyButtonText: '🔎 Vincular Existente',
+                cancelButtonText: '💾 Salvar Rascunho',
+                confirmButtonColor: '#10b981', // green for new
+                denyButtonColor: '#4f46e5',   // indigo for link
+                cancelButtonColor: '#f97316', // orange for draft
+                reverseButtons: false,
+                html: `
+                    <div class="mt-6 border-t pt-4">
+                        <button id="swal-continue-editing" class="text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-widest">
+                            <i class="fas fa-edit"></i> Continuar Editando
+                        </button>
+                    </div>
+                `,
+                didOpen: () => {
+                    const btn = document.getElementById('swal-continue-editing')
+                    if (btn) {
+                        btn.addEventListener('click', () => {
+                            userAction = 'continue'
+                            MySwal.close()
+                        })
+                    }
+                }
             })
 
+            if (userAction === 'continue' || confirm.dismiss === Swal.DismissReason.backdrop || confirm.dismiss === Swal.DismissReason.esc) {
+                return // Simply close and continue
+            }
+
             if (confirm.isConfirmed) {
-                // Save and Exit
+                // Option 1: Criar Novo Paciente
+                const phonePrompt = await MySwal.fire({
+                    title: 'Criar Novo Paciente',
+                    text: 'Digite o nome e o celular (WhatsApp) do paciente',
+                    html: `
+                        <input id="swal-input-name" class="swal2-input !m-0 !w-full !mb-3" placeholder="Nome Completo">
+                        <input id="swal-input-phone" type="tel" class="swal2-input !m-0 !w-full" placeholder="Celular Ex: (11) 99999-9999">
+                    `,
+                    confirmButtonText: 'Criar e Vincular',
+                    showCancelButton: true,
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#10b981',
+                    focusConfirm: false,
+                    preConfirm: () => {
+                        const name = (document.getElementById('swal-input-name') as HTMLInputElement).value
+                        const phone = (document.getElementById('swal-input-phone') as HTMLInputElement).value
+                        if (!name || name.length < 3) {
+                            MySwal.showValidationMessage('O nome deve ter pelo menos 3 letras')
+                            return false
+                        }
+                        if (!phone || phone.length < 10) {
+                            MySwal.showValidationMessage('Digite um celular válido com DDD')
+                            return false
+                        }
+                        return { name, phone }
+                    }
+                })
+
+                if (phonePrompt.isConfirmed && phonePrompt.value) {
+                    showLoading("Criando Paciente...");
+                    try {
+                        const { quickCreatePatient } = await import("@/actions/patients");
+                        const res = await quickCreatePatient(phonePrompt.value.name, phonePrompt.value.phone, slug);
+
+                        if (res.data) {
+                            const { linkPatientToAppointment } = await import("@/actions/attendance");
+                            const linkRes = await linkPatientToAppointment(appointment.id, res.data.id);
+
+                            if (linkRes.success) {
+                                toast.success(`Paciente ${res.data.name} criado e vinculado!`);
+                                setIsFinishDialogOpen(true); // Open the beautiful photo 4 dialog directly now!
+                                router.refresh()
+                            } else {
+                                toast.error("Paciente criado, mas erro ao vincular.");
+                            }
+                        } else {
+                            toast.error(res.error || "Erro ao criar paciente");
+                        }
+                    } finally {
+                        hideLoading();
+                    }
+                }
+            } else if (confirm.isDenied) {
+                // Option 2: Vincular Existente
+                setIsFinishDialogOpen(true) // Open Photo 4 dialog (it defaults to Vincular)
+            } else if (confirm.dismiss === Swal.DismissReason.cancel) {
+                // Option 3: Salvar Rascunho
                 toast.success("Rascunho salvo com sucesso!")
                 router.push(`/dashboard/${slug}`)
-            } else if (confirm.isDenied) {
-                // Open the dialog to link patient and proceed
-                setIsFinishDialogOpen(true)
             }
+
             return
         }
 
@@ -766,13 +842,23 @@ export function AttendanceClient({
                         </Avatar>
                         <div>
                             <div className="flex flex-col">
-                                <Link
-                                    href={`/dashboard/${slug}/patients/${patient.id}`}
-                                    className="hover:text-indigo-600 transition-colors group flex items-center gap-2"
-                                >
-                                    <h1 className="text-lg font-bold leading-none">{patient?.name || 'Paciente'}</h1>
-                                    <HistoryIcon className="h-3 w-3 text-slate-400 group-hover:text-indigo-500 transition-colors shrink-0" />
-                                </Link>
+                                {patient.id ? (
+                                    <Link
+                                        href={`/dashboard/${slug}/patients/${patient.id}`}
+                                        className="hover:text-indigo-600 transition-colors group flex items-center gap-2"
+                                    >
+                                        <h1 className="text-lg font-bold leading-none">{patient?.name || 'Paciente'}</h1>
+                                        <HistoryIcon className="h-3 w-3 text-slate-400 group-hover:text-indigo-500 transition-colors shrink-0" />
+                                    </Link>
+                                ) : (
+                                    <button
+                                        onClick={handleFinish}
+                                        className="hover:text-amber-600 transition-colors group flex items-center gap-2 text-left cursor-pointer"
+                                    >
+                                        <h1 className="text-lg font-bold leading-none text-slate-400">Paciente Direto (Não Vinculado)</h1>
+                                        <PenTool className="h-4 w-4 text-amber-500 group-hover:text-amber-600 transition-colors shrink-0" />
+                                    </button>
+                                )}
                             </div>
                             <div className="text-sm text-muted-foreground flex items-center gap-3 mt-1">
                                 <span className="flex items-center gap-1 text-xs">
@@ -829,19 +915,11 @@ export function AttendanceClient({
                             <Mic className="w-4 h-4" />
                             Modo Foco
                         </Button>
-                        <Button id="finish-attendance-btn" onClick={handleFinish} className={cn(
-                            "text-white shrink-0",
-                            !patient.id ? "bg-amber-500 hover:bg-amber-600" : "bg-green-600 hover:bg-green-700"
-                        )}>
-                            {!patient.id ? (
-                                <span className="flex items-center gap-2">
-                                    <PenTool className="h-4 w-4" />
-                                    Salvar Rascunho / Vincular
-                                </span>
-                            ) : (
-                                mode === 'assessment' ? 'Finalizar Avaliação' : 'Finalizar Atendimento'
-                            )}
-                        </Button>
+                        {patient.id && (
+                            <Button id="finish-attendance-btn" onClick={handleFinish} className="text-white shrink-0 bg-green-600 hover:bg-green-700">
+                                {mode === 'assessment' ? 'Finalizar Avaliação' : 'Finalizar Atendimento'}
+                            </Button>
+                        )}
                         <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="ml-2 shrink-0">
                             {isSidebarOpen ? <PanelRightClose className="h-5 w-5" /> : <PanelRightOpen className="h-5 w-5" />}
                         </Button>
@@ -854,12 +932,21 @@ export function AttendanceClient({
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 shrink-0" onClick={() => router.back()}>
                             <ArrowLeft className="h-5 w-5" />
                         </Button>
-                        <div className="flex flex-col min-w-0">
-                            <h1 className="text-[13px] font-bold text-slate-900 truncate leading-tight">{patient?.name || 'Paciente'}</h1>
-                            <span className="text-[10px] text-slate-500 leading-none truncate">
-                                {patient?.phone ? formatPhone(patient.phone) : 'Sem tel.'}
-                            </span>
-                        </div>
+                        {patient.id ? (
+                            <Link href={`/dashboard/${slug}/patients/${patient.id}`} className="flex flex-col min-w-0 group">
+                                <h1 className="text-[13px] font-bold text-slate-900 truncate leading-tight group-hover:text-indigo-600">{patient?.name || 'Paciente'}</h1>
+                                <span className="text-[10px] text-slate-500 leading-none truncate group-hover:text-indigo-500">
+                                    {patient?.phone ? formatPhone(patient.phone) : 'Sem tel.'}
+                                </span>
+                            </Link>
+                        ) : (
+                            <button onClick={handleFinish} className="flex flex-col min-w-0 text-left cursor-pointer group">
+                                <h1 className="text-[13px] font-bold text-amber-600 truncate leading-tight group-hover:text-amber-700 underline decoration-dashed underline-offset-2">Vincular Paciente</h1>
+                                <span className="text-[10px] text-slate-400 leading-none truncate">
+                                    Clique para salvar ou vincular
+                                </span>
+                            </button>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0">
@@ -874,17 +961,16 @@ export function AttendanceClient({
                                     <Stopwatch startTime={currentRecord?.created_at || appointment.updated_at || appointment.start_time} />
                                 </div>
                             )}
-                            <Button
-                                id="finish-attendance-btn-mobile"
-                                size="sm"
-                                onClick={handleFinish}
-                                className={cn(
-                                    "h-7 px-3 text-white rounded-full text-[10px] font-black uppercase tracking-tight",
-                                    !patient.id ? "bg-amber-500 hover:bg-amber-600" : "bg-green-600 hover:bg-green-700"
-                                )}
-                            >
-                                {!patient.id ? 'VINCULAR PACIENTE' : 'FINALIZAR'}
-                            </Button>
+                            {patient.id && (
+                                <Button
+                                    id="finish-attendance-btn-mobile"
+                                    size="sm"
+                                    onClick={handleFinish}
+                                    className="h-7 px-3 text-white rounded-full text-[10px] font-black uppercase tracking-tight bg-green-600 hover:bg-green-700"
+                                >
+                                    FINALIZAR
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1135,6 +1221,7 @@ export function AttendanceClient({
                                                 patientId={patient.id}
                                                 initialData={currentRecord?.content}
                                                 onSave={handlePhysicalAssessmentSave}
+                                                onFinish={handleFinish}
                                                 patient={patient}
                                                 organization={(appointment as any)?.organizations || {}}
                                                 professional={appointment?.profiles}
@@ -1376,13 +1463,14 @@ export function AttendanceClient({
                             setTimeout(() => {
                                 window.location.href = `/dashboard/${slug}/schedule`
                             }, 500)
+                            // Note: We deliberately DO NOT call hideLoading here so the loader stays during the page change
                         } else {
                             toast.error("Erro ao encerrar atendimento no servidor.")
+                            hideLoading()
                         }
                     } catch (e) {
                         console.error("Finish Attendance Error:", e)
                         toast.error("Ocorreu um erro ao finalizar.")
-                    } finally {
                         hideLoading()
                     }
                 }}

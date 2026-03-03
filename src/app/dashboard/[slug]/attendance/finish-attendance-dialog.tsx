@@ -313,7 +313,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
             setPatientSearch("")
             setPatientResults([])
         }
-    }, [open, appointment])
+    }, [open])
 
     // [NEW] Automatic IWGDF Rescheduling Alert
     useEffect(() => {

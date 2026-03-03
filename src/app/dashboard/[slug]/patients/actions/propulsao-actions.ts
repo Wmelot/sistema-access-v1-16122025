@@ -56,7 +56,7 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             Email_paciente: (patientData.email || "").toLowerCase(),
             IdFisio: [activeUserEmail.toLowerCase()],
             LocalPedido: "AXIOM",
-            Nome_Paciente: (patientData.nome || "").toUpperCase()
+            Nome_Paciente: (patientData.nome || patientData.name || "Paciente").toUpperCase()
         };
 
         // 2. Encryption
@@ -96,16 +96,16 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
 
         // 3. Info - Mandatory fields for the Cloud Function processing
         const info = {
-            Nome_Paciente: (patientData.nome || "").toUpperCase(),
-            Email_Paciente: (patientData.email || "").toLowerCase(),
+            Nome_Paciente: (patientData.nome || patientData.name || "Paciente").toUpperCase(),
+            Email_Paciente: (patientData.email || "sem-email@axiom.com").toLowerCase(),
             IdFisio: [activeUserEmail.toLowerCase()],
             LocalPedido: "AXIOM",
             orderDate: orderDate,
             timestamp: timestamp,
-            Email_paciente: (patientData.email || "").toLowerCase(),
-            Email_fisio: (activeUserEmail || "").toLowerCase(),
-            Nome_paciente: (patientData.nome || "").toUpperCase(),
-            CPF: patientData.cpf || "",
+            Email_paciente: (patientData.email || "sem-email@axiom.com").toLowerCase(),
+            Email_fisio: (activeUserEmail || "sem-email@axiom.com").toLowerCase(),
+            Nome_paciente: (patientData.nome || patientData.name || "Paciente").toUpperCase(),
+            CPF: patientData.cpf || patientData.document || "",
 
             // Biomechanical Data (Optional but usually processed)
             Antepe_Dir: extractNumericValue(orderData.rightFoot?.antepe || ""),
@@ -160,7 +160,7 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
 
         if (response.ok) {
             const syncedOrderNumber = await syncOrderNumberFromFirebase(
-                (patientData.nome || "").toUpperCase(),
+                (patientData.nome || patientData.name || "Paciente").toUpperCase(),
                 activeUserEmail.toLowerCase()
             );
 
