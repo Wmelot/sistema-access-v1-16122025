@@ -45,17 +45,19 @@ export default async function PermissionsMatrixPage({ params }: { params: { slug
                 code:permissions(code)
             )
         `)
-        .or(`organization_id.eq.${orgId},organization_id.is.null`)
+        .eq('organization_id', orgId)
 
     const { data: permissions } = await supabase
         .from('permissions')
         .select('*')
         .order('module', { ascending: true })
 
-    // 3. Get all role permissions for the matrix mapping
+    // 3. Get role permissions ONLY for the roles of this organization
+    const roleIds = roles?.map(r => r.id) || []
     const { data: allRolePerms } = await supabase
         .from('role_permissions')
         .select('role_id, permission_id')
+        .in('role_id', roleIds)
 
     return (
         <div className="container mx-auto py-10 max-w-7xl">

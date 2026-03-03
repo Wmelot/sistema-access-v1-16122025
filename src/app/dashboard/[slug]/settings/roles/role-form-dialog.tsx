@@ -81,10 +81,10 @@ export function RoleFormDialog({ role, allPermissions, trigger }: RoleFormDialog
     const [membersLoading, setMembersLoading] = useState(false)
 
     useEffect(() => {
-        if (open && role && activeTab === "members") {
+        if (open && role) {
             loadMembersData()
         }
-    }, [open, role, activeTab])
+    }, [open, role])
 
     const loadMembersData = async () => {
         setMembersLoading(true)
@@ -135,8 +135,8 @@ export function RoleFormDialog({ role, allPermissions, trigger }: RoleFormDialog
                 return
             }
 
-            // 2. Update Members if in edit mode (Create mode doesn't support members yet in this UI flow)
-            if (role) {
+            // 2. Update Members if in edit mode (and only if we actually loaded the member list to avoid wiping data)
+            if (role && profiles.length > 0) {
                 const membersResult = await updateRoleMembers(role.id, selectedMembers)
                 if (membersResult.error) {
                     toast.error("Role salvo, mas erro ao atualizar membros: " + membersResult.error)
