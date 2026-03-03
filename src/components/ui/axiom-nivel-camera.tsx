@@ -15,11 +15,13 @@ interface AxiomNivelCameraProps {
 export function AxiomNivelCamera({ open, onClose, onCapture, title = "Captura de Postura" }: AxiomNivelCameraProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [orientationRequired, setOrientationRequired] = useState(false);
+    const [useNativeFallback, setUseNativeFallback] = useState(false);
 
     // Sensor States
     const [alpha, setAlpha] = useState<number | null>(null); // Z axis (compass)
@@ -38,9 +40,37 @@ export function AxiomNivelCamera({ open, onClose, onCapture, title = "Captura de
         }
     }, [stream]);
 
+    // Check if we can use getUserMedia (requires HTTPS or localhost)
+    const canUseGetUserMedia = typeof navigator !== 'undefined' &&
+        navigator.mediaDevices &&
+        typeof navigator.mediaDevices.getUserMedia === 'function' &&
+        (window.location.protocol === 'https:' || window.location.hostname === 'localhost');
+
+    const handleNativeFileCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const base64 = reader.result as string;
+            setCapturedImage(base64);
+        };
+        reader.readAsDataURL(file);
+        // Reset input so same file can be re-selected
+        e.target.value = '';
+    };
+
     const startCamera = async () => {
         setError(null);
         setCapturedImage(null);
+
+        // If getUserMedia is not available (HTTP over local network), use native fallback
+        if (!canUseGetUserMedia) {
+            console.warn('[AxiomCamera] getUserMedia not available (likely HTTP). Using native file input fallback.');
+            setUseNativeFallback(true);
+            // Automatically trigger the native camera
+            setTimeout(() => fileInputRef.current?.click(), 100);
+            return;
+        }
 
         try {
             const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -58,7 +88,8 @@ export function AxiomNivelCamera({ open, onClose, onCapture, title = "Captura de
             }
         } catch (err: any) {
             console.error("Erro ao acessar câmera:", err);
-            setError("Não conseguimos acessar sua câmera traseira. Permita o uso no seu navegador ou tente o upload da galeria.");
+            setUseNativeFallback(true);
+            setError("Não conseguimos acessar sua câmera traseira. Use o botão abaixo para tirar a foto pela câmera nativa.");
         }
     };
 
@@ -237,12 +268,37 @@ export function AxiomNivelCamera({ open, onClose, onCapture, title = "Captura de
             </div>
 
             <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
-                {error ? (
+                {/* Hidden native file input for fallback */}
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handleNativeFileCapture}
+                />
+                {error && !capturedImage ? (
                     <div className="p-8 text-center max-w-sm">
                         <ZapOff className="h-12 w-12 text-rose-500 mx-auto mb-4" />
                         <h3 className="text-lg font-black text-white mb-2">Erro de Câmera</h3>
                         <p className="text-sm text-slate-400 font-medium mb-6">{error}</p>
-                        <Button variant="secondary" onClick={startCamera}>Tentar Novamente</Button>
+                        <div className="flex flex-col gap-3">
+                            <Button onClick={() => fileInputRef.current?.click()} className="bg-emerald-600 hover:bg-emerald-700 text-white font-black">
+                                <Camera className="h-4 w-4 mr-2" />
+                                Tirar Foto (Nativo)
+                            </Button>
+                            <Button variant="secondary" onClick={startCamera}>Tentar Novamente</Button>
+                        </div>
+                    </div>
+                ) : useNativeFallback && !capturedImage ? (
+                    <div className="p-8 text-center max-w-sm">
+                        <Camera className="h-12 w-12 text-emerald-500 mx-auto mb-4" />
+                        <h3 className="text-lg font-black text-white mb-2">Câmera Nativa</h3>
+                        <p className="text-sm text-slate-400 font-medium mb-6">Estamos usando a câmera nativa do seu dispositivo. Clique abaixo para capturar.</p>
+                        <Button onClick={() => fileInputRef.current?.click()} className="bg-emerald-600 hover:bg-emerald-700 text-white font-black h-14 rounded-2xl w-full">
+                            <Camera className="h-5 w-5 mr-2" />
+                            Abrir Câmera
+                        </Button>
                     </div>
                 ) : orientationRequired ? (
                     <div className="p-8 text-center max-w-sm bg-slate-900 rounded-[2.5rem] border border-white/10">

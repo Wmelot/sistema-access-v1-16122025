@@ -1,76 +1,125 @@
 "use client";
 
-import React, { useState } from "react";
-import { Mic, Camera, LayoutGrid, Check, ArrowLeft, Loader2, Sparkles, Database, Save, Info, Video } from "lucide-react";
-import { VideoFrameGrabberModal } from "@/components/ui/video-frame-grabber";
-import { AxiomNivelCamera } from "@/components/ui/axiom-nivel-camera";
+import React, { useState, useRef, useCallback } from "react";
+import { Camera, ArrowLeft, Loader2, Save, Video, ChevronLeft, ChevronRight, X, Check, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { AxiomCopilot } from "@/components/copilot/AxiomCopilot";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useForm, FormProvider } from "react-hook-form";
-
-const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = error => reject(error);
-    });
-};
 
 interface RemoteMobileViewProps {
     patient: any;
     appointment: any;
     currentRecord: any;
+    templateId?: string;
     onUpdate: (path: string, value: any) => void;
     onSave: () => Promise<void>;
     onClose: () => void;
     basePath?: string;
 }
 
+// ── Slot configurations per form type ──
+// Each form defines which media fields it supports
+interface MediaSlot {
+    id: string;
+    label: string;
+    group: string;
+}
+
+const PBE5_SLOTS: MediaSlot[] = [
+    { id: 'posture.photos.anterior', label: 'Postura Anterior', group: 'Postura' },
+    { id: 'posture.photos.posterior', label: 'Postura Posterior', group: 'Postura' },
+    { id: 'posture.photos.left', label: 'Perfil Esquerdo', group: 'Postura' },
+    { id: 'posture.photos.right', label: 'Perfil Direito', group: 'Postura' },
+    { id: 'movement.gaitPhotos.rc_left', label: 'RC Esquerdo', group: 'Pisada' },
+    { id: 'movement.gaitPhotos.am_left', label: 'AM Esquerdo', group: 'Pisada' },
+    { id: 'movement.gaitPhotos.fi_left', label: 'FI Esquerdo', group: 'Pisada' },
+    { id: 'movement.gaitPhotos.midstance_left', label: 'Apoio Médio Esq', group: 'Pisada' },
+    { id: 'movement.gaitPhotos.rc_right', label: 'RC Direito', group: 'Pisada' },
+    { id: 'movement.gaitPhotos.am_right', label: 'AM Direito', group: 'Pisada' },
+    { id: 'movement.gaitPhotos.fi_right', label: 'FI Direito', group: 'Pisada' },
+    { id: 'movement.gaitPhotos.midstance_right', label: 'Apoio Médio Dir', group: 'Pisada' },
+    { id: 'movement.gaitPhotos.running_heel_strike', label: 'Corrida (Retropé)', group: 'Corrida' },
+];
+
+const PALMILHA5_SLOTS: MediaSlot[] = [
+    { id: 'posture.photos.anterior', label: 'Postura Anterior', group: 'Postura' },
+    { id: 'posture.photos.posterior', label: 'Postura Posterior', group: 'Postura' },
+    { id: 'posture.photos.left', label: 'Perfil Esquerdo', group: 'Postura' },
+    { id: 'posture.photos.right', label: 'Perfil Direito', group: 'Postura' },
+    { id: 'movement.gaitPhotos.rc_left', label: 'RC Esquerdo', group: 'Pisada' },
+    { id: 'movement.gaitPhotos.am_left', label: 'AM Esquerdo', group: 'Pisada' },
+    { id: 'movement.gaitPhotos.fi_left', label: 'FI Esquerdo', group: 'Pisada' },
+    { id: 'movement.gaitPhotos.rc_right', label: 'RC Direito', group: 'Pisada' },
+    { id: 'movement.gaitPhotos.am_right', label: 'AM Direito', group: 'Pisada' },
+    { id: 'movement.gaitPhotos.fi_right', label: 'FI Direito', group: 'Pisada' },
+];
+
+// Fallback for any other/future form
+const DEFAULT_SLOTS: MediaSlot[] = [
+    { id: 'photos.general_1', label: 'Foto 1', group: 'Geral' },
+    { id: 'photos.general_2', label: 'Foto 2', group: 'Geral' },
+    { id: 'photos.general_3', label: 'Foto 3', group: 'Geral' },
+];
+
+function getSlotsForTemplate(templateId?: string): MediaSlot[] {
+    if (!templateId) return DEFAULT_SLOTS;
+    const tid = templateId.toLowerCase();
+    if (tid === 'pbe-5' || tid === 'e0000000-0000-0000-0000-000000000010' || tid.includes('pbe')) {
+        return PBE5_SLOTS;
+    }
+    if (tid === 'palmilha-5' || tid === 'e0000000-0000-0000-0000-000000000005' || tid.includes('palmilha')) {
+        return PALMILHA5_SLOTS;
+    }
+    return DEFAULT_SLOTS;
+}
+
+function getFormName(templateId?: string): string {
+    if (!templateId) return 'Formulário';
+    const tid = templateId.toLowerCase();
+    if (tid === 'pbe-5' || tid === 'e0000000-0000-0000-0000-000000000010' || tid.includes('pbe')) return 'PBE 5.0';
+    if (tid === 'palmilha-5' || tid === 'e0000000-0000-0000-0000-000000000005' || tid.includes('palmilha')) return 'Palmilha 5.0';
+    if (tid === 'clinical_evolution_system' || tid === 'e0000000-0000-0000-0000-000000000004') return 'Evolução Clínica';
+    return 'Formulário';
+}
+
+function getNestedValue(obj: any, path: string): any {
+    if (!obj) return null;
+    return path.split('.').reduce((acc, key) => acc?.[key], obj);
+}
+
+// ── Main Component ──
 export default function RemoteMobileView({
     patient,
     appointment,
     currentRecord,
+    templateId,
     onUpdate,
     onSave,
     onClose,
     basePath = "hma"
 }: RemoteMobileViewProps) {
     const [isSaving, setIsSaving] = useState(false);
-    const [view, setView] = useState<'hub' | 'copilot' | 'camera'>('hub');
-    const [isGrabberOpen, setIsGrabberOpen] = useState(false);
 
-    // Nivel Camera State
-    const [isNivelOpen, setIsNivelOpen] = useState(false);
-    const [activeNivelSlot, setActiveNivelSlot] = useState<{ id: string, label: string } | null>(null);
+    // View states: 'home' | 'video-review' | 'pick-slot'
+    const [view, setView] = useState<'home' | 'video-review' | 'pick-slot'>('home');
 
-    const methods = useForm({
-        defaultValues: {
-            qp: currentRecord?.content?.qp || "",
-            ...currentRecord?.content
-        }
-    });
+    // Captured media
+    const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+    const [videoSrc, setVideoSrc] = useState<string | null>(null);
+    const [currentFrame, setCurrentFrame] = useState<string | null>(null);
 
-    // Keep parent updated with Copilot voice changes (e.g., QP, regions)
-    React.useEffect(() => {
-        const subscription = methods.watch((value, { name }) => {
-            if (name) {
-                // If it changes, sync upward so when we save we have the freshest data
-                onUpdate(name, methods.getValues(name));
-            }
-        });
-        return () => subscription.unsubscribe();
-    }, [methods, onUpdate]);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const cameraInputRef = useRef<HTMLInputElement>(null);
+
+    const formName = getFormName(templateId);
+    const slots = getSlotsForTemplate(templateId);
+    const patientFirstName = patient?.name?.split(' ')[0] || 'Paciente';
 
     const handleInternalSave = async () => {
         setIsSaving(true);
         try {
             await onSave();
-            toast.success("Dados sincronizados com o computador!");
+            toast.success("Sincronizado!");
         } catch (e) {
             toast.error("Erro ao sincronizar.");
         } finally {
@@ -78,226 +127,296 @@ export default function RemoteMobileView({
         }
     };
 
-    return (
-        <div className="fixed inset-0 bg-[#f8fafc] z-[100] flex flex-col font-sans overflow-hidden">
-            {/* Mobile Header (FOTO 2 Style) */}
-            <header className="bg-white border-b px-6 py-4 flex items-center justify-between shadow-sm shrink-0">
-                <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-10 w-10 bg-slate-100">
-                        <ArrowLeft className="h-5 w-5 text-slate-600" />
+    // ── Camera/Video Capture ──
+    const handleFileCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.type.startsWith('image/')) {
+            // PHOTO mode
+            const reader = new FileReader();
+            reader.onload = () => {
+                setCapturedPhoto(reader.result as string);
+                setView('pick-slot');
+            };
+            reader.readAsDataURL(file);
+        } else if (file.type.startsWith('video/')) {
+            // VIDEO mode
+            const url = URL.createObjectURL(file);
+            setVideoSrc(url);
+            setView('video-review');
+        }
+
+        e.target.value = '';
+    };
+
+    // ── Video Frame Navigation ──
+    const skipFrame = (direction: 1 | -1) => {
+        if (videoRef.current) {
+            videoRef.current.pause();
+            videoRef.current.currentTime += direction * (1 / 30); // 30fps
+        }
+    };
+
+    const extractCurrentFrame = useCallback(() => {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        if (!video || !canvas) return null;
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL('image/jpeg', 0.85);
+    }, []);
+
+    const handleGrabFrame = () => {
+        const frame = extractCurrentFrame();
+        if (frame) {
+            setCurrentFrame(frame);
+            setView('pick-slot');
+        }
+    };
+
+    // ── Assign to Slot ──
+    const handleAssignToSlot = async (slotId: string) => {
+        const imageData = capturedPhoto || currentFrame;
+        if (!imageData) return;
+
+        const loadingToast = toast.loading("Salvando...");
+        try {
+            onUpdate(slotId, imageData);
+            await handleInternalSave();
+            toast.success("Salvo e sincronizado!", { id: loadingToast });
+        } catch (err) {
+            toast.error("Erro ao salvar.", { id: loadingToast });
+        }
+
+        // Reset and go back
+        setCapturedPhoto(null);
+        setCurrentFrame(null);
+
+        // If we came from video review, go back to video
+        if (videoSrc) {
+            setView('video-review');
+        } else {
+            setView('home');
+        }
+    };
+
+    // ── Group slots by category ──
+    const groupedSlots = slots.reduce<Record<string, MediaSlot[]>>((acc, slot) => {
+        if (!acc[slot.group]) acc[slot.group] = [];
+        acc[slot.group].push(slot);
+        return acc;
+    }, {});
+
+    // ── Cleanup video on close ──
+    const handleClose = () => {
+        if (videoSrc) URL.revokeObjectURL(videoSrc);
+        onClose();
+    };
+
+    // ══════════════════════════════════════════
+    // VIEW: HOME (Patient + Form + Camera Button)
+    // ══════════════════════════════════════════
+    if (view === 'home') {
+        return (
+            <div className="fixed inset-0 bg-gradient-to-b from-slate-900 to-slate-950 z-[100] flex flex-col font-sans">
+                {/* Hidden file input */}
+                <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*,video/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handleFileCapture}
+                />
+
+                {/* Header */}
+                <header className="px-6 pt-safe-top py-6 flex items-center justify-between">
+                    <Button variant="ghost" size="icon" onClick={handleClose} className="rounded-full h-10 w-10 bg-white/10 text-white hover:bg-white/20">
+                        <ArrowLeft className="h-5 w-5" />
                     </Button>
-                    <div>
-                        <h1 className="text-sm font-black text-slate-900 tracking-tight leading-none uppercase">Controle Remoto</h1>
-                        <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mt-0.5">Sessão Ativa</p>
+                    <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Conectado</span>
                     </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter">Conectado</span>
-                </div>
-            </header>
+                </header>
 
-            <main className="flex-1 overflow-y-auto p-6 space-y-6">
-                {/* Patient Overview Card */}
-                <Card className="p-6 rounded-[2.5rem] border-none shadow-xl bg-gradient-to-br from-indigo-600 to-indigo-800 text-white relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-8 opacity-10">
-                        <Database className="w-24 h-24 rotate-12" />
+                {/* Center Content */}
+                <div className="flex-1 flex flex-col items-center justify-center px-8 -mt-12">
+                    {/* Patient Name */}
+                    <div className="text-center mb-12">
+                        <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mb-2">Paciente</p>
+                        <h1 className="text-4xl font-black text-white tracking-tight">{patientFirstName}</h1>
+                        <div className="mt-3 inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-1.5 rounded-full">
+                            <div className="h-1.5 w-1.5 bg-indigo-400 rounded-full" />
+                            <span className="text-xs font-black text-indigo-300 uppercase tracking-widest">{formName}</span>
+                        </div>
                     </div>
-                    <Badge className="bg-white/20 text-white border-none font-black text-[9px] uppercase tracking-widest mb-2">Paciente Selecionado</Badge>
-                    <h2 className="text-2xl font-black tracking-tight leading-tight">{patient?.name || '---'}</h2>
-                    <div className="flex items-center gap-3 mt-1 opacity-80 text-xs font-bold uppercase tracking-widest">
-                        <span>PBE 5.0</span>
-                        <div className="w-1 h-1 bg-white rounded-full" />
-                        <span>{appointment?.services?.name || 'Consulta'}</span>
-                    </div>
-                </Card>
 
-                {/* Main Action Hub */}
-                <div className="grid grid-cols-1 gap-4">
-                    {/* 1. Mapeamento de IA (Axiom Copilot) */}
+                    {/* Single Camera Button */}
                     <button
-                        onClick={() => setView('hub')}
-                        className="w-full bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-lg flex items-center justify-between group active:scale-95 transition-transform"
+                        onClick={() => cameraInputRef.current?.click()}
+                        className="relative w-28 h-28 rounded-full bg-white flex items-center justify-center shadow-[0_0_60px_rgba(255,255,255,0.15)] active:scale-90 transition-transform"
                     >
-                        <div className="flex items-center gap-6">
-                            <div className="h-16 w-16 bg-indigo-50 rounded-[1.5rem] flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-sm">
-                                <Mic className="h-8 w-8" />
-                            </div>
-                            <div className="text-left">
-                                <h3 className="text-lg font-black text-slate-800 leading-none">Assistente de Voz</h3>
-                                <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-tighter">Capturar relato do paciente</p>
-                            </div>
+                        <Camera className="h-10 w-10 text-slate-900" />
+                        <div className="absolute -bottom-8 whitespace-nowrap">
+                            <span className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em]">Foto ou Vídeo</span>
                         </div>
-                        <Sparkles className="h-5 w-5 text-indigo-400 group-hover:scale-125 transition-transform" />
                     </button>
-
-                    <div className="p-4 bg-white rounded-[2.5rem] border border-slate-100 shadow-inner">
-                        <FormProvider {...methods}>
-                            <AxiomCopilot
-                                basePath={basePath}
-                                compact={true}
-                                onStatusChange={(isListening) => {
-                                    if (!isListening) handleInternalSave();
-                                }}
-                            />
-                        </FormProvider>
-                    </div>
-
-                    {/* 2. Captura Postural (Camera) Menu Toggle */}
-                    {view === 'hub' ? (
-                        <button
-                            onClick={() => setView('camera')}
-                            className="w-full bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-lg flex items-center justify-between group active:scale-95 transition-transform relative"
-                        >
-                            <div className="flex items-center gap-6">
-                                <div className="h-16 w-16 bg-purple-50 rounded-[1.5rem] flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors shadow-sm">
-                                    <Camera className="h-8 w-8" />
-                                </div>
-                                <div className="text-left">
-                                    <h3 className="text-lg font-black text-slate-800 leading-none">Câmera e Mídia</h3>
-                                    <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-tighter">Escolher campo para foto/vídeo</p>
-                                </div>
-                            </div>
-                            <LayoutGrid className="h-5 w-5 text-purple-400 group-hover:scale-125 transition-transform" />
-                        </button>
-                    ) : (
-                        <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-inner space-y-4">
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Selecionar Campo</h3>
-                                <Button variant="ghost" size="sm" onClick={() => setView('hub')} className="text-slate-400 hover:text-slate-600 uppercase text-[10px] font-bold">Voltar</Button>
-                            </div>
-                            {[
-                                { id: 'posture.photos.anterior', label: 'Postura Anterior', icon: Camera, color: 'text-blue-500', accept: 'image/*' },
-                                { id: 'posture.photos.posterior', label: 'Postura Posterior', icon: Camera, color: 'text-blue-500', accept: 'image/*' },
-                                { id: 'posture.photos.left', label: 'Perfil Esquerdo', icon: Camera, color: 'text-indigo-500', accept: 'image/*' },
-                                { id: 'posture.photos.right', label: 'Perfil Direito', icon: Camera, color: 'text-indigo-500', accept: 'image/*' },
-                                { id: 'movement.gaitPhotos.rc_left', label: 'RC Esq', title: 'Pisada', icon: Camera, color: 'text-emerald-500', accept: 'image/*' },
-                                { id: 'movement.gaitPhotos.am_left', label: 'AM Esq', title: 'Pisada', icon: Camera, color: 'text-emerald-500', accept: 'image/*' },
-                                { id: 'movement.gaitPhotos.fi_left', label: 'FI Esq', title: 'Pisada', icon: Camera, color: 'text-emerald-500', accept: 'image/*' },
-                                { id: 'movement.gaitPhotos.rc_right', label: 'RC Dir', title: 'Pisada', icon: Camera, color: 'text-emerald-600', accept: 'image/*' },
-                                { id: 'movement.gaitPhotos.am_right', label: 'AM Dir', title: 'Pisada', icon: Camera, color: 'text-emerald-600', accept: 'image/*' },
-                                { id: 'movement.gaitPhotos.fi_right', label: 'FI Dir', title: 'Pisada', icon: Camera, color: 'text-emerald-600', accept: 'image/*' },
-                            ].map((slot) => (
-                                <div key={slot.id} className="relative w-full bg-slate-50 p-4 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between overflow-hidden active:scale-95 transition-transform">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-10 w-10 bg-white rounded-2xl flex items-center justify-center shadow-sm">
-                                            <slot.icon className={`h-5 w-5 ${slot.color}`} />
-                                        </div>
-                                        <div>
-                                            {slot.title && <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{slot.title}</p>}
-                                            <h4 className="text-xs font-black text-slate-700 uppercase">{slot.label}</h4>
-                                        </div>
-                                    </div>
-                                    {currentRecord?.content?.[slot.id.split('.')[0]]?.[slot.id.split('.')[1]]?.[slot.id.split('.')[2]] && (
-                                        <Check className="h-5 w-5 text-emerald-500" />
-                                    )}
-                                    {/* Use Axiom Nivel Camera for Photos */}
-                                    <button
-                                        onClick={() => {
-                                            setActiveNivelSlot({ id: slot.id, label: slot.label });
-                                            setIsNivelOpen(true);
-                                        }}
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                        title={`Abrir Câmera para ${slot.label}`}
-                                    />
-                                </div>
-                            ))}
-                            <div className="mt-4 p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex gap-3">
-                                <Info className="h-4 w-4 text-indigo-500 shrink-0 mt-0.5" />
-                                <p className="text-[10px] text-indigo-700 font-bold leading-relaxed">
-                                    Tire a foto usando este celular e ela aparecerá instantaneamente no PBE 5.0 aberto no computador.
-                                </p>
-                            </div>
-
-                            <hr className="my-2 border-slate-100" />
-
-                            <button
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    setIsGrabberOpen(true);
-                                }}
-                                className="w-full bg-emerald-50 p-6 rounded-[2rem] border border-emerald-100 shadow-sm flex items-center justify-between group active:scale-95 transition-transform"
-                            >
-                                <div className="flex items-center gap-5">
-                                    <div className="h-12 w-12 bg-white rounded-[1rem] flex items-center justify-center text-emerald-600 shadow-sm">
-                                        <Video className="h-6 w-6" />
-                                    </div>
-                                    <div className="text-left">
-                                        <h4 className="text-sm font-black text-emerald-700 uppercase">Extrair de Vídeo</h4>
-                                        <p className="text-[10px] font-bold text-emerald-600/70 mt-0.5 uppercase tracking-widest">Grave e fatie os quadros</p>
-                                    </div>
-                                </div>
-                            </button>
-                        </div>
-                    )}
                 </div>
 
-                {/* Quick Info Field */}
-                <div className="space-y-3 pt-4">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Queixa Principal (QP)</label>
-                    <textarea
-                        className="w-full bg-white p-6 rounded-3xl border border-slate-100 shadow-sm text-slate-700 font-bold text-sm min-h-[100px] focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                        placeholder="Edite a queixa principal aqui..."
-                        value={currentRecord?.content?.qp || ""}
-                        onChange={(e) => onUpdate("qp", e.target.value)}
+                {/* Footer hint */}
+                <footer className="px-8 pb-10 text-center">
+                    <p className="text-[10px] text-white/30 font-bold leading-relaxed max-w-xs mx-auto">
+                        Tire uma foto ou grave um vídeo. Depois escolha para qual campo do {formName} o conteúdo vai.
+                    </p>
+                </footer>
+            </div>
+        );
+    }
+
+    // ══════════════════════════════════════════
+    // VIEW: VIDEO REVIEW (Play, Navigate, Grab)
+    // ══════════════════════════════════════════
+    if (view === 'video-review') {
+        return (
+            <div className="fixed inset-0 bg-black z-[100] flex flex-col font-sans">
+                <canvas ref={canvasRef} className="hidden" />
+
+                {/* Header */}
+                <header className="absolute top-0 left-0 right-0 z-10 px-6 pt-safe-top py-4 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent">
+                    <Button variant="ghost" size="icon" onClick={() => {
+                        if (videoSrc) URL.revokeObjectURL(videoSrc);
+                        setVideoSrc(null);
+                        setView('home');
+                    }} className="rounded-full h-10 w-10 bg-white/10 text-white hover:bg-white/20">
+                        <X className="h-5 w-5" />
+                    </Button>
+                    <h2 className="text-xs font-black text-white/80 uppercase tracking-widest">Navegue e Extraia</h2>
+                    <div className="w-10" /> {/* spacer */}
+                </header>
+
+                {/* Video */}
+                <div className="flex-1 flex items-center justify-center bg-black">
+                    <video
+                        ref={videoRef}
+                        src={videoSrc || ''}
+                        controls
+                        muted
+                        playsInline
+                        className="w-full max-h-[70vh] object-contain"
                     />
                 </div>
-            </main>
 
-            {/* Sticky Bottom Actions */}
-            <footer className="p-6 bg-white border-t border-slate-100 shrink-0">
-                <Button
-                    onClick={handleInternalSave}
-                    disabled={isSaving}
-                    className="w-full h-16 rounded-[1.5rem] bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm uppercase tracking-widest shadow-xl shadow-indigo-600/20 gap-3"
-                >
-                    {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
-                    {isSaving ? "Sincronizando..." : "Sincronizar Dados"}
-                </Button>
-            </footer>
+                {/* Bottom Controls */}
+                <div className="bg-black/90 border-t border-white/10 p-6 space-y-4 shrink-0">
+                    {/* Frame Navigation */}
+                    <div className="flex items-center justify-center gap-4">
+                        <Button
+                            variant="ghost"
+                            onClick={() => skipFrame(-1)}
+                            className="h-14 px-6 rounded-2xl bg-white/10 text-white hover:bg-white/20 font-black text-xs uppercase tracking-widest gap-2"
+                        >
+                            <ChevronLeft className="h-5 w-5" />
+                            Frame
+                        </Button>
 
-            <VideoFrameGrabberModal
-                open={isGrabberOpen}
-                onClose={() => setIsGrabberOpen(false)}
-                slots={[
-                    { id: 'movement.gaitPhotos.midstance_left', label: 'Apoio Médio (Pé E)', value: currentRecord?.content?.movement?.gaitPhotos?.midstance_left || null },
-                    { id: 'movement.gaitPhotos.midstance_right', label: 'Apoio Médio (Pé D)', value: currentRecord?.content?.movement?.gaitPhotos?.midstance_right || null },
-                    { id: 'movement.gaitPhotos.running_heel_strike', label: 'Corrida (Retropé)', value: currentRecord?.content?.movement?.gaitPhotos?.running_heel_strike || null },
-                ]}
-                onCaptureToSlot={async (id, base64) => {
-                    const loadingToast = toast.loading("Processando frame...");
-                    try {
-                        onUpdate(id, base64);
-                        await handleInternalSave();
-                        toast.success("Frame extraído e salvo no computador!", { id: loadingToast });
-                    } catch (err) {
-                        toast.error("Falha ao salvar frame.", { id: loadingToast });
-                    }
-                }}
-            />
+                        <Button
+                            onClick={handleGrabFrame}
+                            className="h-14 px-8 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-widest shadow-[0_0_30px_rgba(16,185,129,0.3)] gap-2"
+                        >
+                            <ImageIcon className="h-5 w-5" />
+                            Armazenar Frame
+                        </Button>
 
-            {/* Axiom Nivel 3D Camera */}
-            <AxiomNivelCamera
-                open={isNivelOpen}
-                onClose={() => {
-                    setIsNivelOpen(false);
-                    setActiveNivelSlot(null);
-                }}
-                title={activeNivelSlot?.label || "Captura"}
-                onCapture={async (base64: string) => {
-                    if (activeNivelSlot) {
-                        const loadingToast = toast.loading(`Salvando ${activeNivelSlot.label}...`);
-                        try {
-                            onUpdate(activeNivelSlot.id, base64);
-                            await handleInternalSave();
-                            toast.success("Foto salva e calibrada em 90 graus!", { id: loadingToast });
-                        } catch (err) {
-                            toast.error("Erro ao salvar foto calibrada.", { id: loadingToast });
-                        }
-                    }
-                }}
-            />
-        </div>
-    );
+                        <Button
+                            variant="ghost"
+                            onClick={() => skipFrame(1)}
+                            className="h-14 px-6 rounded-2xl bg-white/10 text-white hover:bg-white/20 font-black text-xs uppercase tracking-widest gap-2"
+                        >
+                            Frame
+                            <ChevronRight className="h-5 w-5" />
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ══════════════════════════════════════════
+    // VIEW: PICK SLOT (Choose where this image goes)
+    // ══════════════════════════════════════════
+    if (view === 'pick-slot') {
+        const imageToAssign = capturedPhoto || currentFrame;
+
+        return (
+            <div className="fixed inset-0 bg-slate-50 z-[100] flex flex-col font-sans">
+                {/* Header */}
+                <header className="bg-white border-b px-6 py-4 flex items-center justify-between shadow-sm shrink-0">
+                    <Button variant="ghost" size="icon" onClick={() => {
+                        setCapturedPhoto(null);
+                        setCurrentFrame(null);
+                        setView(videoSrc ? 'video-review' : 'home');
+                    }} className="rounded-full h-10 w-10 bg-slate-100">
+                        <ArrowLeft className="h-5 w-5 text-slate-600" />
+                    </Button>
+                    <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">Selecione o campo</h2>
+                    <div className="w-10" />
+                </header>
+
+                <main className="flex-1 overflow-y-auto">
+                    {/* Preview */}
+                    {imageToAssign && (
+                        <div className="p-4">
+                            <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm max-h-[200px]">
+                                <img src={imageToAssign} alt="Captura" className="w-full h-full object-cover max-h-[200px]" />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Slot List Grouped */}
+                    <div className="px-4 pb-8 space-y-6">
+                        {Object.entries(groupedSlots).map(([groupName, groupSlots]) => (
+                            <div key={groupName}>
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 px-2">{groupName}</h3>
+                                <div className="space-y-2">
+                                    {groupSlots.map((slot) => {
+                                        const hasValue = !!getNestedValue(currentRecord?.content, slot.id);
+                                        return (
+                                            <button
+                                                key={slot.id}
+                                                onClick={() => handleAssignToSlot(slot.id)}
+                                                className="w-full bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between active:scale-95 transition-transform hover:border-indigo-300 hover:bg-indigo-50/30"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`h-8 w-8 rounded-xl flex items-center justify-center ${hasValue ? 'bg-emerald-50' : 'bg-slate-100'}`}>
+                                                        {hasValue ? (
+                                                            <Check className="h-4 w-4 text-emerald-600" />
+                                                        ) : (
+                                                            <ImageIcon className="h-4 w-4 text-slate-400" />
+                                                        )}
+                                                    </div>
+                                                    <span className="text-sm font-bold text-slate-700">{slot.label}</span>
+                                                </div>
+                                                {hasValue && (
+                                                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Substituir</span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </main>
+            </div>
+        );
+    }
+
+    return null;
 }

@@ -851,6 +851,7 @@ export function AttendanceClient({
                 patient={patient}
                 appointment={appointment}
                 currentRecord={currentRecord}
+                templateId={selectedTemplateId}
                 onUpdate={handleFocusUpdate}
                 onSave={async () => {
                     await handleFocusSave('all', currentRecord.content, 'Sincronização Mobile');
@@ -1060,7 +1061,6 @@ export function AttendanceClient({
                                                 <SelectGroup>
                                                     <div className="px-3 py-2 text-[10px] font-black text-indigo-500 uppercase tracking-widest border-b border-indigo-50 mb-1">Avaliação Clínica</div>
                                                     <SelectItem value={PBE5_ID} className="py-3 cursor-pointer font-black text-indigo-700 bg-indigo-50/50 focus:bg-indigo-100">PBE 5.0 — Avaliação Completa</SelectItem>
-                                                    <SelectItem value="diabetic_foot_system" className="py-3 cursor-pointer font-medium text-teal-700 focus:bg-teal-50">Pé Insensível — Protocolo IWGDF</SelectItem>
                                                 </SelectGroup>
 
                                                 {/* BIOMECÂNICA */}
