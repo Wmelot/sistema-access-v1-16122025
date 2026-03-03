@@ -397,7 +397,6 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
                     content: contentWithMeta,
                     professional_id: profId,
                     organization_id: orgId,
-                    created_by: profId,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', effectiveRecordId)
@@ -425,8 +424,7 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
                     template_id: finalTemplateId,
                     content: contentWithMeta,
                     professional_id: profId,
-                    organization_id: orgId,
-                    created_by: profId
+                    organization_id: orgId
                 })
                 .select()
                 .single()

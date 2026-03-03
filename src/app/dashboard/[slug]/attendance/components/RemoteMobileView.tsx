@@ -110,9 +110,11 @@ export default function RemoteMobileView({
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
-
-    const formName = getFormName(templateId);
-    const slots = getSlotsForTemplate(templateId);
+    // Use the record's template_id from DB as primary (works on both desktop and mobile browsers)
+    // Fall back to the prop templateId (only set on desktop's local state)
+    const effectiveTemplateId = currentRecord?.template_id || templateId;
+    const formName = getFormName(effectiveTemplateId);
+    const slots = getSlotsForTemplate(effectiveTemplateId);
     const patientFirstName = patient?.name?.split(' ')[0] || 'Paciente';
 
     const handleInternalSave = async () => {
