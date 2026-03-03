@@ -33,6 +33,7 @@ export async function getPatientRecords(patientId: string, type?: 'assessment' |
                 template_id,
                 organization_id,
                 appointment_id,
+                professional_id,
                 appointments (
                     status
                 ),

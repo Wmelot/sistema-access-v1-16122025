@@ -106,6 +106,8 @@ const LEGACY_SYSTEM_TITLES = [
     'pé insensível (sistema)',
     'palmilha 5.0 (sistema)',
     'pbe 5.0 (sistema)',
+    'pbe-5',
+    'pbe_5_system',
     'smart pbe',
     'smart wizard',
     'avaliação clínica inteligente',

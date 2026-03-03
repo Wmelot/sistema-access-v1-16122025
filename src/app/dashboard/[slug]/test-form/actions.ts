@@ -223,7 +223,8 @@ export async function saveSandboxAssessment(
                 status: 'attended',
                 type: 'appointment',
                 title: `Atendimento - ${templateTitleQuery}`,
-                notes: `Gravado via Sandbox`
+                notes: `Gravado via Sandbox`,
+                created_by: user.id
             }
 
             const { data: profile } = await adminSupabase.from('profiles').select('id').eq('id', user.id).single()
@@ -257,7 +258,8 @@ export async function saveSandboxAssessment(
                     _record_type: templateType || 'evolution'
                 },
                 professional_id: appointment.professional_id,
-                organization_id: org.id
+                organization_id: org.id,
+                created_by: user.id
             })
 
         if (recordError) {

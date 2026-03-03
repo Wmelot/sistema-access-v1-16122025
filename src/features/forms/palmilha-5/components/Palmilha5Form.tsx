@@ -169,13 +169,74 @@ export default function Palmilha5Form({
     const handleFeegowImport = () => {
         if (!feegowText.trim()) return;
         const parsedData = parseFeegowText(feegowText) as any;
+        const currentValues = form.getValues();
 
         // Basic mapping to the new schema
         if (parsedData?.anamnese?.queixa_principal) form.setValue("hma.qp", parsedData.anamnese.queixa_principal, { shouldDirty: true });
         if (parsedData?.anamnese?.hma) form.setValue("hma.history", parsedData.anamnese.hma, { shouldDirty: true });
         if (parsedData?.anamnese?.eva !== undefined) form.setValue("hma.eva", [parsedData.anamnese.eva], { shouldDirty: true });
 
+        // Exame Fisico -> Palmilha 5
+        if (parsedData?.exame_fisico) {
+            const ef = parsedData.exame_fisico;
+
+            // Lunge Test (Dorsiflexão em Carga)
+            if (ef.lunge_test) {
+                form.setValue("tests.lunge", {
+                    left: ef.lunge_test.left ?? currentValues.tests?.lunge?.left,
+                    right: ef.lunge_test.right ?? currentValues.tests?.lunge?.right
+                }, { shouldDirty: true });
+            }
+
+            // Navicular Drop
+            if (ef.navicular_drop) {
+                form.setValue("postural.navicular", {
+                    left: ef.navicular_drop.left ?? currentValues.postural?.navicular?.left,
+                    right: ef.navicular_drop.right ?? currentValues.postural?.navicular?.right
+                }, { shouldDirty: true });
+            }
+
+            // FPI (Mapping to fpi_left, fpi_right if it exists)
+            if (ef.fpi) {
+                const fpiL = currentValues.postural?.fpi_left || {} as any;
+                const fpiR = currentValues.postural?.fpi_right || {} as any;
+
+                if (ef.fpi.talus) { fpiL.talus = ef.fpi.talus.left; fpiR.talus = ef.fpi.talus.right; }
+                if (ef.fpi.curvatura_maleolar) { fpiL.curves = ef.fpi.curvatura_maleolar.left; fpiR.curves = ef.fpi.curvatura_maleolar.right; }
+                if (ef.fpi.posicao_calcaneo) { fpiL.calcaneus = ef.fpi.posicao_calcaneo.left; fpiR.calcaneus = ef.fpi.posicao_calcaneo.right; }
+                if (ef.fpi.proeminencia_tln) { fpiL.tln = ef.fpi.proeminencia_tln.left; fpiR.tln = ef.fpi.proeminencia_tln.right; }
+                if (ef.fpi.congruencia_arco) { fpiL.arch = ef.fpi.congruencia_arco.left; fpiR.arch = ef.fpi.congruencia_arco.right; }
+                if (ef.fpi.abducao_antepé) { fpiL.abduction = ef.fpi.abducao_antepé.left; fpiR.abduction = ef.fpi.abducao_antepé.right; }
+
+                form.setValue("postural.fpi_left", fpiL, { shouldDirty: true });
+                form.setValue("postural.fpi_right", fpiR, { shouldDirty: true });
+            }
+
+            // Teste de Jack
+            if (ef.jack_test) {
+                form.setValue("tests.jack", {
+                    left: ef.jack_test.left ?? currentValues.tests?.jack?.left,
+                    right: ef.jack_test.right ?? currentValues.tests?.jack?.right
+                }, { shouldDirty: true });
+            }
+
+            // Thomas
+            if (ef.thomas_test) {
+                form.setValue("tests.thomas", {
+                    left: ef.thomas_test.left ?? currentValues.tests?.thomas?.left,
+                    right: ef.thomas_test.right ?? currentValues.tests?.thomas?.right
+                }, { shouldDirty: true });
+            }
+        }
+
+        // Calçado
+        if (parsedData?.calcado) {
+            if (parsedData.calcado.modelo) form.setValue("shoe.model", parsedData.calcado.modelo, { shouldDirty: true });
+            if (parsedData.calcado.tamanho) form.setValue("postural.shoeSize", parsedData.calcado.tamanho, { shouldDirty: true });
+        }
+
         setFeegowImportOpen(false);
+        setFeegowText("");
     };
 
     const isSectionFilled = (section: string) => {

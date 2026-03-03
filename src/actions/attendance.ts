@@ -90,7 +90,7 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
     // 3. Fetch Professional
     const { data: professional, error: profError } = await supabaseAdmin
         .from('profiles')
-        .select('id, full_name, council_number, council_type, digital_signature_url')
+        .select('id, full_name, name, council_number, council_type, digital_signature_url')
         .eq('id', appointmentRaw.professional_id)
         .single()
 
@@ -359,6 +359,7 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
                     title: key.toUpperCase(),
                     type: finalRecordType || 'assessment',
                     is_active: true,
+                    is_locked: true,
                     description: 'Template nativo auto-gerado pelo sistema.',
                     organization_id: orgId // Usamos a org local para vincular
                 });
@@ -396,6 +397,7 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
                     content: contentWithMeta,
                     professional_id: profId,
                     organization_id: orgId,
+                    created_by: profId,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', effectiveRecordId)
@@ -423,7 +425,8 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
                     template_id: finalTemplateId,
                     content: contentWithMeta,
                     professional_id: profId,
-                    organization_id: orgId
+                    organization_id: orgId,
+                    created_by: profId
                 })
                 .select()
                 .single()

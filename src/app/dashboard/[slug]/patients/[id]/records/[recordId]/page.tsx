@@ -86,11 +86,23 @@ export default async function RecordPage({
         .single()
 
     // 4. Fetch Professional (who created the record)
-    const { data: profData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', record.created_by)
-        .single()
+    let profData = null;
+    if (record.professional_id) {
+        const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', record.professional_id)
+            .single()
+        profData = data;
+    }
+    if (!profData && record.created_by) {
+        const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', record.created_by)
+            .single()
+        profData = data;
+    }
 
     // 5. Check Appointment Validity
     let validAppointmentId = undefined;

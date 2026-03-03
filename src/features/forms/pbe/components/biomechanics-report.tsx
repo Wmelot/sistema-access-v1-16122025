@@ -192,9 +192,24 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
     }, [open, mounted, patient, vals.patientName]);
 
     const prof = useMemo(() => {
-        const p = Array.isArray(professional) ? professional[0] : professional;
-        return p || {};
-    }, [professional]);
+        // Try to handle Array vs Object vs Null
+        let p = Array.isArray(professional) ? professional[0] : professional;
+
+        // If still null, try to find in data/vals (sometimes snapshots are there)
+        if (!p && vals?.professional) p = vals.professional;
+        if (!p && vals?.professionalInfo) p = vals.professionalInfo;
+
+        const finalProf = p || {};
+
+        // Debug Log (will show in console to help identify mismatches)
+        console.log("BiomechanicsReport prof data:", {
+            hasProf: !!p,
+            name: finalProf.full_name || finalProf.name,
+            council: finalProf.council_number || finalProf.crefito
+        });
+
+        return finalProf;
+    }, [professional, vals?.professional, vals?.professionalInfo]);
 
     // 1. Radar Data
     const radarChartData = useMemo(() => calculateRadarData(vals), [vals]);
@@ -815,12 +830,14 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                                         <div className="h-16 w-64 border-b-2 border-slate-200 mb-2"></div>
                                                     )}
                                                     <h4 className="font-extrabold text-slate-900 uppercase text-sm tracking-tight mb-1">
-                                                        {prof?.full_name || prof?.name || "Dr. Fisioterapeuta"}
+                                                        {prof?.full_name || prof?.name || (vals?.professional?.name) || (vals?.professional?.full_name) || "Dr. Fisioterapeuta"}
                                                     </h4>
                                                     <div className="flex gap-4 text-[9px] text-slate-400 font-bold uppercase">
-                                                        <span>{prof?.council_type || "CREFITO"}: {prof?.council_number || prof?.crefito || "---"}</span>
+                                                        <span>
+                                                            {prof?.council_type || "CREFITO"}: {prof?.council_number || prof?.crefito || (vals?.professional?.council_number) || "---"}
+                                                        </span>
                                                         <span>|</span>
-                                                        <span>{prof?.phone || "BIOMECÂNICA CLÍNICA"}</span>
+                                                        <span>{prof?.phone || (vals?.professional?.phone) || "BIOMECÂNICA CLÍNICA"}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -937,9 +954,10 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                         page-break-inside: avoid !important;
                     }
                     
+                    /* Fix para garantir que fotos de pé/corpo não cortem a cabeça ou os pés */
                     img {
                         max-width: 100% !important;
-                        height: auto !important;
+                        object-fit: contain !important;
                     }
                 }
 

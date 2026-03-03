@@ -69,8 +69,16 @@ export async function generatePortalToken(patientId: string, slug?: string) {
 
         if (error) return { success: false, error: error.message };
 
-        const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.'));
-        const baseUrl = isLocalhost ? `http://${window.location.host}` : (process.env.NEXT_PUBLIC_APP_URL || 'https://axiom-production.vercel.app');
+        const { headers } = await import('next/headers');
+        const headerList = headers();
+        const host = headerList.get('host') || 'localhost:3000';
+        const protocol = headerList.get('x-forwarded-proto') || 'http';
+
+        // Use environment variable in production, fall back to current host in dev/localhost
+        const baseUrl = process.env.NODE_ENV === 'production'
+            ? (process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`)
+            : `${protocol}://${host}`;
+
         const portalUrl = `${baseUrl}/paciente/${token}`;
 
         // Tentativa de envio inteligente pelo Zapi/Evolution

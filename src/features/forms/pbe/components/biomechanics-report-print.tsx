@@ -324,6 +324,26 @@ export function BiomechanicsReportPrint({ data, patient, professionalName, date,
                     </div>
                 </div>
 
+                {/* ASSINATURA ACOPLADA (NOVO) */}
+                <div className="pt-8 mt-10 border-t border-slate-200 flex flex-col items-center justify-center break-inside-avoid w-full">
+                    {professional?.digital_signature_url ? (
+                        <div className="h-20 w-48 relative mb-2">
+                            {/* Use standard img tag since printing is sensitive to Next Image containers */}
+                            <img src={professional.digital_signature_url} alt="Assinatura" style={{ objectFit: 'contain', width: '100%', height: '100%' }} />
+                        </div>
+                    ) : (
+                        <div className="h-16 w-64 border-b-2 border-slate-300 mb-2"></div>
+                    )}
+                    <h4 className="font-extrabold text-slate-900 uppercase text-sm tracking-tight mb-1 text-center mt-2">
+                        {professionalName || professional?.full_name || professional?.name || (data?.professional?.name) || (data?.professional?.full_name) || "Dr. Fisioterapeuta"}
+                    </h4>
+                    <div className="flex gap-4 text-[9px] text-slate-500 font-bold uppercase justify-center mt-1 w-full">
+                        <span>{professional?.council_type || "CREFITO"}: {professional?.council_number || professional?.crefito || "---"}</span>
+                        <span>|</span>
+                        <span>{professional?.phone || "BIOMECÂNICA CLÍNICA"}</span>
+                    </div>
+                </div>
+
                 <div className="mt-8 pt-6 border-t flex justify-between text-[8px] text-slate-400 font-bold uppercase">
                     <span>Relatório Gerado por {organizationName || 'Access Fisioterapia'}</span>
                     <span>Pag. 2 de 2</span>

@@ -654,8 +654,12 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                 <DialogContent
                     className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto"
                     onPointerDownOutside={(e) => {
-                        // [FIX] Prevent closing if clicking on the print viewer or similar overlays
-                        if (viewingBiomechanicsReport || viewingPhysicalReport) e.preventDefault();
+                        // [FIX] Prevent closing if clicking on the print viewer or SweetAlert overlays
+                        const target = e.target as HTMLElement;
+                        const isSwal = target?.closest('.swal2-container');
+                        if (viewingBiomechanicsReport || viewingPhysicalReport || isSwal) {
+                            e.preventDefault();
+                        }
                     }}
                 >
                     <DialogHeader>

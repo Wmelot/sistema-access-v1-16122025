@@ -102,6 +102,7 @@ export async function startQuickAttendance(
                 original_price: 0,
                 is_extra: true,
                 organization_id: organizationId,
+                created_by: user.id,
             })
             .select('id')
             .single()
@@ -131,6 +132,7 @@ export async function startQuickAttendance(
                 template_snapshot: templateData?.fields || {},
                 record_type: recordType,
                 organization_id: organizationId,
+                created_by: user.id,
             })
         }
 

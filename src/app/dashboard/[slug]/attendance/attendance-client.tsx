@@ -160,11 +160,7 @@ export function AttendanceClient({
     // Determine default template
     const searchParams = useSearchParams()
     const mode = searchParams.get('mode') as 'assessment' | 'evolution' | null
-    const defaultTab = mode === 'assessment' ? 'evolution' : 'evolution' // Default is separate from Mode logic? 
-    // Wait, use case:
-    // If Mode=Assessment -> Tab=Evolution (where form is) but Template Filter = Assessment
-    // If Mode=Evolution -> Tab=Evolution (where form is) but Template Filter = Evolution
-    // System Templates
+
     const PHYSICAL_ASSESSMENT_ID = 'system-physical-assessment'
     const SMART_ASSESSMENT_ID = 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c'
     const WOMENS_HEALTH_ID = 'womens_health_system'
@@ -175,6 +171,37 @@ export function AttendanceClient({
     const TREE_WIZARD_ID = 'tree_wizard_system'
     const PBE5_ID = 'pbe-5' // PBE 5.0 — Nova Geração
     const PBE5_UUID = 'e0000000-0000-0000-0000-000000000010'
+
+    const getDerivedRecordType = (templateId: string | null) => {
+        if (!templateId) return mode || 'evolution';
+        if (
+            templateId === PBE5_ID ||
+            templateId === PBE5_UUID ||
+            templateId === SMART_ASSESSMENT_ID ||
+            templateId === WOMENS_HEALTH_ID ||
+            templateId === PALMILHA_V3_ID ||
+            templateId === 'palmilha-5' ||
+            templateId === PHYSICAL_ASSESSMENT_ID ||
+            templateId === ULTIMATE_PBE_ID ||
+            templateId === PALMILHA_ORIGINAL_ID
+        ) {
+            return 'assessment';
+        }
+
+        const templateInfo = templates.find(t => t.id === templateId);
+        if (templateInfo?.type === 'physical_assessment' || templateInfo?.type === 'assessment' || templateInfo?.title?.toLowerCase().includes('palmilha')) {
+            return 'assessment';
+        }
+
+        if (templateId === CLINICAL_EVOLUTION_ID || templateId === 'e0000000-0000-0000-0000-000000000001') {
+            return 'evolution';
+        }
+
+        return templateInfo?.type || mode || 'evolution';
+    };
+
+    const defaultTab = mode === 'assessment' ? 'evolution' : 'evolution' // Default is separate from Mode logic? 
+    // Wait, use case:
 
     // The "assessments" tab is for LISTING past assessments. The "evolution" tab is for PERFORMING the action (form).
     // So both modes use the 'evolution' tab to fill the form.
@@ -349,7 +376,7 @@ export function AttendanceClient({
                 template_id: selectedTemplateId || CLINICAL_EVOLUTION_ID,
                 content: newContent,
                 record_id: currentRecord.id,
-                record_type: mode || 'evolution'
+                record_type: getDerivedRecordType(selectedTemplateId || CLINICAL_EVOLUTION_ID)
             }, slug)
 
             if (res.success) {
@@ -484,7 +511,7 @@ export function AttendanceClient({
                         template_id: selectedTemplateId,
                         content: {},
                         record_id: null,
-                        record_type: mode || 'evolution'
+                        record_type: getDerivedRecordType(selectedTemplateId)
                     }, slug)
 
                     if (res.success && res.data) {
@@ -520,18 +547,7 @@ export function AttendanceClient({
     // Handle Template Change
     const handleTemplateChange = async (newTemplateId: string) => {
         const newTemplate = templates.find(t => t.id === newTemplateId)
-        // Default to 'evolution' if not found, or use template's type
-        let newRecordType = newTemplate?.type === 'physical_assessment' ? 'assessment' : (newTemplate?.type || 'evolution')
-
-
-
-        if (newTemplateId === PBE5_ID || newTemplateId === PBE5_UUID || newTemplateId === SMART_ASSESSMENT_ID || newTemplateId === WOMENS_HEALTH_ID || newTemplateId === PALMILHA_V3_ID || newTemplateId === 'palmilha-5' || newTemplate?.title?.includes('Palmilha')) {
-            newRecordType = 'assessment'
-        }
-
-        if (newTemplateId === CLINICAL_EVOLUTION_ID) {
-            newRecordType = 'evolution'
-        }
+        let newRecordType = getDerivedRecordType(newTemplateId);
 
         // 1. Check if current record has meaningful content
         const hasContent = currentRecord && currentRecord.content && Object.keys(currentRecord.content).length > 0;
@@ -749,7 +765,7 @@ export function AttendanceClient({
                 template_id: selectedTemplateId,
                 content: currentRecord?.content,
                 record_id: currentRecord?.id || undefined, // [FIX] Evita mandar string vazia no UUID
-                record_type: mode || 'evolution'
+                record_type: getDerivedRecordType(selectedTemplateId)
             }, slug)
 
             if (res.success && res.data) {
@@ -1439,7 +1455,7 @@ export function AttendanceClient({
                             template_id: selectedTemplateId,
                             content: currentRecord?.content || {},
                             record_id: currentRecord?.id,
-                            record_type: mode || 'evolution'
+                            record_type: getDerivedRecordType(selectedTemplateId)
                         }, slug)
 
                         const finalData = {
@@ -1448,7 +1464,7 @@ export function AttendanceClient({
                             template_id: selectedTemplateId,
                             content: currentRecord?.content || {},
                             record_id: currentRecord?.id,
-                            record_type: mode || 'evolution'
+                            record_type: getDerivedRecordType(selectedTemplateId)
                         }
 
                         // 2. Clear state BEFORE redirect to avoid background components thinking it's still active

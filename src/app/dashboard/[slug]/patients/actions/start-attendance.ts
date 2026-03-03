@@ -121,7 +121,8 @@ export async function startNewAttendance(patientId: string, slug?: string, optio
                 price: 0,
                 original_price: 0,
                 is_extra: true,
-                organization_id: organizationId
+                organization_id: organizationId,
+                created_by: userId
             })
             .select('*, patients(name)')
             .single();
@@ -147,7 +148,8 @@ export async function startNewAttendance(patientId: string, slug?: string, optio
                     content: {},
                     template_snapshot: templateData?.fields || {},
                     record_type: validatedOptions.recordType || 'evolution',
-                    organization_id: organizationId
+                    organization_id: organizationId,
+                    created_by: userId
                 });
         }
 
