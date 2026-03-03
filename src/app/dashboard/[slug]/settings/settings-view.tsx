@@ -62,7 +62,7 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
     // Micro-loader feedback: limpa após transição
     useEffect(() => {
         if (pendingTab) {
-            const timer = setTimeout(() => setPendingTab(null), 300)
+            const timer = setTimeout(() => setPendingTab(null), 1000)
             return () => clearTimeout(timer)
         }
     }, [pendingTab])

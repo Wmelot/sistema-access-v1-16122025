@@ -121,8 +121,8 @@ export async function startNewAttendance(patientId: string, slug?: string, optio
                 price: 0,
                 original_price: 0,
                 is_extra: true,
-                organization_id: organizationId,
-                created_by: userId
+                organization_id: organizationId
+                // Remove 'created_by' because it doesn't exist in the 'appointments' table
             })
             .select('*, patients(name)')
             .single();

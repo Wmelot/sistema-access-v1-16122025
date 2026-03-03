@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { useDebounce } from "use-debounce"
 import { useRouter, useSearchParams, useParams } from "next/navigation"
 import { toast } from "sonner"
-import { ArrowLeft, Save, CheckCircle, Clock, ChevronRight, ChevronLeft, PanelRightClose, PanelRightOpen, FileText, ClipboardList, ChevronDown, Mic, History as HistoryIcon, Trash2, Pencil, Check, X, Loader2, PenTool } from "lucide-react"
+import { ArrowLeft, Save, CheckCircle, Clock, ChevronRight, ChevronLeft, PanelRightClose, PanelRightOpen, FileText, ClipboardList, ChevronDown, Mic, History as HistoryIcon, Trash2, Pencil, Check, X, Loader2, PenTool, Plus, Search, Sparkles } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -633,9 +633,24 @@ export function AttendanceClient({
                 icon: 'question',
                 showCancelButton: true,
                 showDenyButton: true,
-                confirmButtonText: '➕ Criar Novo',
-                denyButtonText: '🔎 Vincular Existente',
-                cancelButtonText: '💾 Salvar Rascunho',
+                confirmButtonText: (
+                    <div className="flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        Criar Novo
+                    </div>
+                ),
+                denyButtonText: (
+                    <div className="flex items-center gap-2">
+                        <Search className="h-4 w-4" />
+                        Vincular Existente
+                    </div>
+                ),
+                cancelButtonText: (
+                    <div className="flex items-center gap-2">
+                        <Save className="h-4 w-4" />
+                        Salvar Rascunho
+                    </div>
+                ),
                 confirmButtonColor: '#10b981', // green for new
                 denyButtonColor: '#4f46e5',   // indigo for link
                 cancelButtonColor: '#f97316', // orange for draft
@@ -1474,7 +1489,9 @@ export function AttendanceClient({
                         const res = await finishAttendance(appointment.id, finalData)
 
                         if (res?.success) {
-                            toast.success("Atendimento encerrado com sucesso! 🎉")
+                            toast.success("Atendimento encerrado com sucesso!", {
+                                icon: <Sparkles className="h-4 w-4 text-green-500" />
+                            })
                             // Give a small delay for the toast to be seen before hard-reload
                             setTimeout(() => {
                                 window.location.href = `/dashboard/${slug}/schedule`

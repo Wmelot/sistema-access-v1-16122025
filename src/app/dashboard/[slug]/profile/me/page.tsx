@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SecuritySettings } from "@/components/security/SecuritySettings"
 import { User, Shield } from "lucide-react"
 
-export default async function MyProfilePage() {
+export default async function MyProfilePage({ params }: { params: { slug: string } }) {
+    const { slug } = params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -38,7 +39,7 @@ export default async function MyProfilePage() {
     // Only fetch these if we have a professional to show
     const services = await getServices()
     const linkedServiceIds = await getProfessionalServices(user.id)
-    const roles = await getRoles()
+    const roles = await getRoles(slug)
 
     const professionalWithServices = {
         ...professional,

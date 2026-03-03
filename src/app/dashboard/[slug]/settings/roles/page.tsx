@@ -26,7 +26,7 @@ export default async function RolesPage(props: { params: Promise<{ slug: string 
         redirect(`/dashboard/${slug}`)
     }
 
-    const roles = await getRoles()
+    const roles = await getRoles(slug)
     const permissions = await getAllPermissions()
 
     return (

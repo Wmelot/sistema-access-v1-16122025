@@ -6,8 +6,8 @@ import { getProfessional, getProfessionalServices } from "../actions"
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 
-export default async function EditProfessionalPage({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = await params
+export default async function EditProfessionalPage({ params }: { params: Promise<{ slug: string, id: string }> }) {
+    const { slug, id } = await params
     const professional = await getProfessional(id)
     if (!professional) {
         notFound()
@@ -15,7 +15,7 @@ export default async function EditProfessionalPage({ params }: { params: Promise
 
     const services = await getServices()
     const linkedServiceIds = await getProfessionalServices(id)
-    const roles = await getRoles()
+    const roles = await getRoles(slug)
     const canManageRoles = await hasPermission('roles.manage')
 
     // Check if current user is the profile owner

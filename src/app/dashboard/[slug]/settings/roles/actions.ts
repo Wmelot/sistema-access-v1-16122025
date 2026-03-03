@@ -14,18 +14,80 @@ async function getOrgId() {
     return data?.organization_id
 }
 
-export async function getRoles() {
-    const orgId = await getOrgId()
-    const adminSupabase = await createAdminClient()
+export async function getRoles(slug?: string) {
+    const { createAdminClient: createAdminClientInternal } = await import("@/lib/supabase/admin")
+    const { isMasterUser: checkIsMaster } = await import("@/lib/auth-master")
+    const { createClient } = await import("@/lib/supabase/server")
 
-    const { data: roles, error } = await adminSupabase
+    const supabase = await createClient()
+    const adminSupabase = await createAdminClientInternal()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+
+    const isMaster = await checkIsMaster(user.id)
+
+    // Get Org Context
+    const { data: profile } = await adminSupabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single()
+
+    const orgId = profile?.organization_id
+
+    // Fetch roles: either system roles (org_id is null) or org-specific roles
+    const { data: rawRoles, error } = await adminSupabase
         .from('roles')
         .select('*, permissions:role_permissions(permission_id)')
-        .or(orgId ? `organization_id.eq.${orgId},organization_id.is.null` : `organization_id.is.null`)
-        .order('name', { ascending: true })
+        .order('is_system', { ascending: false }) // Prioritize system roles for initial map
+        .order('created_at', { ascending: true })
 
     if (error) throw new Error(error.message)
-    return roles
+
+    const rolesMap = new Map<string, any>()
+
+    // List of allowed base roles as per user request
+    const ALLOWED_BASE_ROLES: Record<string, string> = {
+        'administrador': 'Administrador',
+        'admin': 'Administrador',
+        'profissional': 'Profissional',
+        'recepcionista': 'Recepcionista'
+    }
+
+    // 1. Process System Roles (Base)
+    rawRoles.filter(r => r.organization_id === null).forEach(r => {
+        const lowerName = r.name.toLowerCase()
+        if (lowerName === 'master') return
+
+        const targetSlug = lowerName === 'admin' ? 'administrador' : lowerName
+        if (ALLOWED_BASE_ROLES[targetSlug]) {
+            // Standardize the name
+            const normalizedRole = { ...r, name: ALLOWED_BASE_ROLES[targetSlug] }
+            rolesMap.set(targetSlug, normalizedRole)
+        }
+    })
+
+    // 2. Overwrite/Merge with specific Org Roles
+    if (orgId) {
+        rawRoles.filter(r => r.organization_id === orgId).forEach(r => {
+            const lowerName = r.name.toLowerCase()
+            if (lowerName === 'master') return
+
+            const targetSlug = lowerName === 'admin' ? 'administrador' : lowerName
+
+            if (ALLOWED_BASE_ROLES[targetSlug]) {
+                // Standardization: Use the requested name even if the DB says 'Admin'
+                const normalizedRole = { ...r, name: ALLOWED_BASE_ROLES[targetSlug] }
+                rolesMap.set(targetSlug, normalizedRole)
+            } else {
+                // Truly custom roles (like 'Nutricionista') are allowed
+                rolesMap.set(lowerName, r)
+            }
+        })
+    }
+
+    return Array.from(rolesMap.values()).sort((a, b) => a.name.localeCompare(b.name))
 }
 
 export async function getRole(id: string) {

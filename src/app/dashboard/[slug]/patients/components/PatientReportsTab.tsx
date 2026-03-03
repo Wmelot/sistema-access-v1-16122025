@@ -343,8 +343,8 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
                 .replace(/{{ data_atual }}/g, dateStr)
                 .replace(/{{ HORARIO }}/g, timeStr)
                 .replace(/{{ PROFISSIONAL }}/g, professionalName)
-                .replace(/{{profissional_nome}}/g, professionalName)
-                .replace(/{{profissional_registro}}/g, professionalProfile?.registry || '')
+                .replace(/{{profissional_nome}}/g, professionalProfile?.full_name || professionalName)
+                .replace(/{{profissional_registro}}/g, professionalProfile?.council_number || professionalProfile?.registry || '')
                 .replace(/{{profissional_especialidade}}/g, professionalProfile?.specialty || '')
                 // Financial Variables
                 .replace(/{{financeiro_mes_extenso}}/g, monthlyStats.monthName)
@@ -443,7 +443,7 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
                 'patient_name': patientName,
                 'data_atual': new Date().toLocaleDateString('pt-BR'),
                 'profissional_nome': professionalNameFixed,
-                'profissional_registro': professionalProfile?.registry || '',
+                'profissional_registro': professionalProfile?.council_number || professionalProfile?.registry || '',
                 'profissional_especialidade': professionalProfile?.specialty || 'Fisioterapeuta',
                 'profissional_telefone': professionalProfile?.phone || '',
                 'profissional_email': professionalProfile?.email || '',
@@ -461,8 +461,8 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
                     content={content}
                     patientName={patientName}
                     professionalName={professionalNameFixed}
-                    professionalSpecialty={professionalProfile?.specialty}
-                    professionalRegistry={professionalProfile?.registry}
+                    professionalSpecialty={professionalProfile?.specialty || 'Fisioterapeuta'}
+                    professionalRegistry={professionalProfile?.council_number || professionalProfile?.registry}
                     date={format(new Date(), "dd/MM/yyyy HH:mm")}
                     variableMap={variableMap}
                     radarData={radarData}
@@ -535,7 +535,7 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
                 'patient_name': patientName,
                 'data_atual': new Date().toLocaleDateString('pt-BR'),
                 'profissional_nome': professionalNameFixed,
-                'profissional_registro': professionalProfile?.registry || '',
+                'profissional_registro': professionalProfile?.council_number || professionalProfile?.registry || '',
                 'profissional_especialidade': professionalProfile?.specialty || 'Fisioterapeuta',
             }
 
@@ -545,8 +545,8 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
                     content={content}
                     patientName={patientName}
                     professionalName={professionalNameFixed}
-                    professionalSpecialty={professionalProfile?.specialty}
-                    professionalRegistry={professionalProfile?.registry}
+                    professionalSpecialty={professionalProfile?.specialty || 'Fisioterapeuta'}
+                    professionalRegistry={professionalProfile?.council_number || professionalProfile?.registry}
                     date={format(new Date(), "dd/MM/yyyy HH:mm")}
                     variableMap={variableMap}
                     radarData={radarData}

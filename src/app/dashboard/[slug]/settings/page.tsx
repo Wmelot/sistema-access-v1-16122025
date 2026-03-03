@@ -22,7 +22,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ slug:
     let allPermissions: any[] = [];
 
     if (canManageRoles) {
-        roles = await getRoles() || [];
+        roles = await getRoles(slug) || [];
         allPermissions = await getAllPermissions() || [];
     }
 

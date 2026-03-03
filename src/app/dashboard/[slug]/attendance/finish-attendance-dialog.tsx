@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Textarea } from "@/components/ui/textarea"
-import { CheckCircle, DollarSign, FileText, Calendar as CalendarIcon, Printer, Clock, Sparkles, Loader2, Search, PenTool } from "lucide-react"
+import { CheckCircle, DollarSign, FileText, Calendar as CalendarIcon, Printer, Clock, Sparkles, Loader2, Search, PenTool, AlertTriangle } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { toast } from "sonner"
@@ -330,7 +330,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                     futureDate.setMonth(futureDate.getMonth() + monthsToAdd);
                     setReturnDate(futureDate);
                     toast.info(`Retorno recomendado p/ ${monthsToAdd} mes(es) (IWGDF Nível ${iwgdf}). Verifique disponibilidade na agenda!`, {
-                        icon: '⚠️',
+                        icon: <AlertTriangle className="h-4 w-4 text-amber-500" />,
                         duration: 5000
                     });
                 }
@@ -1143,7 +1143,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                         />
                                         {holidayWarning && (
                                             <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-[10px] text-amber-700 font-bold animate-in shake-in-1">
-                                                ⚠️ ATENÇÃO: {holidayWarning.name.toUpperCase()}
+                                                <AlertTriangle className="h-4 w-4 inline mr-1" /> ATENÇÃO: {holidayWarning.name.toUpperCase()}
                                             </div>
                                         )}
                                     </div>

@@ -204,8 +204,6 @@ export async function hasPermission(permission: PermissionCode): Promise<boolean
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-        // [ROBUSTNESS] If Auth is 500/offline, we might return false.
-        // But let's log it to be sure.
         console.warn('hasPermission: No user found (possible Auth API error). Returning false.')
         return false
     }
@@ -226,6 +224,7 @@ export async function hasPermission(permission: PermissionCode): Promise<boolean
         .from('profiles')
         .select(`
             role_id, 
+            role,
             organization_id, 
             organizations (
                 features
@@ -234,7 +233,26 @@ export async function hasPermission(permission: PermissionCode): Promise<boolean
         .eq('id', user.id)
         .single()
 
-    if (!profile?.role_id || !profile?.organization_id) return false
+    if (!profile?.organization_id) return false
+
+    let targetRoleId = profile.role_id
+
+    // [RESILIENCE] Fallback for unmigrated users (role column string)
+    if (!targetRoleId && profile.role) {
+        const { data: fallbackRole } = await adminSupabase
+            .from('roles')
+            .select('id')
+            .ilike('name', profile.role === 'admin' ? 'Administrador' : profile.role)
+            .is('organization_id', null)
+            .limit(1)
+            .single()
+
+        if (fallbackRole) {
+            targetRoleId = fallbackRole.id
+        }
+    }
+
+    if (!targetRoleId) return false
 
     // Layer 1 Check: Organization-Level Feature Gating
     const meta = PERMISSION_METADATA.find(p => p.code === permission)
@@ -259,7 +277,7 @@ export async function hasPermission(permission: PermissionCode): Promise<boolean
     const { count } = await adminSupabase
         .from('role_permissions')
         .select('permissions!inner(code)', { count: 'exact', head: true })
-        .eq('role_id', profile.role_id)
+        .eq('role_id', targetRoleId)
         .eq('permissions.code', permission)
 
     return (count || 0) > 0
@@ -281,6 +299,7 @@ export async function getCurrentUserPermissions(): Promise<PermissionCode[]> {
         .from('profiles')
         .select(`
             role_id, 
+            role,
             organization_id,
             organizations (
                 features
@@ -293,12 +312,26 @@ export async function getCurrentUserPermissions(): Promise<PermissionCode[]> {
     let targetRoleId = profile?.role_id
     const orgFeatures = (profile?.organizations as any)?.features || {}
 
+    // [RESILIENCE] Fallback for unmigrated users (role column string)
+    if (!targetRoleId && profile?.role) {
+        const { data: fallbackRole } = await adminSupabase
+            .from('roles')
+            .select('id')
+            .ilike('name', profile.role === 'admin' ? 'Administrador' : profile.role)
+            .is('organization_id', null)
+            .limit(1)
+            .single()
+
+        if (fallbackRole) {
+            targetRoleId = fallbackRole.id
+        }
+    }
+
     if (!targetRoleId && isMaster) {
         // [RESILIENCE] Fallback: Look for a role named 'Master' if user has no role_id assigned
         const { data: masterRole } = await adminSupabase.from('roles').select('id').eq('name', 'Master').limit(1).single()
         if (masterRole) {
             targetRoleId = masterRole.id
-            console.log(`[RBAC] Master user detected without role_id. Falling back to role: ${targetRoleId}`);
         }
     }
 

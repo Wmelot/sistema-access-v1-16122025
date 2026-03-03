@@ -184,6 +184,13 @@ export function SidebarContent({
                         { href: `${dashboardPrefix}/forms`, icon: ClipboardList, label: "Formulários", perm: 'sidebar.forms.view' },
                         { href: `${dashboardPrefix}/marketing`, icon: Megaphone, label: "Marketing", perm: 'sidebar.marketing.view' },
                         { href: `${dashboardPrefix}/patients`, icon: Users, label: "Pacientes", perm: 'sidebar.patients.view', feature: 'records_module' },
+                        { href: `${dashboardPrefix}/professionals`, icon: Briefcase, label: "Equipe", perm: 'sidebar.professionals.view' },
+                        { href: `${dashboardPrefix}/locations`, icon: MapPin, label: "Locais", perm: 'sidebar.locations.view' },
+                        { href: `${dashboardPrefix}/services`, icon: Stethoscope, label: "Serviços", perm: 'sidebar.services.view' },
+                        { href: `${dashboardPrefix}/questionnaires`, icon: ClipboardList, label: "Questionários", perm: 'sidebar.questionnaires.view' },
+                        { href: `${dashboardPrefix}/prices`, icon: Tag, label: "Tabela de Preços", perm: 'sidebar.prices.view' },
+                        { href: `${dashboardPrefix}/settings?tab=users`, icon: Users, label: "Usuários", perm: 'sidebar.users.view' },
+                        { href: `${dashboardPrefix}/settings/roles`, icon: Shield, label: "Perfis de Acesso", perm: 'sidebar.roles.view' },
                         { href: `${dashboardPrefix}/settings/communication`, icon: MessageCircle, label: "WhatsApp", perm: 'sidebar.whatsapp.view', feature: 'whatsapp_integration' },
                     ]
                         .sort((a, b) => {

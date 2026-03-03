@@ -155,72 +155,12 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
     const questionnaireForms = customForms.filter(isQuestionnaire)
     const protocolForms = customForms.filter(isProtocol)
 
-    // ─────────── Big Four System Cards ───────────
-    const BIG_FOUR = [
-        {
-            id: 'pbe-5',
-            title: 'PBE 5.0',
-            desc: 'Avaliação clínica completa por evidências. Arquitetura modular.',
-            href: `/dashboard/${slug}/test-form/pbe-5`,
-            badge: 'Avaliação Principal',
-            icon: <Activity className="h-5 w-5 text-blue-400" />,
-            borderColor: 'border-slate-900',
-            bg: 'bg-slate-900',
-            glow: 'from-blue-500/20 to-indigo-500/20',
-            badgeClass: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-            btnClass: 'bg-white hover:bg-slate-100 text-slate-900',
-            btnIcon: <Zap className="mr-2 h-4 w-4 text-blue-600 fill-blue-600" />,
-        },
-        {
-            id: 'palmilha-5',
-            title: 'Palmilha 5.0',
-            desc: 'Biomecânica completa. Baropodometria + prescrição de palmilhas.',
-            href: `/dashboard/${slug}/test-form/palmilha-5`,
-            badge: 'Biomecânica',
-            icon: <FileText className="h-5 w-5 text-indigo-400" />,
-            borderColor: 'border-zinc-900',
-            bg: 'bg-zinc-900',
-            glow: 'from-indigo-500/20 to-purple-500/20',
-            badgeClass: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
-            btnClass: 'bg-white hover:bg-zinc-100 text-zinc-900',
-            btnIcon: <FileText className="mr-2 h-4 w-4" />,
-        },
-        {
-            id: 'diabetic-foot',
-            title: 'Pé Insensível',
-            desc: 'Protocolo IWGDF. Neuropatia diabética + prescrição especializada.',
-            href: `/dashboard/${slug}/test-form/diabetic-foot`,
-            badge: 'Pé Diabético',
-            icon: <Dumbbell className="h-5 w-5 text-teal-400" />,
-            borderColor: 'border-teal-950',
-            bg: 'bg-teal-950',
-            glow: 'from-teal-500/20 to-emerald-500/20',
-            badgeClass: 'bg-teal-500/20 text-teal-300 border-teal-500/30',
-            btnClass: 'bg-white hover:bg-teal-50 text-teal-900',
-            btnIcon: <Dumbbell className="mr-2 h-4 w-4 text-teal-600" />,
-        },
-        {
-            id: 'clinical-evolution',
-            title: 'Evolução Clínica & IA',
-            desc: 'Evolução por voz + IA. Raciocínio clínico e tutor de carga.',
-            href: `/dashboard/${slug}/test-form/clinical-evolution`,
-            badge: 'Evolução & IA',
-            icon: <Brain className="h-5 w-5 text-indigo-400" />,
-            borderColor: 'border-indigo-950',
-            bg: 'bg-indigo-950',
-            glow: 'from-indigo-500/20 to-violet-500/20',
-            badgeClass: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
-            btnClass: 'bg-white hover:bg-indigo-50 text-indigo-900',
-            btnIcon: <Brain className="mr-2 h-4 w-4 text-indigo-600" />,
-        },
-    ]
-
     return (
         <div className="space-y-6">
             <ManagementHeader
                 slug={slug!}
-                title="Formulários Personalizados"
-                description="Crie seus próprios formulários e avaliações usando o editor Drag-and-Drop."
+                title="Gestão de Formulários"
+                description="Crie e gerencie seus próprios formulários e avaliações personalizados."
             >
                 <div className="hidden md:flex items-center gap-3">
                     <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
@@ -269,54 +209,10 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
                         </DialogContent>
                     </Dialog>
                 </div>
-            </ManagementHeader>
+            </ManagementHeader >
 
             {viewMode === 'grid' ? (
                 <div className="space-y-8">
-
-                    {/* ⭐ Big Four */}
-                    <div>
-                        <div className="flex items-center gap-2 mb-5">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">⭐ Formulários do Sistema</span>
-                            <div className="flex-1 h-px bg-slate-100" />
-                            <span className="text-[10px] text-slate-300 font-bold">4 ativos</span>
-                        </div>
-                        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-                            {BIG_FOUR.map((form) => (
-                                <Card
-                                    key={form.id}
-                                    className={`flex flex-col justify-between relative group border-2 ${form.borderColor} ${form.bg} overflow-hidden shadow-2xl hover:scale-[1.01] transition-all duration-200`}
-                                >
-                                    <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${form.glow} blur-3xl rounded-full mix-blend-screen opacity-50 pointer-events-none`} />
-                                    <div>
-                                        <CardHeader className="pb-2 relative z-10">
-                                            <div className="h-10 w-10 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center mb-3">
-                                                {form.icon}
-                                            </div>
-                                            <CardTitle className="text-base font-black text-white">{form.title}</CardTitle>
-                                            <CardDescription className="text-white/40 text-xs leading-relaxed pt-1">
-                                                {form.desc}
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="relative z-10 pt-0">
-                                            <Badge className={`${form.badgeClass} text-[9px] uppercase tracking-widest font-black border`}>
-                                                {form.badge}
-                                            </Badge>
-                                        </CardContent>
-                                    </div>
-                                    <div className="p-5 pt-3 relative z-10">
-                                        <Link href={form.href} className="w-full" onClick={() => showLoading()}>
-                                            <Button className={`w-full ${form.btnClass} font-black h-11 shadow-xl text-xs tracking-wide transition-all hover:scale-[1.01]`}>
-                                                {form.btnIcon}
-                                                Abrir {form.title}
-                                            </Button>
-                                        </Link>
-                                    </div>
-                                </Card>
-                            ))}
-                        </div>
-                    </div>
-
                     {/* 📁 Custom user forms */}
                     {customUserForms.length > 0 && (
                         <div>
@@ -352,26 +248,6 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
             ) : (
                 /* ─── LIST VIEW ─── */
                 <div className="space-y-3">
-                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">⭐ Formulários do Sistema</div>
-                    {BIG_FOUR.map((form) => (
-                        <Card key={form.id} className="border-l-4 border-l-slate-900 hover:shadow-md transition-all">
-                            <div className="flex items-center gap-4 p-4">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <h3 className="font-bold text-slate-800">{form.title}</h3>
-                                        <Badge className="bg-slate-100 text-slate-600 uppercase text-[9px] font-black">Sistema</Badge>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground line-clamp-1">{form.desc}</p>
-                                </div>
-                                <Link href={form.href} onClick={() => showLoading()}>
-                                    <Button className="bg-slate-900 hover:bg-slate-800 text-white font-bold">
-                                        Abrir
-                                    </Button>
-                                </Link>
-                            </div>
-                        </Card>
-                    ))}
-
                     {customUserForms.length > 0 && (
                         <>
                             <Separator className="my-6" />
@@ -413,7 +289,8 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
                         </>
                     )}
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     )
 }

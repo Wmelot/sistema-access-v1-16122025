@@ -39,7 +39,7 @@ const RouteChangeHandler = () => {
         // Let's just add a small delay to the hide to allow the new page to start rendering
         const timer = setTimeout(() => {
             hideLoading();
-        }, 800); // 800ms fade out / render window
+        }, 5000); // 5000ms safe window to ensure rendering is visible and data fetching has started
 
         return () => clearTimeout(timer);
     }, [pathname, searchParams, hideLoading]);

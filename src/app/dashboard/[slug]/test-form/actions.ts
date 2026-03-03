@@ -223,8 +223,7 @@ export async function saveSandboxAssessment(
                 status: 'attended',
                 type: 'appointment',
                 title: `Atendimento - ${templateTitleQuery}`,
-                notes: `Gravado via Sandbox`,
-                created_by: user.id
+                notes: `Gravado via Sandbox`
             }
 
             const { data: profile } = await adminSupabase.from('profiles').select('id').eq('id', user.id).single()
