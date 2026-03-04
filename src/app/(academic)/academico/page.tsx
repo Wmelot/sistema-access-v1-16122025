@@ -953,6 +953,8 @@ export default function DashboardAcademico() {
         );
     }
 
+    const isMaster = currentUser?.role === 'admin' || currentUser?.role === 'master';
+
     return (
         <div className="min-h-screen bg-[#FDFDFD] pb-32">
             {/* Header Institucional */}
