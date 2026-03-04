@@ -96,6 +96,7 @@ export default function Palmilha5Form({
     const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const navScrollRef = React.useRef<HTMLDivElement>(null);
     const { setIsCollapsed } = useSidebar();
 
     // Efeito para rolar para o topo quando uma seção for aberta (Desativado para rolagem local)
@@ -107,6 +108,15 @@ export default function Palmilha5Form({
     useEffect(() => {
         setIsCollapsed(true);
     }, [setIsCollapsed]);
+
+    useEffect(() => {
+        if (navScrollRef.current) {
+            const activeItem = navScrollRef.current.querySelector('.active-nav-item');
+            if (activeItem) {
+                activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+        }
+    }, [openSection]);
 
     const form = useForm({
         mode: "onChange",
@@ -261,6 +271,131 @@ export default function Palmilha5Form({
         return false;
     };
 
+    const getSectionStatus = (section: string) => {
+        if (section === 'hma') {
+            const hma = form.watch('hma');
+            let filled = 0;
+            if (hma?.qp) filled++;
+            if (hma?.history) filled++;
+            if (hma?.eva && hma.eva[0] > 0) filled++;
+            return filled === 0 ? 'empty' : filled >= 3 ? 'full' : 'partial';
+        }
+        if (section === 'history') {
+            const history = form.watch('history');
+            let filled = 0;
+            if (history?.comorbidities?.length) filled++;
+            if (history?.meds?.length) filled++;
+            if (history?.treatments?.length) filled++;
+            return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
+        }
+        if (section === 'insensitive_foot') {
+            const vascular = form.watch('vascular');
+            const neuropathic = form.watch('neuropathic');
+            let filled = 0;
+            if (vascular?.pulses?.pedal) filled++;
+            if (neuropathic?.monofilament) filled++;
+            return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
+        }
+        if (section === 'map') {
+            const painPoints = form.watch('painPoints');
+            const painZones = form.watch('painZones');
+            if (painPoints?.length > 0 || Object.keys(painZones || {}).length > 0) return 'full';
+            return 'empty';
+        }
+        if (section === 'efep') {
+            const efep = form.watch('efep');
+            const filled = efep?.filter((i: any) => i.activity && i.score !== "").length || 0;
+            return filled === 0 ? 'empty' : filled >= 3 ? 'full' : 'partial';
+        }
+        if (section === 'sports') {
+            const sports = form.watch('sports');
+            return (sports?.length && sports[0]?.type) ? 'full' : 'empty';
+        }
+        if (section === 'shoe') {
+            const shoe = form.watch('shoe');
+            let filled = 0;
+            if (shoe?.model) filled++;
+            if (shoe?.injuryType && shoe.injuryType !== 'none') filled++;
+            return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
+        }
+        if (section === 'baropo') {
+            const baropo2d = form.watch('tests.baropo_2d');
+            const baropo3d = form.watch('tests.baropo_3d');
+            let filled = 0;
+            if (baropo2d) filled++;
+            if (baropo3d) filled++;
+            return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
+        }
+        if (section === 'static') {
+            const shoeSize = form.watch('postural.shoeSize');
+            const navLeft = form.watch('postural.navicular.left');
+            let filled = 0;
+            if (shoeSize) filled++;
+            if (navLeft) filled++;
+            return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
+        }
+        if (section === 'fpi_detail') {
+            const fL = form.watch('postural.fpi_left');
+            const fR = form.watch('postural.fpi_right');
+            const filled = (fL ? Object.keys(fL).length : 0) + (fR ? Object.keys(fR).length : 0);
+            return filled === 0 ? 'empty' : filled >= 6 ? 'full' : 'partial';
+        }
+        if (section === 'orto') {
+            const jack = form.watch('tests.jack.left');
+            const lunge = form.watch('tests.lunge.left');
+            const legLen = form.watch('tests.ybalance.legLength.left');
+            let filled = 0;
+            if (jack) filled++;
+            if (lunge) filled++;
+            if (legLen) filled++;
+            return filled === 0 ? 'empty' : filled >= 3 ? 'full' : 'partial';
+        }
+        if (section === 'dynamic') {
+            const pelvic = form.watch('tests.single_squat.pelvic_drop_left');
+            const gait = form.watch('tests.gait_photos.left.initial');
+            const dfi = form.watch('tests.dfi.0.left');
+            let filled = 0;
+            if (pelvic && pelvic !== 'Normal') filled++;
+            if (gait) filled++;
+            if (dfi) filled++;
+            return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
+        }
+        if (section === 'dorsal') {
+            const thomas = form.watch('tests.thomas.left');
+            const dorsal = form.watch('tests.dorsal.first_ray.left');
+            let filled = 0;
+            if (thomas) filled++;
+            if (dorsal) filled++;
+            return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
+        }
+        if (section === 'ventral') {
+            const craig = form.watch('tests.ventral.craig.left');
+            const retro = form.watch('tests.ventral.measures.left.retro');
+            let filled = 0;
+            if (craig) filled++;
+            if (retro) filled++;
+            return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
+        }
+        if (section === 'exams') return form.watch('plan.exams') ? 'full' : 'empty';
+        if (section === 'exercises') {
+            const exercises = form.watch('plan.exercises');
+            const orientations = form.watch('plan.orientations');
+            let filled = 0;
+            if (exercises?.length) filled++;
+            if (orientations) filled++;
+            return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
+        }
+        if (section === 'propulsao') {
+            const propId = form.watch('insole.propulsao_id');
+            const model = form.watch('insole.model');
+            let filled = 0;
+            if (propId) filled++;
+            if (model) filled++;
+            return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
+        }
+        return isSectionFilled(section) ? 'full' : 'empty';
+    };
+
     return (
         <FormProvider {...form}>
             <div className="flex-1 flex flex-col lg:flex-row max-w-[1400px] mx-auto w-full px-4 py-4 relative z-10 gap-8">
@@ -328,21 +463,13 @@ export default function Palmilha5Form({
 
                     <div className="bg-white rounded-[2.5rem] p-4 border border-slate-100 shadow-sm flex flex-wrap gap-2 mt-2 mb-20 shrink-0">
                         {MENU_SECTIONS.map((sec, idx) => {
-                            const isFilled = isSectionFilled(sec.id);
                             const curIdx = MENU_SECTIONS.findIndex(s => s.id === openSection);
                             const isActive = curIdx === idx;
+                            const status = getSectionStatus(sec.id);
 
-                            let showAsCard = false;
-                            const total = MENU_SECTIONS.length;
-                            if (curIdx === 0) {
-                                showAsCard = idx <= 2;
-                            } else if (curIdx === total - 1) {
-                                showAsCard = idx >= total - 3;
-                            } else {
-                                showAsCard = idx >= curIdx - 1 && idx <= curIdx + 1;
-                            }
+                            // Mostrar como card apenas se for a secção ativa
+                            const showAsCard = isActive;
 
-                            // [NEW] Oval Capsules for items outside the 3-card window (FOTO 1 Logic)
                             if (!showAsCard) {
                                 return (
                                     <button
@@ -351,10 +478,12 @@ export default function Palmilha5Form({
                                         onClick={() => setOpenSection(sec.id)}
                                         title={sec.label}
                                         className={cn(
-                                            "px-3 py-1.5 rounded-full border flex items-center justify-center font-black text-[9px] transition-all shadow-sm shrink-0 uppercase tracking-tighter whitespace-nowrap",
-                                            isFilled
+                                            "px-3 py-1.5 rounded-full border flex items-center justify-center font-black text-[9px] transition-all shadow-sm shrink-0 uppercase tracking-tighter whitespace-nowrap min-w-max",
+                                            status === 'full'
                                                 ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100 ring-1 ring-emerald-500/20"
-                                                : "bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100"
+                                                : status === 'partial'
+                                                    ? "bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100 ring-1 ring-amber-500/20"
+                                                    : "bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100"
                                         )}
                                     >
                                         {sec.label}
@@ -377,7 +506,8 @@ export default function Palmilha5Form({
                                         <div className={cn("text-[12px] font-black uppercase tracking-tight", isActive ? "text-white" : "text-slate-700")}>{sec.label}</div>
                                         <div className={cn("text-[10px] font-bold opacity-60 mt-0.5", isActive ? "text-slate-200" : "text-slate-400")}>{sec.desc}</div>
                                     </div>
-                                    {isFilled && <CheckCircle2 className={cn("w-4 h-4", isActive ? "text-emerald-400" : "text-emerald-500")} />}
+                                    {status === 'full' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                                    {status === 'partial' && <div className="w-3 h-3 rounded-full bg-amber-400 shadow-sm" />}
                                 </button>
                             );
                         })}
@@ -540,52 +670,118 @@ export default function Palmilha5Form({
                     </div>
 
                     {/* BOTÕES DE NAVEGAÇÃO DO WIZARD */}
-                    <div className="w-full flex justify-between items-center mt-8 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
+                    <div className="w-full flex justify-between items-center mt-8 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex flex-col pt-6">
                         {(() => {
                             const curIdx = MENU_SECTIONS.findIndex(s => s.id === openSection);
                             const prevSec = curIdx > 0 ? MENU_SECTIONS[curIdx - 1] : null;
                             const nextSec = curIdx < MENU_SECTIONS.length - 1 ? MENU_SECTIONS[curIdx + 1] : null;
+                            const activeSec = MENU_SECTIONS[curIdx];
 
                             return (
-                                <>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        disabled={!prevSec}
-                                        onClick={() => prevSec && setOpenSection(prevSec.id)}
-                                        className="h-12 rounded-2xl px-6 font-black text-[10px] uppercase tracking-widest text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                                    >
-                                        <ChevronLeft className="w-4 h-4 mr-2" />
-                                        {prevSec ? "Voltar" : ""}
-                                    </Button>
+                                <div className="w-full flex flex-col items-center justify-center">
+                                    {/* CAPSULE SLIDER */}
+                                    <div className="w-full flex justify-center mb-6">
+                                        <div
+                                            ref={navScrollRef}
+                                            className="custom-scrollbar flex items-center gap-2 overflow-x-auto pb-4 max-w-full px-4 mask-image-horizontal"
+                                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitMaskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)' }}
+                                        >
+                                            <style dangerouslySetInnerHTML={{ __html: `.custom-scrollbar::-webkit-scrollbar { display: none; }` }} />
 
-                                    {nextSec ? (
-                                        <Button
-                                            type="button"
-                                            onClick={() => setOpenSection(nextSec.id)}
-                                            className="h-12 rounded-2xl px-8 font-black text-[10px] uppercase tracking-widest bg-slate-900 text-white hover:scale-105 transition-transform"
-                                        >
-                                            <span className="opacity-50 mr-2">PRÓXIMO:</span> {nextSec.label} <ChevronRight className="w-4 h-4 ml-2" />
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            type="button"
-                                            disabled={isSaving}
-                                            onClick={form.handleSubmit(async (data) => {
-                                                setIsSaving(true);
-                                                try {
-                                                    await onSave(data, true);
-                                                } finally {
-                                                    setIsSaving(false);
-                                                }
+                                            {/* Previous Sections */}
+                                            {MENU_SECTIONS.slice(0, curIdx).map(sec => {
+                                                const status = getSectionStatus(sec.id);
+                                                return (
+                                                    <button
+                                                        key={sec.id}
+                                                        type="button"
+                                                        onClick={() => setOpenSection(sec.id)}
+                                                        className={cn(
+                                                            "px-3 py-1.5 rounded-full border flex items-center justify-center font-black text-[9px] transition-all shadow-sm shrink-0 uppercase tracking-tighter whitespace-nowrap min-w-max",
+                                                            status === 'full'
+                                                                ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100"
+                                                                : status === 'partial'
+                                                                    ? "bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100"
+                                                                    : "bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100"
+                                                        )}
+                                                    >
+                                                        {sec.label}
+                                                    </button>
+                                                )
                                             })}
-                                            className="h-12 rounded-2xl px-8 font-black text-[10px] uppercase tracking-widest bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-105 transition-transform shadow-lg shadow-emerald-600/20 shadow-emerald-500/20"
+
+                                            {/* Current Active Section Name */}
+                                            {activeSec && (
+                                                <div className="active-nav-item px-6 py-2 bg-slate-900 text-white rounded-full font-black text-[10px] uppercase tracking-widest shrink-0 shadow-lg mx-2 transition-all scale-105 min-w-max">
+                                                    {activeSec.label}
+                                                </div>
+                                            )}
+
+                                            {/* Next Sections */}
+                                            {MENU_SECTIONS.slice(curIdx + 1).map(sec => {
+                                                const status = getSectionStatus(sec.id);
+                                                return (
+                                                    <button
+                                                        key={sec.id}
+                                                        type="button"
+                                                        onClick={() => setOpenSection(sec.id)}
+                                                        className={cn(
+                                                            "px-3 py-1.5 rounded-full border flex items-center justify-center font-black text-[9px] transition-all shadow-sm shrink-0 uppercase tracking-tighter whitespace-nowrap min-w-max",
+                                                            status === 'full'
+                                                                ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100"
+                                                                : status === 'partial'
+                                                                    ? "bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100"
+                                                                    : "bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100"
+                                                        )}
+                                                    >
+                                                        {sec.label}
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* BUTTONS ROW */}
+                                    <div className="w-full flex justify-between items-center border-t border-slate-50 pt-4">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            disabled={!prevSec}
+                                            onClick={() => prevSec && setOpenSection(prevSec.id)}
+                                            className="h-10 rounded-2xl px-6 font-black text-[10px] uppercase tracking-widest text-slate-500 hover:bg-slate-50 hover:text-slate-700"
                                         >
-                                            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                                            Salvar Avaliação
+                                            <ChevronLeft className="w-4 h-4 mr-2" />
+                                            {prevSec ? "Voltar" : ""}
                                         </Button>
-                                    )}
-                                </>
+
+                                        {nextSec ? (
+                                            <Button
+                                                type="button"
+                                                onClick={() => setOpenSection(nextSec.id)}
+                                                className="h-10 rounded-2xl px-8 font-black text-[10px] uppercase tracking-widest bg-slate-900 text-white hover:scale-105 transition-transform"
+                                            >
+                                                <span className="opacity-50 mr-2">PRÓXIMO:</span> {nextSec.label} <ChevronRight className="w-4 h-4 ml-2" />
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                type="button"
+                                                disabled={isSaving}
+                                                onClick={form.handleSubmit(async (data) => {
+                                                    setIsSaving(true);
+                                                    try {
+                                                        await onSave(data, true);
+                                                    } finally {
+                                                        setIsSaving(false);
+                                                    }
+                                                })}
+                                                className="h-10 rounded-2xl px-8 font-black text-[10px] uppercase tracking-widest bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-105 transition-transform shadow-lg shadow-emerald-600/20 shadow-emerald-500/20"
+                                            >
+                                                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                                                Salvar Avaliação
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
                             );
                         })()}
                     </div>

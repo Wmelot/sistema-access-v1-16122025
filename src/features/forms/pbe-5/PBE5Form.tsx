@@ -146,11 +146,21 @@ export default function PBE5Form({
     const [isReportSelectorOpen, setIsReportSelectorOpen] = useState(false);
     const [selectedSections, setSelectedSections] = useState<string[]>([]);
     const { setIsCollapsed } = useSidebar();
+    const navScrollRef = React.useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setIsCollapsed(true);
         // window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [openSection, setIsCollapsed]);
+
+    useEffect(() => {
+        if (navScrollRef.current) {
+            const activeItem = navScrollRef.current.querySelector('.active-nav-item');
+            if (activeItem) {
+                activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+        }
+    }, [openSection]);
 
     const form = useForm({
         mode: "onChange",
@@ -320,6 +330,58 @@ export default function PBE5Form({
         return false;
     };
 
+    const getSectionStatus = (section: string) => {
+        if (section === 'anamnesis') {
+            const data = form.watch('anamnesis');
+            let filled = 0;
+            if (data?.qp) filled++;
+            if (data?.hma) filled++;
+            if (data?.eva > 0) filled++;
+            return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
+        }
+        if (section === 'clinical') {
+            const data = form.watch('clinical');
+            let filled = 0;
+            if (data?.goals) filled++;
+            if (data?.meds?.length) filled++;
+            if (data?.comorbidities?.length) filled++;
+            return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
+        }
+        if (section === 'metrics') {
+            const data = form.watch('metrics');
+            let filled = 0;
+            if (data?.weight) filled++;
+            if (data?.height) filled++;
+            if (data?.hr) filled++;
+            if (data?.bp) filled++;
+            return filled === 0 ? 'empty' : filled >= 3 ? 'full' : 'partial';
+        }
+        if (section === 'movement') {
+            const data = form.watch('movement');
+            let filled = 0;
+            if (Object.keys(data?.active || {}).length > 0) filled++;
+            if (Object.keys(data?.passive || {}).length > 0) filled++;
+            if (Object.keys(data?.repeated || {}).length > 0) filled++;
+            return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
+        }
+        if (section === 'strength') {
+            const data = form.watch('strength');
+            return Object.keys(data || {}).length > 0 ? 'full' : 'empty';
+        }
+        if (section === 'protocols') {
+            const data = form.watch('protocols');
+            return Object.keys(data || {}).length > 0 ? 'full' : 'empty';
+        }
+        if (section === 'plan') {
+            const data = form.watch('plan');
+            let filled = 0;
+            if (data?.orientations) filled++;
+            if (data?.exercises?.length > 0) filled++;
+            return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
+        }
+        return isSectionFilled(section) ? 'full' : 'empty';
+    };
+
     return (
         <FormProvider {...form}>
             <div className="flex-1 flex flex-col lg:flex-row max-w-[1400px] mx-auto w-full px-4 py-4 relative z-10 gap-8">
@@ -400,21 +462,14 @@ export default function PBE5Form({
 
                     <div className="bg-white rounded-[2.5rem] p-4 border border-slate-100 shadow-sm flex flex-wrap gap-2 mt-2 mb-20 shrink-0">
                         {menuSections.map((sec, idx) => {
-                            const isFilled = isSectionFilled(sec.id);
-                            const curIdx = menuSections.findIndex((s: any) => s.id === openSection);
+                            const curIdx = menuSections.findIndex(s => s.id === openSection);
                             const isActive = curIdx === idx;
+                            const status = getSectionStatus(sec.id);
 
-                            let showAsCard = false;
-                            const total = menuSections.length;
-                            if (curIdx === 0) {
-                                showAsCard = idx <= 2;
-                            } else if (curIdx === total - 1) {
-                                showAsCard = idx >= total - 3;
-                            } else {
-                                showAsCard = idx >= curIdx - 1 && idx <= curIdx + 1;
-                            }
+                            // Mostrar como card apenas se for a secção ativa
+                            const showAsCard = isActive;
 
-                            // [NEW] Oval Capsules for items outside the 3-card window (FOTO 1 Logic)
+                            // Oval Capsules for items outside the main card
                             if (!showAsCard) {
                                 return (
                                     <button
@@ -423,10 +478,12 @@ export default function PBE5Form({
                                         onClick={() => setOpenSection(sec.id)}
                                         title={sec.label}
                                         className={cn(
-                                            "px-3 py-1.5 rounded-full border flex items-center justify-center font-black text-[9px] transition-all shadow-sm shrink-0 uppercase tracking-tighter whitespace-nowrap",
-                                            isFilled
+                                            "px-3 py-1.5 rounded-full border flex items-center justify-center font-black text-[9px] transition-all shadow-sm shrink-0 uppercase tracking-tighter whitespace-nowrap min-w-max",
+                                            status === 'full'
                                                 ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100 ring-1 ring-emerald-500/20"
-                                                : "bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100"
+                                                : status === 'partial'
+                                                    ? "bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100 ring-1 ring-amber-500/20"
+                                                    : "bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100"
                                         )}
                                     >
                                         {sec.label}
@@ -449,7 +506,8 @@ export default function PBE5Form({
                                         <div className={cn("text-[12px] font-black uppercase tracking-tight", isActive ? "text-white" : "text-slate-700")}>{sec.label}</div>
                                         <div className={cn("text-[10px] font-bold opacity-60 mt-0.5", isActive ? "text-slate-200" : "text-slate-400")}>{sec.desc}</div>
                                     </div>
-                                    {isFilled && <CheckCircle2 className={cn("w-4 h-4", isActive ? "text-emerald-400" : "text-emerald-500")} />}
+                                    {status === 'full' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                                    {status === 'partial' && <div className="w-3 h-3 rounded-full bg-amber-400 shadow-sm" />}
                                 </button>
                             );
                         })}
@@ -570,95 +628,162 @@ export default function PBE5Form({
                         </Accordion>
 
                         {/* NAV BUTTONS */}
-                        <div className="w-full flex justify-between items-center mt-12 bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm mb-4">
+                        <div className="w-full flex justify-between items-center mt-8 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex flex-col pt-6">
                             {(() => {
                                 const curIdx = menuSections.findIndex(s => s.id === openSection);
                                 const prevSec = curIdx > 0 ? menuSections[curIdx - 1] : null;
                                 const nextSec = curIdx < menuSections.length - 1 ? menuSections[curIdx + 1] : null;
-                                return (
-                                    <>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            disabled={!prevSec}
-                                            onClick={() => prevSec && setOpenSection(prevSec.id)}
-                                            className="h-12 rounded-2xl px-8 font-black text-[10px] uppercase tracking-widest text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all"
-                                        >
-                                            <ChevronLeft className="w-4 h-4 mr-2" />
-                                            {prevSec ? "Voltar" : ""}
-                                        </Button>
+                                const activeSec = menuSections[curIdx];
 
-                                        {nextSec ? (
-                                            <Button
-                                                type="button"
-                                                onClick={() => {
-                                                    if (openSection === 'anamnesis') {
-                                                        const redFlags = form.getValues('clinical.redFlags') || {};
-                                                        const hasFlags = Object.values(redFlags).some(v => !!v);
-                                                        if (hasFlags) {
-                                                            import('sweetalert2').then((Swal) => {
-                                                                Swal.default.fire({
-                                                                    title: '⚠ ATENÇÃO: Bandeiras Vermelhas!',
-                                                                    text: 'Foram detectados sinais de alerta que podem indicar patologias graves. Recomendamos cautela extrema ou encaminhamento imediato.',
-                                                                    icon: 'warning',
-                                                                    showCancelButton: true,
-                                                                    confirmButtonText: 'Prosseguir mesmo assim',
-                                                                    cancelButtonText: 'Revisar Anamnese',
-                                                                    confirmButtonColor: '#e11d48',
-                                                                    cancelButtonColor: '#94a3b8',
-                                                                    customClass: {
-                                                                        popup: 'rounded-[1.5rem] border-none',
-                                                                        confirmButton: 'rounded-xl font-black uppercase tracking-widest text-[10px] px-6 py-3',
-                                                                        cancelButton: 'rounded-xl font-black uppercase tracking-widest text-[10px] px-6 py-3',
-                                                                    }
-                                                                }).then((res) => {
-                                                                    if (res.isConfirmed) setOpenSection(nextSec.id);
-                                                                });
-                                                            });
-                                                            return;
-                                                        }
-                                                    }
-                                                    setOpenSection(nextSec.id);
-                                                }}
-                                                className="h-12 rounded-2xl px-10 font-black text-[10px] uppercase tracking-widest bg-slate-900 text-white hover:scale-105 transition-all shadow-xl shadow-slate-200"
+                                return (
+                                    <div className="w-full flex flex-col items-center justify-center">
+                                        {/* CAPSULE SLIDER */}
+                                        <div className="w-full flex justify-center mb-6">
+                                            <div
+                                                ref={navScrollRef}
+                                                className="custom-scrollbar flex items-center gap-2 overflow-x-auto pb-4 max-w-full px-4 mask-image-horizontal"
+                                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitMaskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)' }}
                                             >
-                                                <span className="opacity-50 mr-2 uppercase">Próximo:</span> {nextSec.label} <ChevronRight className="w-4 h-4 ml-2" />
-                                            </Button>
-                                        ) : (
-                                            <Button
-                                                type="button"
-                                                disabled={isSaving}
-                                                onClick={form.handleSubmit(
-                                                    async (data) => {
-                                                        setIsSaving(true);
-                                                        try {
-                                                            if (!patientId || patientId === 'sandbox') {
-                                                                if (onFinish) {
-                                                                    await onSave(data, true);
-                                                                    onFinish();
-                                                                    return;
-                                                                }
-                                                            }
-                                                            await onSave(data, true);
-                                                            toast.success("PBE 5.0 Salva!");
-                                                        } catch (e) {
-                                                            toast.error("Erro ao salvar");
-                                                        } finally {
-                                                            setIsSaving(false);
-                                                        }
-                                                    },
-                                                    (errors) => {
-                                                        console.error("Zod Validation Errors:", errors);
-                                                        toast.error("Preencha os campos obrigatórios. Verifique as abas destacadas.", { duration: 5000 });
-                                                    }
+                                                <style dangerouslySetInnerHTML={{ __html: `.custom-scrollbar::-webkit-scrollbar { display: none; }` }} />
+
+                                                {/* Previous Sections */}
+                                                {menuSections.slice(0, curIdx).map(sec => {
+                                                    const status = getSectionStatus(sec.id);
+                                                    return (
+                                                        <button
+                                                            key={sec.id}
+                                                            type="button"
+                                                            onClick={() => setOpenSection(sec.id)}
+                                                            className={cn(
+                                                                "px-3 py-1.5 rounded-full border flex items-center justify-center font-black text-[9px] transition-all shadow-sm shrink-0 uppercase tracking-tighter whitespace-nowrap min-w-max",
+                                                                status === 'full'
+                                                                    ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100"
+                                                                    : status === 'partial'
+                                                                        ? "bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100"
+                                                                        : "bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100"
+                                                            )}
+                                                        >
+                                                            {sec.label}
+                                                        </button>
+                                                    )
+                                                })}
+
+                                                {/* Current Active Section Name */}
+                                                {activeSec && (
+                                                    <div className="active-nav-item px-6 py-2 bg-slate-900 text-white rounded-full font-black text-[10px] uppercase tracking-widest shrink-0 shadow-lg mx-2 transition-all scale-105 min-w-max">
+                                                        {activeSec.label}
+                                                    </div>
                                                 )}
-                                                className="h-14 rounded-2xl px-10 font-black text-[11px] uppercase tracking-wider bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-105 transition-all shadow-xl shadow-emerald-500/20"
+
+                                                {/* Next Sections */}
+                                                {menuSections.slice(curIdx + 1).map(sec => {
+                                                    const status = getSectionStatus(sec.id);
+                                                    return (
+                                                        <button
+                                                            key={sec.id}
+                                                            type="button"
+                                                            onClick={() => setOpenSection(sec.id)}
+                                                            className={cn(
+                                                                "px-3 py-1.5 rounded-full border flex items-center justify-center font-black text-[9px] transition-all shadow-sm shrink-0 uppercase tracking-tighter whitespace-nowrap min-w-max",
+                                                                status === 'full'
+                                                                    ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100"
+                                                                    : status === 'partial'
+                                                                        ? "bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100"
+                                                                        : "bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100"
+                                                            )}
+                                                        >
+                                                            {sec.label}
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        {/* BUTTONS ROW */}
+                                        <div className="w-full flex justify-between items-center border-t border-slate-50 pt-4">
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                disabled={!prevSec}
+                                                onClick={() => prevSec && setOpenSection(prevSec.id)}
+                                                className="h-10 rounded-2xl px-6 font-black text-[10px] uppercase tracking-widest text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all"
                                             >
-                                                {isSaving ? <Loader2 className="w-5 h-5 mr-3 animate-spin" /> : <Save className="w-5 h-5 mr-3" />}
-                                                Finalizar Avaliação
+                                                <ChevronLeft className="w-4 h-4 mr-2" />
+                                                {prevSec ? "Voltar" : ""}
                                             </Button>
-                                        )}
-                                    </>
+
+                                            {nextSec ? (
+                                                <Button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (openSection === 'anamnesis') {
+                                                            const redFlags = form.getValues('clinical.redFlags') || {};
+                                                            const hasFlags = Object.values(redFlags).some(v => !!v);
+                                                            if (hasFlags) {
+                                                                import('sweetalert2').then((Swal) => {
+                                                                    Swal.default.fire({
+                                                                        title: '⚠ ATENÇÃO: Bandeiras Vermelhas!',
+                                                                        text: 'Foram detectados sinais de alerta que podem indicar patologias graves. Recomendamos cautela extrema ou encaminhamento imediato.',
+                                                                        icon: 'warning',
+                                                                        showCancelButton: true,
+                                                                        confirmButtonText: 'Prosseguir mesmo assim',
+                                                                        cancelButtonText: 'Revisar Anamnese',
+                                                                        confirmButtonColor: '#e11d48',
+                                                                        cancelButtonColor: '#94a3b8',
+                                                                        customClass: {
+                                                                            popup: 'rounded-[1.5rem] border-none',
+                                                                            confirmButton: 'rounded-xl font-black uppercase tracking-widest text-[10px] px-6 py-3',
+                                                                            cancelButton: 'rounded-xl font-black uppercase tracking-widest text-[10px] px-6 py-3',
+                                                                        }
+                                                                    }).then((res) => {
+                                                                        if (res.isConfirmed) setOpenSection(nextSec.id);
+                                                                    });
+                                                                });
+                                                                return;
+                                                            }
+                                                        }
+                                                        setOpenSection(nextSec.id);
+                                                    }}
+                                                    className="h-10 rounded-2xl px-8 font-black text-[10px] uppercase tracking-widest bg-slate-900 text-white hover:scale-105 transition-transform shadow-xl shadow-slate-200"
+                                                >
+                                                    <span className="opacity-50 mr-2 uppercase">Próximo:</span> {nextSec.label} <ChevronRight className="w-4 h-4 ml-2" />
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    type="button"
+                                                    disabled={isSaving}
+                                                    onClick={form.handleSubmit(
+                                                        async (data) => {
+                                                            setIsSaving(true);
+                                                            try {
+                                                                if (!patientId || patientId === 'sandbox') {
+                                                                    if (onFinish) {
+                                                                        await onSave(data, true);
+                                                                        onFinish();
+                                                                        return;
+                                                                    }
+                                                                }
+                                                                await onSave(data, true);
+                                                                toast.success("PBE 5.0 Salva!");
+                                                            } catch (e) {
+                                                                toast.error("Erro ao salvar");
+                                                            } finally {
+                                                                setIsSaving(false);
+                                                            }
+                                                        },
+                                                        (errors) => {
+                                                            console.error("Zod Validation Errors:", errors);
+                                                            toast.error("Preencha os campos obrigatórios. Verifique as abas destacadas.", { duration: 5000 });
+                                                        }
+                                                    )}
+                                                    className="h-10 rounded-2xl px-8 font-black text-[10px] uppercase tracking-widest bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-105 transition-transform shadow-lg shadow-emerald-600/20 shadow-emerald-500/20"
+                                                >
+                                                    {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                                                    Finalizar Avaliação
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
                                 );
                             })()}
                         </div>

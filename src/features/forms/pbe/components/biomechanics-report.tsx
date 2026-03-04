@@ -371,6 +371,15 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
         setVisibleSections(newState);
     };
 
+    const getAnalyzedOrRawSquat = (side: 'left' | 'right') => {
+        return t?.photosAnalyzed?.[`squat_${side}`] || t?.single_squat?.[`photo_${side}`];
+    };
+
+    const getAnalyzedOrRawGait = (side: 'left' | 'right', phase: 'initial' | 'mid' | 'terminal') => {
+        const analyzedKey = `gait_${side}_${phase === 'initial' ? 'rc' : phase === 'mid' ? 'am' : 'fi'}`;
+        return t?.photosAnalyzed?.[analyzedKey] || t?.gait_photos?.[side]?.[phase];
+    };
+
     if (!mounted) return null;
 
     return createPortal(
@@ -594,25 +603,31 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                             <div className="break-inside-avoid">
                                                 <h4 className="text-[10px] font-black uppercase text-blue-600 mb-2 border-b border-blue-200 pb-1">Análise de Marcha: Pé Esquerdo (RC-AM-FI)</h4>
                                                 <div className="grid grid-cols-3 gap-2">
-                                                    {['initial', 'mid', 'terminal'].map(phase => (
-                                                        <div key={phase} className="aspect-[3/4] bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center relative overflow-hidden">
-                                                            {t?.gait_photos?.left?.[phase] ? (
-                                                                <Image src={t.gait_photos.left[phase]} alt="Gait" fill className="object-contain" unoptimized priority />
-                                                            ) : <span className="text-[9px] text-slate-300 font-black uppercase">{phase}</span>}
-                                                        </div>
-                                                    ))}
+                                                    {['initial', 'mid', 'terminal'].map(phase => {
+                                                        const src = getAnalyzedOrRawGait('left', phase as 'initial' | 'mid' | 'terminal');
+                                                        return (
+                                                            <div key={phase} className="aspect-[3/4] bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center relative overflow-hidden">
+                                                                {src ? (
+                                                                    <Image src={src} alt="Gait" fill className="object-contain" unoptimized priority />
+                                                                ) : <span className="text-[9px] text-slate-300 font-black uppercase">{phase}</span>}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                             <div className="break-inside-avoid">
                                                 <h4 className="text-[10px] font-black uppercase text-green-600 mb-2 border-b border-green-200 pb-1">Análise de Marcha: Pé Direito (RC-AM-FI)</h4>
                                                 <div className="grid grid-cols-3 gap-2">
-                                                    {['initial', 'mid', 'terminal'].map(phase => (
-                                                        <div key={phase} className="aspect-[3/4] bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center relative overflow-hidden">
-                                                            {t?.gait_photos?.right?.[phase] ? (
-                                                                <Image src={t.gait_photos.right[phase]} alt="Gait" fill className="object-contain" unoptimized priority />
-                                                            ) : <span className="text-[9px] text-slate-300 font-black uppercase">{phase}</span>}
-                                                        </div>
-                                                    ))}
+                                                    {['initial', 'mid', 'terminal'].map(phase => {
+                                                        const src = getAnalyzedOrRawGait('right', phase as 'initial' | 'mid' | 'terminal');
+                                                        return (
+                                                            <div key={phase} className="aspect-[3/4] bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center relative overflow-hidden">
+                                                                {src ? (
+                                                                    <Image src={src} alt="Gait" fill className="object-contain" unoptimized priority />
+                                                                ) : <span className="text-[9px] text-slate-300 font-black uppercase">{phase}</span>}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         </div>
@@ -655,9 +670,9 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                                     </div>
                                                 </div>
 
-                                                {t?.single_squat?.photo_left && (
+                                                {getAnalyzedOrRawSquat('left') && (
                                                     <div className="h-64 bg-slate-100 rounded-xl border border-slate-200 relative overflow-hidden shadow-lg">
-                                                        <Image src={t.single_squat.photo_left} alt="Single Squat" fill className="object-contain" unoptimized priority />
+                                                        <Image src={getAnalyzedOrRawSquat('left')} alt="Single Squat" fill className="object-contain" unoptimized priority />
                                                     </div>
                                                 )}
                                             </div>
@@ -689,9 +704,9 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                                     </div>
                                                 </div>
 
-                                                {t?.single_squat?.photo_right && (
+                                                {getAnalyzedOrRawSquat('right') && (
                                                     <div className="h-64 bg-slate-100 rounded-xl border border-slate-200 relative overflow-hidden shadow-lg">
-                                                        <Image src={t.single_squat.photo_right} alt="Single Squat" fill className="object-contain" unoptimized priority />
+                                                        <Image src={getAnalyzedOrRawSquat('right')} alt="Single Squat" fill className="object-contain" unoptimized priority />
                                                     </div>
                                                 )}
                                             </div>

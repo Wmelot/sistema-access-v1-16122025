@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, MouseEvent as ReactMouseEvent } from 'react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Plus, Minus, Settings, RotateCcw, Activity, AlignVerticalSpaceAround, AlignHorizontalSpaceAround, Ruler, MousePointer2, Maximize, Minimize } from 'lucide-react';
 
 interface Point {
     id: string;
@@ -21,7 +22,7 @@ interface Angle {
     vertex: string;
     p2?: string; // Optional if we use deviation
     label: string;
-    type?: 'standard' | 'deviation'; // standard=3 points, deviation=angle with vertical line at vertex
+    type?: 'standard' | 'deviation' | 'horizontal_deviation'; // standard=3 points, deviation=angle with vertical line at vertex, horizontal_deviation=angle with horizontal line at vertex
 }
 
 interface LevelCheck {
@@ -52,159 +53,31 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [imageLoaded, setImageLoaded] = useState(false);
     const [hoveringPoint, setHoveringPoint] = useState<string | null>(null);
+    const [customAngleCount, setCustomAngleCount] = useState(0);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
-    // Initialize points based on mode or saved data
+    // Initialize points based on saved data or blank
     useEffect(() => {
-        let defaultPoints: Point[] = [];
-        let newConnections: Connection[] = [];
-        let newAngles: Angle[] = [];
-        let newLevelChecks: LevelCheck[] = [];
-
-        if (mode === 'posture_anterior') {
-            defaultPoints = [
-                { id: 'acromio_d', label: 'Acrômio D', x: 30, y: 30 },
-                { id: 'acromio_e', label: 'Acrômio E', x: 70, y: 30 },
-                { id: 'eias_d', label: 'EIAS D', x: 35, y: 60 },
-                { id: 'eias_e', label: 'EIAS E', x: 65, y: 60 },
-                { id: 'joelho_d', label: 'Joelho D', x: 38, y: 80 },
-                { id: 'joelho_e', label: 'Joelho E', x: 62, y: 80 },
-                { id: 'tornozelo_d', label: 'Tornozelo D', x: 40, y: 95 },
-                { id: 'tornozelo_e', label: 'Tornozelo E', x: 60, y: 95 },
-            ];
-            newConnections = [
-                { from: 'acromio_d', to: 'acromio_e' },
-                { from: 'eias_d', to: 'eias_e' },
-                { from: 'joelho_d', to: 'joelho_e' },
-                { from: 'tornozelo_d', to: 'tornozelo_e' },
-                { from: 'eias_d', to: 'joelho_d' },
-                { from: 'eias_e', to: 'joelho_e' },
-                { from: 'joelho_d', to: 'tornozelo_d' },
-                { from: 'joelho_e', to: 'tornozelo_e' },
-            ];
-            newAngles = [
-                { p1: 'eias_d', vertex: 'joelho_d', p2: 'tornozelo_d', label: 'Ângulo Joelho D' },
-                { p1: 'eias_e', vertex: 'joelho_e', p2: 'tornozelo_e', label: 'Ângulo Joelho E' }
-            ];
-            newLevelChecks = [
-                { p1: 'acromio_d', p2: 'acromio_e' },
-                { p1: 'eias_d', p2: 'eias_e' },
-                { p1: 'joelho_d', p2: 'joelho_e' },
-                { p1: 'tornozelo_d', p2: 'tornozelo_e' }
-            ];
-        } else if (mode === 'posture_posterior') {
-            defaultPoints = [
-                { id: 'acromio_d', label: 'Acrômio D', x: 70, y: 30 },
-                { id: 'acromio_e', label: 'Acrômio E', x: 30, y: 30 },
-                { id: 'eips_d', label: 'EIPS D', x: 65, y: 60 },
-                { id: 'eips_e', label: 'EIPS E', x: 35, y: 60 },
-            ];
-            newConnections = [
-                { from: 'acromio_d', to: 'acromio_e' },
-                { from: 'eips_d', to: 'eips_e' },
-                { from: 'acromio_d', to: 'eips_d' },
-                { from: 'acromio_e', to: 'eips_e' }
-            ];
-            newLevelChecks = [
-                { p1: 'acromio_d', p2: 'acromio_e' },
-                { p1: 'eips_d', p2: 'eips_e' }
-            ];
-        } else if (mode === 'posture_lateral') {
-            defaultPoints = [
-                { id: 'trago', label: 'Trago', x: 50, y: 15 },
-                { id: 'acromio', label: 'Acrômio', x: 50, y: 30 },
-                { id: 'trocanter', label: 'Trocanter', x: 50, y: 60 },
-                { id: 'maleolo', label: 'Maléolo', x: 50, y: 95 },
-            ];
-            newConnections = [
-                { from: 'trago', to: 'acromio' },
-                { from: 'acromio', to: 'trocanter' },
-                { from: 'trocanter', to: 'maleolo' },
-            ];
-            newAngles = [
-                { p1: 'trago', vertex: 'acromio', p2: 'trocanter', label: 'Alinhamento Cervico-Torácico' },
-                { p1: 'acromio', vertex: 'trocanter', p2: 'maleolo', label: 'Alinhamento Tronco-Membro' }
-            ];
-        } else if (mode === 'lower_limb_anterior') {
-            defaultPoints = [
-                { id: 'eias_d', label: 'EIAS D / Pelve', x: 35, y: 40 },
-                { id: 'eias_e', label: 'EIAS E / Pelve', x: 65, y: 40 },
-                { id: 'joelho_d', label: 'Joelho D', x: 38, y: 70 },
-                { id: 'joelho_e', label: 'Joelho E', x: 62, y: 70 },
-                { id: 'tornozelo_d', label: 'Tornozelo D', x: 40, y: 95 },
-                { id: 'tornozelo_e', label: 'Tornozelo E', x: 60, y: 95 },
-            ];
-            newConnections = [
-                { from: 'eias_d', to: 'eias_e' },
-                { from: 'joelho_d', to: 'joelho_e' },
-                { from: 'tornozelo_d', to: 'tornozelo_e' },
-                { from: 'eias_d', to: 'joelho_d' },
-                { from: 'eias_e', to: 'joelho_e' },
-                { from: 'joelho_d', to: 'tornozelo_d' },
-                { from: 'joelho_e', to: 'tornozelo_e' },
-            ];
-            newAngles = [
-                { p1: 'eias_d', vertex: 'joelho_d', p2: 'tornozelo_d', label: 'Ângulo Joelho D' },
-                { p1: 'eias_e', vertex: 'joelho_e', p2: 'tornozelo_e', label: 'Ângulo Joelho E' }
-            ];
-            newLevelChecks = [
-                { p1: 'eias_d', p2: 'eias_e' },
-                { p1: 'joelho_d', p2: 'joelho_e' },
-                { p1: 'tornozelo_d', p2: 'tornozelo_e' }
-            ];
-        } else if (mode === 'lower_limb_posterior') {
-            defaultPoints = [
-                { id: 'eips_d', label: 'EIPS D / Pelve', x: 65, y: 40 },
-                { id: 'eips_e', label: 'EIPS E / Pelve', x: 35, y: 40 },
-                { id: 'joelho_d', label: 'Joelho Post D', x: 62, y: 70 },
-                { id: 'joelho_e', label: 'Joelho Post E', x: 38, y: 70 },
-                { id: 'calcaneo_d', label: 'Calcâneo D', x: 60, y: 95 },
-                { id: 'calcaneo_e', label: 'Calcâneo E', x: 40, y: 95 },
-            ];
-            newConnections = [
-                { from: 'eips_d', to: 'eips_e' },
-                { from: 'joelho_d', to: 'joelho_e' },
-                { from: 'calcaneo_d', to: 'calcaneo_e' },
-                { from: 'eips_d', to: 'joelho_d' },
-                { from: 'eips_e', to: 'joelho_e' },
-                { from: 'joelho_d', to: 'calcaneo_d' },
-                { from: 'joelho_e', to: 'calcaneo_e' },
-            ];
-            newLevelChecks = [
-                { p1: 'eips_d', p2: 'eips_e' },
-                { p1: 'joelho_d', p2: 'joelho_e' },
-                { p1: 'calcaneo_d', p2: 'calcaneo_e' }
-            ];
-        } else if (mode === 'hindfoot') {
-            defaultPoints = [
-                { id: 'pelve_d', label: 'Pelve D', x: 65, y: 45 },
-                { id: 'pelve_e', label: 'Pelve E', x: 35, y: 45 },
-                { id: 'panturrilha', label: 'Centro da Panturrilha', x: 50, y: 55 },
-                { id: 'talus', label: 'Tálus', x: 50, y: 75 },
-                { id: 'calcaneo', label: 'Centro do Calcâneo', x: 50, y: 90 },
-            ];
-            newConnections = [
-                { from: 'panturrilha', to: 'talus' },
-                { from: 'talus', to: 'calcaneo' },
-            ];
-            newAngles = [
-                { p1: 'talus', vertex: 'talus', p2: 'calcaneo', type: 'deviation', label: 'Eversão/Inversão' } // Changed to vertical deviation
-            ];
-            newLevelChecks = [
-                { p1: 'pelve_d', p2: 'pelve_e' }
-            ];
-        }
-
-        setConnections(newConnections);
-        setAngles(newAngles);
-        setLevelChecks(newLevelChecks);
-
-        // Somente aplicamos pontos default se não houver savedPoints
         if (savedPoints && savedPoints.length > 0) {
             setPoints(savedPoints);
+            // We'd probably want to save/restore connections and angles too in a real full persist,
+            // but keeping this simple for now. It assumes fresh analysis if none passed.
         } else if (points.length === 0) {
-            setPoints(defaultPoints);
+            setPoints([]);
+            setConnections([]);
+            setAngles([]);
+            setLevelChecks([]);
         }
     }, [mode, savedPoints]);
+
+    // Handle Fullscreen Event Listener
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
 
     // Redraw connections and angles
     useEffect(() => {
@@ -297,7 +170,7 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
         });
         ctx.setLineDash([]);
 
-        // Calculate and Draw Angles
+        // Calculate and Draw Angles (Lines only -- text is handled by HTML overlay for clickability)
         angles.forEach(angleInfo => {
             if (angleInfo.type === 'deviation') {
                 const vertex = getPoint(angleInfo.vertex);
@@ -310,34 +183,50 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
                     // Vertical line fixed
                     ctx.beginPath();
                     ctx.setLineDash([5, 5]);
-                    ctx.moveTo(vx, vy);
-                    ctx.lineTo(vx, vy - 150);
-                    ctx.lineTo(vx, vy + 150);
-                    ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)'; // highly transparent slate-400
+                    ctx.moveTo(vx, vy - 200);
+                    ctx.lineTo(vx, vy + 200);
+                    ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)'; // highly transparent slate-400
                     ctx.lineWidth = 1;
                     ctx.stroke();
                     ctx.setLineDash([]);
 
-                    // Calculate deviation angle from vertical
-                    const angleRad = Math.atan2(x2 - vx, y2 - vy); // relative to vertical Y
-                    let deviationDeg = angleRad * (180 / Math.PI);
-                    deviationDeg = Math.abs(deviationDeg); // keep it positive for display
-
-                    // Draw Text
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = 'bold 12px Inter';
-                    const txt = `${deviationDeg.toFixed(1)}°`;
-                    const tw = ctx.measureText(txt).width;
-                    let tx = vx + 15;
-                    let ty = vy + 15;
-
-                    ctx.fillStyle = '#2563eb'; // blue bg
+                    // Draw yellow arc
+                    const angle1 = Math.atan2(y2 - vy, x2 - vx);
+                    const angle2 = (angle1 > -Math.PI && angle1 <= 0) ? -Math.PI / 2 : Math.PI / 2;
                     ctx.beginPath();
-                    ctx.roundRect(tx - 4, ty - 12, tw + 8, 16, 4);
-                    ctx.fill();
+                    ctx.arc(vx, vy, 20, Math.min(angle1, angle2), Math.max(angle1, angle2));
+                    ctx.strokeStyle = '#fbbf24';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                    // HTML overlay handles the text now to make it clickable
+                }
+            } else if (angleInfo.type === 'horizontal_deviation') {
+                const vertex = getPoint(angleInfo.vertex);
+                const p2 = getPoint(angleInfo.p2!);
 
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillText(txt, tx, ty);
+                if (vertex && p2) {
+                    const vx = getPx(vertex.x, rect.width), vy = getPx(vertex.y, rect.height);
+                    const x2 = getPx(p2.x, rect.width), y2 = getPx(p2.y, rect.height);
+
+                    // Horizontal line fixed
+                    ctx.beginPath();
+                    ctx.setLineDash([5, 5]);
+                    ctx.moveTo(vx - 200, vy);
+                    ctx.lineTo(vx + 200, vy);
+                    ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)'; // highly transparent slate-400
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // Draw yellow arc
+                    const angle1 = Math.atan2(y2 - vy, x2 - vx);
+                    const angle2 = Math.abs(angle1) > Math.PI / 2 ? (angle1 > 0 ? Math.PI : -Math.PI) : 0;
+                    ctx.beginPath();
+                    ctx.arc(vx, vy, 20, Math.min(angle1, angle2), Math.max(angle1, angle2));
+                    ctx.strokeStyle = '#fbbf24';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                    // HTML overlay handles the text now to make it clickable
                 }
             } else {
                 // Standard 3-point angle
@@ -362,23 +251,7 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
                     ctx.strokeStyle = '#fbbf24';
                     ctx.lineWidth = 3;
                     ctx.stroke();
-
-                    // Draw Text
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = 'bold 12px Inter';
-
-                    const txt = `${Math.round(angleDeg)}°`;
-                    const tw = ctx.measureText(txt).width;
-                    let tx = vx + 25;
-                    let ty = vy - 10;
-
-                    ctx.fillStyle = '#2563eb'; // blue bg
-                    ctx.beginPath();
-                    ctx.roundRect(tx - 4, ty - 12, tw + 8, 16, 4);
-                    ctx.fill();
-
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillText(txt, tx, ty);
+                    // HTML overlay handles the text now to make it clickable
                 }
             }
         });
@@ -449,8 +322,8 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
         const srcX = (x - offsetX) / k;
         const srcY = (y - offsetY) / k;
 
-        const zoomLevel = 3;
-        const lensSize = 50; // Radius in src pixels to capture
+        const zoomLevel = isFullscreen ? 1.5 : 3;
+        const lensSize = isFullscreen ? 100 : 50; // Radius in src pixels to capture
 
         // Clear zoom canvas
         ctx.clearRect(0, 0, zoom.width, zoom.height);
@@ -598,16 +471,25 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
 
                     octx.beginPath();
                     octx.setLineDash([5 * s, 5 * s]);
-                    octx.moveTo(vx, vy);
-                    octx.lineTo(vx, vy - (150 * s));
-                    octx.lineTo(vx, vy + (150 * s));
-                    octx.strokeStyle = 'rgba(148, 163, 184, 0.3)'; // transparent
+                    octx.moveTo(vx, vy - (200 * s));
+                    octx.lineTo(vx, vy + (200 * s));
+                    octx.strokeStyle = 'rgba(148, 163, 184, 0.4)'; // transparent
                     octx.lineWidth = Math.max(1, 1 * s);
                     octx.stroke();
                     octx.setLineDash([]);
 
+                    // Draw arc
+                    const angle1 = Math.atan2(y2 - vy, x2 - vx);
+                    const angle2 = (angle1 > -Math.PI && angle1 <= 0) ? -Math.PI / 2 : Math.PI / 2;
+                    octx.beginPath();
+                    octx.arc(vx, vy, 20 * s, Math.min(angle1, angle2), Math.max(angle1, angle2));
+                    octx.strokeStyle = '#fbbf24';
+                    octx.lineWidth = 3 * s;
+                    octx.stroke();
+
                     const angleRad = Math.atan2(x2 - vx, y2 - vy);
                     let deviationDeg = Math.abs(angleRad * (180 / Math.PI));
+                    if (deviationDeg > 90) deviationDeg = 180 - deviationDeg;
 
                     const txt = `${deviationDeg.toFixed(1)}°`;
                     octx.font = `bold ${14 * s}px Inter`;
@@ -616,6 +498,50 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
                     let ty = vy + (15 * s);
 
                     octx.fillStyle = '#2563eb';
+                    octx.beginPath();
+                    octx.roundRect(tx - (4 * s), ty - (14 * s), tw + (8 * s), (18 * s), (4 * s));
+                    octx.fill();
+
+                    octx.fillStyle = '#ffffff';
+                    octx.fillText(txt, tx, ty);
+                }
+            } else if (angleInfo.type === 'horizontal_deviation') {
+                const vertex = getPoint(angleInfo.vertex);
+                const p2 = getPoint(angleInfo.p2!);
+
+                if (vertex && p2) {
+                    const vx = getNatX(vertex.x), vy = getNatY(vertex.y);
+                    const x2 = getNatX(p2.x), y2 = getNatY(p2.y);
+
+                    octx.beginPath();
+                    octx.setLineDash([5 * s, 5 * s]);
+                    octx.moveTo(vx - (200 * s), vy);
+                    octx.lineTo(vx + (200 * s), vy);
+                    octx.strokeStyle = 'rgba(148, 163, 184, 0.4)'; // transparent
+                    octx.lineWidth = Math.max(1, 1 * s);
+                    octx.stroke();
+                    octx.setLineDash([]);
+
+                    // Draw arc
+                    const angle1 = Math.atan2(y2 - vy, x2 - vx);
+                    const angle2 = Math.abs(angle1) > Math.PI / 2 ? (angle1 > 0 ? Math.PI : -Math.PI) : 0;
+                    octx.beginPath();
+                    octx.arc(vx, vy, 20 * s, Math.min(angle1, angle2), Math.max(angle1, angle2));
+                    octx.strokeStyle = '#fbbf24';
+                    octx.lineWidth = 3 * s;
+                    octx.stroke();
+
+                    const angleRad = Math.atan2(y2 - vy, x2 - vx);
+                    let deviationDeg = Math.abs(angleRad * (180 / Math.PI));
+                    if (deviationDeg > 90) deviationDeg = 180 - deviationDeg;
+
+                    const txt = `${deviationDeg.toFixed(1)}°`;
+                    octx.font = `bold ${14 * s}px Inter`;
+                    const tw = octx.measureText(txt).width;
+                    let tx = vx + (15 * s);
+                    let ty = vy + (15 * s);
+
+                    octx.fillStyle = '#10b981';
                     octx.beginPath();
                     octx.roundRect(tx - (4 * s), ty - (14 * s), tw + (8 * s), (18 * s), (4 * s));
                     octx.fill();
@@ -675,10 +601,155 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
         (window as any).finalizeCimetografo = finalize;
     }, [points, connections, angles, imageLoaded]);
 
+    const addCustomVerticalAngle = () => {
+        const id = customAngleCount + 1;
+        setCustomAngleCount(id);
+        const vertexId = `custom_v_v_${id}`;
+        const p2Id = `custom_v_p_${id}`;
+
+        setPoints(prev => [
+            ...prev,
+            { id: vertexId, label: `Ref. Vert ${id}`, x: 50, y: 50 },
+            { id: p2Id, label: `Pt Vert ${id}`, x: 60, y: 70 }
+        ]);
+        setConnections(prev => [
+            ...prev,
+            { from: vertexId, to: p2Id }
+        ]);
+        setAngles(prev => [
+            ...prev,
+            { p1: vertexId, vertex: vertexId, p2: p2Id, type: 'deviation', label: `Ângulo V${id}` }
+        ]);
+    };
+
+    const addCustomHorizontalAngle = () => {
+        const id = customAngleCount + 1;
+        setCustomAngleCount(id);
+        const vertexId = `custom_h_v_${id}`;
+        const p2Id = `custom_h_p_${id}`;
+
+        setPoints(prev => [
+            ...prev,
+            { id: vertexId, label: `Ref. Horiz ${id}`, x: 50, y: 50 },
+            { id: p2Id, label: `Pt Horiz ${id}`, x: 70, y: 40 }
+        ]);
+        setConnections(prev => [
+            ...prev,
+            { from: vertexId, to: p2Id }
+        ]);
+        setAngles(prev => [
+            ...prev,
+            { p1: vertexId, vertex: vertexId, p2: p2Id, type: 'horizontal_deviation', label: `Ângulo H${id}` }
+        ]);
+    };
+
+    const toggleAngleType = (index: number) => {
+        setAngles(prev => {
+            const next = [...prev];
+            const current = next[index].type || 'standard';
+            if (current === 'standard') {
+                next[index].type = 'deviation'; // vertical
+            } else if (current === 'deviation') {
+                next[index].type = 'horizontal_deviation';
+            } else {
+                next[index].type = 'standard';
+            }
+            return next;
+        });
+    };
+
+    const addCustomGenericAngle = () => {
+        const id = customAngleCount + 1;
+        setCustomAngleCount(id);
+        const p1Id = `custom_g_p1_${id}`;
+        const vertexId = `custom_g_v_${id}`;
+        const p2Id = `custom_g_p2_${id}`;
+
+        setPoints(prev => [
+            ...prev,
+            { id: p1Id, label: `Braço A`, x: 40, y: 40 },
+            { id: vertexId, label: `Vértice`, x: 50, y: 60 },
+            { id: p2Id, label: `Braço B`, x: 60, y: 40 }
+        ]);
+        setConnections(prev => [
+            ...prev,
+            { from: p1Id, to: vertexId },
+            { from: vertexId, to: p2Id }
+        ]);
+        setAngles(prev => [
+            ...prev,
+            { p1: p1Id, vertex: vertexId, p2: p2Id, type: 'standard', label: `Ângulo L${id}` }
+        ]);
+    };
+
+    const addCustomLine = () => {
+        const id = customAngleCount + 1;
+        setCustomAngleCount(id);
+        const p1Id = `custom_l_p1_${id}`;
+        const p2Id = `custom_l_p2_${id}`;
+
+        setPoints(prev => [
+            ...prev,
+            { id: p1Id, label: `A`, x: 40, y: 50 },
+            { id: p2Id, label: `B`, x: 70, y: 50 }
+        ]);
+        setConnections(prev => [
+            ...prev,
+            { from: p1Id, to: p2Id }
+        ]);
+        // Also add level check implicitly to calculate horizontal deviation automatically if desired?
+        // Let's just draw the line connection.
+    };
+
+    const removeLastCustomAngle = () => {
+        if (customAngleCount === 0) return;
+        const id = customAngleCount;
+        setCustomAngleCount(id - 1);
+
+        const gP1Id = `custom_g_p1_${id}`;
+        const gVertexId = `custom_g_v_${id}`;
+        const gP2Id = `custom_g_p2_${id}`;
+
+        const lP1Id = `custom_l_p1_${id}`;
+        const lP2Id = `custom_l_p2_${id}`;
+
+        // Remove standard angle points
+        setPoints(prev => prev.filter(p => ![gP1Id, gVertexId, gP2Id, lP1Id, lP2Id].includes(p.id)));
+        setConnections(prev => prev.filter(c =>
+            !(c.from === gP1Id && c.to === gVertexId) &&
+            !(c.from === gVertexId && c.to === gP2Id) &&
+            !(c.from === lP1Id && c.to === lP2Id)
+        ));
+        setAngles(prev => prev.filter(a =>
+            a.label !== `Ângulo L${id}`
+        ));
+    };
+
+    const clearAll = () => {
+        setPoints([]);
+        setConnections([]);
+        setAngles([]);
+        setLevelChecks([]);
+        setCustomAngleCount(0);
+    };
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            containerRef.current?.requestFullscreen?.().catch(err => {
+                console.error("Error attempting to enable fullscreen:", err);
+            });
+        } else {
+            document.exitFullscreen?.();
+        }
+    };
+
     return (
         <div
             ref={containerRef}
-            className="relative w-full h-[500px] bg-slate-100 rounded-3xl overflow-hidden border border-slate-200 select-none touch-none shadow-inner"
+            className={cn(
+                "relative w-full bg-slate-100 overflow-hidden border border-slate-200 select-none touch-none shadow-inner",
+                isFullscreen ? "h-screen rounded-none" : "h-[500px] rounded-3xl"
+            )}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
@@ -692,6 +763,119 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
                 onLoad={() => setImageLoaded(true)}
                 crossOrigin="anonymous"
             />
+
+            {/* Top Left Menu: Fullscreen */}
+            <div className="absolute top-4 left-4 z-40 bg-white/90 backdrop-blur-md p-1.5 rounded-full shadow-lg border border-slate-200">
+                <button
+                    onClick={toggleFullscreen}
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-slate-700 hover:text-indigo-600 hover:bg-slate-100 shadow-sm transition-all"
+                    title={isFullscreen ? "Sair da Tela Cheia" : "Modo Tela Cheia"}
+                >
+                    {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                </button>
+            </div>
+
+            {/* Floating Action Menu (Inspired by Apple Store Angle App) */}
+            <div className="absolute top-4 right-4 flex flex-col gap-3 z-40 bg-white/90 backdrop-blur-md p-2 rounded-full shadow-lg border border-slate-200">
+                <button
+                    onClick={addCustomGenericAngle}
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-slate-700 hover:text-amber-500 hover:bg-white shadow-sm transition-all relative group"
+                    title="Adicionar Medição Ângulo Livre (3 Pontos)"
+                >
+                    <MousePointer2 size={16} className="absolute opacity-30 group-hover:opacity-100 transition-opacity text-amber-500 rotate-45" />
+                    <Plus size={14} className="z-10 mb-2 ml-2 font-black" strokeWidth={4} />
+                </button>
+                <div className="w-6 h-px bg-slate-200 mx-auto" />
+                <button
+                    onClick={addCustomLine}
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-slate-700 hover:text-red-500 hover:bg-white shadow-sm transition-all relative group"
+                    title="Adicionar Linha Livre (Medir Proporções Diretas)"
+                >
+                    <Ruler size={16} className="absolute opacity-30 group-hover:opacity-100 transition-opacity text-red-500 -rotate-45" />
+                    <Plus size={14} className="z-10 mb-2 ml-2 font-black" strokeWidth={4} />
+                </button>
+                <div className="w-6 h-px bg-slate-200 mx-auto" />
+                <button
+                    onClick={removeLastCustomAngle}
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-slate-700 hover:text-rose-600 hover:bg-white shadow-sm transition-all"
+                    title="Remover Última Inclusão"
+                >
+                    <Minus size={20} strokeWidth={3} />
+                </button>
+            </div>
+
+            {/* HTML Overlays for Angles to make them clickable */}
+            <div className="absolute inset-0 z-40 pointer-events-none">
+                {angles.map((angleInfo, idx) => {
+                    const vertex = points.find(p => p.id === angleInfo.vertex);
+                    const p2 = points.find(p => p.id === angleInfo.p2!); // Ensure we always have p2 (fallback if 3-point missing p2)
+                    const p1 = points.find(p => p.id === angleInfo.p1);
+
+                    if (!containerRef.current) return null;
+                    const rect = containerRef.current.getBoundingClientRect();
+                    const getPx = (percent: number, dimension: number) => (percent / 100) * dimension;
+
+                    if (angleInfo.type === 'deviation' && vertex && p2) {
+                        const vx = getPx(vertex.x, rect.width), vy = getPx(vertex.y, rect.height);
+                        const x2 = getPx(p2.x, rect.width), y2 = getPx(p2.y, rect.height);
+                        const angleRad = Math.atan2(x2 - vx, y2 - vy);
+                        let deviationDeg = Math.abs(angleRad * (180 / Math.PI));
+                        if (deviationDeg > 90) deviationDeg = 180 - deviationDeg;
+                        const txt = `${deviationDeg.toFixed(1)}°`;
+
+                        return (
+                            <button
+                                key={`angle-${idx}`}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleAngleType(idx); }}
+                                className="absolute pointer-events-auto bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-2 py-0.5 rounded shadow-sm transition-colors"
+                                style={{ left: vx + 15, top: vy + 15 }}
+                            >
+                                {txt}
+                            </button>
+                        );
+                    } else if (angleInfo.type === 'horizontal_deviation' && vertex && p2) {
+                        const vx = getPx(vertex.x, rect.width), vy = getPx(vertex.y, rect.height);
+                        const x2 = getPx(p2.x, rect.width), y2 = getPx(p2.y, rect.height);
+                        const angleRad = Math.atan2(y2 - vy, x2 - vx);
+                        let deviationDeg = Math.abs(angleRad * (180 / Math.PI));
+                        if (deviationDeg > 90) deviationDeg = 180 - deviationDeg;
+                        const txt = `${deviationDeg.toFixed(1)}°`;
+
+                        return (
+                            <button
+                                key={`angle-${idx}`}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleAngleType(idx); }}
+                                className="absolute pointer-events-auto bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs px-2 py-0.5 rounded shadow-sm transition-colors"
+                                style={{ left: vx + 15, top: vy + 15 }}
+                            >
+                                {txt}
+                            </button>
+                        );
+                    } else if (angleInfo.type === 'standard' && p1 && vertex && p2) {
+                        const x1 = getPx(p1.x, rect.width), y1 = getPx(p1.y, rect.height);
+                        const vx = getPx(vertex.x, rect.width), vy = getPx(vertex.y, rect.height);
+                        const x2 = getPx(p2.x, rect.width), y2 = getPx(p2.y, rect.height);
+
+                        const angle1 = Math.atan2(y1 - vy, x1 - vx);
+                        const angle2 = Math.atan2(y2 - vy, x2 - vx);
+                        let angleDeg = Math.abs(angle1 - angle2) * (180 / Math.PI);
+                        if (angleDeg > 180) angleDeg = 360 - angleDeg;
+                        const txt = `${Math.round(angleDeg)}°`;
+
+                        return (
+                            <button
+                                key={`angle-${idx}`}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleAngleType(idx); }}
+                                className="absolute pointer-events-auto bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold text-xs px-2 py-0.5 rounded shadow-sm transition-colors"
+                                style={{ left: vx + 25, top: vy - 10 }}
+                            >
+                                {txt}
+                            </button>
+                        );
+                    }
+                    return null;
+                })}
+            </div>
 
             {/* Lines and Angles Canvas */}
             <canvas
@@ -736,22 +920,28 @@ export function PhotoAnalyzer({ src, mode, onUpdate, onFinalize, savedPoints }: 
             {/* Magnification Zoom Lens */}
             {isDragging && (
                 <div
-                    className="absolute z-50 overflow-hidden rounded-2xl border-4 border-white shadow-2xl bg-slate-900"
-                    style={{
-                        left: 10, // fixed to top left to avoid blocking cursor
-                        top: 10,
-                        width: 150,
-                        height: 150
+                    className={cn(
+                        "absolute z-50 overflow-hidden border-4 border-white shadow-2xl bg-slate-900 pointer-events-none transition-all",
+                        isFullscreen
+                            ? "rounded-3xl w-64 h-64 left-24 top-24" // Larger, deeper into screen when fullscreen
+                            : "rounded-full w-32 h-32" // Compact circle following near edge
+                    )}
+                    style={isFullscreen ? {} : {
+                        left: 20,
+                        top: 20,
                     }}
                 >
                     <canvas
                         ref={zoomCanvasRef}
-                        width={300}
-                        height={300}
+                        width={isFullscreen ? 512 : 256}
+                        height={isFullscreen ? 512 : 256}
                         className="w-full h-full object-cover"
                     />
-                    <div className="absolute bottom-2 inset-x-0 text-center text-white text-[10px] font-black uppercase tracking-widest drop-shadow-md">
-                        {points.find(p => p.id === draggingPoint)?.label}
+                    <div className={cn(
+                        "absolute bottom-2 inset-x-0 text-center text-white font-black uppercase tracking-widest drop-shadow-md",
+                        isFullscreen ? "text-sm bg-black/30 backdrop-blur pb-2 pt-1" : "text-[9px]"
+                    )}>
+                        {points.find(p => p.id === draggingPoint)?.label || "Medição Livre"}
                     </div>
                 </div>
             )}

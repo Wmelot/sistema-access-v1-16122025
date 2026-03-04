@@ -71,4 +71,5 @@ Acompanhamento de progresso das implementações e correções.
 - [ ] **Co-Piloto Biomecânico (Voz)**: Gravação de áudio → preenchimento automático
 - [ ] **Smart Audit**: Hook de auditoria no formulário de palmilha
 - [ ] **Offline Sync**: Persistência em `localStorage` para Wi-Fi instável
+- [ ] **IA Kinovea (Visão Computacional)**: Integrar PoseNet / TensorFlow.js ao Auditor PBE para rastreamento automático de pontos anatômicos e cálculo dinâmico de ângulos em vídeos (Substituir marcação manual frame a frame do Cimetógrafo por tracking automático de movimento).
 
