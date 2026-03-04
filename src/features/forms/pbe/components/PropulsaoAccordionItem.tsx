@@ -450,7 +450,7 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                     fileE: fileE || "UExhY2Vob2xkZXI=",
                     fileD: fileD || "UExhY2Vob2xkZXI="
                 },
-                { nome: patientName, email: patientEmail },
+                { nome: patientName, email: patientEmail, telefone: patientPhone },
                 {
                     email: professional?.email || professional?.id || 'contato@axiom.com',
                     nome: professional?.full_name || 'Fisioterapeuta',
