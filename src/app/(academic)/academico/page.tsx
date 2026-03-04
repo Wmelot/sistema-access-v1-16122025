@@ -1582,7 +1582,7 @@ export default function DashboardAcademico() {
                                 <div className="flex items-center gap-2">
                                     {isMaster && (
                                         <Button
-                                            onClick={handlePhysicalBackup}
+                                            onClick={() => document.getElementById('trigger-physical-backup')?.click()}
                                             disabled={isBackingUp}
                                             className="hidden md:flex bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-10 px-4 font-black transition-all gap-2 text-xs shadow-lg shadow-emerald-600/20"
                                         >

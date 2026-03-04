@@ -338,9 +338,9 @@ export function AxiomCopilot({
                     <Mic className={cn("w-5 h-5", compact && "w-4 h-4")} />
                 )}
 
-                <div className="flex flex-col items-start leading-none text-left">
-                    <span className={cn("text-[10px] uppercase font-black tracking-widest", compact && "text-[9px]")}>
-                        {isProcessing ? "Mapeando..." : isListening ? "Pausar" : (lastRawTranscript && !compact) ? "Assistente" : "Assistente de IA"}
+                <div className="flex flex-col items-start leading-none text-left overflow-hidden">
+                    <span className={cn("text-[10px] uppercase font-black tracking-widest truncate w-full", compact && "text-[9px]")}>
+                        {isProcessing ? "Mapeando..." : isListening ? "Pausar" : lastRawTranscript ? "Assistente" : "Assistente de IA"}
                     </span>
                     {!isProcessing && !isListening && !lastRawTranscript && (
                         <span className={cn("text-[8px] opacity-70 font-bold uppercase tracking-tighter text-indigo-200", compact && "text-[7px]")}>
