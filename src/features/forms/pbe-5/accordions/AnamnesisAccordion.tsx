@@ -274,23 +274,54 @@ interface AnamnesisAccordionProps {
     openSection: string;
     isSectionFilled: (section: string) => boolean;
     sectionStyle: { border: string; iconColor: string; bg: string };
+    isListening?: boolean;
 }
 
 const QUESTION_BANK = [
-    { text: "Há quanto tempo você sente essa dor?", keywords: ["tempo", "quanto tempo", "quando começou", "desde quando"] },
-    { text: "Como essa dor começou?", keywords: ["mecanismo", "como começou", "início", "causa", "acidente"] },
-    { text: "A dor irradia para algum outro lugar?", keywords: ["irradia", "irradiação", "para onde vai", "desce para", "sobe para"] },
-    { text: "Como é a sensação dessa dor? (Ex: pontada, queimação, aperto)", keywords: ["sensação", "tipo de dor", "queimação", "pontada", "peso", "formigamento"] },
-    { text: "O que faz a dor piorar?", keywords: ["piora", "movimento", "quando dói mais", "fator de piora"] },
-    { text: "O que faz a dor melhorar?", keywords: ["melhora", "repouso", "remédio", "fator de alívio"] },
-    { text: "A dor atrapalha o seu sono?", keywords: ["sono", "noite", "dormir", "acorda à noite"] },
-    { text: "Já sentiu isso antes?", keywords: ["antes", "recorrente", "outra vez", "passado", "histórico"] },
-    { text: "Você toma alguma medicação para isso?", keywords: ["remédio", "medicação", "anti-inflamatório", "analgésico"] },
+    { text: "Há quanto tempo você sente essa dor?", keywords: ["tempo", "quanto tempo", "quando começou", "desde quando", "anos", "meses", "dias", "semanas", "início"] },
+    { text: "Como essa dor começou?", keywords: ["mecanismo", "como começou", "início", "causa", "acidente", "trauma", "repentino"] },
+    { text: "A dor irradia para algum outro lugar?", keywords: ["irradia", "irradiação", "para onde vai", "desce para", "sobe para", "corre"] },
+    { text: "Como é a sensação dessa dor?", keywords: ["sensação", "tipo de dor", "queimação", "pontada", "peso", "formigamento", "choque", "agulhada"] },
+    { text: "O que faz a dor piorar?", keywords: ["piora", "movimento", "quando dói mais", "fator de piora", "sentar", "andar", "subir", "esforço"] },
+    { text: "O que faz a dor melhorar?", keywords: ["melhora", "repouso", "remédio", "fator de alívio", "gelo", "deitar"] },
+    { text: "A dor atrapalha o seu sono?", keywords: ["sono", "noite", "dormir", "acorda à noite", "madrugada", "insônia"] },
+    { text: "Já sentiu isso antes?", keywords: ["antes", "recorrente", "outra vez", "passado", "histórico", "já teve"] },
+    { text: "Você toma alguma medicação para isso?", keywords: ["remédio", "medicação", "anti-inflamatório", "analgésico", "comprimido", "injeção"] },
 ];
 
-export function AnamnesisAccordion({ openSection, isSectionFilled, sectionStyle }: AnamnesisAccordionProps) {
+export function AnamnesisAccordion({ openSection, isSectionFilled, sectionStyle, isListening }: AnamnesisAccordionProps) {
     const { register, watch, setValue, control } = useFormContext();
     const [openRegion, setOpenRegion] = React.useState(false);
+    const [draftText, setDraftText] = React.useState("");
+
+    React.useEffect(() => {
+        if (!isListening) {
+            setDraftText("");
+            return;
+        }
+
+        const draft = localStorage.getItem('axiom-copilot-draft') || "";
+        setDraftText(draft);
+
+        const handleStorage = (e: StorageEvent) => {
+            if (e.key === 'axiom-copilot-draft') {
+                setDraftText(e.newValue || "");
+            }
+        };
+
+        const interval = setInterval(() => {
+            const current = localStorage.getItem('axiom-copilot-draft') || "";
+            if (current !== draftText) {
+                setDraftText(current);
+            }
+        }, 1000);
+
+        window.addEventListener('storage', handleStorage);
+        return () => {
+            window.removeEventListener('storage', handleStorage);
+            clearInterval(interval);
+        };
+    }, [isListening, draftText]);
 
     const qp = watch('anamnesis.qp') || "";
     const hma = watch('anamnesis.hma') || "";
@@ -301,7 +332,7 @@ export function AnamnesisAccordion({ openSection, isSectionFilled, sectionStyle 
     const hmaPlaceholder = React.useMemo(() => {
         if (!qp) return "Aguardando queixa principal para sugerir perguntas...";
 
-        const fullText = (qp + " " + hma).toLowerCase();
+        const fullText = (qp + " " + hma + " " + draftText).toLowerCase();
 
         // Filter out questions already answered (based on keywords)
         const suggestions = QUESTION_BANK.filter((q: any) => {

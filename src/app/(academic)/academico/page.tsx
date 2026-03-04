@@ -39,6 +39,9 @@ import {
     Database,
     Loader2
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+
 import { QuantumLoader } from '@/components/ui/quantum-loader';
 import { DateInput } from '@/components/ui/date-input';
 import { Medal } from 'lucide-react';
@@ -119,6 +122,9 @@ export default function DashboardAcademico() {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [acervoMode, setAcervoMode] = useState<'grid' | 'list'>('grid');
     const [printType, setPrintType] = useState<'consolidated' | 'individual' | 'single'>('consolidated');
+    const [isBackingUp, setIsBackingUp] = useState(false);
+    const [backupProgress, setBackupProgress] = useState(0);
+    const [backupTotal, setBackupTotal] = useState(0);
     const professorPhotoInputRef = useRef<HTMLInputElement>(null);
     const certificateInputRef = useRef<HTMLInputElement>(null);
 
@@ -256,7 +262,7 @@ export default function DashboardAcademico() {
                 }
 
                 if (!migrationOrgId && effectiveEmail) {
-                    const { data: ap } = await supabase.from('academic_professors').select('organization_id').eq('email', effectiveEmail).maybeSingle();
+                    const { data: ap } = await supabase.from('academic_professors').select('organization_id').ilike('email', effectiveEmail.trim()).maybeSingle();
                     migrationOrgId = ap?.organization_id;
                 }
 
@@ -1466,6 +1472,97 @@ export default function DashboardAcademico() {
                         </motion.div>
                     )}
 
+                    {/* LÓGICA DE BACKUP FÍSICO INVISÍVEL */}
+                    <div className="hidden">
+                        <button id="trigger-physical-backup" onClick={async () => {
+                            const pendingEvs = evidencias.filter(ev => {
+                                const query = searchQuery.toLowerCase();
+                                const matchesQuery = ev.titulo.toLowerCase().includes(query) || ev.professor.toLowerCase().includes(query);
+                                const matchesProf = !searchFilter.professor || searchFilter.professor === 'Todos' || ev.professor === searchFilter.professor;
+                                const matchesCat = searchFilter.category === 'Todos' || ev.categoria === searchFilter.category;
+                                const matchesYear = searchFilter.year === 'Todos' || ev.data?.includes(searchFilter.year);
+                                const matchesSemester = searchFilter.semester === 'Todos' || ev.semestre === searchFilter.semester || ev.periodo === searchFilter.semester;
+                                return matchesQuery && matchesProf && matchesCat && matchesYear && matchesSemester;
+                            }).filter((e: any) => {
+                                if (!e.backed_up_at) return true;
+                                if (e.updated_at && new Date(e.updated_at) > new Date(e.backed_up_at)) return true;
+                                return false;
+                            });
+
+                            if (pendingEvs.length === 0) {
+                                toast.info("Tudo em dia!", { description: "Nenhum arquivo pendente de backup físico." });
+                                return;
+                            }
+
+                            try {
+                                // @ts-ignore
+                                const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+
+                                setIsBackingUp(true);
+                                setBackupTotal(pendingEvs.length);
+                                setBackupProgress(0);
+
+                                const backedUpIds: string[] = [];
+
+                                for (let i = 0; i < pendingEvs.length; i++) {
+                                    const ev = pendingEvs[i];
+
+                                    setViewingEvidence(ev);
+                                    setPrintType('single');
+                                    await new Promise(r => setTimeout(r, 600));
+
+                                    const printElement = document.getElementById('print-area');
+                                    if (!printElement) continue;
+
+                                    const canvas = await html2canvas(printElement, { scale: 2, useCORS: true, logging: false });
+                                    const imgData = canvas.toDataURL('image/png');
+
+                                    const pdf = new jsPDF('p', 'mm', 'a4');
+                                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                                    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                                    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                                    const pdfBlob = pdf.output('blob');
+
+                                    const safeTitle = ev.titulo.substring(0, 30).replace(/[^a-zA-Z0-9]/g, '_');
+                                    const safeDate = (ev.data || ev.evidence_date || "Sem_Data").replace(/\//g, '-');
+                                    const docName = (ev.professor || "Docente").split(' ')[0];
+                                    const fileName = `SINAES_${docName}_${ev.categoria || 'Registro'}_${safeTitle}_${safeDate}.pdf`;
+
+                                    // @ts-ignore
+                                    const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+                                    const writable = await fileHandle.createWritable();
+                                    await writable.write(pdfBlob);
+                                    await writable.close();
+
+                                    backedUpIds.push(ev.id);
+                                    setBackupProgress(i + 1);
+                                }
+
+                                if (backedUpIds.length > 0) {
+                                    await fetch('/api/academic/update-backup', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ evidenceIds: backedUpIds })
+                                    });
+
+                                    const now = new Date().toISOString();
+                                    setEvidencias(prev => prev.map(p => backedUpIds.includes(p.id) ? { ...p, backed_up_at: now } : p));
+                                }
+
+                                toast.success("Backup Concluído!", { description: `${backedUpIds.length} relatórios gerados e protegidos.` });
+
+                            } catch (err: any) {
+                                if (err.name === 'AbortError') return;
+                                console.error("Erro no backup:", err);
+                                toast.error("Falha Crítica", { description: "O navegador bloqueou ou ocorreu um erro durante o salvamento local." });
+                            } finally {
+                                setIsBackingUp(false);
+                                setViewingEvidence(null);
+                                setPrintType('consolidated');
+                            }
+                        }}></button>
+                    </div>
+
                     {activeTab === 'gallery' && (
                         <motion.div
                             key="gallery"
@@ -1481,6 +1578,16 @@ export default function DashboardAcademico() {
                                     <p className="text-slate-400 font-medium text-lg mt-1">Acervo fotográfico institucionalizado</p>
                                 </div>
                                 <div className="flex items-center gap-2">
+                                    {isMaster && (
+                                        <Button
+                                            onClick={handlePhysicalBackup}
+                                            disabled={isBackingUp}
+                                            className="hidden md:flex bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-10 px-4 font-black transition-all gap-2 text-xs shadow-lg shadow-emerald-600/20"
+                                        >
+                                            {isBackingUp ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                            {isBackingUp ? `Exportando (${backupProgress}/${backupTotal})` : 'Fazer Backup Físico (Pendente)'}
+                                        </Button>
+                                    )}
                                     <div className="hidden md:flex bg-slate-100 p-1.5 rounded-2xl gap-1 mr-2">
                                         <button
                                             onClick={() => setViewMode('grid')}

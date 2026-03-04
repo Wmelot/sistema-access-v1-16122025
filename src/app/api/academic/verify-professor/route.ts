@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
         const { data: professor, error } = await supabase
             .from('academic_professors')
             .select('*')
-            .eq('email', email.toLowerCase())
+            .ilike('email', email.trim())
             .maybeSingle();
 
         if (error) {

@@ -79,6 +79,8 @@
     "googleapis": "^168.0.0",
     "html-react-parser": "^5.2.11",
     "html-to-docx": "^1.8.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.0",
     "ldrs": "^1.1.9",
     "lucide-react": "^0.561.0",
     "moment": "^2.30.1",

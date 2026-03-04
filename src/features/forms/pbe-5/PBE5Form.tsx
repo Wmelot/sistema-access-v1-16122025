@@ -303,7 +303,7 @@ export default function PBE5Form({
     }, [debouncedData, onSave, readonly]);
 
     const isSectionFilled = (section: string) => {
-        const data = form.watch(section as any);
+        const data = form.getValues(section as any);
         if (!data) return false;
         if (section === 'anamnesis') return !!data.qp || !!data.hma;
         if (section === 'clinical') return !!data.goals || data.meds?.length > 0 || data.comorbidities?.length > 0;
@@ -332,7 +332,7 @@ export default function PBE5Form({
 
     const getSectionStatus = (section: string) => {
         if (section === 'anamnesis') {
-            const data = form.watch('anamnesis');
+            const data = form.getValues('anamnesis');
             let filled = 0;
             if (data?.qp) filled++;
             if (data?.hma) filled++;
@@ -340,7 +340,7 @@ export default function PBE5Form({
             return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
         }
         if (section === 'clinical') {
-            const data = form.watch('clinical');
+            const data = form.getValues('clinical');
             let filled = 0;
             if (data?.goals) filled++;
             if (data?.meds?.length) filled++;
@@ -348,7 +348,7 @@ export default function PBE5Form({
             return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
         }
         if (section === 'metrics') {
-            const data = form.watch('metrics');
+            const data = form.getValues('metrics');
             let filled = 0;
             if (data?.weight) filled++;
             if (data?.height) filled++;
@@ -357,7 +357,7 @@ export default function PBE5Form({
             return filled === 0 ? 'empty' : filled >= 3 ? 'full' : 'partial';
         }
         if (section === 'movement') {
-            const data = form.watch('movement');
+            const data = form.getValues('movement');
             let filled = 0;
             if (Object.keys(data?.active || {}).length > 0) filled++;
             if (Object.keys(data?.passive || {}).length > 0) filled++;
@@ -365,15 +365,15 @@ export default function PBE5Form({
             return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
         }
         if (section === 'strength') {
-            const data = form.watch('strength');
+            const data = form.getValues('strength');
             return Object.keys(data || {}).length > 0 ? 'full' : 'empty';
         }
         if (section === 'protocols') {
-            const data = form.watch('protocols');
+            const data = form.getValues('protocols');
             return Object.keys(data || {}).length > 0 ? 'full' : 'empty';
         }
         if (section === 'plan') {
-            const data = form.watch('plan');
+            const data = form.getValues('plan');
             let filled = 0;
             if (data?.orientations) filled++;
             if (data?.exercises?.length > 0) filled++;
@@ -533,7 +533,12 @@ export default function PBE5Form({
 
                     <div className="w-full">
                         <Accordion type="single" value={openSection} onValueChange={setOpenSection} className="w-full space-y-4 [&>[data-state=closed]]:hidden">
-                            <AnamnesisAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.anamnesis} />
+                            <AnamnesisAccordion
+                                openSection={openSection}
+                                isSectionFilled={isSectionFilled}
+                                sectionStyle={SECTION_STYLES.anamnesis}
+                                isListening={isListening}
+                            />
                             <ClinicalHistoryAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.clinical} />
                             <MetricsVitalsAccordion openSection={openSection} isSectionFilled={isSectionFilled} sectionStyle={SECTION_STYLES.metrics} />
 

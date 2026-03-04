@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
                 needsPasswordChange: false,
                 updated_at: new Date().toISOString()
             })
-            .eq('email', email.toLowerCase());
+            .ilike('email', email.trim());
 
         if (error) {
             console.error('Erro ao atualizar senha:', error);

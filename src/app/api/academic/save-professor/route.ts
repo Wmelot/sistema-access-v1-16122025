@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
         const { error } = await supabase.from('academic_professors').upsert({
             organization_id: requester.organization_id,
             name: professor.name,
-            email: professor.email,
+            email: professor.email.toLowerCase().trim(),
             status: professor.status || 'ativo',
             role: professor.role || 'professor',
             permissions: professor.permissions || { canInvite: false, canDelete: false, canViewDashboard: false },

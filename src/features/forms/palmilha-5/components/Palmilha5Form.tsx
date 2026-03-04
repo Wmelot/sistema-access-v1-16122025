@@ -250,30 +250,30 @@ export default function Palmilha5Form({
     };
 
     const isSectionFilled = (section: string) => {
-        const data = form.watch(section as any);
+        const data = form.getValues(section as any);
         if (!data) return false;
         if (section === 'hma') return !!(data.qp || data.history || (data.eva && data.eva[0] > 0));
         if (section === 'history') return !!(data.comorbidities?.length || data.meds?.length || data.treatments?.length);
-        if (section === 'map') return !!form.watch('painPoints')?.length || Object.keys(form.watch('painZones') || {}).length > 0;
-        if (section === 'efep') return !!form.watch('efep')?.some((i: any) => i.activity && i.score !== "");
-        if (section === 'sports') return !!form.watch('sports')?.length && !!form.watch('sports')[0]?.type;
-        if (section === 'shoe') return !!form.watch('shoe.model') || form.watch('shoe.injuryType') !== 'none';
-        if (section === 'baropo') return !!form.watch('tests.baropo_2d') || !!form.watch('tests.baropo_3d');
-        if (section === 'static') return !!form.watch('postural.shoeSize') || !!form.watch('postural.navicular.left');
-        if (section === 'fpi_detail') return form.watch('postural.fpi_left.talus') !== undefined;
-        if (section === 'orto') return !!form.watch('tests.jack.left') || !!form.watch('tests.lunge.left') || !!form.watch('tests.ybalance.legLength.left');
-        if (section === 'dynamic') return !!form.watch('tests.single_squat.pelvic_drop_left') || !!form.watch('tests.gait_photos.left.initial') || !!form.watch('tests.dfi.0.left');
-        if (section === 'dorsal') return !!form.watch('tests.thomas.left') || !!form.watch('tests.dorsal.first_ray.left');
-        if (section === 'ventral') return !!form.watch('tests.ventral.craig.left') || !!form.watch('tests.ventral.measures.left.retro');
-        if (section === 'exams') return !!form.watch('plan.exams');
-        if (section === 'exercises') return !!form.watch('plan.exercises')?.length || !!form.watch('plan.orientations');
-        if (section === 'propulsao') return !!form.watch('insole.propulsao_id') || !!form.watch('insole.model');
+        if (section === 'map') return !!form.getValues('painPoints')?.length || Object.keys(form.getValues('painZones') || {}).length > 0;
+        if (section === 'efep') return !!form.getValues('efep')?.some((i: any) => i.activity && i.score !== "");
+        if (section === 'sports') return !!form.getValues('sports')?.length && !!form.getValues('sports')[0]?.type;
+        if (section === 'shoe') return !!form.getValues('shoe.model') || form.getValues('shoe.injuryType') !== 'none';
+        if (section === 'baropo') return !!form.getValues('tests.baropo_2d') || !!form.getValues('tests.baropo_3d');
+        if (section === 'static') return !!form.getValues('postural.shoeSize') || !!form.getValues('postural.navicular.left');
+        if (section === 'fpi_detail') return form.getValues('postural.fpi_left.talus') !== undefined;
+        if (section === 'orto') return !!form.getValues('tests.jack.left') || !!form.getValues('tests.lunge.left') || !!form.getValues('tests.ybalance.legLength.left');
+        if (section === 'dynamic') return !!form.getValues('tests.single_squat.pelvic_drop_left') || !!form.getValues('tests.gait_photos.left.initial') || !!form.getValues('tests.dfi.0.left');
+        if (section === 'dorsal') return !!form.getValues('tests.thomas.left') || !!form.getValues('tests.dorsal.first_ray.left');
+        if (section === 'ventral') return !!form.getValues('tests.ventral.craig.left') || !!form.getValues('tests.ventral.measures.left.retro');
+        if (section === 'exams') return !!form.getValues('plan.exams');
+        if (section === 'exercises') return !!form.getValues('plan.exercises')?.length || !!form.getValues('plan.orientations');
+        if (section === 'propulsao') return !!form.getValues('insole.propulsao_id') || !!form.getValues('insole.model');
         return false;
     };
 
     const getSectionStatus = (section: string) => {
         if (section === 'hma') {
-            const hma = form.watch('hma');
+            const hma = form.getValues('hma');
             let filled = 0;
             if (hma?.qp) filled++;
             if (hma?.history) filled++;
@@ -281,7 +281,7 @@ export default function Palmilha5Form({
             return filled === 0 ? 'empty' : filled >= 3 ? 'full' : 'partial';
         }
         if (section === 'history') {
-            const history = form.watch('history');
+            const history = form.getValues('history');
             let filled = 0;
             if (history?.comorbidities?.length) filled++;
             if (history?.meds?.length) filled++;
@@ -289,61 +289,61 @@ export default function Palmilha5Form({
             return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
         }
         if (section === 'insensitive_foot') {
-            const vascular = form.watch('vascular');
-            const neuropathic = form.watch('neuropathic');
+            const vascular = form.getValues('vascular');
+            const neuropathic = form.getValues('neuropathic');
             let filled = 0;
             if (vascular?.pulses?.pedal) filled++;
             if (neuropathic?.monofilament) filled++;
             return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
         }
         if (section === 'map') {
-            const painPoints = form.watch('painPoints');
-            const painZones = form.watch('painZones');
+            const painPoints = form.getValues('painPoints');
+            const painZones = form.getValues('painZones');
             if (painPoints?.length > 0 || Object.keys(painZones || {}).length > 0) return 'full';
             return 'empty';
         }
         if (section === 'efep') {
-            const efep = form.watch('efep');
+            const efep = form.getValues('efep');
             const filled = efep?.filter((i: any) => i.activity && i.score !== "").length || 0;
             return filled === 0 ? 'empty' : filled >= 3 ? 'full' : 'partial';
         }
         if (section === 'sports') {
-            const sports = form.watch('sports');
+            const sports = form.getValues('sports');
             return (sports?.length && sports[0]?.type) ? 'full' : 'empty';
         }
         if (section === 'shoe') {
-            const shoe = form.watch('shoe');
+            const shoe = form.getValues('shoe');
             let filled = 0;
             if (shoe?.model) filled++;
             if (shoe?.injuryType && shoe.injuryType !== 'none') filled++;
             return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
         }
         if (section === 'baropo') {
-            const baropo2d = form.watch('tests.baropo_2d');
-            const baropo3d = form.watch('tests.baropo_3d');
+            const baropo2d = form.getValues('tests.baropo_2d');
+            const baropo3d = form.getValues('tests.baropo_3d');
             let filled = 0;
             if (baropo2d) filled++;
             if (baropo3d) filled++;
             return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
         }
         if (section === 'static') {
-            const shoeSize = form.watch('postural.shoeSize');
-            const navLeft = form.watch('postural.navicular.left');
+            const shoeSize = form.getValues('postural.shoeSize');
+            const navLeft = form.getValues('postural.navicular.left');
             let filled = 0;
             if (shoeSize) filled++;
             if (navLeft) filled++;
             return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
         }
         if (section === 'fpi_detail') {
-            const fL = form.watch('postural.fpi_left');
-            const fR = form.watch('postural.fpi_right');
+            const fL = form.getValues('postural.fpi_left');
+            const fR = form.getValues('postural.fpi_right');
             const filled = (fL ? Object.keys(fL).length : 0) + (fR ? Object.keys(fR).length : 0);
             return filled === 0 ? 'empty' : filled >= 6 ? 'full' : 'partial';
         }
         if (section === 'orto') {
-            const jack = form.watch('tests.jack.left');
-            const lunge = form.watch('tests.lunge.left');
-            const legLen = form.watch('tests.ybalance.legLength.left');
+            const jack = form.getValues('tests.jack.left');
+            const lunge = form.getValues('tests.lunge.left');
+            const legLen = form.getValues('tests.ybalance.legLength.left');
             let filled = 0;
             if (jack) filled++;
             if (lunge) filled++;
@@ -351,9 +351,9 @@ export default function Palmilha5Form({
             return filled === 0 ? 'empty' : filled >= 3 ? 'full' : 'partial';
         }
         if (section === 'dynamic') {
-            const pelvic = form.watch('tests.single_squat.pelvic_drop_left');
-            const gait = form.watch('tests.gait_photos.left.initial');
-            const dfi = form.watch('tests.dfi.0.left');
+            const pelvic = form.getValues('tests.single_squat.pelvic_drop_left');
+            const gait = form.getValues('tests.gait_photos.left.initial');
+            const dfi = form.getValues('tests.dfi.0.left');
             let filled = 0;
             if (pelvic && pelvic !== 'Normal') filled++;
             if (gait) filled++;
@@ -361,33 +361,33 @@ export default function Palmilha5Form({
             return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
         }
         if (section === 'dorsal') {
-            const thomas = form.watch('tests.thomas.left');
-            const dorsal = form.watch('tests.dorsal.first_ray.left');
+            const thomas = form.getValues('tests.thomas.left');
+            const dorsal = form.getValues('tests.dorsal.first_ray.left');
             let filled = 0;
             if (thomas) filled++;
             if (dorsal) filled++;
             return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
         }
         if (section === 'ventral') {
-            const craig = form.watch('tests.ventral.craig.left');
-            const retro = form.watch('tests.ventral.measures.left.retro');
+            const craig = form.getValues('tests.ventral.craig.left');
+            const retro = form.getValues('tests.ventral.measures.left.retro');
             let filled = 0;
             if (craig) filled++;
             if (retro) filled++;
             return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
         }
-        if (section === 'exams') return form.watch('plan.exams') ? 'full' : 'empty';
+        if (section === 'exams') return form.getValues('plan.exams') ? 'full' : 'empty';
         if (section === 'exercises') {
-            const exercises = form.watch('plan.exercises');
-            const orientations = form.watch('plan.orientations');
+            const exercises = form.getValues('plan.exercises');
+            const orientations = form.getValues('plan.orientations');
             let filled = 0;
             if (exercises?.length) filled++;
             if (orientations) filled++;
             return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
         }
         if (section === 'propulsao') {
-            const propId = form.watch('insole.propulsao_id');
-            const model = form.watch('insole.model');
+            const propId = form.getValues('insole.propulsao_id');
+            const model = form.getValues('insole.model');
             let filled = 0;
             if (propId) filled++;
             if (model) filled++;

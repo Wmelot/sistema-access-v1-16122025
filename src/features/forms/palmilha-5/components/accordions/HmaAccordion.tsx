@@ -25,17 +25,17 @@ const REGION_OPTIONS = [
 ];
 
 const QUESTION_BANK = [
-    { id: "start", text: "Qual o motivo da sua consulta hoje?", keywords: ["dor", "motivo", "buscando", "vontade", "queixa"] },
-    { id: "duration", text: "Há quanto tempo você sente esse sintoma?", keywords: ["tempo", "dia", "mês", "ano", "semana", "desde"] },
-    { id: "onset", text: "Começou de repente ou foi aparecendo aos poucos?", keywords: ["repente", "súbito", "lento", "progressivo", "devagar"] },
-    { id: "behavior_p", text: "O que você faz que piora a sua dor?", keywords: ["piora", "agrav", "sentar", "correr", "andar", "subir"] },
-    { id: "behavior_m", text: "O que você faz que traz algum alívio?", keywords: ["melhora", "alívi", "repouso", "gelo", "remédio"] },
-    { id: "quality", text: "Como é essa dor? Pontada, agulhada, queimação ou peso?", keywords: ["tipo", "como", "pontada", "queima", "peso", "choque"] },
-    { id: "irradiance", text: "A dor fica parada em um lugar ou ela 'corre' para algum lugar?", keywords: ["irradia", "corre", "desce", "ponta", "mão", "pé"] },
-    { id: "night", text: "A dor te acorda à noite ou te impede de dormir?", keywords: ["noite", "dormir", "madrugada", "insônia"] },
-    { id: "neuro", text: "Sente algum formigamento, dormência ou fraqueza?", keywords: ["formiga", "dormência", "choque", "fraqueza", "sensib"] },
-    { id: "impact", text: "Como isso está limitando seu trabalho ou lazer?", keywords: ["trabalho", "academia", "lazer", "limit", "impede"] },
-    { id: "trauma", text: "Houve algum acidente ou queda recente?", keywords: ["acidente", "queda", "bato", "trauma"] },
+    { id: "start", text: "Qual o motivo da sua consulta hoje?", keywords: ["dor", "motivo", "buscando", "vontade", "queixa", "incomoda"] },
+    { id: "duration", text: "Há quanto tempo você sente esse sintoma?", keywords: ["tempo", "dia", "mês", "ano", "semana", "desde", "quanto tempo"] },
+    { id: "onset", text: "Começou de repente ou foi aparecendo aos poucos?", keywords: ["repente", "súbito", "lento", "progressivo", "devagar", "acidente", "trauma"] },
+    { id: "behavior_p", text: "O que você faz que piora a sua dor?", keywords: ["piora", "agrav", "sentar", "correr", "andar", "subir", "esforço", "peso"] },
+    { id: "behavior_m", text: "O que você faz que traz algum alívio?", keywords: ["melhora", "alívi", "repouso", "gelo", "remédio", "deitar", "descanso"] },
+    { id: "quality", text: "Como é essa dor? Pontada, agulhada, queimação ou peso?", keywords: ["tipo", "como", "pontada", "queima", "peso", "choque", "agulha", "finca"] },
+    { id: "irradiance", text: "A dor fica parada em um lugar ou ela 'corre' para algum lugar?", keywords: ["irradia", "corre", "desce", "ponta", "mão", "pé", "sobe"] },
+    { id: "night", text: "A dor te acorda à noite ou te impede de dormir?", keywords: ["noite", "dormir", "madrugada", "insônia", "sono"] },
+    { id: "neuro", text: "Sente algum formigamento, dormência ou fraqueza?", keywords: ["formiga", "dormência", "choque", "fraqueza", "sensib", "adormece"] },
+    { id: "impact", text: "Como isso está limitando seu trabalho ou lazer?", keywords: ["trabalho", "academia", "lazer", "limit", "impede", "esporte", "dia a dia"] },
+    { id: "trauma", text: "Houve algum acidente ou queda recente?", keywords: ["acidente", "queda", "bato", "trauma", "caí", "pancada"] },
 ];
 
 interface HmaAccordionProps {
@@ -50,6 +50,36 @@ interface HmaAccordionProps {
 export function HmaAccordion({ openSection, isSectionFilled, setFeegowImportOpen, isImported, sectionStyle, isListening }: HmaAccordionProps) {
     const form = useFormContext();
     const [openRegion, setOpenRegion] = React.useState(false);
+    const [draftText, setDraftText] = React.useState("");
+
+    React.useEffect(() => {
+        if (!isListening) {
+            setDraftText("");
+            return;
+        }
+
+        const draft = localStorage.getItem('axiom-copilot-draft') || "";
+        setDraftText(draft);
+
+        const handleStorage = (e: StorageEvent) => {
+            if (e.key === 'axiom-copilot-draft') {
+                setDraftText(e.newValue || "");
+            }
+        };
+
+        const interval = setInterval(() => {
+            const current = localStorage.getItem('axiom-copilot-draft') || "";
+            if (current !== draftText) {
+                setDraftText(current);
+            }
+        }, 1000);
+
+        window.addEventListener('storage', handleStorage);
+        return () => {
+            window.removeEventListener('storage', handleStorage);
+            clearInterval(interval);
+        };
+    }, [isListening, draftText]);
 
     // Safely parse EVA value whether it's an array or number
     const evaRaw = form.watch('hma.eva');
@@ -183,14 +213,12 @@ export function HmaAccordion({ openSection, isSectionFilled, setFeegowImportOpen
                         placeholder={(() => {
                             const qp = form.watch('hma.qp')?.toLowerCase() || "";
                             const hist = form.watch('hma.history')?.toLowerCase() || "";
-                            const regions = form.watch('hma.mainRegions') || [];
-                            const text = qp + " " + hist;
+                            const text = (qp + " " + hist + " " + draftText).toLowerCase();
 
-                            if (isListening) {
-                                const currentText = (qp + " " + hist).toLowerCase();
+                            if (isListening || draftText) {
                                 // Filter questions not yet answered (by keyword check)
                                 const available = QUESTION_BANK.filter(q =>
-                                    !currentText.split(' ').some(word => q.keywords.some(k => word.includes(k)))
+                                    !text.split(' ').some(word => q.keywords.some(k => word.includes(k)))
                                 );
 
                                 // Take 4 suggestions

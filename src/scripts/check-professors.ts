@@ -8,7 +8,7 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PU
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function check() {
-    const { data: cols, error: errCols } = await supabase.from('academic_evidences').select('*').limit(1);
-    console.log("Columns:", cols ? Object.keys(cols[0] || {}) : "No records");
+    const { data, error } = await supabase.from('academic_professors').select('name, email');
+    console.log("Professors:", data);
 }
 check();
