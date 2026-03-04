@@ -95,6 +95,7 @@ export default function AuditorPage() {
     const [searchStrategy, setSearchStrategy] = useState<any | null>(null);
     const [isGeneratingSearch, setIsGeneratingSearch] = useState(false);
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
 
     // Carregar protocolos locais ao montar
     React.useEffect(() => {
@@ -113,6 +114,30 @@ export default function AuditorPage() {
         if (e.target.files && e.target.files[0]) {
             setFile(e.target.files[0]);
             setResult(null); // Limpa resultado anterior ao trocar arquivo
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const droppedFile = e.dataTransfer.files[0];
+            if (droppedFile.type === 'application/pdf') {
+                setFile(droppedFile);
+                setResult(null);
+            } else {
+                toast.error("Por favor, envie apenas arquivos PDF.");
+            }
         }
     };
 
@@ -273,7 +298,12 @@ export default function AuditorPage() {
 
                             <div className="grid lg:grid-cols-3 gap-6">
                                 <div className="lg:col-span-2 space-y-6">
-                                    <label className="group relative block w-full cursor-pointer overflow-hidden rounded-3xl border-2 border-dashed border-slate-300 bg-white p-12 transition-all hover:border-indigo-400 hover:bg-indigo-50/30">
+                                    <label
+                                        onDragOver={handleDragOver}
+                                        onDragLeave={handleDragLeave}
+                                        onDrop={handleDrop}
+                                        className={`group relative block w-full cursor-pointer overflow-hidden rounded-3xl border-2 border-dashed p-12 transition-all ${isDragging ? 'border-indigo-600 bg-indigo-50/70 scale-[1.02]' : 'border-slate-300 bg-white hover:border-indigo-400 hover:bg-indigo-50/30'}`}
+                                    >
                                         <input
                                             type="file"
                                             className="hidden"
@@ -281,7 +311,7 @@ export default function AuditorPage() {
                                             onChange={handleFileChange}
                                         />
                                         <div className="flex flex-col items-center justify-center text-center">
-                                            <div className="mb-4 rounded-2xl bg-indigo-50 p-4 text-indigo-600 transition-transform group-hover:scale-110 group-active:scale-95">
+                                            <div className={`mb-4 rounded-2xl p-4 transition-transform group-hover:scale-110 group-active:scale-95 ${isDragging ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200' : 'bg-indigo-50 text-indigo-600'}`}>
                                                 <UploadCloud size={40} />
                                             </div>
                                             <h3 className="mb-1 text-xl font-bold text-slate-800">

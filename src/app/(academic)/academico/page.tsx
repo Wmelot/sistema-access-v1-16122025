@@ -189,12 +189,12 @@ export default function DashboardAcademico() {
                     setCurrentUser({
                         name: dbProf.full_name || effectiveEmail?.split('@')[0],
                         email: effectiveEmail,
-                        role: dbProf.role || 'professor',
+                        role: dbProf.role === 'master' ? 'admin' : (dbProf.role || 'professor'),
                         photo_url: dbProf.photo_url,
                         organization_id: dbProf.organization_id,
                         permissions: {
-                            canInvite: dbProf.role === 'admin',
-                            canDelete: dbProf.role === 'admin',
+                            canInvite: dbProf.role === 'admin' || dbProf.role === 'master',
+                            canDelete: dbProf.role === 'admin' || dbProf.role === 'master',
                             canViewDashboard: true
                         }
                     });
@@ -356,7 +356,7 @@ export default function DashboardAcademico() {
             );
 
             // RESTRIÇÃO DE VISIBILIDADE SINAES
-            const isUserAdmin = (authUser && dbProf?.role === 'admin') || (dbAcademicProf?.role === 'admin');
+            const isUserAdmin = (authUser && (dbProf?.role === 'admin' || dbProf?.role === 'master')) || (dbAcademicProf?.role === 'admin');
 
             // Garantir que temos o ID/Nome correto para filtrar
             const currentUserName = dbAcademicProf?.name || dbProf?.full_name || effectiveEmail?.split('@')[0];

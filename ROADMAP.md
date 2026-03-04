@@ -50,5 +50,25 @@ Acompanhamento de progresso das implementações e correções.
 - [ ] **Offline Sync**: Testar persistência em `localStorage` para ambientes com Wi-Fi instável na clínica.
 
 ---
-*Última atualização: 26/02/2026 às 00:35*
-*Status Geral: Axiom Acadêmico em fase final de refinamento; Propulsão em "Stage Rollout". 🚀*
+*Última atualização: 03/03/2026 às 21:12*
+*Status Geral: Propulsão com envio funcionando (HTTP 200) mas CF do Diego com bugs nos campos de pé. PBE 5.0 integrado. 🚀*
+
+## 🔴 Pendências Críticas (Março 2026)
+
+### 🔗 Integração Propulsão — BLOQUEADO NO DIEGO
+- [ ] **CF `pedidos_axion` não grava campos de pé** (`Arco_Dir`, `Antepe_Dir`, `SuporteArco`, `Elevacao`, `Alivio`, `Borda` — todos chegam no `info` mas são ignorados)
+- [ ] **IdFisio truncado** — CF grava `"w"` ao invés de `"wmelot@gmail.com"`
+- [ ] **Pedidos não aparecem no Podo+ sandbox** — investigar com Diego
+- [ ] **Sync N_Pedido**: Firebase `site-propulsao-allpe` ≠ `dev-propulsao` — precisa config correto
+- [ ] Remover logs de debug temporários após resolver
+
+### 🦶 Palmilha 5.0 & Biomecânica
+- [ ] **DorsalTestsAccordion**: Finalizar UI dos testes físicos V5
+- [ ] **Fusão UltimatePBE**: Integrar aba "Biomecânica V3/V5" no `UltimatePBEForm.tsx`
+- [ ] **Auditoria PBE**: Laudos via Propulsão caindo no histórico do paciente
+
+### 🤖 IA & Infra
+- [ ] **Co-Piloto Biomecânico (Voz)**: Gravação de áudio → preenchimento automático
+- [ ] **Smart Audit**: Hook de auditoria no formulário de palmilha
+- [ ] **Offline Sync**: Persistência em `localStorage` para Wi-Fi instável
+
