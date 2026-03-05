@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -50,6 +51,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { QuantumLoader } from '@/components/ui/quantum-loader';
 import Swal from 'sweetalert2';
 
 // --- CONFIGURAÇÕES SINAES ---
@@ -257,6 +259,8 @@ export default function NovoRegistroAcademico() {
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [evidencias, setEvidencias] = useState<any[]>([]);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const searchParams = useSearchParams();
 
     const { register, handleSubmit, control, watch, setValue, getValues } = useForm({
         defaultValues: {
@@ -311,6 +315,33 @@ export default function NovoRegistroAcademico() {
         };
         loadData();
     }, [setValue]);
+
+    // --- EDIT MODE: carregar dados do registro existente ---
+    useEffect(() => {
+        const editId = searchParams.get('edit');
+        if (editId && evidencias.length > 0) {
+            const ev = evidencias.find((e: any) => e.id === editId);
+            if (ev) {
+                setEditingId(editId);
+                setValue('titulo', ev.titulo || '');
+                setValue('docente', ev.professor || ev.docente || '');
+                setValue('descricao', ev.descricao || '');
+                setValue('impacto', ev.impacto || '');
+                setValue('legenda', ev.legenda || '');
+                setValue('disciplina_nome', ev.disciplina_nome || ev.disciplina || '');
+                setValue('periodo', ev.periodo || '');
+                setValue('semestre', ev.semestre || '');
+                setValue('ano', ev.ano || '');
+                setValue('tipo', ev.activity_type || ev.tipo || '');
+                setValue('data_atividade', ev.evidence_date || ev.data_atividade || '');
+                setValue('eixos', ev.integration_axes || ev.eixos || []);
+                setValue('descricaoIntegracao', ev.integration_description || ev.descricaoIntegracao || '');
+                setValue('relevancia', ev.relevance || ev.relevancia || 0);
+                if (ev.categoria) setCategoria(ev.categoria.toUpperCase());
+                toast.info('Modo Edição: altere o que desejar e salve.', { duration: 4000 });
+            }
+        }
+    }, [searchParams, evidencias, setValue]);
 
     useEffect(() => {
         if (categoria) {
@@ -479,7 +510,7 @@ export default function NovoRegistroAcademico() {
 
             // 2. Preparar Payload SINAES
             const payload = {
-                id: (window as any).crypto?.randomUUID() || Math.random().toString(36).substring(2),
+                id: editingId || (window as any).crypto?.randomUUID() || Math.random().toString(36).substring(2),
                 ...data,
                 periodo: data.periodo?.includes("período") ? data.periodo : `${data.periodo} período`,
                 titulo: finalTitulo,
@@ -600,7 +631,7 @@ export default function NovoRegistroAcademico() {
                     </button>
                     <div className="flex flex-col items-center">
                         <span className="text-[9px] font-black text-[#8C132C] uppercase tracking-tighter">Pontifícia Universidade Católica de Minas Gerais - Betim</span>
-                        <h1 className="text-sm font-bold text-[#363636] tracking-tight">Portal de Registro de Atividades</h1>
+                        <h1 className="text-sm font-bold text-[#363636] tracking-tight">{editingId ? 'Editando Registro de Atividade' : 'Portal de Registro de Atividades'}</h1>
                     </div>
                     <button onClick={handlePrint} type="button" className="p-2 text-[#8C132C] hover:scale-110 transition-transform">
                         <Printer size={20} />

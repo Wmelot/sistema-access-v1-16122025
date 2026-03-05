@@ -45,7 +45,8 @@ export async function POST(req: NextRequest) {
                     integration_axes: ev.integration_axes || ev.eixos || [],
                     integration_description: ev.integration_description || ev.descricaoIntegracao || '',
                     caption: ev.caption || ev.legenda || '',
-                    professor: professor.name
+                    professor: professor.name,
+                    relevance: ev.relevance ?? ev.relevancia ?? 0
                 };
 
                 // Upsert pelo ID (se houver) ou combinação de org/title
@@ -73,14 +74,15 @@ export async function POST(req: NextRequest) {
                 integration_axes: evidence.eixos || [],
                 integration_description: evidence.integration_description || evidence.descricaoIntegracao || '',
                 caption: evidence.legenda || '',
-                professor: professor.name
+                professor: professor.name,
+                relevance: evidence.relevance ?? evidence.relevancia ?? 0
             };
 
             const onConflict = evidence.id ? 'id' : 'organization_id,title';
             const { error: saveErr } = await supabase.from('academic_evidences').upsert(payload, { onConflict });
             if (saveErr) {
-                console.error('Erro ao salvar evidência:', saveErr);
-                return NextResponse.json({ error: 'Erro ao salvar no banco.' }, { status: 500 });
+                console.error('Erro ao salvar evidência:', JSON.stringify(saveErr));
+                return NextResponse.json({ error: `Erro ao salvar no banco: ${saveErr.message} (${saveErr.code})` }, { status: 500 });
             }
             return NextResponse.json({ success: true, message: 'Evidência salva com sucesso.' });
         }

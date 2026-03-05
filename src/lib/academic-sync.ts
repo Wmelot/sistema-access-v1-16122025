@@ -55,7 +55,8 @@ export async function fetchAcademicData(overrideEmail?: string) {
             img: ev.image_url,
             descricao: ev.description,
             impacto: ev.impact_results,
-            eixos: ev.integration_axes || []
+            eixos: ev.integration_axes || [],
+            relevance: ev.relevance ?? 0
         }));
 
         return {

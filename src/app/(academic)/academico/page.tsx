@@ -37,10 +37,12 @@ import {
     FileSignature,
     RefreshCw,
     Database,
-    Loader2
+    Loader2,
+    Pencil
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import JSZip from 'jszip';
 
 import { QuantumLoader } from '@/components/ui/quantum-loader';
 import { DateInput } from '@/components/ui/date-input';
@@ -1100,7 +1102,7 @@ export default function DashboardAcademico() {
             </header>
 
             {/* VIEW PRINT (3D FLOATING DESIGN - COMPACTO & PROFISSIONAL) */}
-            <div className="hidden print:block bg-white p-0 m-0 font-sans print-area">
+            <div id="print-area" className={cn("bg-white p-0 m-0 font-sans print-area", isBackingUp ? "absolute left-[-9999px] top-[-9999px] w-[900px] block" : "hidden print:block")}>
                 <style dangerouslySetInnerHTML={{
                     __html: `
                     @media print {
@@ -1133,35 +1135,58 @@ export default function DashboardAcademico() {
                             display: block !important;
                         }
                     }
+
+                    #print-area {
+                        --background: #ffffff;
+                        --foreground: #000000;
+                        --card: #ffffff;
+                        --card-foreground: #000000;
+                        --popover: #ffffff;
+                        --popover-foreground: #000000;
+                        --primary: #8C132C;
+                        --primary-foreground: #ffffff;
+                        --secondary: #f1f5f9;
+                        --secondary-foreground: #0f172a;
+                        --muted: #f1f5f9;
+                        --muted-foreground: #64748b;
+                        --accent: #f1f5f9;
+                        --accent-foreground: #0f172a;
+                        --destructive: #ef4444;
+                        --border: #e2e8f0;
+                        --input: #e2e8f0;
+                        --ring: #8C132C;
+                        --radius: 0.5rem;
+                    }
                 `}} />
 
-                <div className="bg-white">
+                <div style={{ backgroundColor: '#ffffff' }}>
                     {/* Cabeçalho de Identidade Dupla - COMPACTO */}
-                    <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                    <div className="flex justify-between items-center mb-6 border-b pb-4" style={{ borderColor: '#f1f5f9' }}>
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-[#8C132C] rounded-xl flex items-center justify-center shadow-md">
-                                <BookOpen className="text-white w-5 h-5" />
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md" style={{ backgroundColor: '#8C132C' }}>
+                                <BookOpen className="w-5 h-5" style={{ color: '#ffffff' }} />
                             </div>
                             <div>
-                                <h1 className="text-sm font-black text-slate-800 uppercase tracking-tight">Portal de Atividades</h1>
-                                <p className="text-[8px] font-black text-[#8C132C] uppercase tracking-widest">Documentação Oficial Axiom</p>
+                                <h1 className="text-sm font-black uppercase tracking-tight" style={{ color: '#1e293b' }}>Portal de Atividades</h1>
+                                <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: '#8C132C' }}>Documentação Oficial Axiom</p>
                             </div>
                         </div>
 
                         <div className="text-right flex flex-col items-end">
                             <img
                                 src={PUC_MINAS_LOGO}
+                                crossOrigin="anonymous"
                                 className="h-8 w-auto object-contain mb-1"
                                 alt="PUC Minas"
                             />
-                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                            <p className="text-[8px] font-bold uppercase tracking-widest" style={{ color: '#94a3b8' }}>
                                 PUC MINAS - CAMPUS BETIM
                             </p>
                         </div>
                     </div>
 
                     <div className="mb-6 text-center">
-                        <h2 className="text-lg font-black uppercase text-slate-900 tracking-tight border-y border-slate-50 py-2 inline-block px-10">
+                        <h2 className="text-lg font-black uppercase tracking-tight border-y py-2 inline-block px-10" style={{ color: '#0f172a', borderColor: '#f8fafc' }}>
                             {printType === 'single' && "Registro de Atividade"}
                             {printType === 'individual' && "Relatório Individual de Atividades"}
                             {printType === 'consolidated' && "Relatório Consolidado de Atividades"}
@@ -1170,35 +1195,35 @@ export default function DashboardAcademico() {
 
                     {printType === 'single' && viewingEvidence ? (
                         <div className="space-y-4">
-                            <div className="floating-card p-6 rounded-[24px] bg-[#fcfcfc] relative overflow-hidden">
-                                <div className="text-[8px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-1">Título do Registro</div>
-                                <div className="text-xl font-black text-slate-900 italic leading-snug">"{viewingEvidence.titulo}"</div>
+                            <div className="floating-card p-6 rounded-[24px] relative overflow-hidden" style={{ backgroundColor: '#fcfcfc' }}>
+                                <div className="text-[8px] font-black uppercase tracking-[0.2em] mb-1" style={{ color: '#8C132C' }}>Título do Registro</div>
+                                <div className="text-xl font-black italic leading-snug" style={{ color: '#0f172a' }}>"{viewingEvidence.titulo}"</div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="floating-card p-4 rounded-[20px] bg-white">
-                                    <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Responsável</div>
-                                    <div className="text-[12px] font-black text-slate-800 uppercase leading-none">{viewingEvidence.professor}</div>
+                                <div className="floating-card p-4 rounded-[20px]" style={{ backgroundColor: '#ffffff' }}>
+                                    <div className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: '#94a3b8' }}>Responsável</div>
+                                    <div className="text-[12px] font-black uppercase leading-none" style={{ color: '#1e293b' }}>{viewingEvidence.professor}</div>
                                 </div>
-                                <div className="floating-card p-4 rounded-[20px] bg-white">
-                                    <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Ciclo e Eixo</div>
-                                    <div className="text-[12px] font-black text-slate-800 uppercase leading-none">{viewingEvidence.data} • {viewingEvidence.categoria}</div>
+                                <div className="floating-card p-4 rounded-[20px]" style={{ backgroundColor: '#ffffff' }}>
+                                    <div className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: '#94a3b8' }}>Ciclo e Eixo</div>
+                                    <div className="text-[12px] font-black uppercase leading-none" style={{ color: '#1e293b' }}>{viewingEvidence.data} • {viewingEvidence.categoria}</div>
                                 </div>
                             </div>
 
-                            <div className="floating-card p-6 rounded-[24px] bg-white">
-                                <div className="text-[9px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-3 border-b border-slate-50 pb-2">Detalhamento das Atividades</div>
-                                <div className="text-[12px] leading-relaxed text-slate-700 whitespace-pre-wrap font-medium">
+                            <div className="floating-card p-6 rounded-[24px]" style={{ backgroundColor: '#ffffff' }}>
+                                <div className="text-[9px] font-black uppercase tracking-[0.2em] mb-3 border-b pb-2" style={{ color: '#8C132C', borderColor: '#f8fafc' }}>Detalhamento das Atividades</div>
+                                <div className="text-[12px] leading-relaxed whitespace-pre-wrap font-medium" style={{ color: '#334155' }}>
                                     {viewingEvidence.descricao || "Sem descrição detalhada."}
                                 </div>
                             </div>
 
-                            <div className="floating-card p-4 rounded-[24px] bg-white flex flex-col items-center">
-                                <div className="w-full h-[400px] rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center">
-                                    <img src={viewingEvidence.img} className="max-w-full max-h-full object-contain" alt="" />
+                            <div className="floating-card p-4 rounded-[24px] flex flex-col items-center" style={{ backgroundColor: '#ffffff' }}>
+                                <div className="w-full h-[400px] rounded-xl overflow-hidden flex items-center justify-center" style={{ backgroundColor: '#f8fafc' }}>
+                                    <img src={viewingEvidence.img} crossOrigin="anonymous" className="max-w-full max-h-full object-contain" alt="" />
                                 </div>
                                 {viewingEvidence.legenda && (
-                                    <div className="text-center italic text-slate-400 font-bold text-sm mt-3 px-10">
+                                    <div className="text-center italic font-bold text-sm mt-3 px-10" style={{ color: '#94a3b8' }}>
                                         "{viewingEvidence.legenda}"
                                     </div>
                                 )}
@@ -1474,96 +1499,7 @@ export default function DashboardAcademico() {
                         </motion.div>
                     )}
 
-                    {/* LÓGICA DE BACKUP FÍSICO INVISÍVEL */}
-                    <div className="hidden">
-                        <button id="trigger-physical-backup" onClick={async () => {
-                            const pendingEvs = evidencias.filter(ev => {
-                                const query = searchQuery.toLowerCase();
-                                const matchesQuery = ev.titulo.toLowerCase().includes(query) || ev.professor.toLowerCase().includes(query);
-                                const matchesProf = !searchFilter.professor || searchFilter.professor === 'Todos' || ev.professor === searchFilter.professor;
-                                const matchesCat = searchFilter.category === 'Todos' || ev.categoria === searchFilter.category;
-                                const matchesYear = searchFilter.year === 'Todos' || ev.data?.includes(searchFilter.year);
-                                const matchesSemester = searchFilter.semester === 'Todos' || ev.semestre === searchFilter.semester || ev.periodo === searchFilter.semester;
-                                return matchesQuery && matchesProf && matchesCat && matchesYear && matchesSemester;
-                            }).filter((e: any) => {
-                                if (!e.backed_up_at) return true;
-                                if (e.updated_at && new Date(e.updated_at) > new Date(e.backed_up_at)) return true;
-                                return false;
-                            });
 
-                            if (pendingEvs.length === 0) {
-                                toast.info("Tudo em dia!", { description: "Nenhum arquivo pendente de backup físico." });
-                                return;
-                            }
-
-                            try {
-                                // @ts-ignore
-                                const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-
-                                setIsBackingUp(true);
-                                setBackupTotal(pendingEvs.length);
-                                setBackupProgress(0);
-
-                                const backedUpIds: string[] = [];
-
-                                for (let i = 0; i < pendingEvs.length; i++) {
-                                    const ev = pendingEvs[i];
-
-                                    setViewingEvidence(ev);
-                                    setPrintType('single');
-                                    await new Promise(r => setTimeout(r, 600));
-
-                                    const printElement = document.getElementById('print-area');
-                                    if (!printElement) continue;
-
-                                    const canvas = await html2canvas(printElement, { scale: 2, useCORS: true, logging: false });
-                                    const imgData = canvas.toDataURL('image/png');
-
-                                    const pdf = new jsPDF('p', 'mm', 'a4');
-                                    const pdfWidth = pdf.internal.pageSize.getWidth();
-                                    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-                                    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                                    const pdfBlob = pdf.output('blob');
-
-                                    const safeTitle = ev.titulo.substring(0, 30).replace(/[^a-zA-Z0-9]/g, '_');
-                                    const safeDate = (ev.data || ev.evidence_date || "Sem_Data").replace(/\//g, '-');
-                                    const docName = (ev.professor || "Docente").split(' ')[0];
-                                    const fileName = `SINAES_${docName}_${ev.categoria || 'Registro'}_${safeTitle}_${safeDate}.pdf`;
-
-                                    // @ts-ignore
-                                    const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
-                                    const writable = await fileHandle.createWritable();
-                                    await writable.write(pdfBlob);
-                                    await writable.close();
-
-                                    backedUpIds.push(ev.id);
-                                    setBackupProgress(i + 1);
-                                }
-
-                                if (backedUpIds.length > 0) {
-                                    await fetch('/api/academic/update-backup', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ evidenceIds: backedUpIds })
-                                    });
-
-                                    const now = new Date().toISOString();
-                                    setEvidencias(prev => prev.map(p => backedUpIds.includes(p.id) ? { ...p, backed_up_at: now } : p));
-                                }
-
-                                toast.success("Backup Concluído!", { description: `${backedUpIds.length} relatórios gerados e protegidos.` });
-
-                            } catch (err: any) {
-                                if (err.name === 'AbortError') return;
-                                console.error("Erro no backup:", err);
-                                toast.error("Falha Crítica", { description: "O navegador bloqueou ou ocorreu um erro durante o salvamento local." });
-                            } finally {
-                                setIsBackingUp(false);
-                                setViewingEvidence(null);
-                                setPrintType('consolidated');
-                            }
-                        }}></button>
-                    </div>
 
                     {activeTab === 'gallery' && (
                         <motion.div
@@ -1582,7 +1518,134 @@ export default function DashboardAcademico() {
                                 <div className="flex items-center gap-2">
                                     {isMaster && (
                                         <Button
-                                            onClick={() => document.getElementById('trigger-physical-backup')?.click()}
+                                            onClick={async () => {
+                                                const pendingEvs = evidencias.filter(ev => {
+                                                    const query = searchQuery.toLowerCase();
+                                                    const matchesQuery = ev.titulo.toLowerCase().includes(query) || ev.professor.toLowerCase().includes(query);
+                                                    const matchesProf = !searchFilter.professor || searchFilter.professor === 'Todos' || ev.professor === searchFilter.professor;
+                                                    const matchesCat = searchFilter.category === 'Todos' || ev.categoria === searchFilter.category;
+                                                    const matchesYear = searchFilter.year === 'Todos' || ev.data?.includes(searchFilter.year);
+                                                    const matchesSemester = searchFilter.semester === 'Todos' || ev.semestre === searchFilter.semester || ev.periodo === searchFilter.semester;
+                                                    return matchesQuery && matchesProf && matchesCat && matchesYear && matchesSemester;
+                                                }).filter((e: any) => {
+                                                    if (!e.backed_up_at) return true;
+                                                    if (e.updated_at && new Date(e.updated_at) > new Date(e.backed_up_at)) return true;
+                                                    return false;
+                                                });
+
+                                                if (pendingEvs.length === 0) {
+                                                    toast.info("Tudo em dia!", { description: "Nenhum arquivo pendente de backup físico." });
+                                                    return;
+                                                }
+
+                                                try {
+                                                    setIsBackingUp(true);
+                                                    setBackupTotal(pendingEvs.length);
+                                                    setBackupProgress(0);
+
+                                                    const zip = new JSZip();
+                                                    const backedUpIds: string[] = [];
+
+                                                    for (let i = 0; i < pendingEvs.length; i++) {
+                                                        const ev = pendingEvs[i];
+
+                                                        setViewingEvidence(ev);
+                                                        setPrintType('single');
+                                                        await new Promise(r => setTimeout(r, 600)); // Espera React renderizar
+
+                                                        const printElement = document.getElementById('print-area');
+                                                        if (!printElement) continue;
+
+                                                        const canvas = await html2canvas(printElement, {
+                                                            scale: 2,
+                                                            useCORS: true,
+                                                            logging: false,
+                                                            onclone: (clonedDoc: Document) => {
+                                                                // Strip oklch() from all stylesheets to prevent html2canvas crash
+                                                                const sheets = clonedDoc.styleSheets;
+                                                                for (let s = 0; s < sheets.length; s++) {
+                                                                    try {
+                                                                        const rules = sheets[s].cssRules;
+                                                                        for (let r = rules.length - 1; r >= 0; r--) {
+                                                                            const rule = rules[r];
+                                                                            if (rule.cssText && rule.cssText.includes('oklch')) {
+                                                                                sheets[s].deleteRule(r);
+                                                                            }
+                                                                        }
+                                                                    } catch (e) {
+                                                                        // Cross-origin stylesheets can't be accessed - skip them
+                                                                    }
+                                                                }
+                                                                // Also override CSS variables on :root of the cloned doc
+                                                                const root = clonedDoc.documentElement;
+                                                                root.style.setProperty('--background', '#ffffff');
+                                                                root.style.setProperty('--foreground', '#000000');
+                                                                root.style.setProperty('--card', '#ffffff');
+                                                                root.style.setProperty('--card-foreground', '#000000');
+                                                                root.style.setProperty('--border', '#e2e8f0');
+                                                                root.style.setProperty('--input', '#e2e8f0');
+                                                                root.style.setProperty('--ring', '#8C132C');
+                                                                root.style.setProperty('--primary', '#8C132C');
+                                                                root.style.setProperty('--primary-foreground', '#ffffff');
+                                                                root.style.setProperty('--secondary', '#f1f5f9');
+                                                                root.style.setProperty('--secondary-foreground', '#0f172a');
+                                                                root.style.setProperty('--muted', '#f1f5f9');
+                                                                root.style.setProperty('--muted-foreground', '#64748b');
+                                                                root.style.setProperty('--accent', '#f1f5f9');
+                                                                root.style.setProperty('--accent-foreground', '#0f172a');
+                                                                root.style.setProperty('--destructive', '#ef4444');
+                                                            }
+                                                        });
+                                                        const imgData = canvas.toDataURL('image/png');
+
+                                                        const pdf = new jsPDF('p', 'mm', 'a4');
+                                                        const pdfWidth = pdf.internal.pageSize.getWidth();
+                                                        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                                                        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                                                        const pdfBlob = pdf.output('blob');
+
+                                                        const safeTitle = ev.titulo.substring(0, 30).replace(/[^a-zA-Z0-9]/g, '_');
+                                                        const safeDate = (ev.data || ev.evidence_date || "Sem_Data").replace(/\//g, '-');
+                                                        const docName = (ev.professor || "Docente").split(' ')[0];
+                                                        const fileName = `SINAES_${docName}_${ev.categoria || 'Registro'}_${safeTitle}_${safeDate}.pdf`;
+
+                                                        zip.file(fileName, pdfBlob);
+
+                                                        backedUpIds.push(ev.id);
+                                                        setBackupProgress(i + 1);
+                                                    }
+
+                                                    if (backedUpIds.length > 0) {
+                                                        const zipContent = await zip.generateAsync({ type: 'blob' });
+                                                        const url = URL.createObjectURL(zipContent);
+                                                        const a = document.createElement('a');
+                                                        a.href = url;
+                                                        a.download = `SINAES_Backup_${new Date().toISOString().split('T')[0]}.zip`;
+                                                        document.body.appendChild(a);
+                                                        a.click();
+                                                        document.body.removeChild(a);
+                                                        URL.revokeObjectURL(url);
+
+                                                        await fetch('/api/academic/update-backup', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ evidenceIds: backedUpIds })
+                                                        });
+
+                                                        const now = new Date().toISOString();
+                                                        setEvidencias(prev => prev.map(p => backedUpIds.includes(p.id) ? { ...p, backed_up_at: now } : p));
+                                                        toast.success("Backup Concluído!", { description: `${backedUpIds.length} relatórios gerados e protegidos no arquivo ZIP.` });
+                                                    }
+
+                                                } catch (err: any) {
+                                                    console.error("Erro no backup ZIP:", err);
+                                                    toast.error("Falha ao Gerar Backup", { description: err?.message || "Erro desconhecido. Verifique o console." });
+                                                } finally {
+                                                    setIsBackingUp(false);
+                                                    setViewingEvidence(null);
+                                                    setPrintType('consolidated');
+                                                }
+                                            }}
                                             disabled={isBackingUp}
                                             className="hidden md:flex bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-10 px-4 font-black transition-all gap-2 text-xs shadow-lg shadow-emerald-600/20"
                                         >
@@ -1983,10 +2046,23 @@ export default function DashboardAcademico() {
             </Dialog>
 
             {/* Modal Ver Detalhes Evidência */}
-            <Dialog open={!!viewingEvidence} onOpenChange={() => setViewingEvidence(null)}>
+            <Dialog open={!!viewingEvidence && !isBackingUp} onOpenChange={() => setViewingEvidence(null)}>
                 <DialogContent className="max-w-2xl rounded-[48px] p-0 border-none overflow-hidden">
                     <div className="relative aspect-video group">
-                        <img src={viewingEvidence?.img} className="w-full h-full object-cover" alt="" />
+                        {viewingEvidence && (
+                            <img
+                                key={viewingEvidence?.id || Date.now()}
+                                src={!viewingEvidence?.img || viewingEvidence.img.length < 50 ? 'https://images.unsplash.com/photo-1576091160550-217359f4ecf8?q=80&w=800&auto=format&fit=crop' : viewingEvidence.img}
+                                className="w-full h-full object-cover"
+                                alt="Registro Acadêmico"
+                                onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    if (target.src !== 'https://images.unsplash.com/photo-1576091160550-217359f4ecf8?q=80&w=800&auto=format&fit=crop') {
+                                        target.src = 'https://images.unsplash.com/photo-1576091160550-217359f4ecf8?q=80&w=800&auto=format&fit=crop';
+                                    }
+                                }}
+                            />
+                        )}
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <Button onClick={() => evidenceImageInputRef.current?.click()} className="bg-white text-[#8C132C] rounded-full font-black gap-2">
                                 <Camera size={16} /> Trocar por Foto Real
@@ -2005,9 +2081,9 @@ export default function DashboardAcademico() {
                             </Badge>
                         </div>
                     </div>
-                    <div className="p-10 space-y-6">
+                    <div className="p-10 space-y-6 overflow-y-auto max-h-[50vh] custom-scrollbar">
                         <div>
-                            <h3 className="text-3xl font-black text-[#363636] leading-tight">{viewingEvidence?.titulo}</h3>
+                            <h3 className="text-3xl font-black text-[#363636] leading-tight break-words overflow-hidden break-all sm:break-normal">{viewingEvidence?.titulo}</h3>
                             <div className="flex items-center gap-4 mt-3 text-slate-400 font-bold text-xs uppercase tracking-widest">
                                 <span>Prof. {viewingEvidence?.professor}</span>
                                 <span className="w-1 h-1 bg-slate-300 rounded-full" />
@@ -2036,6 +2112,17 @@ export default function DashboardAcademico() {
                                 className="bg-[#8C132C] rounded-2xl h-14 px-8 font-black flex-1 uppercase tracking-widest text-xs shadow-lg shadow-[#8C132C]/20"
                             >
                                 <Download size={18} className="mr-2" /> Baixar Registro (PDF)
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    const evId = viewingEvidence?.id;
+                                    if (evId) {
+                                        window.location.href = `/academico/novo?edit=${evId}`;
+                                    }
+                                }}
+                                className="bg-[#363636] hover:bg-black rounded-2xl h-14 px-8 font-black uppercase tracking-widest text-xs shadow-lg"
+                            >
+                                <Pencil size={18} className="mr-2" /> Editar Registro
                             </Button>
                             <Button variant="outline" onClick={() => setViewingEvidence(null)} className="rounded-2xl h-14 px-8 font-black border-slate-100 uppercase tracking-widest text-xs">Fechar</Button>
                         </div>
