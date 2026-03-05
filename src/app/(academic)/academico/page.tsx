@@ -818,7 +818,8 @@ export default function DashboardAcademico() {
                     ctx.drawImage(img, 0, 0, width, height);
                 }
 
-                const finalDataUrl = canvas.toDataURL('image/jpeg', quality);
+                const mimeType = base64.startsWith('data:image/png') ? 'image/png' : 'image/jpeg';
+                const finalDataUrl = canvas.toDataURL(mimeType, quality);
                 console.log(`Otimização Dashboard: ~${(Math.round((finalDataUrl.length * 3) / 4) / 1024).toFixed(0)}KB`);
                 resolve(finalDataUrl);
             };
@@ -984,11 +985,22 @@ export default function DashboardAcademico() {
 
     return (
         <div className="min-h-screen bg-[#FDFDFD] pb-32">
+            <input
+                type="file"
+                ref={logoInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleOrgLogoUpload}
+            />
             {/* Header Institucional */}
             <header className="bg-white border-b border-slate-100 sticky top-0 z-50 print:hidden">
                 <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-6">
-                        <div className="relative group p-2 bg-white rounded-2xl flex items-center justify-center border border-slate-100 shadow-sm overflow-hidden w-12 h-12">
+                        <div
+                            className="relative group p-2 bg-white rounded-2xl flex items-center justify-center border border-slate-100 shadow-sm overflow-hidden w-12 h-12 cursor-pointer"
+                            onClick={() => logoInputRef.current?.click()}
+                            title="Clique para alterar a logo"
+                        >
                             <img
                                 src={orgLogo}
                                 className="w-full h-full object-contain p-1"
@@ -1212,13 +1224,6 @@ export default function DashboardAcademico() {
                                     <span className="text-[8px] text-white font-black uppercase text-center leading-none">Trocar Logo</span>
                                 </div>
                             </div>
-                            <input
-                                type="file"
-                                ref={logoInputRef}
-                                className="hidden"
-                                accept="image/*"
-                                onChange={handleOrgLogoUpload}
-                            />
                             <p className="text-[8px] font-bold uppercase tracking-widest" style={{ color: '#94a3b8' }}>
                                 PUC MINAS - CAMPUS BETIM
                             </p>

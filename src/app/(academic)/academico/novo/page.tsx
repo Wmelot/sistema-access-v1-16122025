@@ -431,12 +431,12 @@ export default function NovoRegistroAcademico() {
                         ctx.drawImage(img, 0, 0, width, height);
                     }
 
-                    // Tentar WebP primeiro se for menor, senão JPEG
-                    // Como o Supabase/Navegador pode variar, JPEG 0.6 é o padrão ouro para compatibilidade e tamanho
+                    // Preservar PNG se o usuário subir PNG (para transparência)
+                    const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
                     let currentQuality = quality;
-                    let finalDataUrl = canvas.toDataURL('image/jpeg', currentQuality);
+                    let finalDataUrl = canvas.toDataURL(mimeType, currentQuality);
 
-                    // Se ainda estiver muito grande (> 2MB), comprime mais agressivamente
+                    // Se ainda estiver muito grande (> 2MB), comprime mais agressivamente (ignora PNG nesse caso para forçar limite)
                     if (finalDataUrl.length > 2 * 1024 * 1024) {
                         finalDataUrl = canvas.toDataURL('image/jpeg', 0.4);
                     }

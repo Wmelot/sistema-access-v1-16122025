@@ -52,8 +52,9 @@ export function ImagePasteUploader({ label, value, onChange, readOnly = false }:
                     const ctx = canvas.getContext('2d')
                     ctx?.drawImage(img, 0, 0, width, height)
 
-                    // Compress to JPEG 0.7
-                    resolve(canvas.toDataURL('image/jpeg', 0.7))
+                    // Compress to JPEG 0.7 or PNG if original was PNG
+                    const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
+                    resolve(canvas.toDataURL(mimeType, 0.7))
                 }
                 img.onerror = (err) => reject(err)
             }
