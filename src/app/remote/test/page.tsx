@@ -8,8 +8,7 @@ import {
     Lock,
     Unlock,
     Smartphone,
-    RotateCcw,
-    PlusMinus
+    RotateCcw
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -161,7 +160,6 @@ export default function InclinometerTest() {
                         showSign ? "bg-white text-blue-950 border-white" : "bg-slate-900 text-white"
                     )}
                 >
-                    <PlusMinus className="h-3 w-3" />
                     <span className="text-[10px] font-black tracking-tighter uppercase">{showSign ? "Sinal ON" : "Sinal OFF"}</span>
                 </Button>
             </div>
