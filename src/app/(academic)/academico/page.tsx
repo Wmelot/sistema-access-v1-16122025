@@ -88,7 +88,7 @@ import { AcademicLogo, AcademicLogoString } from '@/components/academic/logo';
 import { cn } from '@/lib/utils';
 
 // Link oficial da PUC Minas para garantir identidade visual para a reitoria
-const PUC_MINAS_LOGO = "https://portal.pucminas.br/main/images/brasao_puc_minas.png";
+const PUC_MINAS_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMjAwIDEwMCI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9InRyYW5zcGFyZW50IiByeD0iMTAiLz48dGV4dCB4PSI1MCUiIHk9IjQ1JSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjE2IiBmaWxsPSIjOEMxMzJDIj5MT0dPIElOU1RJVFVJw4fDg088L3RleHQ+PHRleHQgeD0iNTAlIiB5PSI2NSUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjQ3NDhiIj4oQ2xpcXVlIHBhcmEgYWx0ZXJhcik8L3RleHQ+PC9zdmc+";
 import { createClient } from '@/lib/supabase/client';
 import { syncAcademicData, fetchAcademicData, saveEvidence, saveProfessor, deleteProfessorSupabase, deleteEvidenceSupabase } from '@/lib/academic-sync';
 
@@ -136,6 +136,7 @@ export default function DashboardAcademico() {
     const [selectedCertTemplate, setSelectedCertTemplate] = useState(1);
     const [isMounted, setIsMounted] = useState(false);
     const [isDataReady, setIsDataReady] = useState(false);
+    const [orgLogo, setOrgLogo] = useState<string>(PUC_MINAS_LOGO);
 
     // Onboarding & Profile State
     const [showOnboarding, setShowOnboarding] = useState(false);
@@ -422,6 +423,8 @@ export default function DashboardAcademico() {
         const savedProfs = localStorage.getItem('axiom_profs');
         const savedEvs = localStorage.getItem('axiom_evidencias');
         const savedLogo = localStorage.getItem('axiom_logo');
+        const customOrgLogo = localStorage.getItem('axiom_org_logo');
+        if (customOrgLogo) setOrgLogo(customOrgLogo);
         const onboardingDone = localStorage.getItem('axiom_onboarding_done');
         const isLoggedIn = localStorage.getItem('axiom_sinaes_logged');
 
@@ -479,6 +482,18 @@ export default function DashboardAcademico() {
         // Inicializar dados reais do Supabase
         initializeAcademicData();
 
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                initializeAcademicData();
+            }
+        };
+
+        window.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+
         // Sincronizar tab se vier na URL
         const params = new URLSearchParams(window.location.search);
         const tab = params.get('tab');
@@ -489,9 +504,18 @@ export default function DashboardAcademico() {
 
     // Cálculos Reais baseados em Dimensões do MEC/SINAES
     const stats = (() => {
-        const countEnsino = evidencias.filter(e => e.categoria === 'Ensino' || e.eixos?.includes('ENSINO')).length;
-        const countPesquisa = evidencias.filter(e => e.categoria === 'Pesquisa' || e.eixos?.includes('PESQUISA')).length;
-        const countExtensao = evidencias.filter(e => e.categoria === 'Extensão' || e.eixos?.includes('EXTENSAO')).length;
+        const countEnsino = evidencias.filter(e => {
+            const cat = (e.categoria || '').toUpperCase();
+            return cat === 'ENSINO' || e.eixos?.includes('ENSINO');
+        }).length;
+        const countPesquisa = evidencias.filter(e => {
+            const cat = (e.categoria || '').toUpperCase();
+            return cat === 'PESQUISA' || e.eixos?.includes('PESQUISA');
+        }).length;
+        const countExtensao = evidencias.filter(e => {
+            const cat = (e.categoria || '').toUpperCase();
+            return cat === 'EXTENSÃO' || cat === 'EXTENSAO' || e.eixos?.includes('EXTENSAO');
+        }).length;
 
         // Critérios MEC: Diversidade de Eixos (Pedagógico), Adesão (Corpo Docente), Volume (Infra)
         const d1Pedagogico = Math.min(5.0, (countEnsino * 0.5) + (countPesquisa * 0.3) + (countExtensao * 0.3));
@@ -506,9 +530,9 @@ export default function DashboardAcademico() {
         return {
             total: evidencias.length,
             progressoMEC: mediaSINAES,
-            ensino: (countEnsino / (evidencias.length || 1)) * 100,
-            pesquisa: (countPesquisa / (evidencias.length || 1)) * 100,
-            extensao: (countExtensao / (evidencias.length || 1)) * 100,
+            ensino: Math.min(100, Math.round((countEnsino / (evidencias.length || 1)) * 100)),
+            pesquisa: Math.min(100, Math.round((countPesquisa / (evidencias.length || 1)) * 100)),
+            extensao: Math.min(100, Math.round((countExtensao / (evidencias.length || 1)) * 100)),
             adesao: adesaoReal,
             d1: d1Pedagogico.toFixed(1),
             d2: d2Docente.toFixed(1),
@@ -517,9 +541,9 @@ export default function DashboardAcademico() {
     })();
 
     const dynamicDataAtividades = [
-        { name: 'Ensino', valor: evidencias.filter(e => e.categoria === 'Ensino').length, color: '#8C132C' },
-        { name: 'Pesquisa', valor: evidencias.filter(e => e.categoria === 'Pesquisa').length, color: '#363636' },
-        { name: 'Extensão', valor: evidencias.filter(e => e.categoria === 'Extensão').length, color: '#D4AF37' },
+        { name: 'Ensino', valor: stats.ensino > 0 ? evidencias.filter(e => (e.categoria || '').toUpperCase() === 'ENSINO').length : 0, color: '#8C132C' },
+        { name: 'Pesquisa', valor: stats.pesquisa > 0 ? evidencias.filter(e => (e.categoria || '').toUpperCase() === 'PESQUISA').length : 0, color: '#363636' },
+        { name: 'Extensão', valor: stats.extensao > 0 ? evidencias.filter(e => ['EXTENSÃO', 'EXTENSAO'].includes((e.categoria || '').toUpperCase())).length : 0, color: '#D4AF37' },
     ].filter(d => d.valor > 0); // Só mostra o que existe
 
     // Se estiver tudo vazio, mostra um estado neutro
@@ -801,7 +825,7 @@ export default function DashboardAcademico() {
         });
     };
 
-    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleOrgLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
@@ -809,9 +833,10 @@ export default function DashboardAcademico() {
                 const base64 = reader.result as string;
                 const compressed = await compressImage(base64, 400); // Small for logo
                 try {
-                    localStorage.setItem('axiom_logo', compressed);
+                    localStorage.setItem('axiom_org_logo', compressed);
+                    setOrgLogo(compressed);
                 } catch (e) { toast.error("Espaço cheio no dispositivo. Apague fotos antigas."); return; }
-                toast.success("Logo institucional atualizado!");
+                toast.success("Logo institucional atualizada!");
             };
             reader.readAsDataURL(file);
         }
@@ -965,7 +990,7 @@ export default function DashboardAcademico() {
                     <div className="flex items-center gap-6">
                         <div className="relative group p-2 bg-white rounded-2xl flex items-center justify-center border border-slate-100 shadow-sm overflow-hidden w-12 h-12">
                             <img
-                                src={PUC_MINAS_LOGO}
+                                src={orgLogo}
                                 className="w-full h-full object-contain p-1"
                                 alt="PUC Minas"
                                 onError={(e) => {
@@ -1173,11 +1198,26 @@ export default function DashboardAcademico() {
                         </div>
 
                         <div className="text-right flex flex-col items-end">
-                            <img
-                                src={PUC_MINAS_LOGO}
-                                crossOrigin="anonymous"
-                                className="h-8 w-auto object-contain mb-1"
-                                alt="PUC Minas"
+                            <div className="group relative cursor-pointer" onClick={() => logoInputRef.current?.click()}>
+                                <img
+                                    src={orgLogo}
+                                    crossOrigin="anonymous"
+                                    className="h-8 w-auto object-contain mb-1"
+                                    alt="PUC Minas"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).src = PUC_MINAS_LOGO;
+                                    }}
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded">
+                                    <span className="text-[8px] text-white font-black uppercase text-center leading-none">Trocar Logo</span>
+                                </div>
+                            </div>
+                            <input
+                                type="file"
+                                ref={logoInputRef}
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleOrgLogoUpload}
                             />
                             <p className="text-[8px] font-bold uppercase tracking-widest" style={{ color: '#94a3b8' }}>
                                 PUC MINAS - CAMPUS BETIM
@@ -1463,9 +1503,9 @@ export default function DashboardAcademico() {
                                     <TooltipProvider>
                                         <div className="space-y-4 flex-1">
                                             {[
-                                                { t: "Registros de Ensino", v: Math.round(stats.ensino > 0 ? stats.ensino : 0), desc: "Cadastre planos de aula, metodologias ativas e fotos de laboratório." },
-                                                { t: "Produção Científica", v: Math.round(stats.pesquisa > 0 ? stats.pesquisa : 0), desc: "Inclua projetos FIP, resumos em congressos e publicações de alunos." },
-                                                { t: "Ações Extensionistas", v: Math.round(stats.extensao > 0 ? stats.extensao : 0), desc: "Fotos de ações sociais, parcerias com UBS e atendimentos à comunidade." },
+                                                { t: "Registros de Ensino", v: stats.ensino, desc: "Cadastre planos de aula, metodologias ativas e fotos de laboratório." },
+                                                { t: "Produção Científica", v: stats.pesquisa, desc: "Inclua projetos FIP, resumos em congressos e publicações de alunos." },
+                                                { t: "Ações Extensionistas", v: stats.extensao, desc: "Fotos de ações sociais, parcerias com UBS e atendimentos à comunidade." },
                                                 { t: "Auditoria Interna", v: 40, desc: "Envie certificados das atividades mencionadas no dossiê para validação." }
                                             ].map((check, i) => (
                                                 <Tooltip key={i}>
