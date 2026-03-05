@@ -467,13 +467,13 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                     'insoles_prescription',
                     {
                         ...prescriptionData,
-                        propulsaoOrder: propulsaoRes.success ? propulsaoRes.orderNumber : null
+                        propulsaoOrder: propulsaoRes.success ? propulsaoRes.orderNumber : undefined
                     },
                     {
                         total: calculatePrice,
                         model: produto,
                         type: tipoPalmilha,
-                        propulsaoOrder: propulsaoRes.success ? propulsaoRes.orderNumber : null
+                        propulsaoOrder: propulsaoRes.success ? propulsaoRes.orderNumber : undefined
                     },
                     `Prescrição de Palmilha - ${produto} ${propulsaoRes.success ? `(Pedido Propulsão: ${propulsaoRes.orderNumber})` : ''}`,
                     slug
@@ -733,6 +733,7 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                             Orientações para o paciente e/ou profissional de saúde
                         </Label>
                         <textarea
+                            {...form.register("plan.orientations")}
                             className="flex w-full rounded-md border border-slate-300 bg-slate-50 px-4 py-3 text-sm min-h-[100px] focus:bg-white transition-all shadow-inner"
                             placeholder="Descreva modificações específicas..."
                         />
@@ -747,8 +748,6 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                             onChange={(e) => setReportText(e.target.value)}
                             className="flex w-full rounded-md border border-blue-200 bg-white px-4 py-3 text-sm min-h-[150px] focus:ring-2 focus:ring-blue-500 text-slate-700 leading-relaxed"
                         />
-                        <div className="absolute top-6 right-6">
-                        </div>
                     </div>
                 </div>
             </AccordionContent>

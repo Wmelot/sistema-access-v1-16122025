@@ -135,7 +135,20 @@ export default function Palmilha5Form({
                 jack: { left: 0, right: 0 }, lunge: { left: "", right: "" },
                 thomas: { left: 0, right: 0 }, slr: { left: 0, right: 0 },
                 glute_strength: { med_left: 5, med_right: 5, max_left: 5, max_right: 5 },
-                ventral: { rotation: { left: "", right: "" }, craig: { left: "", right: "" } },
+                dorsal: {
+                    first_ray: { left: 0, right: 0 },
+                    midfoot: { left: 0, right: 0 },
+                    inversion: { left: 0, right: 0 },
+                    eversion: { left: 0, right: 0 }
+                },
+                ventral: {
+                    rotation: { left: "", right: "" },
+                    craig: { left: "", right: "" },
+                    measures: {
+                        left: { retro: "", ante: "", apa: "" },
+                        right: { retro: "", ante: "", apa: "" }
+                    }
+                },
                 ybalance: { legLength: { left: "", right: "" } },
                 dfi: [{ left: 0, right: 0 }, { left: 0, right: 0 }, { left: 0, right: 0 }],
                 gait_photos: { left: { initial: "", mid: "", terminal: "" }, right: { initial: "", mid: "", terminal: "" } },
@@ -150,6 +163,15 @@ export default function Palmilha5Form({
             classification: { iwgdfLevel: "0" },
             painPoints: [],
             painZones: {},
+            insole: {
+                produto: "Slim",
+                tipoPalmilha: "Inteira",
+                cobertura: "EVA Azul (Padrão)",
+                tamanho: "",
+                leftFoot: { arco: "Normal", flexibilidade: "Flexível", pontoDor: "", elevacao: "0", borda: "" },
+                rightFoot: { arco: "Normal", flexibilidade: "Flexível", pontoDor: "", elevacao: "0", borda: "" },
+                reportText: ""
+            },
             ...initialData
         }
     });
@@ -263,8 +285,8 @@ export default function Palmilha5Form({
         if (section === 'fpi_detail') return form.getValues('postural.fpi_left.talus') !== undefined;
         if (section === 'orto') return !!form.getValues('tests.jack.left') || !!form.getValues('tests.lunge.left') || !!form.getValues('tests.ybalance.legLength.left');
         if (section === 'dynamic') return !!form.getValues('tests.single_squat.pelvic_drop_left') || !!form.getValues('tests.gait_photos.left.initial') || !!form.getValues('tests.dfi.0.left');
-        if (section === 'dorsal') return !!form.getValues('tests.thomas.left') || !!form.getValues('tests.dorsal.first_ray.left');
-        if (section === 'ventral') return !!form.getValues('tests.ventral.craig.left') || !!form.getValues('tests.ventral.measures.left.retro');
+        if (section === 'dorsal') return !!form.getValues('tests.thomas.left') || !!form.getValues('tests.dorsal.first_ray.left') || !!form.getValues('tests.dorsal.silfverskiold.left');
+        if (section === 'ventral') return !!form.getValues('tests.ventral.craig.left') || !!form.getValues('tests.ventral.measures.left.retro') || !!form.getValues('tests.ventral.rotation.left');
         if (section === 'exams') return !!form.getValues('plan.exams');
         if (section === 'exercises') return !!form.getValues('plan.exercises')?.length || !!form.getValues('plan.orientations');
         if (section === 'propulsao') return !!form.getValues('insole.propulsao_id') || !!form.getValues('insole.model');
@@ -362,17 +384,21 @@ export default function Palmilha5Form({
         }
         if (section === 'dorsal') {
             const thomas = form.getValues('tests.thomas.left');
+            const slr = form.getValues('tests.slr.left');
             const dorsal = form.getValues('tests.dorsal.first_ray.left');
             let filled = 0;
             if (thomas) filled++;
+            if (slr) filled++;
             if (dorsal) filled++;
-            return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
+            return filled === 0 ? 'empty' : filled >= 3 ? 'full' : 'partial';
         }
         if (section === 'ventral') {
             const craig = form.getValues('tests.ventral.craig.left');
+            const rotation = form.getValues('tests.ventral.rotation.left');
             const retro = form.getValues('tests.ventral.measures.left.retro');
             let filled = 0;
             if (craig) filled++;
+            if (rotation) filled++;
             if (retro) filled++;
             return filled === 0 ? 'empty' : filled >= 2 ? 'full' : 'partial';
         }

@@ -3,6 +3,7 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 
+// TODO: Mudar para dev-propulsao quando Diego liberar permissões de leitura/escrita
 const propulsaoConfig = {
     apiKey: "AIzaSyBsDsJ0K74jVzAo5z6O7HqdHTHshycwD-U",
     authDomain: "site-propulsao-allpe.firebaseapp.com",

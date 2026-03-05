@@ -10,11 +10,10 @@ import { cn } from "@/lib/utils";
 import { checkStatus } from "@/utils/clinical-references";
 
 export const ReferenceStatus = ({ value, type }: { value: any, type: string }) => {
-    const v = Number(value);
     const isEmpty = value === "" || value === undefined || value === null;
     if (isEmpty) return <div className="text-[10px] font-bold px-2 py-0.5 rounded border mt-1 w-full text-center uppercase bg-slate-100 text-slate-400 border-slate-200">Sem Dados</div>;
 
-    const status = checkStatus(type as any, v);
+    const status = checkStatus(type as any, value);
 
     if (!status) return <div className="text-[10px] font-bold px-2 py-0.5 rounded border mt-1 w-full text-center uppercase bg-slate-100 text-slate-400 border-slate-200">-</div>;
 
@@ -145,12 +144,12 @@ export function DorsalTestsAccordion({ openSection, isSectionFilled, sectionStyl
                             <FormLabel className="text-[10px] font-black uppercase text-slate-500 block text-center">Eversão</FormLabel>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <span className="text-[10px] font-bold text-blue-600 uppercase mb-2 block">Esquerdo</span>
+                                    <span className="text-[10px] font-bold text-blue-600 uppercase mb-2 block text-center">Esquerdo</span>
                                     <Slider min={-3} max={3} step={1} value={[Number(form.watch("tests.dorsal.eversion.left")) || 0]} onValueChange={([v]) => form.setValue("tests.dorsal.eversion.left", v)} />
                                     <MobilityCapsule value={Number(form.watch("tests.dorsal.eversion.left")) || 0} />
                                 </div>
                                 <div>
-                                    <span className="text-[10px] font-bold text-green-600 uppercase mb-2 block">Direito</span>
+                                    <span className="text-[10px] font-bold text-green-600 uppercase mb-2 block text-center">Direito</span>
                                     <Slider min={-3} max={3} step={1} value={[Number(form.watch("tests.dorsal.eversion.right")) || 0]} onValueChange={([v]) => form.setValue("tests.dorsal.eversion.right", v)} />
                                     <MobilityCapsule value={Number(form.watch("tests.dorsal.eversion.right")) || 0} />
                                 </div>

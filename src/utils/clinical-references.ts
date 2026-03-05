@@ -130,16 +130,24 @@ export const NAVICULAR_SHOE_TABLE: Record<number, { baixo: number; alto: number 
     49: { baixo: 16, alto: 26 }, 50: { baixo: 17, alto: 26 },
 };
 
-// Função auxiliar para verificar status rapidamente baseado em ranges simples
-export function checkStatus(test: keyof typeof CLINICAL_REFS, value: number) {
+// Função auxiliar para verificar status rapidamente baseado em ranges simples ou IDs categóricos
+export function checkStatus(test: keyof typeof CLINICAL_REFS, value: any) {
     const ref = CLINICAL_REFS[test] as any;
     if (!ref || !ref.ranges) return null;
+
+    // Se o valor for string, buscamos por ID categórico (ex: Silfverskiold)
+    if (typeof value === 'string' && isNaN(Number(value)) && value !== "") {
+        return ref.ranges.find((r: any) => r.id === value);
+    }
+
+    const v = Number(value);
+    if (isNaN(v)) return null;
 
     return ref.ranges.find((r: any) => {
         // Se min/max não definido, assume infinito
         const min = r.min ?? -Infinity;
         const max = r.max ?? Infinity;
-        return value >= min && value <= max;
+        return v >= min && v <= max;
     });
 }
 

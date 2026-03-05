@@ -419,7 +419,24 @@ export default async function PatientDetailPage({
                                 <CardContent>
                                     <EvolutionTab
                                         patientId={id}
-                                        records={evolutionRecords}
+                                        records={[
+                                            ...evolutionRecords.map(r => ({ ...r, _type: 'record' })),
+                                            ...assessments
+                                                .filter(a => a.type === 'insoles_prescription')
+                                                .map(a => ({
+                                                    id: a.id,
+                                                    created_at: a.created_at,
+                                                    content: {
+                                                        title: `Prescrição: ${a.data?.produto || 'Palmilha'}`,
+                                                        texto: a.data?.reportText || 'Veja detalhes na aba Palmilhas',
+                                                        note: a.data?.reportText,
+                                                        _is_insole_prescription: true,
+                                                        propulsaoOrder: a.data?.propulsaoOrder
+                                                    },
+                                                    professionals: a.profiles,
+                                                    _type: 'assessment'
+                                                }))
+                                        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())}
                                     />
                                 </CardContent>
                             </Card>

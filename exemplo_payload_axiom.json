@@ -1,0 +1,158 @@
+{
+    "___DESCRICAO___": "Este é o JSON COMPLETO que o Axiom envia para https://us-central1-dev-propulsao.cloudfunctions.net/pedidos_axion",
+    "___ESTRUTURA___": "Todos os campos do 'info' são enviados TANTO no nível raiz do body QUANTO dentro do objeto 'info'. O 'payload' contém dados sensíveis criptografados com RSA-OAEP.",
+    "payload": "<<BASE64_ENCRYPTED_RSA_OAEP>> (contém: timestamp, Email_paciente, IdFisio, LocalPedido, Nome_Paciente)",
+    "info": {
+        "___DADOS_GERAIS___": "Identificação do pedido e paciente",
+        "Nome_Paciente": "TESTE FINAL 2",
+        "Email_paciente": "paciente@email.com",
+        "IdFisio": [
+            "wmelot@gmail.com"
+        ],
+        "LocalPedido": "AXIOM",
+        "Origem": "PEDIDOS",
+        "dataStamp": 1772718967128,
+        "orderDate": "2026-03-05",
+        "DataPedido": "05/03/2026",
+        "StatusPedido": "em producao",
+        "StatusPagamento": "Em aberto",
+        "Telefone_paciente": "+5531991856084",
+        "___PRODUTO___": "Tipo de palmilha e acabamento",
+        "Produto": "Slim",
+        "Cobertura": "EVAazul",
+        "Numeracao": 40,
+        "ladoPedido": "DireitoEsquerdo",
+        "PrecoPedido": 220,
+        "___PE_DIREITO___": "Dados técnicos do pé direito",
+        "Antepe_Dir": "3",
+        "Retrope_Dir": "-6",
+        "Arco_Dir": "Medio",
+        "Elevacao_Dir": "3",
+        "SuporteArco_dir": "Semi-Flexível",
+        "Absorcao_dir": "1",
+        "Borda_Dir": "Borda",
+        "Alivio1_dir": "1º Met.",
+        "Alivio23_dir": "",
+        "Alivio45_dir": "4º/5º Met.",
+        "Barra_Dir": "Barra",
+        "gota_dir": "",
+        "___PE_ESQUERDO___": "Dados técnicos do pé esquerdo",
+        "Antepe_Esq": "6",
+        "Retrope_Esq": "-9",
+        "Arco_Esq": "Medio",
+        "Elevacao_Esq": "0",
+        "SuporteArco_esq": "Semi-Flexível",
+        "Absorcao_esq": "0",
+        "Borda_Esq": "",
+        "Alivio1_esq": "",
+        "Alivio23_esq": "2º/3º Met.",
+        "Alivio45_esq": "",
+        "Barra_Esq": "",
+        "gota_esq": "Gota",
+        "___ARQUIVOS___": "Arquivos de scanner 3D (Base64)",
+        "fileE": "UExhY2Vob2xkZXI=",
+        "fileD": "UExhY2Vob2xkZXI=",
+        "___PROFISSIONAL___": "Dados do profissional que prescreveu",
+        "Nome_indicacao": "Fisioterapeuta Axiom",
+        "Contato_indicacao": "Access Fisioterapia - Betim/MG",
+        "PontosGerados": 0,
+        "___OBSERVACOES___": "Relatório clínico gerado pelo sistema",
+        "observacoesCompra": "Indicação de órteses plantares (palmilhas) desenhadas para distribuir melhor a pressão plantar e controlar o movimentos indesejados do pé.\n\nPara o pé esquerdo, a órtese inclui controle de Supinação no retropé e controle de Pronação no antepé.\n\nPara o pé direito, foram incorporadas correções para o controle de Pronação no retropé e controle de Supinação no antepé.\n\nFoi incluída compensação (elevação) com o intuito de proporcionar alinhamento dos membros inferiores e da pelve.\n\nForam adicionados elementos de absorção e alívio (PADS) estrategicamente posicionados para reduzir a pressão nos pontos de maior sobrecarga."
+    },
+    "___PAYLOAD_DESCRIPTOGRAFADO___": {
+        "___NOTA___": "Isto é o que está DENTRO do payload criptografado (RSA-OAEP com SHA-256)",
+        "timestamp": 1772718967,
+        "Email_paciente": "paciente@email.com",
+        "IdFisio": [
+            "wmelot@gmail.com"
+        ],
+        "LocalPedido": "AXIOM",
+        "Nome_Paciente": "TESTE FINAL 2"
+    },
+    "___VALORES_POSSIVEIS___": {
+        "Produto": [
+            "Slim",
+            "Classic",
+            "Sport"
+        ],
+        "Cobertura": [
+            "EVAazul",
+            "TECIDOpreto",
+            "TECIDOazul",
+            "Plastazote",
+            "Nobuk"
+        ],
+        "Arco_Dir/Esq": [
+            "Baixo",
+            "Medio",
+            "Alto"
+        ],
+        "SuporteArco_dir/esq": [
+            "Flexível",
+            "Semi-Flexível"
+        ],
+        "Absorcao_dir/esq": [
+            "0 (sem absorção)",
+            "1 (com absorção)"
+        ],
+        "Antepe_Dir/Esq": [
+            "-12",
+            "-9",
+            "-6",
+            "-3",
+            "0",
+            "3",
+            "6",
+            "9",
+            "12"
+        ],
+        "Retrope_Dir/Esq": [
+            "-12",
+            "-9",
+            "-6",
+            "-3",
+            "0",
+            "3",
+            "6",
+            "9",
+            "12"
+        ],
+        "Elevacao_Dir/Esq": [
+            "0 (sem elevação)",
+            "3 (0.3cm)",
+            "5 (0.5cm)",
+            "10 (1.0cm)"
+        ],
+        "Borda_Dir/Esq": [
+            "'' (sem borda)",
+            "Borda"
+        ],
+        "Alivio1_dir/esq": [
+            "'' (sem)",
+            "1º Met."
+        ],
+        "Alivio23_dir/esq": [
+            "'' (sem)",
+            "2º/3º Met."
+        ],
+        "Alivio45_dir/esq": [
+            "'' (sem)",
+            "4º/5º Met."
+        ],
+        "Barra_Dir/Esq": [
+            "'' (sem)",
+            "Barra"
+        ],
+        "gota_dir/esq": [
+            "'' (sem)",
+            "Gota"
+        ],
+        "ladoPedido": [
+            "DireitoEsquerdo",
+            "Direito",
+            "Esquerdo"
+        ],
+        "Numeracao": "Número inteiro (ex: 35, 36, 37... 45)"
+    },
+    "___PROBLEMA_ATUAL___": "A CF pedidos_axion recebe todos estes campos mas só grava no Firestore: Cobertura, Numeracao, PrecoPedido, DataPedido, observacoesCompra, Nome_Paciente, ladoPedido, Produto, Nome_indicacao, Contato_indicacao, dataStamp, LocalPedido. Os campos de pé (Antepe_Dir, Retrope_Dir, Arco_Dir, etc.) chegam no info mas NÃO são copiados para o documento do Firestore."
+}
