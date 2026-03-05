@@ -36,8 +36,11 @@ export default function InclinometerTest() {
     const startSensors = async () => {
         if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
             try {
-                const permission = await (DeviceOrientationEvent as any).requestPermission()
-                if (permission === 'granted') {
+                // Solicita as duas permissões necessárias para iOS
+                await (DeviceOrientationEvent as any).requestPermission()
+                const motionStatus = await (DeviceMotionEvent as any).requestPermission()
+
+                if (motionStatus === 'granted') {
                     setPermissionGranted(true)
                     setShowInstructions(false)
                 }
@@ -45,6 +48,7 @@ export default function InclinometerTest() {
                 console.error("Erro ao solicitar permissão:", err)
             }
         } else {
+            // Browsers que não exigem permissão explícita (Android/Desktop)
             setPermissionGranted(true)
             setShowInstructions(false)
         }
@@ -53,29 +57,30 @@ export default function InclinometerTest() {
     useEffect(() => {
         if (!permissionGranted || isFrozen) return
 
-        const handleOrientation = (event: DeviceOrientationEvent) => {
-            const beta = event.beta || 0   // Inclinação frontal
-            const gamma = event.gamma || 0  // Inclinação lateral
+        const handleMotion = (event: DeviceMotionEvent) => {
+            const acc = event.accelerationIncludingGravity
+            if (!acc) return
 
-            // --- MATEMÁTICA PURA 180º ---
-            // Usamos Atan2 para obter o ângulo real no plano da tela (Roll)
-            // Isso garante 0 no topo, 90 na lateral e 180 no fundo sem quebras.
-            const b = beta * (Math.PI / 180)
-            const g = gamma * (Math.PI / 180)
+            // --- MOTOR DE PRECISÃO CLÍNICA (GRAVIDADE PURA) ---
+            // O "prego atravessando a tela" é o eixo Z.
+            // Queremos a rotação no plano X-Y em relação à gravidade.
+            const x = acc.x || 0
+            const y = acc.y || 0
 
-            // A fórmula atan2(sin_g, sin_b) é a mais estável para rotação de tela
-            let currentRaw = Math.atan2(Math.sin(g), Math.sin(b)) * (180 / Math.PI)
+            // Atan2(x, y) nos dá o ângulo exato do vetor gravidade na tela.
+            // O "-" no X é para que inclinar o topo para a DIREITA seja POSITIVO.
+            let currentRaw = Math.atan2(-x, y) * (180 / Math.PI)
 
             lastRawAngleRef.current = currentRaw
 
-            // Ângulo relativo à calibração
+            // Cálculo relativo à calibração (Zerar)
             let relativeAngle = currentRaw - referenceAngleRef.current
 
-            // Ajuste para o range -180 a 180
+            // Normalização circular para manter entre -180 e 180
             if (relativeAngle > 180) relativeAngle -= 360
             if (relativeAngle < -180) relativeAngle += 360
 
-            // Atualiza Barra
+            // Atualiza Barra (Gauge)
             setGaugeAngle(relativeAngle)
 
             // Atualiza Número (Display)
@@ -86,12 +91,13 @@ export default function InclinometerTest() {
             setDisplayAngle(Number(finalVal.toFixed(1)))
         }
 
-        window.addEventListener('deviceorientation', handleOrientation)
-        return () => window.removeEventListener('deviceorientation', handleOrientation)
+        // Usamos devicemotion que é mais direto e linear que orientation
+        window.addEventListener('devicemotion', handleMotion)
+        return () => window.removeEventListener('devicemotion', handleMotion)
     }, [permissionGranted, isFrozen, showSign])
 
     useEffect(() => {
-        if (typeof window !== 'undefined' && 'DeviceOrientationEvent' in window) {
+        if (typeof window !== 'undefined' && 'DeviceMotionEvent' in window) {
             setIsSupported(true)
         } else {
             setIsSupported(false)
@@ -197,14 +203,14 @@ export default function InclinometerTest() {
                         strokeWidth="12"
                         fill="transparent"
                         strokeDasharray={`${dashLength} ${circumference}`}
-                        strokeDashoffset="0"
+                        // Se o ângulo for negativo (esquerda), usamos o offset para "empurrar" o início do traço
+                        // para trás, fazendo-o crescer no sentido anti-horário a partir do topo.
+                        strokeDashoffset={gaugeAngle >= 0 ? 0 : dashLength}
                         strokeLinecap="round"
                         className="text-blue-500 transition-all duration-300"
                         style={{
                             transformOrigin: 'center',
-                            // Rotaciona o arco para que ele sempre comece no topo (12h)
-                            // Se o ângulo é negativo, rotacionamos para trás para crescer anti-horário
-                            transform: `rotate(${gaugeAngle >= 0 ? -90 : -90 - Math.abs(visualAngle)}deg)`
+                            transform: 'rotate(-90deg)' // Fixamos o início do círculo no topo (12h)
                         }}
                     />
                 </svg>
