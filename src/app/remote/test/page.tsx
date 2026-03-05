@@ -30,8 +30,8 @@ export default function InclinometerTest() {
     const referenceAngleRef = useRef(0)
     const lastDisplayRef = useRef(0)
 
-    const SMOOTH_NUMBER = 0.08
-    const SMOOTH_GAUGE = 0.4 // Um pouco mais suave para a barra não tremer tanto
+    const SMOOTH_NUMBER = 0.04 // Estabilidade
+    const SMOOTH_GAUGE = 0.5
 
     const startSensors = async () => {
         if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
@@ -53,14 +53,6 @@ export default function InclinometerTest() {
             setShowInstructions(false)
         }
     }
-
-    const lastRawAngleRef = useRef(0)
-    const referenceAngleRef = useRef(0)
-    const lastDisplayRef = useRef(0)
-
-    const SMOOTH_NUMBER = 0.04 // Estabilidade de nível industrial
-    const SMOOTH_GAUGE = 0.5
-
     useEffect(() => {
         if (!permissionGranted || isFrozen) return
 
