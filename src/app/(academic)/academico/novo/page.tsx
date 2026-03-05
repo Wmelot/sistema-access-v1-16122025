@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -249,7 +249,7 @@ const AIAssistantBox = ({
     );
 };
 
-export default function NovoRegistroAcademico() {
+function NovoRegistroAcademicoForm() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const extraFilesRef = useRef<HTMLInputElement>(null);
     const [categoria, setCategoria] = useState<string>("PESQUISA");
@@ -1192,5 +1192,13 @@ export default function NovoRegistroAcademico() {
                 )}
             </AnimatePresence>
         </div>
+    );
+}
+
+export default function NovoRegistroAcademico() {
+    return (
+        <Suspense fallback={<div className="min-h-screen w-full flex items-center justify-center bg-[#FDFDFD]"><QuantumLoader size="60" color="#8C132C" /></div>}>
+            <NovoRegistroAcademicoForm />
+        </Suspense>
     );
 }
