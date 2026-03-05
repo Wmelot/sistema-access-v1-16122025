@@ -57,25 +57,32 @@ export default function InclinometerTest() {
             const beta = event.beta || 0
             const gamma = event.gamma || 0
 
-            // Eixo isolado: Rotação no plano da tela
-            const rad = Math.atan2(gamma, beta)
-            let currentRaw = rad * (180 / Math.PI)
+            // Trigonometria estável para rotação no plano da tela (Z-axis rotation)
+            // Esta fórmula calcula o ângulo da gravidade projetado na face do celular
+            const b = beta * (Math.PI / 180)
+            const g = gamma * (Math.PI / 180)
 
-            // Lógica de Giro Contínuo
-            let delta = currentRaw - lastRawAngleRef.current
-            if (delta > 180) delta -= 360
-            if (delta < -180) delta += 360
+            // Atan2 estável considerando a face do aparelho: 
+            // 0 é o topo do celular (modo retrato)
+            let currentRaw = Math.atan2(Math.sin(g), Math.sin(b)) * (180 / Math.PI)
 
-            cumulativeAngleRef.current += delta
+            // Ajuste para garantir que 0 seja o topo absoluto
+            // Na maioria dos navegadores, atan2(sin(g), sin(b)) retorna 0 no topo portrait
+
             lastRawAngleRef.current = currentRaw
 
-            const relativeAngle = cumulativeAngleRef.current - referenceAngleRef.current
+            // Cálculo relativo à calibração
+            let relativeAngle = currentRaw - referenceAngleRef.current
+
+            // Normaliza para -180 a 180 (sem acumulo de 360)
+            if (relativeAngle > 180) relativeAngle -= 360
+            if (relativeAngle < -180) relativeAngle += 360
 
             // Barra (Gauge) - Rápida
-            const fastVal = (lastRawAngleRef.current * (1 - SMOOTH_GAUGE)) + (relativeAngle * SMOOTH_GAUGE)
             setGaugeAngle(relativeAngle)
 
-            // Número (Display) - Lento
+            // Número (Display) - Suavizado (Lento)
+            // Usamos interpolação linear para evitar que o número "vibre"
             const slowVal = (lastDisplayRef.current * (1 - SMOOTH_NUMBER)) + (relativeAngle * SMOOTH_NUMBER)
             lastDisplayRef.current = slowVal
 
@@ -96,10 +103,13 @@ export default function InclinometerTest() {
     }, [])
 
     const calibrateZero = () => {
-        referenceAngleRef.current = cumulativeAngleRef.current
+        referenceAngleRef.current = lastRawAngleRef.current
         setDisplayAngle(0)
         setGaugeAngle(0)
         setIsFrozen(false)
+        if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+            window.navigator.vibrate(50)
+        }
         toast.success("Referência Zerada")
     }
 

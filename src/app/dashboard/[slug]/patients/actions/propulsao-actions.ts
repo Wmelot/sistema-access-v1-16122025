@@ -56,38 +56,12 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             return isNaN(val) ? "0" : String(Math.round(val * 10)); // cm para mm
         };
 
-        // 2. CRIPTOGRAFIA RSA-OAEP
-        const sensitiveData = {
-            timestamp: Math.floor(Date.now() / 1000),
-            Email_paciente: (patientData.email || "").toLowerCase(),
-            IdFisio: [activeUserEmail],
-            LocalPedido: "AXIOM",
-            Nome_Paciente: (patientData.nome || patientData.name || "Paciente").toUpperCase()
-        };
-
-        const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
-        const buffer = forge.util.createBuffer(JSON.stringify(sensitiveData), 'utf8');
-        const encrypted = publicKey.encrypt(buffer.getBytes(), 'RSA-OAEP', {
-            md: forge.md.sha256.create(),
-            mgf1: { md: forge.md.sha256.create() }
-        });
-        const base64Payload = forge.util.encode64(encrypted);
-
-        // 3. MONTAGEM DO OBJETO INFO
+        // 3. MONTAGEM DOS DADOS (Info e Sensitive Payload)
         const leftFoot = orderData.leftFoot || {};
         const rightFoot = orderData.rightFoot || {};
 
-        const info: Record<string, any> = {
-            Nome_Paciente: (patientData.nome || patientData.name || "Paciente").toUpperCase(),
-            Email_paciente: (patientData.email || "").toLowerCase(),
-            IdFisio: [activeUserEmail],
-            LocalPedido: "AXIOM",
-            Origem: "PEDIDOS",
-            dataStamp: Date.now(),
-            orderDate: orderDate,
-            DataPedido: dataPedidoBR,
-            StatusPedido: "em producao",
-            StatusPagamento: "Em aberto",
+        const technicalData = {
+            // Definição do Produto
             Produto: orderData.general?.produto || "Slim",
             Cobertura: (() => {
                 const c = orderData.general?.cobertura || "EVA Azul";
@@ -99,7 +73,6 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
                 return c.replace(/\s/g, "");
             })(),
             Numeracao: Number(orderData.general?.tamanho) || 0,
-            Telefone_paciente: (patientData.telefone || patientData.phone || ""),
             ladoPedido: "DireitoEsquerdo",
             PrecoPedido: Number(orderData.totalPrice) || 0,
 
@@ -126,25 +99,49 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
             Alivio23_dir: rightFoot.pads?.['Alívio 2/3º Metatarso'] ? "2º/3º Met." : "",
             Alivio45_dir: rightFoot.pads?.['Alívio 4/5º Metatarso'] ? "4º/5º Met." : "",
             Barra_Dir: rightFoot.pads?.['Barra'] ? "Barra" : "",
-            gota_dir: rightFoot.pads?.['Gota'] ? "Gota" : "",
+            gota_dir: rightFoot.pads?.['Gota'] ? "Piloto" : "", // "Piloto" é o termo técnico para Gota na Propulsão
+
             Alivio1_esq: leftFoot.pads?.['Alívio 1º Metatarso'] ? "1º Met." : "",
             Alivio23_esq: leftFoot.pads?.['Alívio 2/3º Metatarso'] ? "2º/3º Met." : "",
             Alivio45_esq: leftFoot.pads?.['Alívio 4/5º Metatarso'] ? "4º/5º Met." : "",
             Barra_Esq: leftFoot.pads?.['Barra'] ? "Barra" : "",
-            gota_esq: leftFoot.pads?.['Gota'] ? "Gota" : "",
+            gota_esq: leftFoot.pads?.['Gota'] ? "Piloto" : "",
 
-            // Arquivos Scanner (placeholder se não houver)
-            fileE: orderData.fileE || "UExhY2Vob2xkZXI=",
-            fileD: orderData.fileD || "UExhY2Vob2xkZXI=",
-
-            // Dados do profissional
-            Nome_indicacao: professionalData?.name || professionalData?.full_name || "Fisioterapeuta Axiom",
-            Contato_indicacao: professionalData?.address || professionalData?.clinic || "Access Fisioterapia - Betim/MG",
-            PontosGerados: 0,
-            observacoesCompra: orderData.reportText || ""
+            // Observações
+            observacoesCompra: (orderData.reportText || "").substring(0, 1000)
         };
 
-        // ENVIO — Campos achatados no body + dentro de info
+        // CRIPTOGRAFIA RSA-OAEP (TUDO DEVE ESTAR AQUI)
+        const sensitiveData = {
+            ...technicalData,
+            timestamp: Math.floor(Date.now() / 1000),
+            Email_paciente: (patientData.email || "").toLowerCase(),
+            Telefone_paciente: (patientData.telefone || patientData.phone || "").replace(/\D/g, ""),
+            IdFisio: [activeUserEmail], // Array para o Diego ler index [0]
+            LocalPedido: "AXIOM",
+            Nome_Paciente: (patientData.nome || patientData.name || "Paciente").toUpperCase(),
+            DataPedido: dataPedidoBR,
+            orderDate: orderDate,
+            Origem: "Axiom"
+        };
+
+        const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
+        const buffer = forge.util.createBuffer(JSON.stringify(sensitiveData), 'utf8');
+        const encrypted = publicKey.encrypt(buffer.getBytes(), 'RSA-OAEP', {
+            md: forge.md.sha256.create(),
+            mgf1: { md: forge.md.sha256.create() }
+        });
+        const base64Payload = forge.util.encode64(encrypted);
+
+        const info = {
+            ...sensitiveData,
+            fileE: orderData.fileE || "UExhY2Vob2xkZXI=",
+            fileD: orderData.fileD || "UExhY2Vob2xkZXI=",
+            Nome_indicacao: professionalData?.name || professionalData?.full_name || "Fisioterapeuta Axiom",
+            Contato_indicacao: professionalData?.address || professionalData?.clinic || "Axiom"
+        };
+
+        // ENVIO — Estrutura solicitada: Root + Payload + Nested Info
         const response = await fetch("https://us-central1-dev-propulsao.cloudfunctions.net/pedidos_axion", {
             method: "POST",
             headers: {
@@ -156,12 +153,11 @@ export async function sendOrderToPropulsao(orderData: any, patientData: any, pro
         });
 
         if (response.ok) {
-            // TODO: Quando Diego liberar permissões no Firestore dev-propulsao,
-            // implementar sync do N_Pedido e update dos campos de pé
             return { success: true, orderNumber: undefined, synced: false };
         }
 
-        return { success: false, error: `Erro de Servidor (Status ${response.status})` };
+        const errorText = await response.text();
+        return { success: false, error: `Erro na Fábrica: ${response.status} - ${errorText.substring(0, 150)}` };
 
     } catch (error: any) {
         return { success: false, error: error.message };
