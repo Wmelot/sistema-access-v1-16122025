@@ -9,9 +9,8 @@ import {
     Unlock,
     Info,
     AlertTriangle,
-    Navigation,
-    RotateCcw,
-    Smartphone
+    Smartphone,
+    RotateCcw
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -19,13 +18,12 @@ import { toast } from "sonner"
 export default function InclinometerTest() {
     const [isSupported, setIsSupported] = useState<boolean | null>(null)
     const [permissionGranted, setPermissionGranted] = useState(false)
-    const [angle, setAngle] = useState(0)
+    const [displayAngle, setDisplayAngle] = useState(0)
     const [isFrozen, setIsFrozen] = useState(false)
-    const [referenceValue, setReferenceValue] = useState(0)
-    const [mode, setMode] = useState<'lunge' | 'level'>('lunge')
+    const [referenceAngle, setReferenceAngle] = useState(0)
 
     // Filtro de suavização
-    const lastValueRef = useRef(0)
+    const lastAngleRef = useRef(0)
     const smoothingFactor = 0.2
 
     const requestPermission = async () => {
@@ -47,50 +45,30 @@ export default function InclinometerTest() {
         if (!permissionGranted || isFrozen) return
 
         const handleOrientation = (event: DeviceOrientationEvent) => {
-            const beta = event.beta || 0   // Inclinação frontal/traseira (Eixo dos botões)
-            const gamma = event.gamma || 0 // Inclinação lateral
+            const beta = event.beta || 0
+            const gamma = event.gamma || 0
 
-            let rawValue = 0
+            // ALGORITMO DE PÊNDULO CLÍNICO
+            // Calculamos o ângulo de inclinação lateral (clock-hand rotation)
+            // Usamos atan2(gamma, beta) para que 0 seja a posição vertical perfeita
+            const rad = Math.atan2(gamma, beta)
+            let currentRotation = rad * (180 / Math.PI)
 
-            // 1. Detecção de Modo
-            // Se o celular estiver a mais de 45 graus (em pé), usamos Modo Lunge (Goniômetro)
-            // Se estiver mais "deitado", usamos Modo Nível (Eixo dos botões)
-            const isUpright = Math.abs(beta) > 45
-            const currentMode = isUpright ? 'lunge' : 'level'
-            setMode(currentMode)
+            // Filtro de suavização
+            const smoothedAngle = (lastAngleRef.current * (1 - smoothingFactor)) + (currentRotation * smoothingFactor)
+            lastAngleRef.current = smoothedAngle
 
-            if (currentMode === 'lunge') {
-                // MODO LUNGE: Rotação no plano da tela (Ponteiro de relógio)
-                const rad = Math.atan2(beta, gamma)
-                const deg = rad * (180 / Math.PI)
-                rawValue = (deg + 360) % 360
-            } else {
-                // MODO NÍVEL: Inclinação ao longo do eixo dos botões laterais
-                // Usamos o beta diretamente, que mede o 'pitch' do aparelho
-                rawValue = beta
-            }
+            // Diferença relativa ao ZERO calibrado
+            let diff = smoothedAngle - referenceAngle
 
-            // 2. Filtro de suavização
-            const smoothedValue = (lastValueRef.current * (1 - smoothingFactor)) + (rawValue * smoothingFactor)
-            lastValueRef.current = smoothedValue
-
-            // 3. Diferencial (Zero)
-            let finalOutput = 0
-            if (currentMode === 'lunge') {
-                let diff = smoothedValue - referenceValue
-                if (diff > 180) diff -= 360
-                if (diff < -180) diff += 360
-                finalOutput = Math.abs(diff)
-            } else {
-                finalOutput = smoothedValue - referenceValue
-            }
-
-            setAngle(Number(finalOutput.toFixed(1)))
+            // Garantimos que o valor seja absoluto para o contador (como no Physiocode)
+            // ou mantemos o sinal para saber se é pra direita/esquerda
+            setDisplayAngle(Number(Math.abs(diff).toFixed(1)))
         }
 
         window.addEventListener('deviceorientation', handleOrientation)
         return () => window.removeEventListener('deviceorientation', handleOrientation)
-    }, [permissionGranted, isFrozen, referenceValue])
+    }, [permissionGranted, isFrozen, referenceAngle])
 
     useEffect(() => {
         if (typeof window !== 'undefined' && 'DeviceOrientationEvent' in window) {
@@ -109,10 +87,10 @@ export default function InclinometerTest() {
     }
 
     const calibrateZero = () => {
-        setReferenceValue(lastValueRef.current)
-        setAngle(0)
+        setReferenceAngle(lastAngleRef.current)
+        setDisplayAngle(0)
         setIsFrozen(false)
-        toast.success("Referência Calibrada")
+        toast.success("Calibrado em 0.0°")
     }
 
     if (isSupported === false) {
@@ -120,24 +98,24 @@ export default function InclinometerTest() {
             <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-slate-950 text-white text-center">
                 <AlertTriangle className="h-12 w-12 text-amber-500 mb-4" />
                 <h1 className="text-xl font-bold mb-2">Sensores não suportados</h1>
-                <p className="text-slate-400 text-sm">Use o Safari (iOS) ou Chrome (Android) com HTTPS.</p>
+                <p className="text-slate-400 text-sm">Use Safari ou Chrome em modo seguro (HTTPS).</p>
             </div>
         )
     }
 
     if (!permissionGranted) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-slate-950 text-white text-center">
-                <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mb-6 animate-pulse">
+            <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-slate-950 text-white text-center font-sans">
+                <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mb-6">
                     <Smartphone className="h-10 w-10 text-blue-500" />
                 </div>
-                <h1 className="text-2xl font-black mb-4 tracking-tight">AXIOM REMOTE</h1>
-                <p className="text-slate-400 text-sm mb-8 max-w-[280px]">Ative os sensores para usar o celular como Goniômetro e Nível Digital.</p>
+                <h1 className="text-2xl font-black mb-4 tracking-tight">AXIOM REMOTO</h1>
+                <p className="text-slate-400 text-sm mb-8 max-w-[280px]">Inicie os sensores para avaliar inclinações e ângulos clínicos.</p>
                 <Button
                     onClick={requestPermission}
-                    className="w-full max-w-[240px] h-14 bg-blue-600 hover:bg-blue-500 text-lg font-bold rounded-2xl shadow-lg"
+                    className="w-full max-w-[240px] h-14 bg-blue-600 hover:bg-blue-500 text-lg font-bold rounded-2xl shadow-xl shadow-blue-900/20"
                 >
-                    Ativar Sensores
+                    Iniciar Inclinômetro
                 </Button>
             </div>
         )
@@ -146,70 +124,59 @@ export default function InclinometerTest() {
     return (
         <div
             className={cn(
-                "flex flex-col items-center justify-between min-h-screen p-6 transition-colors duration-500 overflow-hidden select-none touch-none",
-                isFrozen ? "bg-indigo-600" : "bg-slate-950"
+                "flex flex-col items-center justify-between min-h-screen p-6 transition-colors duration-500 overflow-hidden select-none touch-none bg-slate-950",
+                isFrozen && "bg-blue-700"
             )}
             onClick={toggleFreeze}
         >
-            {/* ESTE CSS ABAIXO TENTA FORÇAR O LAYOUT A NÃO QUEBRAR COM O GIRO DO CELULAR */}
-            <style jsx global>{`
-                @media screen and (min-aspect-ratio: 1/1) {
-                    .rotate-warning { display: flex !important; }
-                }
-            `}</style>
-
-            {/* Overlay para forçar modo Retrato */}
-            <div className="rotate-warning hidden fixed inset-0 z-50 bg-slate-950 flex-col items-center justify-center p-10 text-center">
-                <RotateCcw className="h-12 w-12 text-blue-500 animate-spin mb-4" />
-                <h2 className="text-white font-bold text-lg italic">Por favor, use o celular em pé</h2>
-                <p className="text-slate-400 text-sm">Para maior precisão nas medidas clínicas, o modo horizontal é bloqueado.</p>
-            </div>
-
             <div className="w-full flex justify-between items-center pt-4">
-                <div className="flex flex-col text-left">
-                    <span className="text-[10px] font-black tracking-widest text-blue-400 uppercase">Axiom Inclinometer</span>
-                    <h2 className="text-white font-bold text-sm">
-                        {mode === 'lunge' ? "Modo Goniômetro (Em pé)" : "Modo Nível (Deitado)"}
-                    </h2>
+                <div className="text-left">
+                    <span className="text-[10px] font-black tracking-widest text-blue-400 uppercase">Goniômetro Axiom</span>
+                    <h2 className="text-white font-bold text-sm tracking-tight">Teste de Inclinação</h2>
                 </div>
                 <Badge className={cn(
-                    "px-3 py-1 text-[10px] font-black uppercase",
-                    isFrozen ? "bg-white text-indigo-700" : "bg-blue-600 text-white"
+                    "px-3 py-1 text-[10px] font-black uppercase rounded-full",
+                    isFrozen ? "bg-white text-blue-700" : "bg-blue-600 text-white"
                 )}>
-                    {isFrozen ? "Trava Ativa" : "Leitura Real"}
+                    {isFrozen ? "Congelado" : "Ao Vivo"}
                 </Badge>
             </div>
 
+            {/* Visualizador Circular Estilo Physiocode */}
             <div className="relative flex items-center justify-center w-full max-w-[320px] aspect-square">
-                {/* Visualização de Nível vs Goniômetro */}
-                {mode === 'level' ? (
-                    <div className="absolute inset-0 flex items-center justify-center opacity-20">
-                        <div className="w-full h-[2px] bg-white" />
-                        <div className="w-[2px] h-full bg-white" />
-                    </div>
-                ) : (
-                    <div className="absolute inset-0 rounded-full border border-slate-800 opacity-30" />
-                )}
-
-                {/* Ponteiro / Bolha de Nível */}
-                {!isFrozen && (
-                    <div
-                        className={cn(
-                            "absolute transition-transform duration-75",
-                            mode === 'lunge' ? "w-[240px] h-[4px] bg-blue-500 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.6)]" : "w-full h-[1px] bg-indigo-400 border-t border-indigo-300"
-                        )}
-                        style={{ transform: `rotate(${mode === 'lunge' ? angle : 0}deg) translateY(${mode === 'level' ? -angle * 2 : 0}px)` }}
+                {/* Arco de Fundo */}
+                <svg className="absolute inset-0 w-full h-full -rotate-90">
+                    <circle
+                        cx="50%"
+                        cy="50%"
+                        r="45%"
+                        stroke="currentColor"
+                        strokeWidth="12"
+                        fill="transparent"
+                        className="text-slate-900"
                     />
-                )}
+                    {/* Arco de Progresso Dinâmico */}
+                    {!isFrozen && (
+                        <circle
+                            cx="50%"
+                            cy="50%"
+                            r="45%"
+                            stroke="currentColor"
+                            strokeWidth="12"
+                            fill="transparent"
+                            strokeDasharray="283%"
+                            strokeDashoffset={`${283 - (displayAngle / 90) * 70}%`}
+                            strokeLinecap="round"
+                            className="text-blue-500 transition-all duration-75"
+                        />
+                    )}
+                </svg>
 
-                <div className="flex flex-col items-center z-10">
-                    <span className={cn(
-                        "text-9xl font-black tracking-tighter tabular-nums transition-colors duration-500",
-                        isFrozen ? "text-white" : "text-blue-500"
-                    )}>
-                        {angle.toFixed(1)}
+                <div className="flex flex-col items-center z-10 text-white">
+                    <span className="text-[120px] font-black tracking-tighter tabular-nums leading-none">
+                        {displayAngle.toFixed(1)}
                     </span>
-                    <span className="text-xl font-black -mt-4 text-slate-500 tracking-widest">GRAUS</span>
+                    <span className="text-2xl font-bold opacity-40 -mt-2 tracking-widest uppercase">Graus</span>
                 </div>
 
                 <div className="absolute -bottom-4 bg-slate-900 border border-slate-800 p-4 rounded-full shadow-2xl">
@@ -221,28 +188,30 @@ export default function InclinometerTest() {
                 </div>
             </div>
 
-            <div className="w-full grid grid-cols-2 gap-4 pb-10">
+            {/* Botões Grandes e Acessíveis */}
+            <div className="w-full grid grid-cols-2 gap-4 pb-12">
                 <Button
                     variant="outline"
                     onClick={(e) => { e.stopPropagation(); calibrateZero(); }}
-                    className="h-20 rounded-3xl border-slate-800 bg-slate-900 text-white text-lg font-black gap-3 hover:bg-slate-800 active:scale-95 transition-all shadow-lg"
+                    className="h-20 rounded-[30px] border-slate-800 bg-slate-900 text-white text-xl font-black gap-2 hover:bg-slate-800 active:scale-95 transition-all"
                 >
-                    <RotateCcw className="h-6 w-6" />
+                    <RotateCcw className="h-6 w-6 text-blue-400" />
                     Zerar
                 </Button>
 
                 <Button
                     variant="outline"
-                    className="h-20 rounded-3xl border-slate-800 bg-slate-900 text-white text-lg font-black gap-3 opacity-30"
+                    className="h-20 rounded-[30px] border-slate-800 bg-slate-900 text-white text-xl font-black gap-2 opacity-30"
                     disabled={!isFrozen}
                 >
-                    <RefreshCw className="h-6 w-6" />
+                    <RefreshCw className="h-5 w-5" />
                     Enviar
                 </Button>
             </div>
 
-            <div className="pb-4 opacity-30 text-[9px] font-bold uppercase tracking-widest text-center">
-                Aparelho deve estar em pé para Lunge <br />ou deitado para Nível de Mesa
+            <div className="pb-4 flex items-center gap-2 opacity-40">
+                <Info className="h-3 w-3" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Toque em qualquer lugar para congelar</span>
             </div>
         </div>
     )
