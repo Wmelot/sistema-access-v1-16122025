@@ -168,8 +168,8 @@ export default function Palmilha5Form({
                 tipoPalmilha: "Inteira",
                 cobertura: "EVA Azul (Padrão)",
                 tamanho: "",
-                leftFoot: { arco: "Normal", flexibilidade: "Flexível", pontoDor: "", elevacao: "0", borda: "" },
-                rightFoot: { arco: "Normal", flexibilidade: "Flexível", pontoDor: "", elevacao: "0", borda: "" },
+                leftFoot: { arco: "Normal", flexibilidade: "Flexível", pontoDor: "", elevacao: "0", borda: "", pads: {}, corretivos: {} },
+                rightFoot: { arco: "Normal", flexibilidade: "Flexível", pontoDor: "", elevacao: "0", borda: "", pads: {}, corretivos: {} },
                 reportText: ""
             },
             ...initialData

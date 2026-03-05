@@ -8,7 +8,10 @@ import {
     Lock,
     Unlock,
     Smartphone,
-    RotateCcw
+    RotateCcw,
+    IterationCw,
+    AlertCircle,
+    CheckCircle2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -16,33 +19,34 @@ import { toast } from "sonner"
 export default function InclinometerTest() {
     const [isSupported, setIsSupported] = useState<boolean | null>(null)
     const [permissionGranted, setPermissionGranted] = useState(false)
+    const [showInstructions, setShowInstructions] = useState(true) // Nova tela de setup
     const [displayAngle, setDisplayAngle] = useState(0)
     const [gaugeAngle, setGaugeAngle] = useState(0)
     const [isFrozen, setIsFrozen] = useState(false)
-    const [showSign, setShowSign] = useState(false) // Toggle para Absoluto vs Sinal
+    const [showSign, setShowSign] = useState(false)
 
-    // Referências para Cálculo de Giro Contínuo
     const lastRawAngleRef = useRef(0)
     const cumulativeAngleRef = useRef(0)
     const referenceAngleRef = useRef(0)
     const lastDisplayRef = useRef(0)
 
-    // Constantes de Sensibilidade clínica
     const SMOOTH_NUMBER = 0.08
-    const SMOOTH_GAUGE = 0.7
+    const SMOOTH_GAUGE = 0.4 // Um pouco mais suave para a barra não tremer tanto
 
-    const requestPermission = async () => {
+    const startSensors = async () => {
         if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
             try {
                 const permission = await (DeviceOrientationEvent as any).requestPermission()
                 if (permission === 'granted') {
                     setPermissionGranted(true)
+                    setShowInstructions(false)
                 }
             } catch (err) {
                 console.error("Erro ao solicitar permissão:", err)
             }
         } else {
             setPermissionGranted(true)
+            setShowInstructions(false)
         }
     }
 
@@ -53,32 +57,28 @@ export default function InclinometerTest() {
             const beta = event.beta || 0
             const gamma = event.gamma || 0
 
-            // ISOLAMENTO DE EIXO: Cálculo de rotação no plano da tela (Clock-hand)
+            // Eixo isolado: Rotação no plano da tela
             const rad = Math.atan2(gamma, beta)
             let currentRaw = rad * (180 / Math.PI)
 
-            // LÓGICA DE GIRO CONTÍNUO (EVITA PULO NOS 180°)
+            // Lógica de Giro Contínuo
             let delta = currentRaw - lastRawAngleRef.current
-
-            // Corrige o wrap-around (se pular de 179 para -179)
             if (delta > 180) delta -= 360
             if (delta < -180) delta += 360
 
             cumulativeAngleRef.current += delta
             lastRawAngleRef.current = currentRaw
 
-            // Ângulo relativo ao ZERO calibrado
             const relativeAngle = cumulativeAngleRef.current - referenceAngleRef.current
 
-            // 1. Atualiza Barra (Rápida e Sem Limites)
-            const fastVal = (lastDisplayRef.current * (1 - SMOOTH_GAUGE)) + (relativeAngle * SMOOTH_GAUGE)
-            setGaugeAngle(fastVal)
+            // Barra (Gauge) - Rápida
+            const fastVal = (lastRawAngleRef.current * (1 - SMOOTH_GAUGE)) + (relativeAngle * SMOOTH_GAUGE)
+            setGaugeAngle(relativeAngle)
 
-            // 2. Atualiza Número (Suave)
+            // Número (Display) - Lento
             const slowVal = (lastDisplayRef.current * (1 - SMOOTH_NUMBER)) + (relativeAngle * SMOOTH_NUMBER)
             lastDisplayRef.current = slowVal
 
-            // Decidimos se mostramos o valor absoluto ou com sinal (+/-)
             const finalVal = showSign ? slowVal : Math.abs(slowVal)
             setDisplayAngle(Number(finalVal.toFixed(1)))
         }
@@ -95,132 +95,153 @@ export default function InclinometerTest() {
         }
     }, [])
 
-    const toggleFreeze = (e: React.MouseEvent | React.TouchEvent) => {
-        if ((e.target as HTMLElement).closest('button')) return
-        setIsFrozen(!isFrozen)
-        if (typeof navigator !== 'undefined' && navigator.vibrate) {
-            navigator.vibrate(50)
-        }
-    }
-
     const calibrateZero = () => {
-        // Marcamos o acúmulo atual como o novo ponto de referência
         referenceAngleRef.current = cumulativeAngleRef.current
         setDisplayAngle(0)
         setGaugeAngle(0)
         setIsFrozen(false)
-        toast.success("Zero Calibrado")
+        toast.success("Referência Zerada")
     }
 
-    if (isSupported === false) {
+    if (showInstructions) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-slate-950 text-white text-center">
-                <h1 className="text-xl font-bold">Sensores não suportados</h1>
+            <div className="flex flex-col items-center justify-center min-h-screen p-8 bg-slate-950 text-white text-center font-sans tracking-tight">
+                <div className="mb-8 relative">
+                    <div className="w-24 h-24 bg-blue-500/10 rounded-3xl flex items-center justify-center animate-pulse">
+                        <IterationCw className="h-12 w-12 text-blue-500" />
+                    </div>
+                    <div className="absolute -top-2 -right-2 bg-amber-500 p-2 rounded-full shadow-lg animate-bounce">
+                        <Lock className="h-4 w-4 text-slate-950" />
+                    </div>
+                </div>
+
+                <h1 className="text-3xl font-black mb-4">PREPARAÇÃO</h1>
+
+                <div className="space-y-6 mb-10 text-left bg-slate-900/50 p-6 rounded-2xl border border-white/5">
+                    <div className="flex gap-4">
+                        <div className="bg-blue-500 h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0">1</div>
+                        <p className="text-slate-300 text-sm">Abra a <b>Central de Controle</b> do iPhone (arraste do topo direito).</p>
+                    </div>
+                    <div className="flex gap-4">
+                        <div className="bg-blue-500 h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0">2</div>
+                        <p className="text-slate-300 text-sm">Ative o <b>Bloqueio de Orientação Vertical</b> (ícone de cadeado circular).</p>
+                    </div>
+                    <div className="flex gap-4">
+                        <div className="bg-blue-500 h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0">3</div>
+                        <p className="text-slate-300 text-sm italic opacity-70 italic font-medium">Isso garante que o sensor não se perca durante as medidas.</p>
+                    </div>
+                </div>
+
+                <Button
+                    onClick={startSensors}
+                    className="w-full max-w-[280px] h-16 bg-blue-600 hover:bg-blue-500 text-lg font-black rounded-[20px] shadow-2xl shadow-blue-500/20"
+                >
+                    TUDO PRONTO
+                </Button>
             </div>
         )
     }
 
-    if (!permissionGranted) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-slate-950 text-white text-center">
-                <Smartphone className="h-10 w-10 text-blue-500 mb-6" />
-                <h1 className="text-2xl font-black mb-4">GONIMETRO V3</h1>
-                <Button onClick={requestPermission} className="w-full bg-blue-600 h-14 font-bold rounded-2xl">Ativar Sensores</Button>
-            </div>
-        )
-    }
-
-    // Cálculos para o SVG Bidirecional e Contínuo
-    const radius = 90
+    // Configuração SVG para barra que cresce (Stroke Dash)
+    const radius = 85
     const circumference = 2 * Math.PI * radius
-    // Mostramos visualmente apenas o resto de 360 para a barra não ficar "vazando" o círculo
-    const visualMod = gaugeAngle % 360
-    const offset = circumference - (Math.abs(visualMod) / 360) * circumference
+    // Limitamos visualmente mas deixamos ela crescer até 180° por lado
+    const visualAngle = Math.max(-180, Math.min(180, gaugeAngle))
+    const percentage = Math.abs(visualAngle) / 360
+    const dashOffset = circumference * (1 - percentage)
 
     return (
         <div
             className={cn(
-                "flex flex-col items-center justify-between min-h-screen p-6 transition-colors duration-500 bg-slate-950",
+                "flex flex-col items-center justify-between min-h-screen p-6 transition-colors duration-700 bg-slate-950 select-none touch-none",
                 isFrozen && "bg-blue-900"
             )}
-            onClick={toggleFreeze}
+            onClick={() => setIsFrozen(!isFrozen)}
         >
             <div className="w-full flex justify-between items-center pt-4">
                 <div className="text-left">
-                    <span className="text-[10px] font-black tracking-widest text-blue-400 uppercase">Goniômetro Pro</span>
-                    <h2 className="text-white font-bold text-sm tracking-tight italic">Rotação Contínua 360°+</h2>
+                    <span className="text-[10px] font-black tracking-widest text-blue-400 uppercase opacity-60">Smart Clinometer</span>
+                    <h2 className="text-white font-bold text-sm">Goniometria Digital</h2>
                 </div>
-
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); setShowSign(!showSign); }}
-                    className={cn(
-                        "h-8 gap-2 rounded-full border-slate-800 transition-all",
-                        showSign ? "bg-white text-blue-950 border-white" : "bg-slate-900 text-white"
-                    )}
-                >
-                    <span className="text-[10px] font-black tracking-tighter uppercase">{showSign ? "Sinal ON" : "Sinal OFF"}</span>
-                </Button>
+                <Badge className={cn(
+                    "px-4 py-1.5 text-[10px] font-black uppercase rounded-full border-none",
+                    isFrozen ? "bg-white text-blue-900" : "bg-blue-600/20 text-blue-400 border border-blue-500/30"
+                )}>
+                    {isFrozen ? "CONGELADO" : "AO VIVO"}
+                </Badge>
             </div>
 
-            <div className="relative flex items-center justify-center w-full max-w-[320px] aspect-square">
+            <div className="relative flex items-center justify-center w-full max-w-[340px] aspect-square">
+                {/* SVG da Barra Circular Progressiva */}
                 <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full -rotate-90">
-                    <circle cx="100" cy="100" r={radius} stroke="currentColor" strokeWidth="4" fill="transparent" className="text-slate-900" />
-                    {!isFrozen && (
-                        <circle
-                            cx="100" cy="100" r={radius} stroke="currentColor" strokeWidth="12" fill="transparent"
-                            strokeDasharray={circumference}
-                            strokeDashoffset={offset}
-                            strokeLinecap="round"
-                            className={cn("text-blue-500 transition-all", gaugeAngle < 0 ? "scale-y-[-1]" : "scale-y-[1]")}
-                            style={{ transformOrigin: 'center' }}
-                        />
-                    )}
+                    {/* Ring de fundo */}
+                    <circle cx="100" cy="100" r={radius} stroke="rgba(255,255,255,0.03)" strokeWidth="6" fill="transparent" />
+
+                    {/* Linha do Ponto Zero (Topo) */}
+                    <line x1="100" y1="10" x2="100" y2="20" stroke="rgba(59,130,246,0.3)" strokeWidth="2" />
+
+                    {/* A BARRA QUE CRESCE REALMENTE */}
+                    <circle
+                        cx="100"
+                        cy="100"
+                        r={radius}
+                        stroke="currentColor"
+                        strokeWidth="10"
+                        fill="transparent"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={dashOffset}
+                        strokeLinecap="round"
+                        className={cn(
+                            "text-blue-500 transition-all duration-300",
+                            gaugeAngle < 0 ? "scale-y-[-1]" : "scale-y-[1]"
+                        )}
+                        style={{ transformOrigin: 'center' }}
+                    />
                 </svg>
 
                 <div className="flex flex-col items-center z-10 text-white">
                     <div className="flex items-center">
-                        {showSign && displayAngle !== 0 && (
-                            <span className="text-4xl font-black mr-2 text-blue-400">
-                                {displayAngle > 0 ? "+" : ""}
-                            </span>
-                        )}
-                        <span className="text-[100px] font-black tracking-tighter tabular-nums leading-none">
+                        <span className="text-[110px] font-black tracking-tighter tabular-nums leading-none">
                             {displayAngle.toFixed(1)}
                         </span>
                     </div>
-                    <span className="text-2xl font-bold opacity-30 tracking-widest uppercase">Graus</span>
+                    <div className="flex items-center gap-3">
+                        <span className="text-xl font-bold opacity-30 tracking-[0.3em] uppercase">Graus</span>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => { e.stopPropagation(); setShowSign(!showSign); }}
+                            className={cn(
+                                "h-10 w-10 rounded-xl border border-white/10",
+                                showSign ? "bg-white text-slate-900" : "bg-slate-900/50 text-white"
+                            )}
+                        >
+                            <span className="font-black text-xs">+/-</span>
+                        </Button>
+                    </div>
                 </div>
 
-                <div className="absolute -bottom-4 bg-slate-900 border border-slate-800 p-4 rounded-full shadow-2xl">
-                    {isFrozen ? <Lock className="h-6 w-6 text-white" /> : <Unlock className="h-6 w-6 text-blue-400" />}
+                <div className="absolute -bottom-4 bg-slate-900 border border-white/5 p-4 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
+                    {isFrozen ? <Lock className="h-6 w-6 text-white" /> : <Unlock className="h-6 w-6 text-blue-500" />}
                 </div>
             </div>
 
-            <div className="w-full grid grid-cols-2 gap-4 pb-12">
+            <div className="w-full grid grid-cols-2 gap-4 pb-14">
                 <Button
-                    variant="outline"
                     onClick={(e) => { e.stopPropagation(); calibrateZero(); }}
-                    className="h-20 rounded-[30px] border-slate-800 bg-slate-900 text-white text-xl font-black gap-2 hover:bg-slate-800 active:scale-95 transition-all shadow-lg"
+                    className="h-20 rounded-[28px] bg-slate-900 border border-white/5 text-white text-xl font-black gap-2 hover:bg-slate-800 active:scale-95 transition-all shadow-xl"
                 >
                     <RotateCcw className="h-5 w-5 text-blue-400" />
-                    Zerar
+                    ZERAR
                 </Button>
 
                 <Button
-                    variant="outline"
-                    className="h-20 rounded-[30px] border-slate-800 bg-slate-900 text-white text-xl font-black gap-2 opacity-30"
-                    disabled={!isFrozen}
+                    className="h-20 rounded-[28px] bg-slate-900 border border-white/5 text-white text-xl font-black gap-2 opacity-20 cursor-not-allowed"
+                    disabled
                 >
                     <RefreshCw className="h-5 w-5" />
-                    Enviar
+                    ENVIAR
                 </Button>
-            </div>
-
-            <div className="pb-4 flex flex-col items-center opacity-40">
-                <span className="text-[10px] font-black uppercase text-blue-500 tracking-[0.2em] mb-1">Eixo Único Isolado</span>
-                <span className="text-[9px] font-bold uppercase tracking-widest text-center">Permite ultrapassar 180° sem interrupção</span>
             </div>
         </div>
     )

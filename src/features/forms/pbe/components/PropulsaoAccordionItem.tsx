@@ -130,7 +130,8 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
     const updatePad = (side: 'left' | 'right', padName: string, checked: boolean) => {
         const setter = side === 'left' ? setLeftFoot : setRightFoot
         setter(prev => {
-            const newPads = { ...prev.pads, [padName]: checked }
+            const currentPads = prev.pads || {}
+            const newPads = { ...currentPads, [padName]: checked }
 
             // Mutual exclusion: Gota <-> Barra
             if (checked) {
@@ -323,7 +324,7 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
         }
 
         // 5. Pads & Absorption
-        const hasPads = Object.values(leftFoot.pads).some(Boolean) || Object.values(rightFoot.pads).some(Boolean)
+        const hasPads = (leftFoot.pads && Object.values(leftFoot.pads).some(Boolean)) || (rightFoot.pads && Object.values(rightFoot.pads).some(Boolean))
         const hasAbs = leftFoot.absorcao !== 'Sem absorção' || rightFoot.absorcao !== 'Sem absorção'
         if (hasPads || hasAbs) {
             parts.push("Foram adicionados elementos de absorção e alívio (PADS) estrategicamente posicionados para reduzir a pressão nos pontos de maior sobrecarga e sintomatologia dolorosa.")
@@ -348,6 +349,8 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
             // Absorção
             if (foot.absorcao === 'Absorção') footTotal += 5;
             if (foot.absorcao === 'Absorção inteira') footTotal += 10;
+
+            if (!foot.pads) return footTotal;
 
             // PADS
             if (foot.pads['Gota']) footTotal += 5;
@@ -776,12 +779,12 @@ function FootSummary({ side, config, color }: { side: string, config: FootConfig
 
     // Logic for Relief Grouping
     const reliefPads = ['Alívio 1º Metatarso', 'Alívio 2/3º Metatarso', 'Alívio 4/5º Metatarso']
-    const activeReliefs = reliefPads.filter(pad => config.pads[pad])
+    const activeReliefs = reliefPads.filter(pad => config.pads?.[pad])
     const hasAllReliefs = activeReliefs.length === 3
 
     // Logic for Special Pads
     const specialPads = ['Gota', 'Barra']
-    const activeSpecials = specialPads.filter(pad => config.pads[pad])
+    const activeSpecials = specialPads.filter(pad => config.pads?.[pad])
 
     return (
         <div className="space-y-1">
@@ -1005,7 +1008,7 @@ function FootForm({
                             <div key={pad} className="flex items-center space-x-2">
                                 <Checkbox
                                     id={`pad-${side}-${pad}`}
-                                    checked={config.pads[pad] || false}
+                                    checked={config.pads?.[pad] || false}
                                     onCheckedChange={(checked) => onTogglePad(side, pad, checked === true)}
                                     className="h-4 w-4 rounded border-slate-300"
                                 />
