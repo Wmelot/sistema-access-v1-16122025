@@ -54,35 +54,37 @@ export default function InclinometerTest() {
         if (!permissionGranted || isFrozen) return
 
         const handleOrientation = (event: DeviceOrientationEvent) => {
-            const beta = event.beta || 0
-            const gamma = event.gamma || 0
+            const beta = event.beta || 0   // Inclinação frontal/traseira
+            const gamma = event.gamma || 0  // Inclinação lateral
 
-            // Trigonometria estável para rotação no plano da tela (Z-axis rotation)
-            // Esta fórmula calcula o ângulo da gravidade projetado na face do celular
+            // --- ISOLAMENTO DE EIXO ---
+            // Projetamos o vetor da gravidade no plano X-Y do celular (a tela)
+            // Gx = -sin(gamma)
+            // Gy = sin(beta) * cos(gamma)
+            // O ângulo desejado é atan2(Gx, Gy), que é a rotação "Z" relativa à gravidade.
+
             const b = beta * (Math.PI / 180)
             const g = gamma * (Math.PI / 180)
 
-            // Atan2 estável considerando a face do aparelho: 
-            // 0 é o topo do celular (modo retrato)
-            let currentRaw = Math.atan2(Math.sin(g), Math.sin(b)) * (180 / Math.PI)
+            const gx = -Math.sin(g)
+            const gy = Math.sin(b) * Math.cos(g)
 
-            // Ajuste para garantir que 0 seja o topo absoluto
-            // Na maioria dos navegadores, atan2(sin(g), sin(b)) retorna 0 no topo portrait
+            // Calculamos o ângulo. O "-" inverte para que: Direita = Positivo, Esquerda = Negativo
+            let currentRaw = -Math.atan2(gx, gy) * (180 / Math.PI)
 
             lastRawAngleRef.current = currentRaw
 
             // Cálculo relativo à calibração
             let relativeAngle = currentRaw - referenceAngleRef.current
 
-            // Normaliza para -180 a 180 (sem acumulo de 360)
+            // Normaliza para -180 a 180
             if (relativeAngle > 180) relativeAngle -= 360
             if (relativeAngle < -180) relativeAngle += 360
 
-            // Barra (Gauge) - Rápida
+            // Barra (Gauge)
             setGaugeAngle(relativeAngle)
 
-            // Número (Display) - Suavizado (Lento)
-            // Usamos interpolação linear para evitar que o número "vibre"
+            // Número (Display)
             const slowVal = (lastDisplayRef.current * (1 - SMOOTH_NUMBER)) + (relativeAngle * SMOOTH_NUMBER)
             lastDisplayRef.current = slowVal
 
@@ -155,10 +157,12 @@ export default function InclinometerTest() {
     // Configuração SVG para barra que cresce (Stroke Dash)
     const radius = 85
     const circumference = 2 * Math.PI * radius
-    // Limitamos visualmente mas deixamos ela crescer até 180° por lado
+
+    // Mostramos até 180º de preenchimento. 
+    // Se quiser que 180º preencha metade do círculo, usamos 360 na base.
     const visualAngle = Math.max(-180, Math.min(180, gaugeAngle))
     const percentage = Math.abs(visualAngle) / 360
-    const dashOffset = circumference * (1 - percentage)
+    const dashLength = circumference * percentage
 
     return (
         <div
@@ -198,12 +202,12 @@ export default function InclinometerTest() {
                         stroke="currentColor"
                         strokeWidth="10"
                         fill="transparent"
-                        strokeDasharray={circumference}
-                        strokeDashoffset={dashOffset}
+                        strokeDasharray={`${dashLength} ${circumference}`}
+                        strokeDashoffset="0"
                         strokeLinecap="round"
                         className={cn(
                             "text-blue-500 transition-all duration-300",
-                            gaugeAngle < 0 ? "scale-y-[-1]" : "scale-y-[1]"
+                            gaugeAngle < 0 ? "-scale-x-100" : "scale-x-100"
                         )}
                         style={{ transformOrigin: 'center' }}
                     />
