@@ -54,6 +54,13 @@ export default function InclinometerTest() {
         }
     }
 
+    const lastRawAngleRef = useRef(0)
+    const referenceAngleRef = useRef(0)
+    const lastDisplayRef = useRef(0)
+
+    const SMOOTH_NUMBER = 0.04 // Estabilidade de nível industrial
+    const SMOOTH_GAUGE = 0.5
+
     useEffect(() => {
         if (!permissionGranted || isFrozen) return
 
@@ -62,28 +69,27 @@ export default function InclinometerTest() {
             if (!acc) return
 
             // --- MOTOR DE PRECISÃO CLÍNICA (GRAVIDADE PURA) ---
-            // O "prego atravessando a tela" é o eixo Z.
-            // Queremos a rotação no plano X-Y em relação à gravidade.
+            // Y-Negativo garante que 0 esteja no Topo (12h)
+            // X-Negativo garante que inclinar p/ Direita seja Positivo
             const x = acc.x || 0
             const y = acc.y || 0
 
-            // Atan2(x, y) nos dá o ângulo exato do vetor gravidade na tela.
-            // O "-" no X é para que inclinar o topo para a DIREITA seja POSITIVO.
-            let currentRaw = Math.atan2(-x, y) * (180 / Math.PI)
+            // Atan2(-x, -y) coloca o 0 na vertical (topo p/ cima)
+            let currentRaw = Math.atan2(-x, -y) * (180 / Math.PI)
 
             lastRawAngleRef.current = currentRaw
 
             // Cálculo relativo à calibração (Zerar)
             let relativeAngle = currentRaw - referenceAngleRef.current
 
-            // Normalização circular para manter entre -180 e 180
+            // Normalização de arco (-180 a 180)
             if (relativeAngle > 180) relativeAngle -= 360
             if (relativeAngle < -180) relativeAngle += 360
 
-            // Atualiza Barra (Gauge)
+            // Sincronização com o visual
             setGaugeAngle(relativeAngle)
 
-            // Atualiza Número (Display)
+            // Suavização do número para evitar "jitter"
             const slowVal = (lastDisplayRef.current * (1 - SMOOTH_NUMBER)) + (relativeAngle * SMOOTH_NUMBER)
             lastDisplayRef.current = slowVal
 
@@ -91,7 +97,6 @@ export default function InclinometerTest() {
             setDisplayAngle(Number(finalVal.toFixed(1)))
         }
 
-        // Usamos devicemotion que é mais direto e linear que orientation
         window.addEventListener('devicemotion', handleMotion)
         return () => window.removeEventListener('devicemotion', handleMotion)
     }, [permissionGranted, isFrozen, showSign])

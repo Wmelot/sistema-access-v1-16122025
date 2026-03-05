@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from "react";
-import { Camera, ArrowLeft, Loader2, Save, Video, ChevronLeft, ChevronRight, X, Check, Image as ImageIcon } from "lucide-react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import { Camera, ArrowLeft, Video, Save, Smartphone, CheckCircle, Zap, X, ChevronLeft, ChevronRight, Image as ImageIcon, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { saveAttendanceRecord } from "@/actions/attendance";
 
 interface RemoteMobileViewProps {
     patient: any;
@@ -41,16 +43,31 @@ const PBE5_SLOTS: MediaSlot[] = [
 ];
 
 const PALMILHA5_SLOTS: MediaSlot[] = [
-    { id: 'posture.photos.anterior', label: 'Postura Anterior', group: 'Postura' },
-    { id: 'posture.photos.posterior', label: 'Postura Posterior', group: 'Postura' },
-    { id: 'posture.photos.left', label: 'Perfil Esquerdo', group: 'Postura' },
-    { id: 'posture.photos.right', label: 'Perfil Direito', group: 'Postura' },
-    { id: 'movement.gaitPhotos.rc_left', label: 'RC Esquerdo', group: 'Pisada' },
-    { id: 'movement.gaitPhotos.am_left', label: 'AM Esquerdo', group: 'Pisada' },
-    { id: 'movement.gaitPhotos.fi_left', label: 'FI Esquerdo', group: 'Pisada' },
-    { id: 'movement.gaitPhotos.rc_right', label: 'RC Direito', group: 'Pisada' },
-    { id: 'movement.gaitPhotos.am_right', label: 'AM Direito', group: 'Pisada' },
-    { id: 'movement.gaitPhotos.fi_right', label: 'FI Direito', group: 'Pisada' },
+    { id: 'tests.photos.anterior', label: 'Postura Anterior', group: 'Postura' },
+    { id: 'tests.photos.posterior', label: 'Postura Posterior', group: 'Postura' },
+    { id: 'tests.photos.left', label: 'Perfil Esquerdo', group: 'Postura' },
+    { id: 'tests.photos.right', label: 'Perfil Direito', group: 'Postura' },
+    { id: 'tests.gait_photos.left.initial', label: 'RC Esquerdo', group: 'Fases da Marcha' },
+    { id: 'tests.gait_photos.left.mid', label: 'AM Esquerdo', group: 'Fases da Marcha' },
+    { id: 'tests.gait_photos.left.terminal', label: 'FI Esquerdo', group: 'Fases da Marcha' },
+    { id: 'tests.gait_photos.right.initial', label: 'RC Direito', group: 'Fases da Marcha' },
+    { id: 'tests.gait_photos.right.mid', label: 'AM Direito', group: 'Fases da Marcha' },
+    { id: 'tests.gait_photos.right.terminal', label: 'FI Direito', group: 'Fases da Marcha' },
+    { id: 'tests.single_squat.photo_left', label: 'Agachamento Unipodal Esq', group: 'Funcional' },
+    { id: 'tests.single_squat.photo_right', label: 'Agachamento Unipodal Dir', group: 'Funcional' },
+];
+
+const GONIO_SLOTS: MediaSlot[] = [
+    { id: 'tests.lunge.left', label: 'Lunge Esquerdo', group: 'Goniometria' },
+    { id: 'tests.lunge.right', label: 'Lunge Direito', group: 'Goniometria' },
+    { id: 'tests.thomas.left', label: 'Thomas Esquerdo', group: 'Goniometria' },
+    { id: 'tests.thomas.right', label: 'Thomas Direito', group: 'Goniometria' },
+    { id: 'tests.slr.left', label: 'Isquiosurais Esq (180-X)', group: 'Goniometria' },
+    { id: 'tests.slr.right', label: 'Isquiosurais Dir (180-X)', group: 'Goniometria' },
+    { id: 'tests.ventral.rotation.left', label: 'Rigidez Rotadores Esq', group: 'Goniometria' },
+    { id: 'tests.ventral.rotation.right', label: 'Rigidez Rotadores Dir', group: 'Goniometria' },
+    { id: 'tests.ventral.craig.left', label: 'Craig Esquerdo', group: 'Goniometria' },
+    { id: 'tests.ventral.craig.right', label: 'Craig Direito', group: 'Goniometria' },
 ];
 
 // Fallback for any other/future form
@@ -99,14 +116,19 @@ export default function RemoteMobileView({
 }: RemoteMobileViewProps) {
     const [isSaving, setIsSaving] = useState(false);
 
-    // View states: 'home' | 'video-review' | 'pick-slot'
-    const [view, setView] = useState<'home' | 'video-review' | 'pick-slot'>('home');
+    // View states: 'home' | 'video-review' | 'pick-slot' | 'gonio'
+    const [view, setView] = useState<'home' | 'video-review' | 'pick-slot' | 'gonio'>('home');
 
-    // Captured media
+    // Captured media or values
     const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
     const [videoSrc, setVideoSrc] = useState<string | null>(null);
     const [currentFrame, setCurrentFrame] = useState<string | null>(null);
+    const [capturedGonioValue, setCapturedGonioValue] = useState<number | null>(null);
 
+    const [gonioAngle, setGonioAngle] = useState(0);
+    const [isGonioFrozen, setIsGonioFrozen] = useState(false);
+    const gonioReferenceRef = useRef(0);
+    const gonioSmoothRef = useRef(0);
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -174,6 +196,48 @@ export default function RemoteMobileView({
         return canvas.toDataURL('image/jpeg', 0.85);
     }, []);
 
+    // ── Goniometer Engine ──
+    const startGonio = async () => {
+        // Both orientation and motion need permission on iOS
+        if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
+            const res = await (DeviceMotionEvent as any).requestPermission();
+            if (res !== 'granted') {
+                toast.error("Permissão de sensor negada.");
+                return;
+            }
+        }
+        setView('gonio');
+    };
+
+    React.useEffect(() => {
+        if (view !== 'gonio' || isGonioFrozen) return;
+
+        const handleMotion = (e: DeviceMotionEvent) => {
+            const acc = e.accelerationIncludingGravity;
+            if (!acc) return;
+            const x = acc.x || 0;
+            const y = acc.y || 0;
+
+            // Atan2(-x, -y) coloca o 0 na vertical (topo p/ cima)
+            const raw = Math.atan2(-x, -y) * (180 / Math.PI);
+            let relative = raw - gonioReferenceRef.current;
+            if (relative > 180) relative -= 360;
+            if (relative < -180) relative += 360;
+
+            // Smooth only for display
+            gonioSmoothRef.current = (gonioSmoothRef.current * 0.9) + (relative * 0.1);
+            setGonioAngle(relative);
+        };
+
+        window.addEventListener('devicemotion', handleMotion);
+        return () => window.removeEventListener('devicemotion', handleMotion);
+    }, [view, isGonioFrozen]);
+
+    const handleGonioSend = () => {
+        setCapturedGonioValue(gonioAngle);
+        setView('pick-slot');
+    };
+
     const handleGrabFrame = () => {
         const frame = extractCurrentFrame();
         if (frame) {
@@ -185,11 +249,20 @@ export default function RemoteMobileView({
     // ── Assign to Slot ──
     const handleAssignToSlot = async (slotId: string) => {
         const imageData = capturedPhoto || currentFrame;
-        if (!imageData) return;
+        const numericData = capturedGonioValue;
 
         const loadingToast = toast.loading("Salvando...");
         try {
-            onUpdate(slotId, imageData);
+            if (imageData) {
+                onUpdate(slotId, imageData);
+            } else if (numericData !== null) {
+                let finalVal = Math.abs(Number(numericData.toFixed(1)));
+                // Formula especial para Isquiosurais
+                if (slotId.includes('tests.slr')) {
+                    finalVal = Math.round(180 - finalVal);
+                }
+                onUpdate(slotId, finalVal);
+            }
             await handleInternalSave();
             toast.success("Salvo e sincronizado!", { id: loadingToast });
         } catch (err) {
@@ -199,6 +272,8 @@ export default function RemoteMobileView({
         // Reset and go back
         setCapturedPhoto(null);
         setCurrentFrame(null);
+        setCapturedGonioValue(null);
+        setIsGonioFrozen(false);
 
         // If we came from video review, go back to video
         if (videoSrc) {
@@ -209,7 +284,9 @@ export default function RemoteMobileView({
     };
 
     // ── Group slots by category ──
-    const groupedSlots = slots.reduce<Record<string, MediaSlot[]>>((acc, slot) => {
+    const effectiveSlots = capturedGonioValue !== null ? GONIO_SLOTS : slots;
+
+    const groupedSlots = effectiveSlots.reduce<Record<string, MediaSlot[]>>((acc, slot) => {
         if (!acc[slot.group]) acc[slot.group] = [];
         acc[slot.group].push(slot);
         return acc;
@@ -249,9 +326,9 @@ export default function RemoteMobileView({
                 </header>
 
                 {/* Center Content */}
-                <div className="flex-1 flex flex-col items-center justify-center px-8 -mt-12">
+                <div className="flex-1 flex flex-col items-center justify-center px-8 -mt-12 gap-12">
                     {/* Patient Name */}
-                    <div className="text-center mb-12">
+                    <div className="text-center">
                         <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mb-2">Paciente</p>
                         <h1 className="text-4xl font-black text-white tracking-tight">{patientFirstName}</h1>
                         <div className="mt-3 inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-1.5 rounded-full">
@@ -260,22 +337,140 @@ export default function RemoteMobileView({
                         </div>
                     </div>
 
-                    {/* Single Camera Button */}
-                    <button
-                        onClick={() => cameraInputRef.current?.click()}
-                        className="relative w-28 h-28 rounded-full bg-white flex items-center justify-center shadow-[0_0_60px_rgba(255,255,255,0.15)] active:scale-90 transition-transform"
-                    >
-                        <Camera className="h-10 w-10 text-slate-900" />
-                        <div className="absolute -bottom-8 whitespace-nowrap">
-                            <span className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em]">Foto ou Vídeo</span>
+                    <div className="flex gap-8">
+                        {/* Camera Button */}
+                        <div className="flex flex-col items-center gap-4">
+                            <button
+                                onClick={() => cameraInputRef.current?.click()}
+                                className="relative w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-[0_0_60px_rgba(255,255,255,0.15)] active:scale-90 transition-transform"
+                            >
+                                <Camera className="h-8 w-8 text-slate-900" />
+                            </button>
+                            <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em]">Câmera</span>
                         </div>
-                    </button>
+
+                        {/* Goniometer Button */}
+                        <div className="flex flex-col items-center gap-4">
+                            <button
+                                onClick={startGonio}
+                                className="relative w-24 h-24 rounded-full bg-indigo-600 flex items-center justify-center shadow-[0_0_60px_rgba(79,70,229,0.3)] active:scale-90 transition-transform border-4 border-white/20"
+                            >
+                                <Zap className="h-8 w-8 text-white" />
+                            </button>
+                            <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em]">Goniômetro</span>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Footer hint */}
                 <footer className="px-8 pb-10 text-center">
-                    <p className="text-[10px] text-white/30 font-bold leading-relaxed max-w-xs mx-auto">
-                        Tire uma foto ou grave um vídeo. Depois escolha para qual campo do {formName} o conteúdo vai.
+                    <p className="text-[10px] text-white/30 font-bold leading-relaxed max-w-xs mx-auto uppercase tracking-widest">
+                        Modo Remoto Axiom — {new Date().getFullYear()}
+                    </p>
+                </footer>
+            </div>
+        );
+    }
+
+    // ══════════════════════════════════════════
+    // VIEW: GONIOMETER (Digital Clinometer)
+    // ══════════════════════════════════════════
+    if (view === 'gonio') {
+        const visualAngle = isGonioFrozen ? capturedGonioValue || gonioAngle : gonioAngle;
+        const absAngle = Math.abs(visualAngle);
+        const circumference = 2 * Math.PI * 90;
+        const dashLength = circumference * (absAngle / 360);
+
+        return (
+            <div className="fixed inset-0 bg-slate-950 z-[100] flex flex-col font-sans overflow-hidden">
+                <header className="px-6 pt-safe-top py-6 flex items-center justify-between">
+                    <Button variant="ghost" size="icon" onClick={() => setView('home')} className="rounded-full h-10 w-10 bg-white/10 text-white hover:bg-white/20">
+                        <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                    <div className="px-4 py-1 rounded-full bg-white/5 border border-white/10">
+                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Goniometria Digital</span>
+                    </div>
+                    <div className="w-10" />
+                </header>
+
+                <div className="flex-1 flex flex-col items-center justify-center gap-12 -mt-12">
+                    {/* Circle Gauge */}
+                    <div className="relative w-72 h-72 flex items-center justify-center">
+                        <svg className="w-full h-full transform -rotate-90">
+                            {/* Background Circle */}
+                            <circle cx="144" cy="144" r="90" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
+                            {/* Progress Bar */}
+                            <circle
+                                cx="144" cy="144" r="90" fill="none"
+                                stroke="#4f46e5" strokeWidth="12" strokeLinecap="round"
+                                strokeDasharray={dashLength + " " + circumference}
+                                className="transition-all duration-75"
+                                style={{
+                                    transformOrigin: 'center',
+                                    transform: visualAngle >= 0 ? 'rotate(90deg)' : `rotate(${90 - absAngle}deg)`
+                                }}
+                            />
+                        </svg>
+
+                        {/* Value Display */}
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                            <span className="text-7xl font-black tracking-tighter transition-all duration-75" style={{ opacity: isGonioFrozen ? 0.6 : 1 }}>
+                                {absAngle.toFixed(1)}
+                            </span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-2">Graus</span>
+                        </div>
+
+                        {/* Needle */}
+                        <div
+                            className="absolute inset-0 flex items-center justify-center transition-transform duration-75"
+                            style={{ transform: `rotate(${visualAngle}deg)` }}
+                        >
+                            <div className="w-1 h-32 -mt-32 bg-gradient-to-t from-transparent to-white rounded-full relative">
+                                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-white rounded-full blur-[2px]" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-4 px-8 w-full">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                // To "zero" the goniometer, we need to adjust the reference angle
+                                // such that the current displayed angle becomes 0.
+                                // gonioAngle = raw - gonioReferenceRef.current
+                                // If we want new_gonioAngle to be 0, then new_gonioReferenceRef.current should be raw.
+                                // Since gonioAngle is already (raw - old_gonioReferenceRef.current),
+                                // setting gonioReferenceRef.current to old_gonioReferenceRef.current + gonioAngle
+                                // effectively sets it to raw.
+                                gonioReferenceRef.current += gonioAngle;
+                                toast.info("Referência Zerada");
+                            }}
+                            className="flex-1 h-16 rounded-2xl bg-white/5 border-white/10 text-white font-black uppercase tracking-widest hover:bg-white/10"
+                        >
+                            Zerar
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                if (isGonioFrozen) {
+                                    handleGonioSend();
+                                } else {
+                                    setIsGonioFrozen(true);
+                                }
+                            }}
+                            className={cn(
+                                "flex-1 h-16 rounded-2xl font-black uppercase tracking-widest shadow-xl gap-2",
+                                isGonioFrozen ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-white text-slate-950"
+                            )}
+                        >
+                            {isGonioFrozen ? <Save className="w-5 h-5" /> : null}
+                            {isGonioFrozen ? "Enviar" : "Congelar"}
+                        </Button>
+                    </div>
+                </div>
+
+                <footer className="px-12 pb-10">
+                    <p className="text-[9px] text-white/20 font-bold text-center uppercase tracking-widest leading-relaxed">
+                        Mantenha o celular estável no plano de medição. Use o botão Congelar para travar o valor antes de enviar.
                     </p>
                 </footer>
             </div>
@@ -355,6 +550,7 @@ export default function RemoteMobileView({
     // ══════════════════════════════════════════
     if (view === 'pick-slot') {
         const imageToAssign = capturedPhoto || currentFrame;
+        const gonioValue = capturedGonioValue;
 
         return (
             <div className="fixed inset-0 bg-slate-50 z-[100] flex flex-col font-sans">
@@ -381,6 +577,14 @@ export default function RemoteMobileView({
                         </div>
                     )}
 
+                    {gonioValue !== null && (
+                        <div className="p-6 bg-slate-900 mx-4 mt-4 rounded-2xl flex flex-col items-center justify-center border border-white/10 shadow-xl overflow-hidden relative">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500" />
+                            <span className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">Medida Capturada</span>
+                            <span className="text-5xl font-black text-white">{Math.abs(gonioValue).toFixed(1)}º</span>
+                        </div>
+                    )}
+
                     {/* Slot List Grouped */}
                     <div className="px-4 pb-8 space-y-6">
                         {Object.entries(groupedSlots).map(([groupName, groupSlots]) => (
@@ -393,21 +597,23 @@ export default function RemoteMobileView({
                                             <button
                                                 key={slot.id}
                                                 onClick={() => handleAssignToSlot(slot.id)}
-                                                className="w-full bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between active:scale-95 transition-transform hover:border-indigo-300 hover:bg-indigo-50/30"
+                                                className={cn(
+                                                    "w-full bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between active:scale-95 transition-transform hover:border-indigo-300 hover:bg-indigo-50/30",
+                                                    hasValue && "border-emerald-200 bg-emerald-50/30"
+                                                )}
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div className={`h-8 w-8 rounded-xl flex items-center justify-center ${hasValue ? 'bg-emerald-50' : 'bg-slate-100'}`}>
-                                                        {hasValue ? (
-                                                            <Check className="h-4 w-4 text-emerald-600" />
-                                                        ) : (
-                                                            <ImageIcon className="h-4 w-4 text-slate-400" />
-                                                        )}
+                                                    <div className={cn("h-8 w-8 rounded-full flex items-center justify-center", hasValue ? "bg-emerald-100" : "bg-slate-100")}>
+                                                        {hasValue ? <Check className="h-4 w-4 text-emerald-600" /> : <Smartphone className="h-4 w-4 text-slate-400" />}
                                                     </div>
-                                                    <span className="text-sm font-bold text-slate-700">{slot.label}</span>
+                                                    <div className="text-left">
+                                                        <p className="text-xs font-black text-slate-800 uppercase tracking-tight">{slot.label}</p>
+                                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{hasValue ? 'Preenchido' : 'Disponível'}</p>
+                                                    </div>
                                                 </div>
-                                                {hasValue && (
-                                                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Substituir</span>
-                                                )}
+                                                <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100">
+                                                    <ChevronRight className="h-4 w-4 text-slate-300" />
+                                                </div>
                                             </button>
                                         );
                                     })}
