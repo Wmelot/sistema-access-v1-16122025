@@ -54,37 +54,31 @@ export default function InclinometerTest() {
         if (!permissionGranted || isFrozen) return
 
         const handleOrientation = (event: DeviceOrientationEvent) => {
-            const beta = event.beta || 0   // Inclinação frontal/traseira
+            const beta = event.beta || 0   // Inclinação frontal
             const gamma = event.gamma || 0  // Inclinação lateral
 
-            // --- ISOLAMENTO DE EIXO ---
-            // Projetamos o vetor da gravidade no plano X-Y do celular (a tela)
-            // Gx = -sin(gamma)
-            // Gy = sin(beta) * cos(gamma)
-            // O ângulo desejado é atan2(Gx, Gy), que é a rotação "Z" relativa à gravidade.
-
+            // --- MATEMÁTICA PURA 180º ---
+            // Usamos Atan2 para obter o ângulo real no plano da tela (Roll)
+            // Isso garante 0 no topo, 90 na lateral e 180 no fundo sem quebras.
             const b = beta * (Math.PI / 180)
             const g = gamma * (Math.PI / 180)
 
-            const gx = -Math.sin(g)
-            const gy = Math.sin(b) * Math.cos(g)
-
-            // Calculamos o ângulo. O "-" inverte para que: Direita = Positivo, Esquerda = Negativo
-            let currentRaw = -Math.atan2(gx, gy) * (180 / Math.PI)
+            // A fórmula atan2(sin_g, sin_b) é a mais estável para rotação de tela
+            let currentRaw = Math.atan2(Math.sin(g), Math.sin(b)) * (180 / Math.PI)
 
             lastRawAngleRef.current = currentRaw
 
-            // Cálculo relativo à calibração
+            // Ângulo relativo à calibração
             let relativeAngle = currentRaw - referenceAngleRef.current
 
-            // Normaliza para -180 a 180
+            // Ajuste para o range -180 a 180
             if (relativeAngle > 180) relativeAngle -= 360
             if (relativeAngle < -180) relativeAngle += 360
 
-            // Barra (Gauge)
+            // Atualiza Barra
             setGaugeAngle(relativeAngle)
 
-            // Número (Display)
+            // Atualiza Número (Display)
             const slowVal = (lastDisplayRef.current * (1 - SMOOTH_NUMBER)) + (relativeAngle * SMOOTH_NUMBER)
             lastDisplayRef.current = slowVal
 
@@ -200,16 +194,18 @@ export default function InclinometerTest() {
                         cy="100"
                         r={radius}
                         stroke="currentColor"
-                        strokeWidth="10"
+                        strokeWidth="12"
                         fill="transparent"
                         strokeDasharray={`${dashLength} ${circumference}`}
                         strokeDashoffset="0"
                         strokeLinecap="round"
-                        className={cn(
-                            "text-blue-500 transition-all duration-300",
-                            gaugeAngle < 0 ? "-scale-x-100" : "scale-x-100"
-                        )}
-                        style={{ transformOrigin: 'center' }}
+                        className="text-blue-500 transition-all duration-300"
+                        style={{
+                            transformOrigin: 'center',
+                            // Rotaciona o arco para que ele sempre comece no topo (12h)
+                            // Se o ângulo é negativo, rotacionamos para trás para crescer anti-horário
+                            transform: `rotate(${gaugeAngle >= 0 ? -90 : -90 - Math.abs(visualAngle)}deg)`
+                        }}
                     />
                 </svg>
 

@@ -945,7 +945,7 @@ export function AttendanceClient({
                             className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-all hover:scale-105 shrink-0"
                         >
                             <Mic className="w-4 h-4" />
-                            Modo Foco
+                            Foco
                         </Button>
                         {patient.id && (
                             <Button id="finish-attendance-btn" onClick={handleFinish} className="text-white shrink-0 bg-green-600 hover:bg-green-700">
