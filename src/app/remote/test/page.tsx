@@ -7,10 +7,9 @@ import {
     RefreshCw,
     Lock,
     Unlock,
-    Info,
-    AlertTriangle,
     Smartphone,
-    RotateCcw
+    RotateCcw,
+    PlusMinus
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -19,12 +18,19 @@ export default function InclinometerTest() {
     const [isSupported, setIsSupported] = useState<boolean | null>(null)
     const [permissionGranted, setPermissionGranted] = useState(false)
     const [displayAngle, setDisplayAngle] = useState(0)
+    const [gaugeAngle, setGaugeAngle] = useState(0)
     const [isFrozen, setIsFrozen] = useState(false)
-    const [referenceAngle, setReferenceAngle] = useState(0)
+    const [showSign, setShowSign] = useState(false) // Toggle para Absoluto vs Sinal
 
-    // Filtro de suavização
-    const lastAngleRef = useRef(0)
-    const smoothingFactor = 0.2
+    // Referências para Cálculo de Giro Contínuo
+    const lastRawAngleRef = useRef(0)
+    const cumulativeAngleRef = useRef(0)
+    const referenceAngleRef = useRef(0)
+    const lastDisplayRef = useRef(0)
+
+    // Constantes de Sensibilidade clínica
+    const SMOOTH_NUMBER = 0.08
+    const SMOOTH_GAUGE = 0.7
 
     const requestPermission = async () => {
         if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
@@ -48,27 +54,39 @@ export default function InclinometerTest() {
             const beta = event.beta || 0
             const gamma = event.gamma || 0
 
-            // ALGORITMO DE PÊNDULO CLÍNICO
-            // Calculamos o ângulo de inclinação lateral (clock-hand rotation)
-            // Usamos atan2(gamma, beta) para que 0 seja a posição vertical perfeita
+            // ISOLAMENTO DE EIXO: Cálculo de rotação no plano da tela (Clock-hand)
             const rad = Math.atan2(gamma, beta)
-            let currentRotation = rad * (180 / Math.PI)
+            let currentRaw = rad * (180 / Math.PI)
 
-            // Filtro de suavização
-            const smoothedAngle = (lastAngleRef.current * (1 - smoothingFactor)) + (currentRotation * smoothingFactor)
-            lastAngleRef.current = smoothedAngle
+            // LÓGICA DE GIRO CONTÍNUO (EVITA PULO NOS 180°)
+            let delta = currentRaw - lastRawAngleRef.current
 
-            // Diferença relativa ao ZERO calibrado
-            let diff = smoothedAngle - referenceAngle
+            // Corrige o wrap-around (se pular de 179 para -179)
+            if (delta > 180) delta -= 360
+            if (delta < -180) delta += 360
 
-            // Garantimos que o valor seja absoluto para o contador (como no Physiocode)
-            // ou mantemos o sinal para saber se é pra direita/esquerda
-            setDisplayAngle(Number(Math.abs(diff).toFixed(1)))
+            cumulativeAngleRef.current += delta
+            lastRawAngleRef.current = currentRaw
+
+            // Ângulo relativo ao ZERO calibrado
+            const relativeAngle = cumulativeAngleRef.current - referenceAngleRef.current
+
+            // 1. Atualiza Barra (Rápida e Sem Limites)
+            const fastVal = (lastDisplayRef.current * (1 - SMOOTH_GAUGE)) + (relativeAngle * SMOOTH_GAUGE)
+            setGaugeAngle(fastVal)
+
+            // 2. Atualiza Número (Suave)
+            const slowVal = (lastDisplayRef.current * (1 - SMOOTH_NUMBER)) + (relativeAngle * SMOOTH_NUMBER)
+            lastDisplayRef.current = slowVal
+
+            // Decidimos se mostramos o valor absoluto ou com sinal (+/-)
+            const finalVal = showSign ? slowVal : Math.abs(slowVal)
+            setDisplayAngle(Number(finalVal.toFixed(1)))
         }
 
         window.addEventListener('deviceorientation', handleOrientation)
         return () => window.removeEventListener('deviceorientation', handleOrientation)
-    }, [permissionGranted, isFrozen, referenceAngle])
+    }, [permissionGranted, isFrozen, showSign])
 
     useEffect(() => {
         if (typeof window !== 'undefined' && 'DeviceOrientationEvent' in window) {
@@ -87,115 +105,108 @@ export default function InclinometerTest() {
     }
 
     const calibrateZero = () => {
-        setReferenceAngle(lastAngleRef.current)
+        // Marcamos o acúmulo atual como o novo ponto de referência
+        referenceAngleRef.current = cumulativeAngleRef.current
         setDisplayAngle(0)
+        setGaugeAngle(0)
         setIsFrozen(false)
-        toast.success("Calibrado em 0.0°")
+        toast.success("Zero Calibrado")
     }
 
     if (isSupported === false) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-slate-950 text-white text-center">
-                <AlertTriangle className="h-12 w-12 text-amber-500 mb-4" />
-                <h1 className="text-xl font-bold mb-2">Sensores não suportados</h1>
-                <p className="text-slate-400 text-sm">Use Safari ou Chrome em modo seguro (HTTPS).</p>
+                <h1 className="text-xl font-bold">Sensores não suportados</h1>
             </div>
         )
     }
 
     if (!permissionGranted) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-slate-950 text-white text-center font-sans">
-                <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mb-6">
-                    <Smartphone className="h-10 w-10 text-blue-500" />
-                </div>
-                <h1 className="text-2xl font-black mb-4 tracking-tight">AXIOM REMOTO</h1>
-                <p className="text-slate-400 text-sm mb-8 max-w-[280px]">Inicie os sensores para avaliar inclinações e ângulos clínicos.</p>
-                <Button
-                    onClick={requestPermission}
-                    className="w-full max-w-[240px] h-14 bg-blue-600 hover:bg-blue-500 text-lg font-bold rounded-2xl shadow-xl shadow-blue-900/20"
-                >
-                    Iniciar Inclinômetro
-                </Button>
+            <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-slate-950 text-white text-center">
+                <Smartphone className="h-10 w-10 text-blue-500 mb-6" />
+                <h1 className="text-2xl font-black mb-4">GONIMETRO V3</h1>
+                <Button onClick={requestPermission} className="w-full bg-blue-600 h-14 font-bold rounded-2xl">Ativar Sensores</Button>
             </div>
         )
     }
 
+    // Cálculos para o SVG Bidirecional e Contínuo
+    const radius = 90
+    const circumference = 2 * Math.PI * radius
+    // Mostramos visualmente apenas o resto de 360 para a barra não ficar "vazando" o círculo
+    const visualMod = gaugeAngle % 360
+    const offset = circumference - (Math.abs(visualMod) / 360) * circumference
+
     return (
         <div
             className={cn(
-                "flex flex-col items-center justify-between min-h-screen p-6 transition-colors duration-500 overflow-hidden select-none touch-none bg-slate-950",
-                isFrozen && "bg-blue-700"
+                "flex flex-col items-center justify-between min-h-screen p-6 transition-colors duration-500 bg-slate-950",
+                isFrozen && "bg-blue-900"
             )}
             onClick={toggleFreeze}
         >
             <div className="w-full flex justify-between items-center pt-4">
                 <div className="text-left">
-                    <span className="text-[10px] font-black tracking-widest text-blue-400 uppercase">Goniômetro Axiom</span>
-                    <h2 className="text-white font-bold text-sm tracking-tight">Teste de Inclinação</h2>
+                    <span className="text-[10px] font-black tracking-widest text-blue-400 uppercase">Goniômetro Pro</span>
+                    <h2 className="text-white font-bold text-sm tracking-tight italic">Rotação Contínua 360°+</h2>
                 </div>
-                <Badge className={cn(
-                    "px-3 py-1 text-[10px] font-black uppercase rounded-full",
-                    isFrozen ? "bg-white text-blue-700" : "bg-blue-600 text-white"
-                )}>
-                    {isFrozen ? "Congelado" : "Ao Vivo"}
-                </Badge>
+
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); setShowSign(!showSign); }}
+                    className={cn(
+                        "h-8 gap-2 rounded-full border-slate-800 transition-all",
+                        showSign ? "bg-white text-blue-950 border-white" : "bg-slate-900 text-white"
+                    )}
+                >
+                    <PlusMinus className="h-3 w-3" />
+                    <span className="text-[10px] font-black tracking-tighter uppercase">{showSign ? "Sinal ON" : "Sinal OFF"}</span>
+                </Button>
             </div>
 
-            {/* Visualizador Circular Estilo Physiocode */}
             <div className="relative flex items-center justify-center w-full max-w-[320px] aspect-square">
-                {/* Arco de Fundo */}
-                <svg className="absolute inset-0 w-full h-full -rotate-90">
-                    <circle
-                        cx="50%"
-                        cy="50%"
-                        r="45%"
-                        stroke="currentColor"
-                        strokeWidth="12"
-                        fill="transparent"
-                        className="text-slate-900"
-                    />
-                    {/* Arco de Progresso Dinâmico */}
+                <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full -rotate-90">
+                    <circle cx="100" cy="100" r={radius} stroke="currentColor" strokeWidth="4" fill="transparent" className="text-slate-900" />
                     {!isFrozen && (
                         <circle
-                            cx="50%"
-                            cy="50%"
-                            r="45%"
-                            stroke="currentColor"
-                            strokeWidth="12"
-                            fill="transparent"
-                            strokeDasharray="283%"
-                            strokeDashoffset={`${283 - (displayAngle / 90) * 70}%`}
+                            cx="100" cy="100" r={radius} stroke="currentColor" strokeWidth="12" fill="transparent"
+                            strokeDasharray={circumference}
+                            strokeDashoffset={offset}
                             strokeLinecap="round"
-                            className="text-blue-500 transition-all duration-75"
+                            className={cn("text-blue-500 transition-all", gaugeAngle < 0 ? "scale-y-[-1]" : "scale-y-[1]")}
+                            style={{ transformOrigin: 'center' }}
                         />
                     )}
                 </svg>
 
                 <div className="flex flex-col items-center z-10 text-white">
-                    <span className="text-[120px] font-black tracking-tighter tabular-nums leading-none">
-                        {displayAngle.toFixed(1)}
-                    </span>
-                    <span className="text-2xl font-bold opacity-40 -mt-2 tracking-widest uppercase">Graus</span>
+                    <div className="flex items-center">
+                        {showSign && displayAngle !== 0 && (
+                            <span className="text-4xl font-black mr-2 text-blue-400">
+                                {displayAngle > 0 ? "+" : ""}
+                            </span>
+                        )}
+                        <span className="text-[100px] font-black tracking-tighter tabular-nums leading-none">
+                            {displayAngle.toFixed(1)}
+                        </span>
+                    </div>
+                    <span className="text-2xl font-bold opacity-30 tracking-widest uppercase">Graus</span>
                 </div>
 
                 <div className="absolute -bottom-4 bg-slate-900 border border-slate-800 p-4 rounded-full shadow-2xl">
-                    {isFrozen ? (
-                        <Lock className="h-6 w-6 text-white" />
-                    ) : (
-                        <Unlock className="h-6 w-6 text-blue-500" />
-                    )}
+                    {isFrozen ? <Lock className="h-6 w-6 text-white" /> : <Unlock className="h-6 w-6 text-blue-400" />}
                 </div>
             </div>
 
-            {/* Botões Grandes e Acessíveis */}
             <div className="w-full grid grid-cols-2 gap-4 pb-12">
                 <Button
                     variant="outline"
                     onClick={(e) => { e.stopPropagation(); calibrateZero(); }}
-                    className="h-20 rounded-[30px] border-slate-800 bg-slate-900 text-white text-xl font-black gap-2 hover:bg-slate-800 active:scale-95 transition-all"
+                    className="h-20 rounded-[30px] border-slate-800 bg-slate-900 text-white text-xl font-black gap-2 hover:bg-slate-800 active:scale-95 transition-all shadow-lg"
                 >
-                    <RotateCcw className="h-6 w-6 text-blue-400" />
+                    <RotateCcw className="h-5 w-5 text-blue-400" />
                     Zerar
                 </Button>
 
@@ -209,9 +220,9 @@ export default function InclinometerTest() {
                 </Button>
             </div>
 
-            <div className="pb-4 flex items-center gap-2 opacity-40">
-                <Info className="h-3 w-3" />
-                <span className="text-[10px] font-bold uppercase tracking-widest">Toque em qualquer lugar para congelar</span>
+            <div className="pb-4 flex flex-col items-center opacity-40">
+                <span className="text-[10px] font-black uppercase text-blue-500 tracking-[0.2em] mb-1">Eixo Único Isolado</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-center">Permite ultrapassar 180° sem interrupção</span>
             </div>
         </div>
     )
