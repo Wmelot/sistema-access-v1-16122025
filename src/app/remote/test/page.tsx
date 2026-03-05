@@ -13,17 +13,20 @@ import {
     RotateCcw
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 
 export default function InclinometerTest() {
     const [isSupported, setIsSupported] = useState<boolean | null>(null)
     const [permissionGranted, setPermissionGranted] = useState(false)
     const [angle, setAngle] = useState(0)
     const [isFrozen, setIsFrozen] = useState(false)
-    const [referenceAngle, setReferenceAngle] = useState(0)
+    const [referenceValues, setReferenceValues] = useState({ beta: 0, gamma: 0 })
+    const [useMode, setUseMode] = useState<'vertical' | 'flat'>('vertical')
 
     // Refs para controle do filtro de suavização
-    const lastValueRef = useRef(0)
-    const smoothingFactor = 0.1 // Quanto menor, mais suave (menos treme)
+    const lastBetaRef = useRef(0)
+    const lastGammaRef = useRef(0)
+    const smoothingFactor = 0.15 // Equilíbrio entre velocidade e estabilidade
 
     // Solicitar permissão (Necessário para iOS)
     const requestPermission = async () => {
@@ -32,38 +35,65 @@ export default function InclinometerTest() {
                 const permission = await (DeviceOrientationEvent as any).requestPermission()
                 if (permission === 'granted') {
                     setPermissionGranted(true)
-                    startListening()
                 }
             } catch (err) {
                 console.error("Erro ao solicitar permissão:", err)
             }
         } else {
-            // Android ou navegadores que não exigem permissão explícita
             setPermissionGranted(true)
-            startListening()
         }
     }
 
-    const startListening = useCallback(() => {
+    useEffect(() => {
+        if (!permissionGranted || isFrozen) return
+
         const handleOrientation = (event: DeviceOrientationEvent) => {
-            if (isFrozen) return
+            const rawBeta = event.beta || 0
+            const rawGamma = event.gamma || 0
 
-            // Usamos o 'beta' (inclinação frontal/traseira) ou 'gamma' (lateral)
-            // Para inclinômetro de mesa, o beta é o mais comum
-            let rawValue = event.beta || 0
+            // 1. Aplicar filtro de suavização
+            lastBetaRef.current = (lastBetaRef.current * (1 - smoothingFactor)) + (rawBeta * smoothingFactor)
+            lastGammaRef.current = (lastGammaRef.current * (1 - smoothingFactor)) + (rawGamma * smoothingFactor)
 
-            // Aplica o filtro de suavização (Low-Pass Filter)
-            const smoothedValue = (lastValueRef.current * (1 - smoothingFactor)) + (rawValue * smoothingFactor)
-            lastValueRef.current = smoothedValue
+            // 2. Detectar Modo de Uso (Apenas se não estiver congelado)
+            const isVertical = Math.abs(lastBetaRef.current) > 40
+            setUseMode(isVertical ? 'vertical' : 'flat')
 
-            // Ajusta pela referência (Zerar) e arredonda para 1 casa decimal
-            const finalAngle = Number((smoothedValue - referenceAngle).toFixed(1))
-            setAngle(finalAngle)
+            let currentAngle = 0
+
+            if (isVertical) {
+                // MODO RETRATO: Mede a inclinação lateral (gamma)
+                const sign = lastBetaRef.current > 0 ? 1 : -1
+                currentAngle = lastGammaRef.current * sign
+            } else {
+                // MODO MESA: Mede a inclinação em relação ao plano horizontal
+                currentAngle = Math.sqrt(Math.pow(lastBetaRef.current, 2) + Math.pow(lastGammaRef.current, 2))
+                if (Math.abs(lastBetaRef.current) > Math.abs(lastGammaRef.current)) {
+                    currentAngle *= (lastBetaRef.current > 0 ? 1 : -1)
+                } else {
+                    currentAngle *= (lastGammaRef.current > 0 ? 1 : -1)
+                }
+            }
+
+            // 3. Cálculo Relativo (Usando a calibração do botão Zerar)
+            let refBase = 0
+            if (isVertical) {
+                refBase = referenceValues.gamma * (referenceValues.beta > 0 ? 1 : -1)
+            } else {
+                refBase = Math.sqrt(Math.pow(referenceValues.beta, 2) + Math.pow(referenceValues.gamma, 2))
+                if (Math.abs(referenceValues.beta) > Math.abs(referenceValues.gamma)) {
+                    refBase *= (referenceValues.beta > 0 ? 1 : -1)
+                } else {
+                    refBase *= (referenceValues.gamma > 0 ? 1 : -1)
+                }
+            }
+
+            setAngle(Number((currentAngle - refBase).toFixed(1)))
         }
 
         window.addEventListener('deviceorientation', handleOrientation)
         return () => window.removeEventListener('deviceorientation', handleOrientation)
-    }, [isFrozen, referenceAngle])
+    }, [permissionGranted, isFrozen, referenceValues])
 
     useEffect(() => {
         if (typeof window !== 'undefined' && 'DeviceOrientationEvent' in window) {
@@ -74,21 +104,21 @@ export default function InclinometerTest() {
     }, [])
 
     const toggleFreeze = (e: React.MouseEvent | React.TouchEvent) => {
-        // Evita disparar se clicar nos botões inferiores
         if ((e.target as HTMLElement).closest('button')) return
-
         setIsFrozen(!isFrozen)
-
-        // Efeito tátil simples se disponível
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
             navigator.vibrate(50)
         }
     }
 
     const resetReference = () => {
-        setReferenceAngle(lastValueRef.current)
+        setReferenceValues({
+            beta: lastBetaRef.current,
+            gamma: lastGammaRef.current
+        })
         setAngle(0)
         setIsFrozen(false)
+        toast.success("Calibrado: 0.0°")
     }
 
     if (isSupported === false) {
