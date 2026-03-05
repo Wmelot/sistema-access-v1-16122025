@@ -154,13 +154,14 @@ export default function InclinometerTest() {
         )
     }
 
-    // Configuração SVG para barra que cresce (Stroke Dash)
+    // --- LÓGICA VISUAL DO CÍRCULO (SVG) ---
     const radius = 85
     const circumference = 2 * Math.PI * radius
 
-    // Mostramos até 180º de preenchimento. 
-    // Se quiser que 180º preencha metade do círculo, usamos 360 na base.
+    // Clamp de segurança apenas para a barra visual (0 a 180)
     const visualAngle = Math.max(-180, Math.min(180, gaugeAngle))
+
+    // Proporção real: 180 graus preenche 50% do círculo (1/2 volta)
     const percentage = Math.abs(visualAngle) / 360
     const dashLength = circumference * percentage
 
@@ -186,15 +187,22 @@ export default function InclinometerTest() {
             </div>
 
             <div className="relative flex items-center justify-center w-full max-w-[340px] aspect-square">
-                {/* SVG da Barra Circular Progressiva */}
-                <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full -rotate-90">
-                    {/* Ring de fundo */}
-                    <circle cx="100" cy="100" r={radius} stroke="rgba(255,255,255,0.03)" strokeWidth="6" fill="transparent" />
+                <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full">
+                    {/* Ring de fundo (Track) */}
+                    <circle cx="100" cy="100" r={radius} stroke="rgba(255,255,255,0.05)" strokeWidth="4" fill="transparent" />
 
-                    {/* Linha do Ponto Zero (Topo) */}
-                    <line x1="100" y1="10" x2="100" y2="20" stroke="rgba(59,130,246,0.3)" strokeWidth="2" />
+                    {/* Marcas de Referência (Opcional - Estético) */}
+                    {[-90, 0, 90].map(tick => (
+                        <line
+                            key={tick}
+                            x1="100" y1="10" x2="100" y2="20"
+                            stroke="rgba(255,255,255,0.1)"
+                            strokeWidth="1"
+                            style={{ transform: `rotate(${tick}deg)`, transformOrigin: 'center' }}
+                        />
+                    ))}
 
-                    {/* A BARRA QUE CRESCE REALMENTE */}
+                    {/* A BARRA AZUL QUE CRESCE DO TOPO (12h) */}
                     <circle
                         cx="100"
                         cy="100"
@@ -203,16 +211,21 @@ export default function InclinometerTest() {
                         strokeWidth="12"
                         fill="transparent"
                         strokeDasharray={`${dashLength} ${circumference}`}
-                        // Se o ângulo for negativo (esquerda), usamos o offset para "empurrar" o início do traço
-                        // para trás, fazendo-o crescer no sentido anti-horário a partir do topo.
-                        strokeDashoffset={gaugeAngle >= 0 ? 0 : dashLength}
+                        strokeDashoffset="0"
                         strokeLinecap="round"
-                        className="text-blue-500 transition-all duration-300"
+                        className="text-blue-500 transition-all duration-300 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
                         style={{
                             transformOrigin: 'center',
-                            transform: 'rotate(-90deg)' // Fixamos o início do círculo no topo (12h)
+                            // Se positivo cresce para direita (-90), se negativo rotacionamos para trás para crescer para esquerda
+                            transform: `rotate(${gaugeAngle >= 0 ? -90 : -90 - Math.abs(visualAngle)}deg)`
                         }}
                     />
+
+                    {/* O PONTEIRO (AGULHA) - Sincronizado com o número */}
+                    <g style={{ transformOrigin: 'center', transform: `rotate(${gaugeAngle - 90}deg)`, transition: 'transform 300ms cubic-bezier(0.2, 0, 0.2, 1)' }}>
+                        <rect x="98" y="5" width="4" height="25" fill="#3b82f6" rx="2" />
+                        <circle cx="100" cy="10" r="4" fill="white" className="animate-pulse" />
+                    </g>
                 </svg>
 
                 <div className="flex flex-col items-center z-10 text-white">
