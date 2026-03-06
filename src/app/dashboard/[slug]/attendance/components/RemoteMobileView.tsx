@@ -282,8 +282,8 @@ export default function RemoteMobileView({
 
                 // Fórmulas Especiais
                 if (slotId.includes('tests.thomas')) {
-                    // Thomas: Leitura - 90 (permite negativos conforme solicitado)
-                    finalVal = Number((finalVal - 90).toFixed(1));
+                    // Thomas: |Leitura| - 90 (permite negativos conforme solicitado e mantém simetria entre lados)
+                    finalVal = Number((Math.abs(numericData) - 90).toFixed(1));
                 } else if (!showGonioSign) {
                     // Se não for Thomas e o sinal estiver desligado, registra o absoluto
                     finalVal = Math.abs(finalVal);
