@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { Camera, ArrowLeft, Video, Save, Smartphone, CheckCircle, Zap, X, ChevronLeft, ChevronRight, Image as ImageIcon, Check } from "lucide-react";
+import { Camera, ArrowLeft, Video, Save, Smartphone, CheckCircle, Zap, X, ChevronLeft, ChevronRight, Image as ImageIcon, Check, Lock, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -119,8 +119,8 @@ export default function RemoteMobileView({
 }: RemoteMobileViewProps) {
     const [savingSlotId, setSavingSlotId] = useState<string | null>(null);
 
-    // View states: 'home' | 'video-review' | 'pick-slot' | 'gonio'
-    const [view, setView] = useState<'home' | 'video-review' | 'pick-slot' | 'gonio'>('home');
+    // View states: 'home' | 'video-review' | 'pick-slot' | 'gonio' | 'gonio-prep'
+    const [view, setView] = useState<'home' | 'video-review' | 'pick-slot' | 'gonio' | 'gonio-prep'>('home');
 
     // Captured media or values
     const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
@@ -225,7 +225,7 @@ export default function RemoteMobileView({
                 return;
             }
         }
-        setView('gonio');
+        setView('gonio-prep');
     };
 
     React.useEffect(() => {
@@ -399,8 +399,57 @@ export default function RemoteMobileView({
     }
 
     // ══════════════════════════════════════════
-    // VIEW: GONIOMETER (Digital Clinometer)
+    // VIEW: GONIO PREP (Preparation steps)
     // ══════════════════════════════════════════
+    if (view === 'gonio-prep') {
+        return (
+            <div className="fixed inset-0 bg-slate-950 z-[100] flex flex-col font-sans overflow-hidden">
+                <header className="px-6 pt-safe-top py-6">
+                    <Button variant="ghost" size="icon" onClick={() => setView('home')} className="rounded-full h-10 w-10 bg-white/10 text-white hover:bg-white/20">
+                        <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                </header>
+
+                <div className="flex-1 flex flex-col items-center justify-center px-10 gap-12 -mt-10 text-center">
+                    <div className="relative">
+                        <div className="w-24 h-24 rounded-3xl bg-white/5 flex items-center justify-center animate-pulse border border-white/10">
+                            <RotateCcw className="h-10 w-10 text-indigo-400" />
+                        </div>
+                        <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-amber-500 flex items-center justify-center border-4 border-slate-950">
+                            <Lock className="h-3 w-3 text-white" />
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <h2 className="text-4xl font-black text-white tracking-tight uppercase">Preparação</h2>
+                        <p className="text-xs font-bold text-white/40 uppercase tracking-[0.2em]">Siga os passos abaixo</p>
+                    </div>
+
+                    <div className="w-full space-y-4">
+                        {[
+                            { step: 1, text: "Abra a Central de Controle (arraste do topo direito)" },
+                            { step: 2, text: "Ative o Bloqueio de Orientação Vertical (ícone de cadeado)" },
+                            { step: 3, text: "Isso garante que o sensor não se perca durante as medidas" }
+                        ].map((item) => (
+                            <div key={item.step} className="flex gap-4 p-5 rounded-3xl bg-white/5 border border-white/5 text-left items-start">
+                                <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
+                                    <span className="text-xs font-black text-white">{item.step}</span>
+                                </div>
+                                <p className="text-xs font-bold text-white/80 leading-relaxed uppercase tracking-tight">{item.text}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    <Button
+                        onClick={() => setView('gonio')}
+                        className="w-full h-20 rounded-3xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-base uppercase tracking-widest shadow-2xl mt-4"
+                    >
+                        Tudo Pronto
+                    </Button>
+                </div>
+            </div>
+        );
+    }
     if (view === 'gonio') {
         const visualAngle = isGonioFrozen ? capturedGonioValue || gonioAngle : gonioAngle;
         const absAngle = Math.abs(visualAngle);
@@ -420,31 +469,32 @@ export default function RemoteMobileView({
                 </header>
 
                 <div className="flex-1 flex flex-col items-center justify-center gap-12 -mt-12">
-                    {/* Circle Gauge */}
-                    <div className="relative w-80 h-80 flex items-center justify-center">
+                    {/* Circle Gauge - Size 90x90 footprint */}
+                    <div className="relative w-[340px] h-[340px] flex items-center justify-center">
                         {/* Interactive Area for Freezing */}
                         <div
                             className="absolute inset-0 z-20 cursor-pointer active:scale-95 transition-transform rounded-full"
                             onClick={() => setIsGonioFrozen(!isGonioFrozen)}
                         />
 
-                        <svg className="w-full h-full transform -rotate-90">
+                        <svg viewBox="0 0 340 340" className="w-full h-full transform -rotate-90">
                             {/* Background Circle */}
-                            <circle cx="160" cy="160" r="110" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
+                            <circle cx="170" cy="170" r="130" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
                             {/* Progress Bar (Solid Arc) */}
                             <circle
-                                cx="160" cy="160" r="110" fill="none"
-                                stroke="#4f46e5" strokeWidth="20"
-                                strokeDasharray={(2 * Math.PI * 110 * (absAngle / 360)) + " " + (2 * Math.PI * 110)}
+                                cx="170" cy="170" r="130" fill="none"
+                                stroke="#4f46e5" strokeWidth="24"
+                                strokeDasharray={(2 * Math.PI * 130 * (absAngle / 360)) + " " + (2 * Math.PI * 130)}
                                 style={{
                                     transformOrigin: 'center',
-                                    // Corrigi a direção: se inclinar pra direita (positivo), o arco cresce pras 3h.
+                                    // SINCRO PERFEITA: Se inclinar pra direita (positivo), rota 90deg (início topo).
+                                    // Se inclinar pra esquerda (negativo), rotacionamos o arco para trás.
                                     transform: visualAngle >= 0 ? 'rotate(90deg)' : `rotate(${90 - absAngle}deg)`
                                 }}
                             />
                         </svg>
 
-                        {/* Value Display */}
+                        {/* Value Display - Font size preserved */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10 pointer-events-none">
                             <span className="text-8xl font-black tracking-tighter transition-opacity" style={{ opacity: isGonioFrozen ? 0.6 : 1 }}>
                                 {showGonioSign ? visualAngle.toFixed(1) : absAngle.toFixed(1)}
@@ -452,30 +502,29 @@ export default function RemoteMobileView({
                             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-2">Graus</span>
                         </div>
 
-                        {/* Needle */}
+                        {/* Needle - NO TRANSITION (Instant) */}
                         <div
                             className="absolute inset-0 flex items-center justify-center pointer-events-none"
                             style={{
-                                transform: `rotate(${visualAngle}deg)`,
-                                transition: 'transform 80ms linear'
+                                transform: `rotate(${visualAngle}deg)`
                             }}
                         >
-                            <div className="w-1.5 h-40 -mt-40 bg-indigo-400 rounded-full relative shadow-[0_0_20px_rgba(129,140,248,0.6)]">
-                                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rounded-full blur-[1px] shadow-lg" />
+                            <div className="w-2 h-48 -mt-48 bg-indigo-400 rounded-full relative shadow-[0_0_25px_rgba(129,140,248,0.7)]">
+                                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-5 h-5 bg-white rounded-full blur-[1px] shadow-lg" />
                             </div>
                         </div>
 
-                        {/* Signal Toggle - Out of the way but accessible */}
+                        {/* Signal Toggle */}
                         <Button
                             variant="ghost"
                             size="icon"
                             onClick={(e) => { e.stopPropagation(); setShowGonioSign(!showGonioSign); }}
                             className={cn(
-                                "absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 z-30 h-12 w-12 rounded-2xl border border-white/10 shadow-2xl",
+                                "absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-30 h-14 w-14 rounded-2xl border border-white/10 shadow-2xl",
                                 showGonioSign ? "bg-white text-slate-950" : "bg-white/5 text-white"
                             )}
                         >
-                            <span className="font-black text-xs">+/-</span>
+                            <span className="font-black text-sm">+/-</span>
                         </Button>
                     </div>
 
@@ -486,9 +535,9 @@ export default function RemoteMobileView({
                                 e.stopPropagation();
                                 gonioReferenceRef.current += gonioAngle;
                                 setGonioAngle(0);
-                                toast.info("Referência Zerada");
+                                toast.info("Referência Zerada", { duration: 800 });
                             }}
-                            className="flex-1 h-20 rounded-3xl bg-white/5 border-white/10 text-white font-black uppercase tracking-widest hover:bg-white/10"
+                            className="flex-1 h-20 rounded-3xl bg-white/5 border-white/10 text-white font-black uppercase tracking-widest hover:bg-white/10 active:bg-white/20 transition-colors"
                         >
                             Zerar
                         </Button>
