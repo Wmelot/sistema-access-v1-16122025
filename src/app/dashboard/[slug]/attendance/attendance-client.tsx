@@ -23,9 +23,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import QRCode from "react-qr-code"
-
-import { getLocalIp } from "@/actions/network"
 import { saveAttendanceRecord, finishAttendance, startAttendance, deleteAttendanceRecord, alignAppointmentService } from "@/actions/attendance"
 import { QuestionnairesTab } from "@/app/dashboard/[slug]/patients/components/QuestionnairesTab" // [UPDATED]
 import { FormRenderer } from "@/components/forms/FormRenderer"
@@ -39,7 +36,6 @@ import { VoiceRecorder } from "@/components/ui/voice-recorder"
 import SmartPBEForm from "@/features/forms/pbe/components/SmartPBEForm"
 import { FocusModeEvolution } from "@/features/attendance/components/FocusModeEvolution"
 import { WomensHealthForm } from "@/features/forms/womens-health/components/WomensHealthForm"
-import { ScanFace } from "lucide-react"
 import BiomechanicsInsoleForm from "@/features/forms/pbe/components/BiomechanicsInsoleForm"
 import DiabeticFootForm from "@/features/forms/pbe/components/DiabeticFootForm"
 import InsensitiveFootForm from "@/features/forms/insensitive-foot/InsensitiveFootForm"
@@ -314,18 +310,8 @@ export function AttendanceClient({
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [isCreatingRecord, setIsCreatingRecord] = useState(false)
     const [isFinishDialogOpen, setIsFinishDialogOpen] = useState(false)
-    const [isQRModalOpen, setIsQRModalOpen] = useState(false)
-    const [localIpAddress, setLocalIpAddress] = useState<string | null>(null)
     const isRemoteMode = searchParams.get('remote') === 'true'
 
-    // Fetch the computer's LAN IP for mobile scanning if on localhost
-    useEffect(() => {
-        if (isQRModalOpen && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-            getLocalIp().then((ip) => {
-                if (ip) setLocalIpAddress(ip)
-            })
-        }
-    }, [isQRModalOpen])
 
     // [NEW] Auto-open finish dialog when ?finish=true is in URL
     useEffect(() => {
@@ -927,16 +913,6 @@ export function AttendanceClient({
                                 <Stopwatch startTime={currentRecord?.created_at || appointment.updated_at || appointment.start_time} />
                             </div>
                         )}
-                        {/* Botão Conectar Mobile (FOTO 1/2) */}
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setIsQRModalOpen(true)}
-                            className="hidden lg:flex h-9 rounded-xl border-indigo-200 bg-indigo-50/30 text-indigo-700 hover:bg-indigo-100/50 hover:text-indigo-800 font-bold gap-2 px-4 shadow-sm"
-                        >
-                            <ScanFace className="w-4 h-4" />
-                            Conectar Celular
-                        </Button>
 
                         <Button
                             variant="default"
@@ -1526,56 +1502,6 @@ export function AttendanceClient({
                 templateType={selectedTemplateId === PHYSICAL_ASSESSMENT_ID || selectedTemplate?.title === 'Avaliação Física Avançada' || selectedTemplateId === SMART_ASSESSMENT_ID ? 'smart' : 'default'}
             />
 
-            {/* QR Code Remote Connection Modal */}
-            <Dialog open={isQRModalOpen} onOpenChange={setIsQRModalOpen}>
-                <DialogContent className="max-w-sm rounded-[40px] p-8 border-none shadow-2xl bg-white text-center">
-                    <DialogHeader>
-                        <DialogTitle className="text-2xl font-black text-slate-900 flex flex-col items-center gap-4">
-                            <div className="p-4 bg-indigo-100 rounded-[2rem] text-indigo-600">
-                                <ScanFace className="w-10 h-10" />
-                            </div>
-                            Captura Mobile QR
-                        </DialogTitle>
-                        <DialogDescription className="text-slate-500 font-bold px-4">
-                            Escaneie para transformar seu celular em uma ferramenta de captura (Fotos e Voz).
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="py-8 flex flex-col items-center justify-center">
-                        <div className="p-6 bg-white border-8 border-indigo-50 rounded-[2.5rem] shadow-inner mb-6">
-                            <QRCode
-                                value={typeof window !== 'undefined' ? (
-                                    window.location.hostname === 'localhost' && localIpAddress
-                                        ? `http://${localIpAddress}:${window.location.port}${window.location.pathname}?remote=true`
-                                        : `${window.location.origin}${window.location.pathname}?remote=true`
-                                ) : ''}
-                                size={200}
-                                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                                viewBox={`0 0 256 256`}
-                                fgColor="#4f46e5"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-100 font-black px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest">
-                                Conexão Segura Ativa
-                            </Badge>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter text-center">
-                                Use a câmera do celular p/ conectar instantaneamente
-                            </p>
-                        </div>
-                    </div>
-
-                    <DialogFooter>
-                        <Button
-                            variant="ghost"
-                            onClick={() => setIsQRModalOpen(false)}
-                            className="w-full h-12 rounded-2xl font-black text-slate-400 hover:text-slate-600"
-                        >
-                            FECHAR
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div >
     )
 }

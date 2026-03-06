@@ -237,8 +237,8 @@ export default function RemoteMobileView({
             const x = acc.x || 0;
             const y = acc.y || 0;
 
-            // Atan2(-x, -y) coloca o 0 na vertical (topo p/ cima)
-            const raw = Math.atan2(-x, -y) * (180 / Math.PI);
+            // Atan2(x, -y) coloca o 0 na vertical e movimento positivo p/ direita
+            const raw = Math.atan2(x, -y) * (180 / Math.PI);
             let relative = raw - gonioReferenceRef.current;
             if (relative > 180) relative -= 360;
             if (relative < -180) relative += 360;
@@ -487,9 +487,11 @@ export default function RemoteMobileView({
                                 strokeDasharray={(2 * Math.PI * 130 * (absAngle / 360)) + " " + (2 * Math.PI * 130)}
                                 style={{
                                     transformOrigin: 'center',
-                                    // SINCRO PERFEITA: Se inclinar pra direita (positivo), rota 90deg (início topo).
-                                    // Se inclinar pra esquerda (negativo), rotacionamos o arco para trás.
-                                    transform: visualAngle >= 0 ? 'rotate(90deg)' : `rotate(${90 - absAngle}deg)`
+                                    // SINCRO PERFEITA: Sem offsets de 90deg extras.
+                                    // Se inclinar p/ direita (pos), inicia no Topo (0).
+                                    // Se inclinar p/ esquerda (neg), rotaciona o início para o valor negativo.
+                                    transform: visualAngle >= 0 ? 'rotate(0deg)' : `rotate(${visualAngle}deg)`,
+                                    transition: 'none'
                                 }}
                             />
                         </svg>
@@ -537,7 +539,7 @@ export default function RemoteMobileView({
                                 setGonioAngle(0);
                                 toast.info("Referência Zerada", { duration: 800 });
                             }}
-                            className="flex-1 h-20 rounded-3xl bg-white/5 border-white/10 text-white font-black uppercase tracking-widest hover:bg-white/10 active:bg-white/20 transition-colors"
+                            className="flex-1 h-20 rounded-3xl bg-white/10 border-2 border-white/20 text-white font-black uppercase tracking-widest hover:bg-white/20 active:bg-indigo-600 focus:outline-none focus:ring-0 active:scale-95 transition-all"
                         >
                             Zerar
                         </Button>
