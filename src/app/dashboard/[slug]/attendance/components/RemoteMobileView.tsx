@@ -80,11 +80,14 @@ const DEFAULT_SLOTS: MediaSlot[] = [
 function getSlotsForTemplate(templateId?: string): MediaSlot[] {
     if (!templateId) return DEFAULT_SLOTS;
     const tid = templateId.toLowerCase();
+
+    // Palmilha 5: Remove Postura slots per user request
+    if (tid === 'palmilha-5' || tid === 'e0000000-0000-0000-0000-000000000005' || tid.includes('palmilha')) {
+        return PALMILHA5_SLOTS.filter(s => s.group !== 'Postura');
+    }
+
     if (tid === 'pbe-5' || tid === 'e0000000-0000-0000-0000-000000000010' || tid.includes('pbe')) {
         return PBE5_SLOTS;
-    }
-    if (tid === 'palmilha-5' || tid === 'e0000000-0000-0000-0000-000000000005' || tid.includes('palmilha')) {
-        return PALMILHA5_SLOTS;
     }
     return DEFAULT_SLOTS;
 }
@@ -127,9 +130,12 @@ export default function RemoteMobileView({
 
     const [gonioAngle, setGonioAngle] = useState(0);
     const [isGonioFrozen, setIsGonioFrozen] = useState(false);
+    const [showGonioSign, setShowGonioSign] = useState(false);
     const gonioReferenceRef = useRef(0);
     const gonioSmoothRef = useRef(0);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const lastVideoTimeRef = useRef(0);
+    const frameIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
     // Use the record's template_id from DB as primary (works on both desktop and mobile browsers)
@@ -179,8 +185,29 @@ export default function RemoteMobileView({
         if (videoRef.current) {
             videoRef.current.pause();
             videoRef.current.currentTime += direction * (1 / 30); // 30fps
+            lastVideoTimeRef.current = videoRef.current.currentTime;
         }
     };
+
+    const startContinuousSkip = (direction: 1 | -1) => {
+        if (frameIntervalRef.current) clearInterval(frameIntervalRef.current);
+        skipFrame(direction);
+        frameIntervalRef.current = setInterval(() => skipFrame(direction), 100);
+    };
+
+    const stopContinuousSkip = () => {
+        if (frameIntervalRef.current) {
+            clearInterval(frameIntervalRef.current);
+            frameIntervalRef.current = null;
+        }
+    };
+
+    // Restore video time after pick-slot
+    useEffect(() => {
+        if (view === 'video-review' && videoRef.current && lastVideoTimeRef.current > 0) {
+            videoRef.current.currentTime = lastVideoTimeRef.current;
+        }
+    }, [view]);
 
     const extractCurrentFrame = useCallback(() => {
         const video = videoRef.current;
@@ -239,6 +266,9 @@ export default function RemoteMobileView({
     };
 
     const handleGrabFrame = () => {
+        if (videoRef.current) {
+            lastVideoTimeRef.current = videoRef.current.currentTime;
+        }
         const frame = extractCurrentFrame();
         if (frame) {
             setCurrentFrame(frame);
@@ -269,14 +299,15 @@ export default function RemoteMobileView({
             toast.error("Erro ao salvar.", { id: loadingToast });
         }
 
-        // Reset and go back
+        // Reset captured state
         setCapturedPhoto(null);
         setCurrentFrame(null);
         setCapturedGonioValue(null);
-        setIsGonioFrozen(false);
 
-        // If we came from video review, go back to video
-        if (videoSrc) {
+        if (numericData !== null) {
+            setView('gonio');
+            setIsGonioFrozen(false);
+        } else if (videoSrc) {
             setView('video-review');
         } else {
             setView('home');
@@ -395,18 +426,21 @@ export default function RemoteMobileView({
 
                 <div className="flex-1 flex flex-col items-center justify-center gap-12 -mt-12">
                     {/* Circle Gauge */}
-                    <div className="relative w-72 h-72 flex items-center justify-center">
+                    <div
+                        className="relative w-72 h-72 flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+                        onClick={() => setIsGonioFrozen(!isGonioFrozen)}
+                    >
                         <svg className="w-full h-full transform -rotate-90">
                             {/* Background Circle */}
                             <circle cx="144" cy="144" r="90" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
-                            {/* Progress Bar */}
+                            {/* Progress Bar (Solid Arc) */}
                             <circle
                                 cx="144" cy="144" r="90" fill="none"
-                                stroke="#4f46e5" strokeWidth="12" strokeLinecap="round"
+                                stroke="#4f46e5" strokeWidth="16"
                                 strokeDasharray={dashLength + " " + circumference}
-                                className="transition-all duration-75"
                                 style={{
                                     transformOrigin: 'center',
+                                    // Sincroniza o início conforme o sinal
                                     transform: visualAngle >= 0 ? 'rotate(90deg)' : `rotate(${90 - absAngle}deg)`
                                 }}
                             />
@@ -414,19 +448,32 @@ export default function RemoteMobileView({
 
                         {/* Value Display */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                            <span className="text-7xl font-black tracking-tighter transition-all duration-75" style={{ opacity: isGonioFrozen ? 0.6 : 1 }}>
-                                {absAngle.toFixed(1)}
-                            </span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-7xl font-black tracking-tighter transition-opacity" style={{ opacity: isGonioFrozen ? 0.6 : 1 }}>
+                                    {showGonioSign ? visualAngle.toFixed(1) : absAngle.toFixed(1)}
+                                </span>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => { e.stopPropagation(); setShowGonioSign(!showGonioSign); }}
+                                    className={cn("h-10 w-10 rounded-xl border border-white/10", showGonioSign ? "bg-white text-slate-950" : "bg-white/5 text-white")}
+                                >
+                                    <span className="font-black text-xs">+/-</span>
+                                </Button>
+                            </div>
                             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-2">Graus</span>
                         </div>
 
                         {/* Needle */}
                         <div
-                            className="absolute inset-0 flex items-center justify-center transition-transform duration-75"
-                            style={{ transform: `rotate(${visualAngle}deg)` }}
+                            className="absolute inset-0 flex items-center justify-center"
+                            style={{
+                                transform: `rotate(${visualAngle}deg)`,
+                                transition: 'transform 80ms cubic-bezier(0, 0, 0.2, 1)'
+                            }}
                         >
-                            <div className="w-1 h-32 -mt-32 bg-gradient-to-t from-transparent to-white rounded-full relative">
-                                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-white rounded-full blur-[2px]" />
+                            <div className="w-1.5 h-32 -mt-32 bg-indigo-400 rounded-full relative shadow-[0_0_15px_rgba(129,140,248,0.5)]">
+                                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rounded-full blur-[1px] shadow-lg" />
                             </div>
                         </div>
                     </div>
@@ -434,15 +481,10 @@ export default function RemoteMobileView({
                     <div className="flex gap-4 px-8 w-full">
                         <Button
                             variant="outline"
-                            onClick={() => {
-                                // To "zero" the goniometer, we need to adjust the reference angle
-                                // such that the current displayed angle becomes 0.
-                                // gonioAngle = raw - gonioReferenceRef.current
-                                // If we want new_gonioAngle to be 0, then new_gonioReferenceRef.current should be raw.
-                                // Since gonioAngle is already (raw - old_gonioReferenceRef.current),
-                                // setting gonioReferenceRef.current to old_gonioReferenceRef.current + gonioAngle
-                                // effectively sets it to raw.
+                            onClick={(e) => {
+                                e.stopPropagation();
                                 gonioReferenceRef.current += gonioAngle;
+                                setGonioAngle(0);
                                 toast.info("Referência Zerada");
                             }}
                             className="flex-1 h-16 rounded-2xl bg-white/5 border-white/10 text-white font-black uppercase tracking-widest hover:bg-white/10"
@@ -450,7 +492,8 @@ export default function RemoteMobileView({
                             Zerar
                         </Button>
                         <Button
-                            onClick={() => {
+                            onClick={(e) => {
+                                e.stopPropagation();
                                 if (isGonioFrozen) {
                                     handleGonioSend();
                                 } else {
@@ -516,7 +559,9 @@ export default function RemoteMobileView({
                     <div className="flex items-center justify-center gap-4">
                         <Button
                             variant="ghost"
-                            onClick={() => skipFrame(-1)}
+                            onPointerDown={() => startContinuousSkip(-1)}
+                            onPointerUp={stopContinuousSkip}
+                            onPointerLeave={stopContinuousSkip}
                             className="h-14 px-6 rounded-2xl bg-white/10 text-white hover:bg-white/20 font-black text-xs uppercase tracking-widest gap-2"
                         >
                             <ChevronLeft className="h-5 w-5" />
@@ -528,18 +573,32 @@ export default function RemoteMobileView({
                             className="h-14 px-8 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-widest shadow-[0_0_30px_rgba(16,185,129,0.3)] gap-2"
                         >
                             <ImageIcon className="h-5 w-5" />
-                            Armazenar Frame
+                            Extrair Frame
                         </Button>
 
                         <Button
                             variant="ghost"
-                            onClick={() => skipFrame(1)}
+                            onPointerDown={() => startContinuousSkip(1)}
+                            onPointerUp={stopContinuousSkip}
+                            onPointerLeave={stopContinuousSkip}
                             className="h-14 px-6 rounded-2xl bg-white/10 text-white hover:bg-white/20 font-black text-xs uppercase tracking-widest gap-2"
                         >
                             Frame
                             <ChevronRight className="h-5 w-5" />
                         </Button>
                     </div>
+
+                    <Button
+                        variant="ghost"
+                        onClick={() => {
+                            if (videoSrc) URL.revokeObjectURL(videoSrc);
+                            setVideoSrc(null);
+                            setView('home');
+                        }}
+                        className="w-full text-white/40 font-black uppercase text-[10px] tracking-[0.2em]"
+                    >
+                        Encerrar Análise do Vídeo
+                    </Button>
                 </div>
             </div>
         );
