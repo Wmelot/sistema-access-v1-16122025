@@ -45,6 +45,7 @@ import { toast } from "sonner";
 import { RapidAssessmentModal } from "./RapidAssessmentModal";
 import { useParams } from "next/navigation";
 import { AxiomCopilot } from "@/components/copilot/AxiomCopilot";
+import { useOfflineSync } from "@/hooks/use-offline-sync";
 
 // Schema imports
 import { SmartAssessmentSchema, SmartAssessmentValues } from "../schemas/smart-assessment-schema";
@@ -352,6 +353,11 @@ export default function SmartPBEForm({ patientId, initialData, readOnly, onSave,
     const { fields: regionFields, append: appendRegion, remove: removeRegion } = useFieldArray({ control: form.control, name: "anamnesis.mainRegions" as any });
     const { fields: medFields, append: appendMed, remove: removeMed } = useFieldArray({ control: form.control, name: "history.meds" as any });
 
+    const { clearDraft } = useOfflineSync({
+        form,
+        id: `${patientId}_smart-pbe`
+    });
+
     const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
     const [isListening, setIsListening] = useState(false);
 
@@ -376,6 +382,7 @@ export default function SmartPBEForm({ patientId, initialData, readOnly, onSave,
         startTransition(async () => {
             try {
                 if (onSave) onSave(data);
+                clearDraft();
                 toast.success("Avaliação salva com sucesso!");
             } catch (error: any) {
                 toast.error(error?.message || "Erro ao salvar avaliação");

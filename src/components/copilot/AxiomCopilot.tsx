@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { generateStructuredHma } from '@/app/actions/copilot-ai';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MEDICATIONS_DATA, MED_DESCRIPTIONS } from '@/utils/medication-db'; // For fuzzy matching medications
 
@@ -197,6 +197,78 @@ export function AxiomCopilot({
         }
     }, [language]);
 
+    const processTranscript = async (text: string) => {
+        setIsProcessing(true);
+        try {
+            const response = await generateStructuredHma(text, specialty);
+
+            if (response.success && response.data) {
+                const { qp, hma, eva, raw, medications, comorbidities, activities } = response.data as any;
+
+                if (qp) {
+                    setValue(qpPath, qp, { shouldDirty: true });
+                    setHasQpFilled(true);
+                }
+                if (hma) {
+                    setValue(hmaPath, hma, { shouldDirty: true });
+                }
+                if (eva !== null && typeof eva === 'number' && eva >= 0 && eva <= 10) {
+                    setValue(evaPath, [eva], { shouldDirty: true });
+                    toast.success(`Nível de dor (EVA ${eva}) mapeado com sucesso!`);
+                }
+
+                // Medications mapping
+                if (medications && Array.isArray(medications) && medications.length > 0) {
+                    let currentMeds = getValues(medsPath) || [];
+                    if (!Array.isArray(currentMeds)) currentMeds = [];
+                    const structuredMeds = medications.map((m: string) => {
+                        const matchedName = findMedication(m);
+                        const desc = MED_DESCRIPTIONS[matchedName] || "Extraído via IA Copilot";
+                        return { name: matchedName, dose: "", description: desc };
+                    });
+                    setValue(medsPath, [...currentMeds, ...structuredMeds], { shouldDirty: true });
+                }
+
+                // Comorbidities mapping
+                if (comorbidities && Array.isArray(comorbidities) && comorbidities.length > 0) {
+                    let currentCom = getValues(comorbiditiesPath) || [];
+                    if (!Array.isArray(currentCom)) currentCom = [];
+                    const newCom = [...new Set([...currentCom, ...comorbidities])];
+                    setValue(comorbiditiesPath, newCom, { shouldDirty: true });
+                }
+
+                // Activities (EFEP) mapping
+                if (activities && Array.isArray(activities) && activities.length > 0) {
+                    let currentEfep = getValues(efepPath) || [];
+                    if (!Array.isArray(currentEfep)) currentEfep = [];
+                    currentEfep = currentEfep.filter((e: any) => e.activity && e.activity.trim() !== "");
+                    const structuredActs = activities.slice(0, 3).map((a: string) => ({ activity: a, score: "" }));
+                    setValue(efepPath, [...currentEfep, ...structuredActs], { shouldDirty: true });
+                }
+
+                setLastRawTranscript(raw || text);
+                toast.success("Anamnese Estruturada!", {
+                    description: "A inteligência artificial processou os dados com sucesso.",
+                    icon: <Sparkles className="w-4 h-4 text-emerald-500" />
+                });
+                localStorage.removeItem('axiom-copilot-draft');
+                setInternalTranscript("");
+            } else {
+                setLastRawTranscript(text);
+                toast.error("Erro no Processamento AI", {
+                    description: "Não conseguimos estruturar os dados, mas sua transcrição foi salva.",
+                    duration: 10000
+                });
+            }
+        } catch (error) {
+            console.error("Copilot Process Error:", error);
+            setLastRawTranscript(text);
+            toast.error("Erro Inesperado", { description: "Falha ao processar áudio." });
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     const toggleListen = () => {
         if (!recognitionRef.current) {
             toast.error("Navegador não compatível", { description: "Seu navegador não suporta reconhecimento de voz direto." });
@@ -224,80 +296,13 @@ export function AxiomCopilot({
 
             // Enhanced clinical AI refinement using real Action
             setTimeout(async () => {
-                let textToProcess = internalTranscript.trim();
-
+                const textToProcess = internalTranscript.trim();
                 if (textToProcess.length > 5) {
-                    const response = await generateStructuredHma(textToProcess, specialty);
-
-                    if (response.success && response.data) {
-                        const { qp, hma, eva, raw, medications, comorbidities, activities } = response.data as any;
-
-                        if (qp) {
-                            setValue(qpPath, qp, { shouldDirty: true });
-                            setHasQpFilled(true);
-                        }
-                        if (hma) {
-                            setValue(hmaPath, hma, { shouldDirty: true });
-                        }
-                        if (eva !== null && typeof eva === 'number' && eva >= 0 && eva <= 10) {
-                            setValue(evaPath, eva, { shouldDirty: true });
-                            toast.success(`Nível de dor (EVA ${eva}) mapeado com sucesso!`);
-                        }
-
-                        // ---> ADDING NEW FIELDS:
-                        if (medications && Array.isArray(medications) && medications.length > 0) {
-                            let currentMeds = getValues(medsPath) || [];
-                            if (!Array.isArray(currentMeds)) currentMeds = [];
-                            const structuredMeds = medications.map((m: string) => {
-                                const matchedName = findMedication(m);
-                                const desc = MED_DESCRIPTIONS[matchedName] || "Extraído via IA Copilot";
-                                return { name: matchedName, dose: "", description: desc };
-                            });
-                            setValue(medsPath, [...currentMeds, ...structuredMeds], { shouldDirty: true });
-                            toast.success(`${medications.length} medicamento(s) mapeado(s)!`);
-                        }
-
-                        if (comorbidities && Array.isArray(comorbidities) && comorbidities.length > 0) {
-                            let currentCom = getValues(comorbiditiesPath) || [];
-                            if (!Array.isArray(currentCom)) currentCom = [];
-                            const newCom = [...new Set([...currentCom, ...comorbidities])];
-                            setValue(comorbiditiesPath, newCom, { shouldDirty: true });
-                            toast.success(`${comorbidities.length} comorbidade(s) registrada(s)!`);
-                        }
-
-                        if (activities && Array.isArray(activities) && activities.length > 0) {
-                            let currentEfep = getValues(efepPath) || [];
-                            if (!Array.isArray(currentEfep)) currentEfep = [];
-
-                            // Remove empty initial elements from efep array if they exist (usually the first one is blank)
-                            currentEfep = currentEfep.filter((e: any) => e.activity && e.activity.trim() !== "");
-
-                            const structuredActs = activities.slice(0, 3).map((a: string) => ({ activity: a, score: "" }));
-                            setValue(efepPath, [...currentEfep, ...structuredActs], { shouldDirty: true });
-                            toast.success(`${activities.length} atividade(s) mapeada(s) na EFEP!`);
-                        }
-
-                        if (raw) {
-                            setLastRawTranscript(raw);
-                        } else {
-                            // Fallback to internal transcript if AI didn't return raw
-                            setLastRawTranscript(textToProcess);
-                        }
-
-                        toast.success("Anamnese Estruturada!", {
-                            description: "A inteligência artificial resumiu os pontos críticos.",
-                            icon: <Sparkles className="w-4 h-4 text-emerald-500" />
-                        });
-                        localStorage.removeItem('axiom-copilot-draft');
-                        setInternalTranscript("");
-                    } else {
-                        toast.error("Erro na IA", { description: response.message || "Tente novamente." });
-                    }
+                    processTranscript(textToProcess);
                 } else {
                     toast.info("Gravação muito curta", { description: "Nenhuma anamnese gerada." });
+                    setIsProcessing(false);
                 }
-
-                setIsProcessing(false);
             }, 500);
         }
     };
@@ -379,6 +384,26 @@ export function AxiomCopilot({
                                 </p>
                             </ScrollArea>
                         </div>
+                        <DialogFooter className="mt-4 flex gap-2">
+                            <Button
+                                variant="outline"
+                                className="flex-1 rounded-xl font-bold"
+                                onClick={() => {
+                                    navigator.clipboard.writeText(lastRawTranscript);
+                                    toast.success("Copiado para a área de transferência!");
+                                }}
+                            >
+                                Copiar Texto
+                            </Button>
+                            <Button
+                                className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-2"
+                                disabled={isProcessing}
+                                onClick={() => processTranscript(lastRawTranscript)}
+                            >
+                                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                Tentar Estruturar Novamente
+                            </Button>
+                        </DialogFooter>
                     </DialogContent>
                 </Dialog>
             )}

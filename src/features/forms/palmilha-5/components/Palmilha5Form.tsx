@@ -34,6 +34,7 @@ import { BiomechanicsReport } from "@/features/forms/pbe/components/biomechanics
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { parseFeegowText } from "@/features/forms/_ROOT_BACKUP_JUNK_OUTSIDE/palmilha-biomecanica/utils/feegow-parser";
+import { useOfflineSync } from "@/hooks/use-offline-sync";
 
 const SECTION_STYLES: Record<string, { border: string, iconColor: string }> = {
     hma: { border: "border-l-blue-600", iconColor: "text-blue-600" },
@@ -174,6 +175,11 @@ export default function Palmilha5Form({
             },
             ...initialData
         }
+    });
+
+    const { clearDraft } = useOfflineSync({
+        form,
+        id: `${patientId}_${selectedTemplateId || 'palmilha-5'}`
     });
 
     const isInsensitiveFoot = useMemo(() => {
@@ -476,6 +482,7 @@ export default function Palmilha5Form({
                                 setIsSaving(true);
                                 try {
                                     await onSave(data, true);
+                                    clearDraft();
                                 } finally {
                                     setIsSaving(false);
                                 }
@@ -796,6 +803,7 @@ export default function Palmilha5Form({
                                                     setIsSaving(true);
                                                     try {
                                                         await onSave(data, true);
+                                                        clearDraft();
                                                     } finally {
                                                         setIsSaving(false);
                                                     }

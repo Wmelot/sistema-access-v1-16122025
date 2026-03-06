@@ -70,16 +70,26 @@ export function parseFeegowText(text: string): Partial<PalmilhaFormValues> {
     // 2. EXAME FISICO - FPI
     data.exame_fisico.fpi.talus.left = extractStatus('Tálus E');
     data.exame_fisico.fpi.talus.right = extractStatus('Tálus D');
-    data.exame_fisico.fpi.curvatura_maleolar.left = extractStatus('Maléolo E');
-    data.exame_fisico.fpi.curvatura_maleolar.right = extractStatus('Maléolo D');
-    data.exame_fisico.fpi.posicao_calcaneo.left = extractStatus('Calcâneo E');
-    data.exame_fisico.fpi.posicao_calcaneo.right = extractStatus('Calcâneo D');
-    data.exame_fisico.fpi.proeminencia_tln.left = extractStatus('TLN E');
-    data.exame_fisico.fpi.proeminencia_tln.right = extractStatus('TLN D');
+
+    // Position 2: Curves
+    data.exame_fisico.fpi.curvatura_maleolar.left = extractStatus('Calcâneo E');
+    data.exame_fisico.fpi.curvatura_maleolar.right = extractStatus('Calcâneo D');
+
+    // Position 3 & 4: Navicular labels usually appear twice in order
+    const navicularMatchesE = [...text.matchAll(/Navicular E\s*(?::\s*|\r?\n)\s*([^\n\r<]+)/gi)];
+    const navicularMatchesD = [...text.matchAll(/Navicular D\s*(?::\s*|\r?\n)\s*([^\n\r<]+)/gi)];
+
+    data.exame_fisico.fpi.posicao_calcaneo.left = navicularMatchesE[0]?.[1]?.trim();
+    data.exame_fisico.fpi.posicao_calcaneo.right = navicularMatchesD[0]?.[1]?.trim();
+
+    data.exame_fisico.fpi.proeminencia_tln.left = navicularMatchesE[1]?.[1]?.trim();
+    data.exame_fisico.fpi.proeminencia_tln.right = navicularMatchesD[1]?.[1]?.trim();
+
     data.exame_fisico.fpi.congruencia_arco.left = extractStatus('Arco E');
     data.exame_fisico.fpi.congruencia_arco.right = extractStatus('Arco D');
-    data.exame_fisico.fpi.abducao_antepé.left = extractStatus('Abdução E');
-    data.exame_fisico.fpi.abducao_antepé.right = extractStatus('Abdução D');
+
+    data.exame_fisico.fpi.abducao_antepé.left = extractStatus('Dedos E') || extractStatus('Abdução E');
+    data.exame_fisico.fpi.abducao_antepé.right = extractStatus('Dedos D') || extractStatus('Abdução D');
 
     // 3. TESTES CLINICOS
     data.exame_fisico.jack_test = {

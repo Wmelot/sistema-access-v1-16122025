@@ -158,7 +158,7 @@ export async function createPatient(formData: FormData, slug?: string) {
 
         console.log("Creating patient for Org:", organization_id)
 
-        const { data: newPatient, error } = await supabase.from('patients').insert({
+        const { data: newPatient, error } = await supabaseAdmin.from('patients').insert({
             organization_id,
             name: full_name,
             cpf,
@@ -194,8 +194,6 @@ export async function createPatient(formData: FormData, slug?: string) {
 
         // Log Action
         await logAction('PATIENT_CREATE', { name: full_name }, 'patient', newPatient.id, organization_id)
-
-        return { success: true, patient: newPatient }
 
         return { success: true, patient: newPatient }
 
@@ -350,7 +348,8 @@ export async function quickCreatePatient(name: string, phone?: string, slug?: st
         }
     }
 
-    const { data, error } = await supabase.from('patients').insert({
+    const supabaseAdmin = await createAdminClient()
+    const { data, error } = await supabaseAdmin.from('patients').insert({
         organization_id,
         name: name.trim(),
         phone: normalizePhone(phone) || phone || null,
@@ -630,7 +629,8 @@ export async function updatePatient(id: string, formData: FormData, slug?: strin
         updatePayload.organization_id = userOrgId
     }
 
-    const { error } = await supabase.from('patients').update(updatePayload).eq('id', id)
+    const supabaseAdmin = await createAdminClient()
+    const { error } = await supabaseAdmin.from('patients').update(updatePayload).eq('id', id)
 
     if (error) {
         console.error('Error updating patient:', error)
