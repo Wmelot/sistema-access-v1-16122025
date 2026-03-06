@@ -117,7 +117,7 @@ export default function RemoteMobileView({
     onClose,
     basePath = "hma"
 }: RemoteMobileViewProps) {
-    const [isSaving, setIsSaving] = useState(false);
+    const [savingSlotId, setSavingSlotId] = useState<string | null>(null);
 
     // View states: 'home' | 'video-review' | 'pick-slot' | 'gonio'
     const [view, setView] = useState<'home' | 'video-review' | 'pick-slot' | 'gonio'>('home');
@@ -146,15 +146,7 @@ export default function RemoteMobileView({
     const patientFirstName = patient?.name?.split(' ')[0] || 'Paciente';
 
     const handleInternalSave = async () => {
-        setIsSaving(true);
-        try {
-            await onSave();
-            toast.success("Sincronizado!");
-        } catch (e) {
-            toast.error("Erro ao sincronizar.");
-        } finally {
-            setIsSaving(false);
-        }
+        // Obsolete global save
     };
 
     // ── Camera/Video Capture ──
@@ -281,22 +273,25 @@ export default function RemoteMobileView({
         const imageData = capturedPhoto || currentFrame;
         const numericData = capturedGonioValue;
 
-        const loadingToast = toast.loading("Salvando...");
+        setSavingSlotId(slotId);
         try {
             if (imageData) {
                 onUpdate(slotId, imageData);
             } else if (numericData !== null) {
-                let finalVal = Math.abs(Number(numericData.toFixed(1)));
+                let finalVal = Number(numericData.toFixed(1));
+                if (!showGonioSign) finalVal = Math.abs(finalVal);
+
                 // Formula especial para Isquiosurais
                 if (slotId.includes('tests.slr')) {
-                    finalVal = Math.round(180 - finalVal);
+                    finalVal = Math.round(180 - Math.abs(finalVal));
                 }
                 onUpdate(slotId, finalVal);
             }
-            await handleInternalSave();
-            toast.success("Salvo e sincronizado!", { id: loadingToast });
+            await onSave();
         } catch (err) {
-            toast.error("Erro ao salvar.", { id: loadingToast });
+            toast.error("Erro ao salvar.");
+        } finally {
+            setSavingSlotId(null);
         }
 
         // Reset captured state
@@ -426,59 +421,65 @@ export default function RemoteMobileView({
 
                 <div className="flex-1 flex flex-col items-center justify-center gap-12 -mt-12">
                     {/* Circle Gauge */}
-                    <div
-                        className="relative w-72 h-72 flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
-                        onClick={() => setIsGonioFrozen(!isGonioFrozen)}
-                    >
+                    <div className="relative w-80 h-80 flex items-center justify-center">
+                        {/* Interactive Area for Freezing */}
+                        <div
+                            className="absolute inset-0 z-20 cursor-pointer active:scale-95 transition-transform rounded-full"
+                            onClick={() => setIsGonioFrozen(!isGonioFrozen)}
+                        />
+
                         <svg className="w-full h-full transform -rotate-90">
                             {/* Background Circle */}
-                            <circle cx="144" cy="144" r="90" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
+                            <circle cx="160" cy="160" r="110" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
                             {/* Progress Bar (Solid Arc) */}
                             <circle
-                                cx="144" cy="144" r="90" fill="none"
-                                stroke="#4f46e5" strokeWidth="16"
-                                strokeDasharray={dashLength + " " + circumference}
+                                cx="160" cy="160" r="110" fill="none"
+                                stroke="#4f46e5" strokeWidth="20"
+                                strokeDasharray={(2 * Math.PI * 110 * (absAngle / 360)) + " " + (2 * Math.PI * 110)}
                                 style={{
                                     transformOrigin: 'center',
-                                    // Sincroniza o início conforme o sinal
+                                    // Corrigi a direção: se inclinar pra direita (positivo), o arco cresce pras 3h.
                                     transform: visualAngle >= 0 ? 'rotate(90deg)' : `rotate(${90 - absAngle}deg)`
                                 }}
                             />
                         </svg>
 
                         {/* Value Display */}
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                            <div className="flex items-center gap-2">
-                                <span className="text-7xl font-black tracking-tighter transition-opacity" style={{ opacity: isGonioFrozen ? 0.6 : 1 }}>
-                                    {showGonioSign ? visualAngle.toFixed(1) : absAngle.toFixed(1)}
-                                </span>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={(e) => { e.stopPropagation(); setShowGonioSign(!showGonioSign); }}
-                                    className={cn("h-10 w-10 rounded-xl border border-white/10", showGonioSign ? "bg-white text-slate-950" : "bg-white/5 text-white")}
-                                >
-                                    <span className="font-black text-xs">+/-</span>
-                                </Button>
-                            </div>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10 pointer-events-none">
+                            <span className="text-8xl font-black tracking-tighter transition-opacity" style={{ opacity: isGonioFrozen ? 0.6 : 1 }}>
+                                {showGonioSign ? visualAngle.toFixed(1) : absAngle.toFixed(1)}
+                            </span>
                             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mt-2">Graus</span>
                         </div>
 
                         {/* Needle */}
                         <div
-                            className="absolute inset-0 flex items-center justify-center"
+                            className="absolute inset-0 flex items-center justify-center pointer-events-none"
                             style={{
                                 transform: `rotate(${visualAngle}deg)`,
-                                transition: 'transform 80ms cubic-bezier(0, 0, 0.2, 1)'
+                                transition: 'transform 80ms linear'
                             }}
                         >
-                            <div className="w-1.5 h-32 -mt-32 bg-indigo-400 rounded-full relative shadow-[0_0_15px_rgba(129,140,248,0.5)]">
+                            <div className="w-1.5 h-40 -mt-40 bg-indigo-400 rounded-full relative shadow-[0_0_20px_rgba(129,140,248,0.6)]">
                                 <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rounded-full blur-[1px] shadow-lg" />
                             </div>
                         </div>
+
+                        {/* Signal Toggle - Out of the way but accessible */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => { e.stopPropagation(); setShowGonioSign(!showGonioSign); }}
+                            className={cn(
+                                "absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 z-30 h-12 w-12 rounded-2xl border border-white/10 shadow-2xl",
+                                showGonioSign ? "bg-white text-slate-950" : "bg-white/5 text-white"
+                            )}
+                        >
+                            <span className="font-black text-xs">+/-</span>
+                        </Button>
                     </div>
 
-                    <div className="flex gap-4 px-8 w-full">
+                    <div className="flex gap-4 px-8 w-full z-30">
                         <Button
                             variant="outline"
                             onClick={(e) => {
@@ -487,7 +488,7 @@ export default function RemoteMobileView({
                                 setGonioAngle(0);
                                 toast.info("Referência Zerada");
                             }}
-                            className="flex-1 h-16 rounded-2xl bg-white/5 border-white/10 text-white font-black uppercase tracking-widest hover:bg-white/10"
+                            className="flex-1 h-20 rounded-3xl bg-white/5 border-white/10 text-white font-black uppercase tracking-widest hover:bg-white/10"
                         >
                             Zerar
                         </Button>
@@ -501,11 +502,11 @@ export default function RemoteMobileView({
                                 }
                             }}
                             className={cn(
-                                "flex-1 h-16 rounded-2xl font-black uppercase tracking-widest shadow-xl gap-2",
+                                "flex-1 h-20 rounded-3xl font-black uppercase tracking-widest shadow-2xl gap-2",
                                 isGonioFrozen ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-white text-slate-950"
                             )}
                         >
-                            {isGonioFrozen ? <Save className="w-5 h-5" /> : null}
+                            {isGonioFrozen ? <Save className="w-6 h-6" /> : null}
                             {isGonioFrozen ? "Enviar" : "Congelar"}
                         </Button>
                     </div>
@@ -622,25 +623,30 @@ export default function RemoteMobileView({
                     }} className="rounded-full h-10 w-10 bg-slate-100">
                         <ArrowLeft className="h-5 w-5 text-slate-600" />
                     </Button>
-                    <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">Selecione o campo</h2>
+                    <div className="text-center">
+                        <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Paciente</h2>
+                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-tighter">{patientFirstName}</h3>
+                    </div>
                     <div className="w-10" />
                 </header>
 
-                <main className="flex-1 overflow-y-auto">
+                <main className="flex-1 overflow-y-auto bg-slate-50/50">
                     {/* Preview */}
                     {imageToAssign && (
                         <div className="p-4">
-                            <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm max-h-[200px]">
-                                <img src={imageToAssign} alt="Captura" className="w-full h-full object-cover max-h-[200px]" />
+                            <div className="rounded-3xl overflow-hidden border-4 border-white shadow-2xl max-h-[220px]">
+                                <img src={imageToAssign} alt="Captura" className="w-full h-full object-cover max-h-[220px]" />
                             </div>
                         </div>
                     )}
 
                     {gonioValue !== null && (
-                        <div className="p-6 bg-slate-900 mx-4 mt-4 rounded-2xl flex flex-col items-center justify-center border border-white/10 shadow-xl overflow-hidden relative">
-                            <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500" />
+                        <div className="p-8 bg-slate-900 mx-4 mt-4 rounded-3xl flex flex-col items-center justify-center border border-white/10 shadow-2xl overflow-hidden relative">
+                            <div className="absolute top-0 left-0 w-full h-1.5 bg-indigo-500" />
                             <span className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">Medida Capturada</span>
-                            <span className="text-5xl font-black text-white">{Math.abs(gonioValue).toFixed(1)}º</span>
+                            <span className="text-7xl font-black text-white tracking-tighter tabular-nums">
+                                {showGonioSign ? gonioValue.toFixed(1) : Math.abs(gonioValue).toFixed(1)}º
+                            </span>
                         </div>
                     )}
 
@@ -655,24 +661,34 @@ export default function RemoteMobileView({
                                         return (
                                             <button
                                                 key={slot.id}
+                                                disabled={savingSlotId !== null}
                                                 onClick={() => handleAssignToSlot(slot.id)}
                                                 className={cn(
-                                                    "w-full bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between active:scale-95 transition-transform hover:border-indigo-300 hover:bg-indigo-50/30",
-                                                    hasValue && "border-emerald-200 bg-emerald-50/30"
+                                                    "w-full bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between active:scale-95 transition-all hover:border-indigo-300 hover:bg-indigo-50/10",
+                                                    hasValue && "border-emerald-200 bg-emerald-50/10",
+                                                    savingSlotId === slot.id && "ring-2 ring-indigo-500 border-indigo-500 shadow-indigo-100"
                                                 )}
                                             >
-                                                <div className="flex items-center gap-3">
-                                                    <div className={cn("h-8 w-8 rounded-full flex items-center justify-center", hasValue ? "bg-emerald-100" : "bg-slate-100")}>
-                                                        {hasValue ? <Check className="h-4 w-4 text-emerald-600" /> : <Smartphone className="h-4 w-4 text-slate-400" />}
+                                                <div className="flex items-center gap-4">
+                                                    <div className={cn("h-10 w-10 rounded-2xl flex items-center justify-center shadow-sm", hasValue ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-400")}>
+                                                        {savingSlotId === slot.id ? (
+                                                            <div className="h-5 w-5 border-2 border-indigo-600 border-t-transparent animate-spin rounded-full" />
+                                                        ) : (
+                                                            hasValue ? <Check className="h-5 w-5" /> : <Smartphone className="h-5 w-5" />
+                                                        )}
                                                     </div>
                                                     <div className="text-left">
                                                         <p className="text-xs font-black text-slate-800 uppercase tracking-tight">{slot.label}</p>
                                                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{hasValue ? 'Preenchido' : 'Disponível'}</p>
                                                     </div>
                                                 </div>
-                                                <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100">
-                                                    <ChevronRight className="h-4 w-4 text-slate-300" />
-                                                </div>
+                                                {savingSlotId === slot.id ? (
+                                                    <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Sincronizando...</span>
+                                                ) : (
+                                                    <div className="h-10 w-10 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100/50">
+                                                        <ChevronRight className="h-5 w-5 text-slate-300" />
+                                                    </div>
+                                                )}
                                             </button>
                                         );
                                     })}
