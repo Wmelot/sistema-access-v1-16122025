@@ -179,15 +179,15 @@ export async function updateTenantResponsible(tenantId: string, email: string, p
 export async function forceSuperAdminClaim(tenantId: string) {
     const supabase = await createAdminClient();
 
-    // 1. Find the Master User (Warley)
+    // 1. Find the Master User (Axiom Central)
     const { data: profile, error: searchError } = await supabase
         .from('profiles')
         .select('id')
-        .eq('email', 'wmelot@gmail.com')
+        .eq('email', 'accessfisio@gmail.com')
         .single();
 
     if (searchError || !profile) {
-        return { error: 'Super Admin "wmelot@gmail.com" não encontrado no sistema.' };
+        return { error: 'Super Admin "accessfisio@gmail.com" não encontrado no sistema.' };
     }
 
     // 2. Force link to this tenant and elevate to MASTER role

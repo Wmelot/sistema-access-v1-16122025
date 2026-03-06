@@ -149,9 +149,9 @@ export async function updateClinicSettings(formData: FormData) {
     // 2. If not Master, check if user belongs to the organization (Slug) and has 'owner' or 'admin' role.
     // Simplifying for now: using the existing check but allowing context.
 
-    // STRICT MASTER CHECK: wmelot@gmail.com
+    // STRICT MASTER CHECK
     let isMaster = false;
-    if (user.email === 'wmelot@gmail.com' || user.email === 'accessfisio@gmail.com') {
+    if (user.email === 'accessfisio@gmail.com') {
         isMaster = true;
     } else {
         const { data: role } = await cookieSupabase.from('profiles').select('roles(name)').eq('id', user.id).single();

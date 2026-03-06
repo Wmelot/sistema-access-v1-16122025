@@ -32,6 +32,7 @@ export const FieldRichText = ({ field, value, onChange, isPreview }: FieldRichTe
         ],
         content: value || '',
         editable: isPreview,
+        immediatelyRender: false,
         onUpdate: ({ editor }) => {
             onChange && onChange(editor.getHTML());
         },

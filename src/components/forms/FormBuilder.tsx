@@ -81,7 +81,6 @@ const TOOLS = [
     { type: 'attachments', label: 'Anexos (PDF/Laudos)', icon: Paperclip },
     { type: 'signature', label: 'Assinatura Digital', icon: PenTool },
     { type: 'vitals', label: 'Sinais Vitais', icon: Activity },
-    { type: 'questionnaire', label: 'Questionário Externo', icon: FileText },
     { type: 'date', label: 'Seletor de Data', icon: Calendar },
     { type: 'datetime', label: 'Data e Hora', icon: Clock },
     { type: 'rich_text', label: 'Texto Rico (Formado)', icon: FileJson },
@@ -89,9 +88,7 @@ const TOOLS = [
     { type: 'calculated', label: 'Campo Calculado', icon: Calculator },
     { type: 'chart', label: 'Gráfico', icon: PieChart },
     { type: 'image', label: 'Imagem / Mapa', icon: ImageIcon },
-    { type: 'logic_variable', label: 'Lógica Condicional', icon: FunctionSquare },
     { type: 'tab', label: 'Separador de Aba / Seção', icon: Layers },
-    { type: 'pain_map', label: 'Mapa de Dor', icon: User },
     { type: 'checkbox_group', label: 'Múltipla Escolha', icon: CheckSquare },
     { type: 'select', label: 'Lista Suspensa', icon: List },
     { type: 'number', label: 'Número', icon: Hash },
@@ -1096,58 +1093,23 @@ export default function FormBuilder({ template }: FormBuilderProps) {
     if (isPreview) {
         return (
             <div className="flex flex-col h-full bg-slate-50/50">
-                {/* Navigation Bar - Clean, Back to List */}
-                <div className="flex items-center justify-between border-b px-6 py-4 bg-white shadow-sm z-10">
+                {/* Navigation Bar - Clean, Back to Editor */}
+                <div className="flex items-center justify-between border-b px-6 py-4 bg-white shadow-sm z-10 w-full">
                     <div className="flex items-center gap-4">
-                        <Link href={`/dashboard/${slug}/questionnaires`}>
-                            <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground pl-0 hover:bg-transparent">
-                                <ArrowLeft className="h-4 w-4" />
-                                Voltar para Lista
-                            </Button>
-                        </Link>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-2 text-muted-foreground hover:text-foreground pl-0 hover:bg-transparent"
+                            onClick={() => setIsPreview(false)}
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            Voltar para Edição
+                        </Button>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col items-center">
-                    <div className="w-full max-w-3xl space-y-8">
-                        {/* Header Section (Matching AssessmentForm) */}
-                        <div className="space-y-4 border-b pb-4 bg-transparent px-2">
-                            <div className="flex items-start justify-between gap-4">
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="text-xl font-semibold text-slate-900">{template.title}</h3>
-                                    </div>
-                                    <p className="text-sm text-slate-500 mt-1">{template.description}</p>
-                                </div>
-
-                                {/* Instructions Button */}
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline" size="sm" className="gap-2 shrink-0 text-blue-700 border-blue-200 hover:bg-blue-50">
-                                            <BookOpen className="h-4 w-4" />
-                                            Instruções
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="max-w-lg">
-                                        <DialogHeader>
-                                            <DialogTitle>Instruções do Formulário</DialogTitle>
-                                            <DialogDescription>{template.title}</DialogDescription>
-                                        </DialogHeader>
-                                        <ScrollArea className="max-h-[60vh]">
-                                            <div className="text-sm text-slate-700 space-y-4 pr-4">
-                                                <p>{template.description || "Nenhuma instrução específica disponível para este formulário."}</p>
-                                            </div>
-                                        </ScrollArea>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-
-                            {/* Info Box (Placeholder or based on data) */}
-                            <div className="bg-slate-50 border px-4 py-3 rounded-md text-sm flex gap-3 items-start text-slate-700">
-                                <Info className="h-5 w-5 shrink-0 mt-0.5 text-blue-500" />
-                                <p>Este questionário foi elaborado para nos dar informações sobre sua condição. Por favor, responda com atenção.</p>
-                            </div>
-                        </div>
+                <div className="flex-1 overflow-y-auto p-[0.5cm] flex flex-col items-center">
+                    <div className="w-full max-w-full space-y-8">
 
                         {/* Fields Render */}
                         <div className="space-y-6">
@@ -1189,10 +1151,10 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                     // RenderField does NOT provide this wrapper by default for Preview, it just renders the input.
                                     // I should wrap them here.
                                     return (
-                                        <div className="space-y-6">
+                                        <div className="flex flex-wrap items-start content-start -mx-2">
                                             {fieldsToRender.map((field: any, index: number) => {
                                                 if (field.type === 'section') return (
-                                                    <div key={index} className="pt-4 pb-2 border-b mb-4">
+                                                    <div key={index} className="w-full px-2 pt-4 pb-2 border-b mb-4">
                                                         <h4 className="font-semibold text-lg" style={{ color: field.sectionTextColor }}>{field.label}</h4>
                                                         {field.helpText && <p className="text-sm text-muted-foreground">{field.helpText}</p>}
                                                     </div>
@@ -1207,17 +1169,19 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                 return (
                                                     <div
                                                         key={index}
-                                                        className="p-6 rounded-xl border bg-white shadow-sm hover:shadow-md transition-shadow"
+                                                        className="px-2 mb-6"
                                                         style={{ width: widthStyle }}
                                                     >
-                                                        <RenderField
-                                                            field={field}
-                                                            isPreview={true}
-                                                            value={formValues[field.id]}
-                                                            onChange={(val: any) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
-                                                            formValues={formValues}
-                                                            allFields={fields}
-                                                        />
+                                                        <div className="p-6 rounded-xl border bg-white shadow-sm hover:shadow-md transition-shadow h-full">
+                                                            <RenderField
+                                                                field={field}
+                                                                isPreview={true}
+                                                                value={formValues[field.id]}
+                                                                onChange={(val: any) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
+                                                                formValues={formValues}
+                                                                allFields={fields}
+                                                            />
+                                                        </div>
                                                     </div>
                                                 );
                                             })}
@@ -1284,59 +1248,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                 </Button>
                             </div>
                         )}
-                        {!isReadOnly && (
-                            <div className="mr-2 flex gap-1 border-r pr-2 items-center">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-9 gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-                                    onClick={() => setIsAiDialogOpen(true)}
-                                >
-                                    <Bot className="h-4 w-4" />
-                                    <span className="hidden sm:inline">Configurar IA</span>
-                                </Button>
-
-                                <Dialog open={isAiDialogOpen} onOpenChange={setIsAiDialogOpen}>
-                                    <DialogContent className="max-w-2xl">
-                                        <DialogHeader>
-                                            <DialogTitle>Script de Geração de Relatório (IA)</DialogTitle>
-                                            <DialogDescription>
-                                                Defina como a Inteligência Artificial deve interpretar os dados deste formulário para gerar relatórios.
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <div className="space-y-4 py-4">
-                                            <div className="space-y-2">
-                                                <Label>Prompt do Sistema (Script)</Label>
-                                                <p className="text-xs text-muted-foreground">
-                                                    Instrua a IA sobre o que analisar, qual tom usar e quais campos priorizar.
-                                                    Use <strong>Markdown</strong> para formatar.
-                                                </p>
-                                                <Textarea
-                                                    value={aiScript}
-                                                    onChange={(e) => setAiScript(e.target.value)}
-                                                    placeholder="Ex: Aja como um fisioterapeuta especialista. Analise os dados de baropodometria e sugira..."
-                                                    className="min-h-[300px] font-mono text-sm leading-relaxed"
-                                                />
-                                            </div>
-                                        </div>
-                                        <DialogFooter>
-                                            <Button onClick={() => setIsAiDialogOpen(false)}>Concluir Edição</Button>
-                                        </DialogFooter>
-                                    </DialogContent>
-                                </Dialog>
-
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-9 gap-2 border-primary/30 hover:border-primary text-primary hover:bg-primary/5 transition-all shadow-sm"
-                                    onClick={applyProfessionalSuggestions}
-                                    title="Preencher dicas e exemplos automaticamente nos campos vazios"
-                                >
-                                    <Sparkles className="h-4 w-4" />
-                                    <span className="hidden sm:inline">Dicas Inteligentes</span>
-                                </Button>
-                            </div>
-                        )}
+                        {/* User removed config buttons as per request (Configurar IA, Dicas Inteligentes) */}
                         <Button variant="outline" onClick={() => { setIsPreview(true); setFormValues({}); }}>
                             <Eye className="mr-2 h-4 w-4" />
                             Testar (Visualizar)
@@ -1439,9 +1351,9 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                         >
                                                             <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
                                                             <SelectContent>
-                                                                <SelectItem value="">Nenhuma</SelectItem>
-                                                                {selectedField.options?.map((option: string) => (
-                                                                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                                                                <SelectItem value="none">Nenhuma</SelectItem>
+                                                                {selectedField.options?.map((option: string, i: number) => (
+                                                                    <SelectItem key={option || `opt-${i}`} value={option || `opt-${i}`}>{option}</SelectItem>
                                                                 ))}
                                                             </SelectContent>
                                                         </Select>
@@ -1540,7 +1452,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                         <SelectItem value="attachments">Anexos</SelectItem>
                                                         <SelectItem value="slider">Slider</SelectItem>
                                                         <SelectItem value="calculated">Calculado (Soma Simples)</SelectItem>
-                                                        <SelectItem value="imc">Índice de Massa Corporal (IMC)</SelectItem>
+                                                        <SelectItem value="imc">IMC (Peso / Altura²)</SelectItem>
                                                         <SelectItem value="pineau">Protocolo Pineau (Gordura %)</SelectItem>
                                                         <SelectItem value="minimalist_index">Índice Minimalista (0-100)</SelectItem>
                                                         <SelectItem value="flexibility_weighted">Score Flexibilidade (Ponderado)</SelectItem>
@@ -1551,7 +1463,6 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                         <SelectItem value="grid">Tabela</SelectItem>
                                                         <SelectItem value="section">Seção</SelectItem>
                                                         <SelectItem value="tab">Aba</SelectItem>
-                                                        <SelectItem value="pain_map">Mapa Dor</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
@@ -3495,8 +3406,8 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                         </Tabs>
                     </div>
 
-                    {/* Canvas Area with Drop Zone - UPDATED for Sorting */}
-                    <div className="flex-1 overflow-y-auto bg-muted/10 p-8 flex justify-center">
+                    {/* Canvas Area with Drop Zone - Full Width Adjustment - Mid Balance (0.5cm gap) */}
+                    <div className="flex-1 overflow-y-auto bg-muted/10 p-[0.5cm]">
                         <CanvasDroppable
                             fields={fields}
                             selectedIds={selectedIds}

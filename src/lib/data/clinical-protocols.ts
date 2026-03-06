@@ -2091,16 +2091,22 @@ export function formatProtocolToReport(protocol: typeof CLINICAL_PROTOCOLS[0]) {
 
     // Tratamento das Referências Ricas
     text += `### Base de Conhecimento (Evidências):\n`;
-    protocol.base_conhecimento.forEach(ref => {
-        text += `- **${ref.titulo}**\n`;
-        text += `  *${ref.tipo_estudo} - ${ref.autor} (${ref.ano})*\n`;
-        text += `  Nota: ${ref.nota_qualidade}\n`;
-        text += `  > ${ref.resumo_educativo}\n`; // Blockquote para resumo
-        if (ref.pontos_chave && ref.pontos_chave.length > 0) {
-            text += `  Pontos-chave: ${ref.pontos_chave.join("; ")}\n`;
-        }
-        text += `\n`;
-    });
+    const sources = (protocol as any).base_conhecimento || (protocol as any).evidence_sources || (protocol as any).fontes_evidencia || [];
+
+    if (Array.isArray(sources)) {
+        sources.forEach(ref => {
+            text += `- **${ref.titulo || ref.citation || 'Referência'}**\n`;
+            if (ref.tipo_estudo || ref.autor || ref.ano) {
+                text += `  *${ref.tipo_estudo || ''} - ${ref.autor || ''} (${ref.ano || ''})*\n`;
+            }
+            if (ref.nota_qualidade) text += `  Nota: ${ref.nota_qualidade}\n`;
+            if (ref.resumo_educativo) text += `  > ${ref.resumo_educativo}\n`; // Blockquote para resumo
+            if (ref.pontos_chave && Array.isArray(ref.pontos_chave) && ref.pontos_chave.length > 0) {
+                text += `  Pontos-chave: ${ref.pontos_chave.join("; ")}\n`;
+            }
+            text += `\n`;
+        });
+    }
 
     text += `**Resumo Clínico:**\n${protocol.resumo_clinico}\n\n`;
 

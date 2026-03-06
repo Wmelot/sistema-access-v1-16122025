@@ -117,7 +117,7 @@ export async function createIntegration(serviceName: string) {
     const { data: { user } } = await supabase.auth.getUser()
 
     // Strict Master Lock
-    if (user?.email !== 'wmelot@gmail.com' && user?.email !== 'accessfisio@gmail.com') {
+    if (user?.email !== 'accessfisio@gmail.com') {
         return { error: "Apenas o usuário Master pode gerenciar integrações." }
     }
 
@@ -146,7 +146,7 @@ export async function generateSecret(id: string, keyName: string = 'secret_key')
     const { data: { user } } = await supabase.auth.getUser()
 
     // Strict Master Lock
-    if (user?.email !== 'wmelot@gmail.com' && user?.email !== 'accessfisio@gmail.com') {
+    if (user?.email !== 'accessfisio@gmail.com') {
         return { error: "Apenas o usuário Master pode gerenciar chaves." }
     }
 
@@ -189,7 +189,7 @@ export async function deleteIntegration(id: string) {
     const { data: { user } } = await supabase.auth.getUser()
 
     // Strict Master Lock
-    if (user?.email !== 'wmelot@gmail.com' && user?.email !== 'accessfisio@gmail.com') {
+    if (user?.email !== 'accessfisio@gmail.com') {
         return { error: "Apenas o usuário Master pode excluir integrações." }
     }
 

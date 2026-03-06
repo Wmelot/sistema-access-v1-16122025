@@ -16,7 +16,11 @@ import { Eye, EyeOff, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { createUser } from './actions';
 
+import { useParams } from 'next/navigation';
+
 export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void }) {
+    const params = useParams();
+    const slug = params?.slug as string;
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -26,7 +30,7 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
         setLoading(true);
 
         const formData = new FormData(e.currentTarget);
-        const res = await createUser(formData);
+        const res = await createUser(formData, slug);
 
         if (res.success) {
             toast.success('Usuário criado com sucesso!');

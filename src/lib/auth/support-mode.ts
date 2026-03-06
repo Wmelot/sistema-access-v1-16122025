@@ -5,7 +5,7 @@ import { cookies } from 'next/headers'
 
 // Master Admin Constants
 const MASTER_ORG_ID = '00000000-0000-0000-0000-000000000001'
-const MASTER_EMAILS = ['accessfisio@gmail.com', 'wmelot@gmail.com', 'warley@gmail.com']
+const MASTER_EMAILS = ['accessfisio@gmail.com', 'warley@gmail.com']
 
 // Known Home Clinic IDs for the Master
 const HOME_CLINIC_IDS = [

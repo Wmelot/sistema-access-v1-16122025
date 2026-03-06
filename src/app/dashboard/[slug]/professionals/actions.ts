@@ -308,16 +308,46 @@ export async function deleteCommissionRule(id: string) {
 
 export async function deleteProfessional(id: string, password?: string) {
     const canManage = await hasPermission('roles.manage')
-    if (!canManage) return { error: "Sem permissão." }
+    const context = await getSecurityContext()
+    if (!canManage && !context.isMaster) return { error: "Sem permissão." }
+
     const supabase = await createClient()
+
+    // 1. Verificação de senha robusta
     if (password) {
         const { data: { user } } = await supabase.auth.getUser()
-        if (user?.email) await supabase.auth.signInWithPassword({ email: user.email, password })
-        else return { error: 'Não autenticado.' }
+        if (user?.email) {
+            const { error: loginError } = await supabase.auth.signInWithPassword({
+                email: user.email,
+                password
+            });
+            if (loginError) return { error: 'Senha incorreta para confirmação.' };
+        } else return { error: 'Não autenticado.' }
     } else return { error: 'Senha necessária.' }
+
     const supabaseAdmin = createAdminClient()
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(id)
-    if (error) return { error: 'Erro ao excluir.' }
-    revalidatePath('/dashboard/professionals')
-    return { success: true }
+
+    try {
+        // 2. Limpeza de registros dependentes (Evitar erros de FK)
+        // Isso é necessário se o banco não tiver ON DELETE CASCADE completo
+        await supabaseAdmin.from('service_professionals').delete().eq('profile_id', id);
+        await supabaseAdmin.from('professional_availability').delete().eq('profile_id', id);
+        await supabaseAdmin.from('professional_commission_rules').delete().eq('professional_id', id);
+
+        // 3. Excluir o Usuário de Auth (Isso deve disparar o delete do Profile se houver trigger)
+        const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(id)
+
+        if (deleteError) {
+            console.error('Delete User Error:', deleteError);
+            // Backup: Se falhar em auth (ex: usuário já removido de lá mas perfil ficou orfão), tenta apagar perfil direto
+            const { error: profileError } = await supabaseAdmin.from('profiles').delete().eq('id', id);
+            if (profileError) return { error: `Erro ao excluir: ${deleteError.message || profileError.message}` };
+        }
+
+        revalidatePath('/dashboard/professionals')
+        return { success: true }
+    } catch (err: any) {
+        console.error('Error in deleteProfessional:', err);
+        return { error: `Erro interno: ${err.message}` };
+    }
 }

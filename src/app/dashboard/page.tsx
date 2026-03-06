@@ -35,21 +35,26 @@ export default async function DashboardRedirect() {
     }
 
     let slug = (profile as any)?.organizations?.slug;
+    const email = user.email?.toLowerCase() || '';
+
+    // [RULE] Master Login Redirect
+    if (email === 'accessfisio@gmail.com') {
+        console.warn(`[DashboardRedirect] MASTER LOGIN detected. Sending to Admin Central Dashboard.`);
+        redirect('/admin');
+    }
 
     // [RULE] HARD OVERRIDE FOR WMELOT TO AVOID PAINEL DE CONTROLE
-    // If the DB says 'painel-master' or similar, we FORCE 'access-fisioterapia'
-    // This handles the user's intense frustration with being sent to the wrong org.
     const BLOCKED_SLUGS = ['painel-master', 'painel-de-controle', 'admin'];
     const TARGET_SLUG = 'access-fisioterapia';
 
-    if (user.email?.includes('wmelot') && (!slug || BLOCKED_SLUGS.includes(slug))) {
-        console.warn(`[DashboardRedirect] INTERCEPTED: ${user.email} was heading to '${slug}', redirecting to '${TARGET_SLUG}' by FORCE RULE.`);
+    if (email.includes('wmelot') && (!slug || BLOCKED_SLUGS.includes(slug))) {
+        console.warn(`[DashboardRedirect] INTERCEPTED: ${email} was heading to '${slug}', redirecting to '${TARGET_SLUG}' by FORCE RULE.`);
         slug = TARGET_SLUG;
     } else if (!slug) {
-        console.error(`[DashboardRedirect] User ${user.email} has no organization. Redirecting to login error.`);
+        console.error(`[DashboardRedirect] User ${email} has no organization. Redirecting to login error.`);
         redirect('/login?error=no_organization');
     }
 
-    console.log(`[DashboardRedirect] Final destination for ${user.email}: ${slug}`);
+    console.log(`[DashboardRedirect] Final destination for ${email}: ${slug}`);
     redirect(`/dashboard/${slug}`);
 }

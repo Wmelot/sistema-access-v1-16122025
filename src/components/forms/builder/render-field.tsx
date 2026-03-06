@@ -236,7 +236,7 @@ export const RenderField = ({ field, isPreview = false, value, onChange, formVal
                             <div className="grid gap-3">
                                 <Label className="text-base font-semibold">{field.label}</Label>
                                 <div className={`grid gap-2 ${field.columns === 2 ? 'grid-cols-2' : field.columns === 3 ? 'grid-cols-3' : field.columns === 4 ? 'grid-cols-4' : 'grid-cols-1'}`}>
-                                    {field.options?.map((opt: string, i: number) => (
+                                    {field.options?.length > 0 ? field.options.map((opt: string, i: number) => (
                                         <div key={i} className="flex items-center space-x-2">
                                             <Checkbox
                                                 id={`${field.id}-${i}`}
@@ -246,7 +246,9 @@ export const RenderField = ({ field, isPreview = false, value, onChange, formVal
                                             />
                                             <Label htmlFor={`${field.id}-${i}`} className="text-sm font-normal cursor-pointer">{opt}</Label>
                                         </div>
-                                    ))}
+                                    )) : (
+                                        <div className="text-xs text-muted-foreground italic">Nenhuma opção definida.</div>
+                                    )}
                                 </div>
                             </div>
                         );
@@ -261,12 +263,14 @@ export const RenderField = ({ field, isPreview = false, value, onChange, formVal
                                     disabled={!isPreview}
                                     className={`grid gap-4 ${field.columns === 2 ? 'grid-cols-2' : field.columns === 3 ? 'grid-cols-3' : field.columns === 4 ? 'grid-cols-4' : 'grid-cols-1'}`}
                                 >
-                                    {field.options?.map((opt: string, i: number) => (
+                                    {field.options?.length > 0 ? field.options.map((opt: string, i: number) => (
                                         <div key={i} className="flex items-center space-x-2">
                                             <RadioGroupItem value={opt} id={`${field.id}-${i}`} />
                                             <Label htmlFor={`${field.id}-${i}`} className="font-normal cursor-pointer">{opt}</Label>
                                         </div>
-                                    ))}
+                                    )) : (
+                                        <div className="text-xs text-muted-foreground italic">Nenhuma opção definida.</div>
+                                    )}
                                 </RadioGroup>
                             </div>
                         );
@@ -281,9 +285,11 @@ export const RenderField = ({ field, isPreview = false, value, onChange, formVal
                                             <SelectValue placeholder="Selecione..." />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {field.options?.map((opt: string, i: number) => (
-                                                <SelectItem key={i} value={opt}>{opt}</SelectItem>
-                                            ))}
+                                            {field.options?.length > 0 ? field.options.map((opt: string, i: number) => (
+                                                <SelectItem key={i} value={opt || `opt-${i}`}>{opt || `Opção ${i + 1}`}</SelectItem>
+                                            )) : (
+                                                <SelectItem value="none" disabled>Nenhuma opção definida</SelectItem>
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 ) : (

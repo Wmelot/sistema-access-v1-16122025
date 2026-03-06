@@ -32,10 +32,10 @@ export async function getAppointments(slug?: string) {
         if (orgData) userOrgId = orgData.id
     }
 
-    // [PRIVACY] Master user (Warley) should NOT see sensitive data from other clinics 
+    // [PRIVACY] Internal platform users should NOT see sensitive data from other clinics 
     // unless they are explicitly members of that clinic.
     const MASTER_ORG_ID = '9571532e-fdf8-4aaa-b236-416fd6459566'
-    const isMaster = (profile as any)?.role === 'master' || user.email === 'wmelot@gmail.com'
+    const isMaster = (profile as any)?.role === 'master' || (profile as any)?.role === 'Master'
 
     // EXCEPTION: In Access Fisio, Master sees EVERYTHING
     const isAccessOrg = slug === 'access-fisioterapia' || userOrgId === MASTER_ORG_ID
@@ -128,7 +128,7 @@ export async function searchPatients(query: string, slug?: string) {
     }
 
     const MASTER_ORG_ID = '9571532e-fdf8-4aaa-b236-416fd6459566'
-    const isMaster = user.email === 'wmelot@gmail.com'
+    const isMaster = user.email === 'accessfisio@gmail.com'
     if (isMaster && userOrgId !== MASTER_ORG_ID) return []
 
     const adminSupabase = createAdminClient()
@@ -161,7 +161,7 @@ export async function getAppointmentFormData(slug?: string) {
 
     // [PRIVACY] Master user (Warley) should NOT see patients list from other clinics
     const ACCESS_ORG_SLUG = 'access-fisioterapia'
-    const isMaster = user.email === 'wmelot@gmail.com'
+    const isMaster = user.email === 'accessfisio@gmail.com'
     const isAccessOrg = slug === ACCESS_ORG_SLUG || orgId === '9571532e-fdf8-4aaa-b236-416fd6459566'
 
     // [NEW] Use Admin Client for Form Data too to ensure master sees everything

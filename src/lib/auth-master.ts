@@ -19,10 +19,12 @@ export const isMasterUser = cache(async (userId?: string): Promise<boolean> => {
         const profileData = profile as any
         const roleName = (profileData?.roles?.name || profileData?.role_id?.name || profileData?.role || '').toLowerCase()
 
-        // Permanent backdoors for platform owners
-        const adminEmails = ['wmelot@gmail.com', 'accessfisio@gmail.com', 'warley@gmail.com'];
+        // Permanent backdoors for platform owners (Axiom Master)
+        const adminEmails = ['accessfisio@gmail.com'];
+        // Role check
+        const isMasterRole = roleName === 'master';
 
-        return roleName === 'master' || adminEmails.includes(profileData?.email || '');
+        return isMasterRole || adminEmails.includes(profileData?.email || '');
     } catch (error) {
         console.error("[AuthMaster] Failed to check master role:", error)
         return false

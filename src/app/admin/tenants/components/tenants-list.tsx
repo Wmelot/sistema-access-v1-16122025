@@ -103,7 +103,14 @@ export function TenantsList({ organizations }: TenantsListProps) {
                 throw new Error(result.error);
             }
             toast.success("Acesso autorizado!");
-            window.location.href = '/dashboard';
+
+            // Redirect to the specific clinic slug instead of generic /dashboard
+            const org = organizations.find(o => o.id === orgId);
+            if (org?.slug) {
+                window.location.href = `/dashboard/${org.slug}`;
+            } else {
+                window.location.href = '/dashboard';
+            }
         } catch (error: any) {
             console.error(error);
             toast.error(error.message || "Erro ao trocar de organização");

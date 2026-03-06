@@ -2,6 +2,7 @@ import { getFormTemplates, getOrganizationProfessionals } from './actions';
 import { createClient } from '@/lib/supabase/server';
 import { FormsList } from './components/forms-list';
 import { canAccessAsset } from '@/lib/rbac';
+import { isMasterUser } from '@/lib/auth-master';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +10,10 @@ export default async function CustomFormsPage({ params }: { params: { slug: stri
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     const { slug } = params // Destructure slug
+
+    if (!user) return <div>Acesso negado.</div>
+
+    const isMaster = await isMasterUser(user.id)
 
     const [allTemplates, professionals] = await Promise.all([
         getFormTemplates(slug),
@@ -39,5 +44,5 @@ export default async function CustomFormsPage({ params }: { params: { slug: stri
             })
     );
 
-    return <FormsList customForms={customForms} user={user} slug={slug} professionals={professionals} />
+    return <FormsList customForms={customForms} user={user} slug={slug} professionals={professionals} isMaster={isMaster} />
 }

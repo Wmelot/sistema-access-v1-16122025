@@ -57,7 +57,7 @@ export default async function BuilderPage({ params }: PageProps) {
     console.log(`[BuilderPage] Successfully loaded and sanitized template: ${template.title} (${id})`);
 
     return (
-        <div className="max-w-4xl mx-auto py-8">
+        <div className="w-full h-full py-4">
             <FormBuilder template={(template as any)} />
         </div>
     );

@@ -18,28 +18,18 @@ const supabaseAdmin = createClient(
     }
 );
 
-export async function listAllUsers() {
+import { getSecurityContext } from '@/lib/security';
+
+export async function listAllUsers(slug?: string) {
     try {
         if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
             console.error('❌ FATAL: SUPABASE_SERVICE_ROLE_KEY is missing in environment variables.');
             return { success: false, error: "Configuração de servidor inválida (Chave ausente)." };
         }
 
-        // 1. Get Current User and their Organization
-        const sessionClient = await createSessionClient()
-        const { data: { user: currentUser } } = await sessionClient.auth.getUser()
-
-        if (!currentUser) return { success: false, error: "Não autenticado." }
-
-        const { data: currentProfile } = await sessionClient
-            .from('profiles')
-            .select('organization_id')
-            .eq('id', currentUser.id)
-            .single()
-
-        const currentOrgId = currentProfile?.organization_id
-
-        if (!currentOrgId) return { success: false, error: "Organização não encontrada." }
+        // 1. Get Security Context (handles Master vs Regular User + Slug)
+        const context = await getSecurityContext(slug);
+        const currentOrgId = context.activeOrgId;
 
         // 2. Fetch Profiles for this Organization ONLY, using Admin to ensure we get them all
         // (Use supabaseAdmin because profiles table might have RLS restricting viewing others)
@@ -65,6 +55,30 @@ export async function listAllUsers() {
         }
 
         const profileIds = profiles.map(p => p.id)
+
+        // 3.1 Ensure current user is in the list (if visiting as Master)
+        if (!profileIds.includes(context.userId)) {
+            const { data: me } = await supabaseAdmin
+                .from('profiles')
+                .select(`
+                    id,
+                    full_name,
+                    email,
+                    role_id,
+                    organization_id,
+                    roles (
+                        id,
+                        name
+                    )
+                `)
+                .eq('id', context.userId)
+                .single();
+
+            if (me) {
+                profiles.unshift(me as any);
+                profileIds.push(me.id);
+            }
+        }
 
         // 3. Fetch Auth Users (Standard Admin API) - WITH FALLBACK
         let authUsers: any[] = [];
@@ -123,7 +137,7 @@ export async function listAllUsers() {
     }
 }
 
-export async function createUser(formData: FormData) {
+export async function createUser(formData: FormData, slug?: string) {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const displayName = formData.get('displayName') as string;
@@ -134,25 +148,15 @@ export async function createUser(formData: FormData) {
     }
 
     try {
-        // [MODIFIED] Get Current User and their Organization
-        const sessionClient = await createSessionClient()
-        const { data: { user: currentUser } } = await sessionClient.auth.getUser()
-
-        if (!currentUser) return { success: false, error: "Não autenticado." }
-
-        const { data: currentProfile } = await sessionClient
-            .from('profiles')
-            .select('organization_id')
-            .eq('id', currentUser.id)
-            .single()
-
-        const organizationId = currentProfile?.organization_id
+        // 1. Get Security Context (handles Master context)
+        const context = await getSecurityContext(slug);
+        const organizationId = context.activeOrgId;
 
         if (!organizationId) {
-            return { success: false, error: "Sua conta não possui uma organização vinculada. Contate o suporte." };
+            return { success: false, error: "Organização não identificada." };
         }
 
-        // 1. Create Auth User
+        // 2. Create Auth User
         const { data: { user }, error: createError } = await supabaseAdmin.auth.admin.createUser({
             email,
             password,
@@ -165,7 +169,7 @@ export async function createUser(formData: FormData) {
         if (createError) throw createError;
 
         if (user) {
-            // 2. Update Profile with Role, Name and Organization
+            // 3. Update Profile with Role, Name and Organization
             const { error: profileError } = await supabaseAdmin
                 .from('profiles')
                 .upsert({
@@ -173,7 +177,7 @@ export async function createUser(formData: FormData) {
                     full_name: displayName,
                     role_id: roleId || null,
                     email: email,
-                    organization_id: organizationId // [FIXED] Herda a clínica do criador!
+                    organization_id: organizationId
                 });
 
             if (profileError) console.error('Error updating profile:', profileError);

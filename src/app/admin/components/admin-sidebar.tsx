@@ -111,14 +111,18 @@ function AdminSidebarContent({
                     <SectionLabel className="mt-8">Sistema</SectionLabel>
                     <NavItem href="/admin/settings" icon={Settings} label="Configurações" active={pathname.startsWith("/admin/settings")} onClick={onClose} />
 
-                    <SectionLabel className="mt-8 text-emerald-600">Atalho Rápido</SectionLabel>
-                    <NavItem
-                        href="/dashboard/access-fisioterapia"
-                        icon={ArrowRightCircle}
-                        label="Ir para Access Fisioterapia"
-                        className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-100"
-                        onClick={onClose}
-                    />
+                    {currentUser?.email !== 'accessfisio@gmail.com' && (
+                        <>
+                            <SectionLabel className="mt-8 text-emerald-600">Atalho Rápido</SectionLabel>
+                            <NavItem
+                                href="/dashboard/access-fisioterapia"
+                                icon={ArrowRightCircle}
+                                label="Ir para Access Fisioterapia"
+                                className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-100"
+                                onClick={onClose}
+                            />
+                        </>
+                    )}
                 </nav>
             </div>
 

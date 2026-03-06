@@ -3,8 +3,12 @@
 import { UsersList } from './users-list';
 import { CreateUserDialog } from './create-user-dialog';
 import { Separator } from '@/components/ui/separator';
+import { useParams } from 'next/navigation';
 
 export default function UsersPage() {
+    const params = useParams();
+    const slug = params?.slug as string;
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -20,7 +24,7 @@ export default function UsersPage() {
             </div>
             <Separator className="bg-slate-100" />
 
-            <UsersList />
+            <UsersList slug={slug} />
         </div>
     );
 }

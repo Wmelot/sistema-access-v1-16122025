@@ -538,6 +538,11 @@ export function Calendar({
                     <div
                         className="w-full h-full"
                         onMouseDown={handleMouseDown}
+                        onClick={(e) => {
+                            // [USER REQUEST] Left click on free slot should also open the creation menu
+                            e.stopPropagation()
+                            onDoubleClickEvent && onDoubleClickEvent(event)
+                        }}
                         onContextMenu={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
@@ -668,6 +673,10 @@ export function Calendar({
             return (
                 <div
                     className="h-full w-full overflow-visible"
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        onSelectEvent && onSelectEvent(event, e)
+                    }}
                     onContextMenu={(e) => {
                         e.preventDefault()
                         e.stopPropagation()
@@ -681,10 +690,6 @@ export function Calendar({
                     <AppointmentCard
                         appointment={event.resource}
                         hideTime={false}
-                        onClick={(e) => {
-                            // Removed e.stopPropagation() to allow doubleClick to bubble up to the parent div
-                            onSelectEvent && onSelectEvent(event, e)
-                        }}
                     />
                 </div>
             )

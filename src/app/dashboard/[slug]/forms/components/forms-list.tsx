@@ -29,12 +29,13 @@ interface FormsListProps {
     user: any
     slug?: string
     professionals?: any[]
+    isMaster?: boolean
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reusable template card (for user custom / non-locked forms)
 // ─────────────────────────────────────────────────────────────────────────────
-function TemplateCard({ template, slug, user, professionals, showLoading }: any) {
+function TemplateCard({ template, slug, user, professionals, showLoading, isMaster }: any) {
     return (
         <Card className="hover:border-primary/50 transition-colors flex flex-col justify-between relative group">
             <div>
@@ -52,6 +53,7 @@ function TemplateCard({ template, slug, user, professionals, showLoading }: any)
                             professionals={professionals}
                             userId={template.user_id}
                             currentUserId={user?.id}
+                            isMaster={isMaster}
                         />
                     </div>
                 </CardHeader>
@@ -145,7 +147,7 @@ function isProtocol(t: any) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Component
 // ─────────────────────────────────────────────────────────────────────────────
-export function FormsList({ customForms, user, slug, professionals = [] }: FormsListProps) {
+export function FormsList({ customForms, user, slug, professionals = [], isMaster }: FormsListProps) {
     const { viewMode, setViewMode, isLoaded } = useViewMode('forms-view-mode', 'grid')
     const { showLoading } = useGlobalLoader()
 
@@ -201,6 +203,7 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
                                         </select>
                                     </div>
                                     <input type="hidden" name="type" value="custom" />
+                                    <input type="hidden" name="slug" value={slug} />
                                 </div>
                                 <DialogFooter>
                                     <Button type="submit">Criar e Editar</Button>
@@ -229,6 +232,7 @@ export function FormsList({ customForms, user, slug, professionals = [] }: Forms
                                         user={user}
                                         professionals={professionals}
                                         showLoading={showLoading}
+                                        isMaster={isMaster}
                                     />
                                 ))}
                             </div>

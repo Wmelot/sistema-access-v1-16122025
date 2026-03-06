@@ -13,7 +13,7 @@ export async function POST(req: Request) {
         const auth = getPropulsaoAuth();
         // Using the shared credentials as requested by user
         // In a real multi-tenant system we might need dynamic auth, but user specified this account.
-        const userCredential = await signInWithEmailAndPassword(auth, 'wmelot@gmail.com', 'Wmelo@123');
+        const userCredential = await signInWithEmailAndPassword(auth, 'accessfisio@gmail.com', 'Wmelo@123');
         const user = userCredential.user;
 
         console.log('Received Propulsão Order:', JSON.stringify(body, null, 2));

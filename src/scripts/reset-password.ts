@@ -9,7 +9,7 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env
 
 async function run() {
     const email = 'accessfisio@gmail.com'
-    const newPassword = 'Access@123456'
+    const newPassword = 'Wmelo@123'
 
     console.log(`--- Checking User: ${email} ---`)
     const { data: { users }, error: listError } = await supabase.auth.admin.listUsers()

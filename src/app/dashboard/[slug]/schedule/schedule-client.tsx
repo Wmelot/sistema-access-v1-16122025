@@ -277,8 +277,11 @@ export default function ScheduleClient({
 
         // [USER REQUEST] Double Click for creation. 
         // handleSelectEvent is for SINGLE CLICK. We only handle existing appointments here.
+        // [USER REQUEST] Standardize Left Click and Right Click behavior.
+        // If it's a free slot, a single click should ALSO trigger the creation menu (as right-click does).
         if (event.resource?.type === 'free_slot') {
-            return // Ignore single click on free slot
+            handleDoubleClickEvent(event, e)
+            return
         }
 
         const appointmentData = event.resource || event

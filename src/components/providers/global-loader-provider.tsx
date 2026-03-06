@@ -5,10 +5,12 @@ import dynamic from "next/dynamic";
 import { usePathname, useSearchParams } from "next/navigation";
 
 // Dynamically load QuantumLoader only on client side to avoid SSR/Prerender issues
-const QuantumLoader = dynamic(() => import('@/components/ui/quantum-loader').then(mod => mod.QuantumLoader), {
+const QuantumLoader = dynamic(() => import('@/components/ui/quantum-loader').then(mod => ({ default: mod.QuantumLoader })), {
     ssr: false,
     loading: () => <div className="w-[60px] h-[60px]" /> // Just a spacer to keep layout stable
 });
+
+// Import types if needed (none currently used from here)
 
 interface GlobalLoaderContextType {
     setIsLoading: (loading: boolean) => void;
@@ -95,6 +97,7 @@ export const GlobalLoaderProvider = ({ children }: { children: React.ReactNode }
                                 size="55"
                                 speed="1.5"
                                 title={loadingMessage || "Inteligência Clínica"}
+                                defaultMessages={true}
                             />
                             <div className="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full -z-10 animate-pulse" />
                         </div>

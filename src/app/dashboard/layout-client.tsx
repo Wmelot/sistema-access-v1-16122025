@@ -133,10 +133,12 @@ export default function DashboardLayoutClient(props: DashboardLayoutClientProps)
     const { currentUser, userOriginSlug } = props
 
     const isMasterRole = currentUser?.role === 'master' || currentUser?.role === 'Master'
+    const isAccessFisio = currentUser?.email === 'accessfisio@gmail.com'
 
-    // [FIX] 'access-fisioterapia' variants are HOME clinics for the Master, not impersonation
-    const isHomeClinic = viewedSlug === userOriginSlug || viewedSlug === 'access-fisioterapia' || viewedSlug === 'access-fisioterapia-1'
-    const isImpersonating = isMasterRole && viewedSlug && userOriginSlug && !isHomeClinic
+    // [FIX] For accessfisio, nothing is a home clinic inside the dashboard slugs.
+    // They are always "platform visitors".
+    const isHomeClinic = !isAccessFisio && (viewedSlug === userOriginSlug || viewedSlug === 'access-fisioterapia' || viewedSlug === 'access-fisioterapia-1')
+    const isImpersonating = isMasterRole && !!viewedSlug && !!userOriginSlug && !isHomeClinic
 
     // DEBUG LOGS (Remove later)
     useEffect(() => {
@@ -163,15 +165,7 @@ export default function DashboardLayoutClient(props: DashboardLayoutClientProps)
                     <ActiveAttendanceProvider>
                         <GlobalAttendanceRestorer />
                         <OnboardingTourWrapper />
-                        {isImpersonating && (
-                            <div className="sticky top-0 z-40 w-full">
-                                <ImpersonationBar
-                                    clinicName={props.clinicName || (typeof viewedSlug === 'string' ? viewedSlug.toUpperCase() : 'DESCONHECIDA')}
-                                    isOriginClinic={viewedSlug === userOriginSlug}
-                                />
-                            </div>
-                        )}
-                        <DashboardLayoutContent {...props} />
+                        <DashboardLayoutContent {...props} isImpersonating={isImpersonating} viewedSlug={viewedSlug} />
                     </ActiveAttendanceProvider>
                 </SidebarProvider>
             </OnboardingProvider>
@@ -183,7 +177,7 @@ function OnboardingTourWrapper() {
     return <OnboardingTour />
 }
 
-function DashboardLayoutContent(props: DashboardLayoutClientProps) { // Changed type to DashboardLayoutClientProps
+function DashboardLayoutContent(props: DashboardLayoutClientProps & { isImpersonating: boolean, viewedSlug: string | undefined }) {
     const { startOnboarding } = useOnboarding() // Hook para usar a função de início
     const {
         children,
@@ -296,218 +290,231 @@ function DashboardLayoutContent(props: DashboardLayoutClientProps) { // Changed 
             />
 
             <div className="flex flex-col min-h-screen flex-1 min-w-0 print:block print:w-full">
-                <header className="sticky top-0 z-30 relative flex h-14 items-center gap-4 border-b bg-white px-4 lg:h-[60px] lg:px-6 print:hidden">
-                    <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                        <SheetTrigger asChild>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                className="shrink-0 md:hidden"
-                            >
-                                <Menu className="h-5 w-5" />
-                                <span className="sr-only">Toggle navigation menu</span>
-                            </Button>
-                        </SheetTrigger>
-                        <SheetContent side="left" className="p-0 w-[280px]">
-                            <SidebarContent
-                                logoUrl={logoUrl}
-                                clinicName={clinicName}
-                                isMobile={isMobile}
-                                isDesktopMode={isDesktopMode}
-                                toggleDesktopMode={toggleDesktopMode}
-                                features={features}
-                                trialEndsAt={trialEndsAt}
-                                slug={slug}
-                                onNavigate={() => setIsMobileMenuOpen(false)}
-                                showLoading={showLoading}
-                            />
-                        </SheetContent>
-                    </Sheet>
-
-                    {/* NOTIFICATION BELL (Mobile Left / Desktop Right logic could be applied, but user said 'move to left') */}
-                    {/* User requested shifting reminder icon to left side. We place it here. */}
-                    <div className="md:hidden">
-                        <NotificationBell />
-                    </div>
-
-                    <div className="flex-1 flex justify-center md:justify-start items-center gap-4">
-                        <div className="hidden md:block">
-                            <CommandMenu />
-                        </div>
-
-                        {/* GLOBAL PROACTIVE TIMER PILL */}
-                        {activeAttendanceId && !pathname.includes(`/attendance/${activeAttendanceId}`) && (
-                            <Link
-                                href={slug ? `/dashboard/${slug}/attendance/${activeAttendanceId}` : `/dashboard/attendance/${activeAttendanceId}`}
-                                className={cn(
-                                    "flex items-center gap-2 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-full text-xs font-bold border border-amber-200 shadow-md transition-all animate-in fade-in slide-in-from-top-2",
-                                    "md:relative md:left-0",
-                                    "fixed left-1/2 -translate-x-1/2 md:translate-x-0" // Center on mobile
-                                )}
-                            >
-                                <span className="relative flex h-2 w-2">
-                                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${status === 'in_progress' ? 'bg-amber-400' : 'bg-blue-400'} opacity-40`}></span>
-                                    <span className={`relative inline-flex rounded-full h-2 w-2 ${status === 'in_progress' ? 'bg-amber-500' : 'bg-blue-500'}`}></span>
-                                </span>
-                                <span className="truncate max-w-[120px] sm:max-w-[150px]">
-                                    {/* MOBILE: Just RETOMAR */}
-                                    <span className="md:hidden font-black">RETOMAR</span>
-                                    {/* DESKTOP: Complete Info */}
-                                    <span className="hidden md:inline">
-                                        {status === 'in_progress' ? 'ATENDENDO' : 'AGUARDANDO'}: {patientName?.toUpperCase() || 'PACIENTE'}
-                                    </span>
-                                </span>
-                                <span className="font-mono bg-amber-950/10 px-2 py-0.5 rounded ml-1">{elapsed}</span>
-                                <ChevronRight className="w-4 h-4 text-amber-600 hidden md:block" />
-                            </Link>
-                        )}
-                    </div>
-
-                    {/* TOP MENUS - Right Side */}
-                    <div className="flex items-center gap-2">
-                        {/* Dynamic Shortcut Menus based on permissions */}
-                        <div className="hidden lg:flex items-center gap-1 mr-2 border-r pr-2 border-slate-100">
-                            {[
-                                { icon: Home, label: "Início", href: dashboardPrefix, perm: "user_menu.home.view" },
-                                { icon: CalendarIcon, label: "Agenda", href: `${dashboardPrefix}/schedule`, perm: "user_menu.schedule.view" },
-                                { icon: Users, label: "Pacientes", href: `${dashboardPrefix}/patients`, perm: "user_menu.patients.view" },
-                                { icon: DollarSign, label: "Finanças", href: `${dashboardPrefix}/financial`, perm: "user_menu.financial.view" },
-                                { icon: Briefcase, label: "Equipe", href: `${dashboardPrefix}/professionals`, perm: "user_menu.professionals.view" },
-                                { icon: MapPin, label: "Locais", href: `${dashboardPrefix}/locations`, perm: "user_menu.locations.view" },
-                                { icon: Stethoscope, label: "Serviços", href: `${dashboardPrefix}/services`, perm: "user_menu.services.view" },
-                                { icon: ClipboardList, label: "Formulários", href: `${dashboardPrefix}/forms`, perm: "user_menu.forms.view" },
-                                { icon: FileText, label: "Questionários", href: `${dashboardPrefix}/questionnaires`, perm: "user_menu.questionnaires.view" },
-                                { icon: Tag, label: "Preços", href: `${dashboardPrefix}/prices`, perm: "user_menu.prices.view" },
-                                { icon: ShoppingCart, label: "Estoque", href: `${dashboardPrefix}/products`, perm: "user_menu.products.view" },
-                                { icon: Megaphone, label: "Marketing", href: `${dashboardPrefix}/marketing`, perm: "user_menu.marketing.view" },
-                                { icon: MessageSquare, label: "WhatsApp", href: `${dashboardPrefix}/settings/communication`, perm: "user_menu.whatsapp.view" },
-                                { icon: Microscope, label: "Auditor", href: `${dashboardPrefix}/auditor`, perm: "user_menu.auditor.view" },
-                                { icon: Users, label: "Usuários", href: `${dashboardPrefix}/settings?tab=users`, perm: "user_menu.users.view" },
-                                { icon: Shield, label: "Perfis", href: `${dashboardPrefix}/settings?tab=roles`, perm: "user_menu.roles.view" },
-                            ].map((item, idx) => (
-                                <HeaderShortcut
-                                    key={idx}
-                                    icon={item.icon}
-                                    label={item.label}
-                                    href={item.href}
-                                    perm={item.perm as any}
+                <div className="sticky top-0 z-30 w-full print:hidden">
+                    {props.isImpersonating && (
+                        <ImpersonationBar
+                            clinicName={props.clinicName || (typeof props.viewedSlug === 'string' ? props.viewedSlug.toUpperCase() : 'DESCONHECIDA')}
+                            isOriginClinic={props.viewedSlug === props.userOriginSlug}
+                        />
+                    )}
+                    <header className="flex h-14 items-center gap-4 border-b bg-white px-4 lg:h-[60px] lg:px-6">
+                        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                            <SheetTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="shrink-0 md:hidden"
+                                >
+                                    <Menu className="h-5 w-5" />
+                                    <span className="sr-only">Toggle navigation menu</span>
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent side="left" className="p-0 w-[280px]">
+                                <SidebarContent
+                                    logoUrl={logoUrl}
+                                    clinicName={clinicName}
+                                    isMobile={isMobile}
+                                    isDesktopMode={isDesktopMode}
+                                    toggleDesktopMode={toggleDesktopMode}
+                                    features={features}
+                                    trialEndsAt={trialEndsAt}
+                                    slug={slug}
+                                    onNavigate={() => setIsMobileMenuOpen(false)}
+                                    showLoading={showLoading}
                                 />
-                            ))}
-                        </div>
+                            </SheetContent>
+                        </Sheet>
 
-                        <div className="hidden md:block">
+                        {/* NOTIFICATION BELL (Mobile Left / Desktop Right logic could be applied, but user said 'move to left') */}
+                        {/* User requested shifting reminder icon to left side. We place it here. */}
+                        <div className="md:hidden">
                             <NotificationBell />
                         </div>
-                    </div>
 
-                    {/* LGPD Activity Log - Master/Admin only */}
-                    {(currentUser?.role?.toLowerCase() === 'master' || currentUser?.role?.toLowerCase() === 'administrador') && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setIsLogOpen(true)}
-                            title="Log de Atividades (LGPD)"
-                            className="text-muted-foreground hover:text-primary transition-colors"
-                        >
-                            <ScrollText className="h-5 w-5" />
-                        </Button>
-                    )}
+                        <div className="flex-1 flex justify-center md:justify-start items-center gap-4">
+                            <div className="hidden md:block">
+                                <CommandMenu />
+                            </div>
 
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button id="user-menu-trigger" variant="ghost" className="flex items-center gap-2 h-auto py-1.5 px-2">
-                                <span className="hidden md:block text-sm font-medium">{currentUser?.name || 'Usuário'}</span>
-                                <Avatar className="h-8 w-8 rounded-md">
-                                    <AvatarImage src={currentUser?.avatarUrl || undefined} alt={currentUser?.name || 'User'} />
-                                    <AvatarFallback className="rounded-md">{currentUser?.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
-                                </Avatar>
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-64 p-2">
-                            <DropdownMenuLabel className="mb-2">
-                                <div className="flex flex-col space-y-1">
-                                    <div className="flex items-center justify-between">
-                                        <p className="text-sm font-bold leading-none">{currentUser?.name}</p>
-                                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
-                                            {currentUser?.role}
+                            {/* GLOBAL PROACTIVE TIMER PILL */}
+                            {activeAttendanceId && !pathname.includes(`/attendance/${activeAttendanceId}`) && (
+                                <Link
+                                    href={slug ? `/dashboard/${slug}/attendance/${activeAttendanceId}` : `/dashboard/attendance/${activeAttendanceId}`}
+                                    className={cn(
+                                        "flex items-center gap-2 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-full text-xs font-bold border border-amber-200 shadow-md transition-all animate-in fade-in slide-in-from-top-2",
+                                        "md:relative md:left-0",
+                                        "fixed left-1/2 -translate-x-1/2 md:translate-x-0" // Center on mobile
+                                    )}
+                                >
+                                    <span className="relative flex h-2 w-2">
+                                        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${status === 'in_progress' ? 'bg-amber-400' : 'bg-blue-400'} opacity-40`}></span>
+                                        <span className={`relative inline-flex rounded-full h-2 w-2 ${status === 'in_progress' ? 'bg-amber-500' : 'bg-blue-500'}`}></span>
+                                    </span>
+                                    <span className="truncate max-w-[120px] sm:max-w-[150px]">
+                                        {/* MOBILE: Just RETOMAR */}
+                                        <span className="md:hidden font-black">RETOMAR</span>
+                                        {/* DESKTOP: Complete Info */}
+                                        <span className="hidden md:inline">
+                                            {status === 'in_progress' ? 'ATENDENDO' : 'AGUARDANDO'}: {patientName?.toUpperCase() || 'PACIENTE'}
                                         </span>
+                                    </span>
+                                    <span className="font-mono bg-amber-950/10 px-2 py-0.5 rounded ml-1">{elapsed}</span>
+                                    <ChevronRight className="w-4 h-4 text-amber-600 hidden md:block" />
+                                </Link>
+                            )}
+                        </div>
+
+                        {/* TOP MENUS - Right Side */}
+                        <div className="flex items-center gap-2">
+                            {/* Dynamic Shortcut Menus based on permissions */}
+                            <div className="hidden lg:flex items-center gap-1 mr-2 border-r pr-2 border-slate-100">
+                                {[
+                                    { icon: Home, label: "Início", href: dashboardPrefix, perm: "user_menu.home.view" },
+                                    { icon: CalendarIcon, label: "Agenda", href: `${dashboardPrefix}/schedule`, perm: "user_menu.schedule.view" },
+                                    { icon: Users, label: "Pacientes", href: `${dashboardPrefix}/patients`, perm: "user_menu.patients.view" },
+                                    { icon: DollarSign, label: "Finanças", href: `${dashboardPrefix}/financial`, perm: "user_menu.financial.view" },
+                                    { icon: Briefcase, label: "Equipe", href: `${dashboardPrefix}/professionals`, perm: "user_menu.professionals.view" },
+                                    { icon: MapPin, label: "Locais", href: `${dashboardPrefix}/locations`, perm: "user_menu.locations.view" },
+                                    { icon: Stethoscope, label: "Serviços", href: `${dashboardPrefix}/services`, perm: "user_menu.services.view" },
+                                    { icon: ClipboardList, label: "Formulários", href: `${dashboardPrefix}/forms`, perm: "user_menu.forms.view" },
+                                    { icon: FileText, label: "Questionários", href: `${dashboardPrefix}/questionnaires`, perm: "user_menu.questionnaires.view" },
+                                    { icon: Tag, label: "Preços", href: `${dashboardPrefix}/prices`, perm: "user_menu.prices.view" },
+                                    { icon: ShoppingCart, label: "Estoque", href: `${dashboardPrefix}/products`, perm: "user_menu.products.view" },
+                                    { icon: Megaphone, label: "Marketing", href: `${dashboardPrefix}/marketing`, perm: "user_menu.marketing.view" },
+                                    { icon: MessageSquare, label: "WhatsApp", href: `${dashboardPrefix}/settings/communication`, perm: "user_menu.whatsapp.view" },
+                                    { icon: Microscope, label: "Auditor", href: `${dashboardPrefix}/auditor`, perm: "user_menu.auditor.view" },
+                                    { icon: Users, label: "Usuários", href: `${dashboardPrefix}/settings?tab=users`, perm: "user_menu.users.view" },
+                                    { icon: Shield, label: "Perfis", href: `${dashboardPrefix}/settings?tab=roles`, perm: "user_menu.roles.view" },
+                                ].map((item, idx) => (
+                                    <HeaderShortcut
+                                        key={idx}
+                                        icon={item.icon}
+                                        label={item.label}
+                                        href={item.href}
+                                        perm={item.perm as any}
+                                    />
+                                ))}
+                            </div>
+
+                            <div className="hidden md:block">
+                                <NotificationBell />
+                            </div>
+                        </div>
+
+                        {/* LGPD Activity Log - Master/Admin only */}
+                        {(currentUser?.role?.toLowerCase() === 'master' || currentUser?.role?.toLowerCase() === 'administrador') && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setIsLogOpen(true)}
+                                title="Log de Atividades (LGPD)"
+                                className="text-muted-foreground hover:text-primary transition-colors"
+                            >
+                                <ScrollText className="h-5 w-5" />
+                            </Button>
+                        )}
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button id="user-menu-trigger" variant="ghost" className="flex items-center gap-2 h-auto py-1.5 px-2">
+                                    <span className="hidden md:block text-sm font-medium">{currentUser?.name || 'Usuário'}</span>
+                                    <Avatar className="h-8 w-8 rounded-md">
+                                        <AvatarImage src={currentUser?.avatarUrl || undefined} alt={currentUser?.name || 'User'} />
+                                        <AvatarFallback className="rounded-md">{currentUser?.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                                    </Avatar>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-64 p-2">
+                                <DropdownMenuLabel className="mb-2">
+                                    <div className="flex flex-col space-y-1">
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-sm font-bold leading-none">{currentUser?.name}</p>
+                                            <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                                                {currentUser?.role}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs leading-none text-muted-foreground">{currentUser?.email}</p>
                                     </div>
-                                    <p className="text-xs leading-none text-muted-foreground">{currentUser?.email}</p>
-                                </div>
-                            </DropdownMenuLabel>
+                                </DropdownMenuLabel>
 
-                            <DropdownMenuSeparator />
+                                <DropdownMenuSeparator />
 
-                            {/* 1. Financeiro Geral */}
-                            {hasPermission('financial.view') && (
+                                {/* 1. Financeiro Geral */}
+                                {hasPermission('financial.view') && (
+                                    <DropdownMenuItem className="p-0 select-none cursor-pointer">
+                                        <Link href={`${dashboardPrefix}/financial`} className="flex w-full items-center gap-3 py-2 px-3 text-slate-700 hover:bg-slate-50 transition-colors">
+                                            <DollarSign className="h-4 w-4 text-emerald-500" />
+                                            <span className="font-medium">Financeiro geral</span>
+                                        </Link>
+                                    </DropdownMenuItem>
+                                )}
+
+                                {/* 2. Configurações Gerais */}
+                                {hasPermission('settings.view') && (
+                                    <DropdownMenuItem className="p-0 select-none cursor-pointer">
+                                        <Link href={`${dashboardPrefix}/management`} className="flex w-full items-center gap-3 py-2 px-3 text-slate-700 hover:bg-slate-50 transition-colors">
+                                            <Settings className="h-4 w-4 text-indigo-500" />
+                                            <span className="font-medium">Configurações gerais</span>
+                                        </Link>
+                                    </DropdownMenuItem>
+                                )}
+
+                                {/* 3. Configurações de Perfil */}
                                 <DropdownMenuItem className="p-0 select-none cursor-pointer">
-                                    <Link href={`${dashboardPrefix}/financial`} className="flex w-full items-center gap-3 py-2 px-3 text-slate-700 hover:bg-slate-50 transition-colors">
-                                        <DollarSign className="h-4 w-4 text-emerald-500" />
-                                        <span className="font-medium">Financeiro geral</span>
+                                    <Link href={`${dashboardPrefix}/profile/me`} className="flex w-full items-center gap-3 py-2 px-3 text-slate-700 hover:bg-slate-50 transition-colors">
+                                        <CircleUser className="h-4 w-4 text-slate-500" />
+                                        <span className="font-medium">Configurações de perfil</span>
                                     </Link>
                                 </DropdownMenuItem>
-                            )}
 
-                            {/* 2. Configurações Gerais */}
-                            {hasPermission('settings.view') && (
+                                {/* 4. Painel Master (Only for Master) */}
+                                {isMasterRole && (
+                                    <DropdownMenuItem className="p-0 select-none cursor-pointer">
+                                        <Link href="/admin" className="flex w-full items-center gap-3 py-2 px-3 text-indigo-700 font-bold bg-indigo-50/10 hover:bg-indigo-50/20 transition-colors">
+                                            <Shield className="h-4 w-4 mr-1" />
+                                            <span>Painel Master</span>
+                                        </Link>
+                                    </DropdownMenuItem>
+                                )}
+
+                                {/* 5. Suporte */}
                                 <DropdownMenuItem className="p-0 select-none cursor-pointer">
-                                    <Link href={`${dashboardPrefix}/management`} className="flex w-full items-center gap-3 py-2 px-3 text-slate-700 hover:bg-slate-50 transition-colors">
-                                        <Settings className="h-4 w-4 text-indigo-500" />
-                                        <span className="font-medium">Configurações gerais</span>
+                                    <Link href={`${dashboardPrefix}/support`} className="flex w-full items-center gap-3 py-2 px-3 text-slate-700 hover:bg-slate-50 transition-colors">
+                                        <HelpCircle className="h-4 w-4 text-orange-500" />
+                                        <span className="font-medium">Suporte</span>
                                     </Link>
                                 </DropdownMenuItem>
-                            )}
 
-                            {/* 3. Configurações de Perfil */}
-                            <DropdownMenuItem className="p-0 select-none cursor-pointer">
-                                <Link href={`${dashboardPrefix}/profile/me`} className="flex w-full items-center gap-3 py-2 px-3 text-slate-700 hover:bg-slate-50 transition-colors">
-                                    <CircleUser className="h-4 w-4 text-slate-500" />
-                                    <span className="font-medium">Configurações de perfil</span>
-                                </Link>
-                            </DropdownMenuItem>
-
-                            {/* 4. Painel Master (Only for Master) */}
-                            {isMasterRole && (
-                                <DropdownMenuItem className="p-0 select-none cursor-pointer">
-                                    <Link href="/admin" className="flex w-full items-center gap-3 py-2 px-3 text-indigo-700 font-bold bg-indigo-50/10 hover:bg-indigo-50/20 transition-colors">
-                                        <Shield className="h-4 w-4 mr-1" />
-                                        <span>Painel Master</span>
-                                    </Link>
+                                {/* [RESTORED] 6. Onboarding */}
+                                <DropdownMenuItem
+                                    className="cursor-pointer gap-3 py-2 px-3 text-primary focus:text-primary font-bold bg-primary/5 mt-1"
+                                    onClick={() => startOnboarding()}
+                                >
+                                    <PlayCircle className="h-4 w-4" />
+                                    Iniciar Onboarding
                                 </DropdownMenuItem>
-                            )}
 
-                            {/* 5. Suporte */}
-                            <DropdownMenuItem className="p-0 select-none cursor-pointer">
-                                <Link href={`${dashboardPrefix}/support`} className="flex w-full items-center gap-3 py-2 px-3 text-slate-700 hover:bg-slate-50 transition-colors">
-                                    <HelpCircle className="h-4 w-4 text-orange-500" />
-                                    <span className="font-medium">Suporte</span>
-                                </Link>
-                            </DropdownMenuItem>
+                                <DropdownMenuSeparator className="my-1" />
 
-                            {/* [RESTORED] 6. Onboarding */}
-                            <DropdownMenuItem
-                                className="cursor-pointer gap-3 py-2 px-3 text-primary focus:text-primary font-bold bg-primary/5 mt-1"
-                                onClick={() => startOnboarding()}
-                            >
-                                <PlayCircle className="h-4 w-4" />
-                                Iniciar Onboarding
-                            </DropdownMenuItem>
+                                {/* 7. Sair */}
+                                <DropdownMenuItem
+                                    className="cursor-pointer gap-3 py-2 px-3 text-destructive focus:text-destructive font-bold transition-colors"
+                                    onClick={handleLogout}
+                                >
+                                    <RefreshCw className="h-4 w-4" />
+                                    Sair
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
 
-                            <DropdownMenuSeparator className="my-1" />
-
-                            {/* 7. Sair */}
-                            <DropdownMenuItem
-                                className="cursor-pointer gap-3 py-2 px-3 text-destructive focus:text-destructive font-bold transition-colors"
-                                onClick={handleLogout}
-                            >
-                                <RefreshCw className="h-4 w-4" />
-                                Sair
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-
-                </header>
-                <main id="welcome-tour" className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+                    </header>
+                </div>
+                <main id="welcome-tour" className={cn(
+                    "flex flex-1 flex-col min-h-0",
+                    (pathname.includes('/forms/builder/') || pathname.includes('/questionnaires/preview/'))
+                        ? "p-0 gap-0"
+                        : "gap-4 p-4 lg:gap-6 lg:p-6"
+                )}>
                     {slug && (
                         <WhatsappStatusAlert
                             slug={slug}

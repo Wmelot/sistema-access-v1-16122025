@@ -217,8 +217,7 @@ export async function duplicateFormTemplate(templateId: string) {
 export async function deleteFormTemplate(templateId: string, password?: string) {
     const supabase = await createClient();
 
-    // 1. Verify Password
-    // 1. Verify Password against Custom Admin Password in Profiles
+    // 1. Verificação de senha robusta (Igual ao de profissionais)
     if (password) {
         const { data: { user } } = await supabase.auth.getUser();
 
@@ -226,25 +225,25 @@ export async function deleteFormTemplate(templateId: string, password?: string) 
             return { success: false, message: 'Usuário não autenticado.' };
         }
 
-        // Fetch user profile to check admin_password
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('admin_password')
-            .eq('id', user.id)
-            .single();
+        // Tenta fazer login com a senha fornecida para validar a identidade
+        const { error: loginError } = await supabase.auth.signInWithPassword({
+            email: user.email!,
+            password
+        });
 
-        if (profileError || !profile) {
-            console.error('Error fetching profile for password check:', profileError);
-            return { success: false, message: 'Erro ao verificar permissões.' };
+        if (loginError) {
+            // [BACKUP] Fallback para a senha administrativa se a principal falhar 
+            // (mantendo compatibilidade com Master Users se necessário)
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('admin_password')
+                .eq('id', user.id)
+                .single();
+
+            if (!profile || (profile as any).admin_password !== password) {
+                return { success: false, message: 'Senha incorreta para confirmação.' };
+            }
         }
-
-        // Direct comparison (assuming simple storage as requested, or hashed if implemented)
-        // Based on AdminPasswordCard, it seems to be stored as plain text or handled simply for now.
-        // If it's stored plain text:
-        if ((profile as any).admin_password !== password) {
-            return { success: false, message: 'Senha incorreta.' };
-        }
-
     } else {
         return { success: false, message: 'Senha necessária.' };
     }

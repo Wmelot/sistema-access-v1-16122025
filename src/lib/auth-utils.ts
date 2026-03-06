@@ -6,8 +6,8 @@ import { db } from "@/lib/db"
 export async function checkMasterSupportAccess(userEmail: string | undefined, orgSlug: string) {
     if (!userEmail) return false;
 
-    // 1. Check if user is a Master (hardcoded emails or role check could be here)
-    const masterEmails = ['wmelot@gmail.com', 'warley@gmail.com', 'accessfisio@gmail.com'];
+    // 1. Check if user is a Master
+    const masterEmails = ['accessfisio@gmail.com', 'warley@gmail.com'];
     if (!masterEmails.includes(userEmail)) {
         // Optionally check roles table too, but email is faster for Master access
         return false;

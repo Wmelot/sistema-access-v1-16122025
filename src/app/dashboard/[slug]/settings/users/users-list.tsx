@@ -22,7 +22,7 @@ import { Card } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { ManageUserDialog } from './manage-user-dialog';
 
-export function UsersList() {
+export function UsersList({ slug }: { slug?: string }) {
     const [users, setUsers] = useState<any[]>([]);
     const [availableRoles, setAvailableRoles] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -30,7 +30,7 @@ export function UsersList() {
 
     const loadUsers = async () => {
         setLoading(true);
-        const res = await listAllUsers();
+        const res = await listAllUsers(slug);
         if (res.success && res.users) {
             setUsers(res.users);
             setAvailableRoles(res.availableRoles || []);
@@ -42,7 +42,7 @@ export function UsersList() {
 
     useEffect(() => {
         loadUsers();
-    }, []);
+    }, [slug]);
 
     const handleDelete = async (userId: string) => {
         const result = await MySwal.fire({

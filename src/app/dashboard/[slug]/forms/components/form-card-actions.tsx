@@ -45,6 +45,7 @@ interface FormCardActionsProps {
     currentUserId?: string;
     isStandard?: boolean; // [NEW]
     category?: string | null; // [NEW]
+    isMaster?: boolean; // [NEW]
 }
 
 const CATEGORIES_LIST = [
@@ -67,7 +68,8 @@ export function FormCardActions({
     userId,
     currentUserId,
     isStandard = false,
-    category
+    category,
+    isMaster = false
 }: FormCardActionsProps) {
     const [loading, setLoading] = useState(false);
     const [isRenameOpen, setIsRenameOpen] = useState(false);
@@ -77,10 +79,10 @@ export function FormCardActions({
     const [newTitle, setNewTitle] = useState(templateTitle || '');
     const [selectedCategory, setSelectedCategory] = useState(category || 'Outros');
 
-    const isOwner = !userId || (currentUserId === userId);
+    const isOwner = !userId || (currentUserId === userId) || isMaster;
 
     // Standard forms are LOCKED for editing/renaming/deleting in the UI
-    const isLocked = isStandard;
+    const isLocked = isStandard && !isMaster;
 
     const handleDuplicate = async () => {
         setLoading(true);

@@ -52,12 +52,12 @@ export async function getDashboardMetrics(professionalId?: string | null, slug?:
         console.warn("⚠️ DASHBOARD ACTION BYPASS: Injecting Mock User...");
         // EMERGENCY BYPASS: If createClient didn't do it, we do it here.
         userToUse = {
-            id: '0273dd3c-996a-4d40-8fea-eb89118345b2',
-            email: 'wmelot@gmail.com',
+            id: '2a7d88b4-8ee2-4d21-b811-e25f77d58e22',
+            email: 'accessfisio@gmail.com',
             aud: 'authenticated',
             role: 'authenticated',
             app_metadata: { provider: 'email' },
-            user_metadata: { full_name: 'Warley Melo' },
+            user_metadata: { full_name: 'Axiom Master' },
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
         } as any;
