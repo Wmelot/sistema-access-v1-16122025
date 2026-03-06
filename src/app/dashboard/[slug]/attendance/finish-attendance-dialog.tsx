@@ -32,6 +32,8 @@ import { BiomechanicsReport } from "@/features/forms/pbe/components/biomechanics
 import { SmartReportPrint } from '@/features/forms/pbe/components/smart-report-print'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { sendMessage } from "@/app/dashboard/[slug]/settings/communication/actions"
+import { generatePortalToken } from "@/app/dashboard/[slug]/patients/actions/voiding-diary"
 
 interface FinishAttendanceDialogProps {
     open: boolean
@@ -63,6 +65,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     const [patientSearch, setPatientSearch] = useState("")
     const [patientResults, setPatientResults] = useState<any[]>([])
     const [isSearchingPatients, setIsSearchingPatients] = useState(false)
+    const [isSendingMsg, setIsSendingMsg] = useState<string | null>(null)
 
     const [fullRecord, setFullRecord] = useState<any>(null)
 
@@ -196,21 +199,40 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     }, [])
 
     // [FIX] Local Professionals State to handle missing prop
-    const [internalProfessionals, setInternalProfessionals] = useState<any[]>(professionals)
+    const [internalProfessionals, setInternalProfessionals] = useState<any[]>([])
+
     useEffect(() => {
+        const filterAndSet = (list: any[]) => {
+            const filtered = list.filter(p =>
+                !p.full_name?.toLowerCase().includes('tester') &&
+                !p.full_name?.toLowerCase().includes('teste')
+            )
+            // Ensure current professional is included
+            const currentProId = appointment.professional_id
+            if (currentProId && !filtered.find(p => p.id === currentProId)) {
+                const originalPro = list.find(p => p.id === currentProId)
+                if (originalPro) filtered.push(originalPro)
+            }
+            setInternalProfessionals(filtered)
+        }
+
         if (professionals.length > 0) {
-            setInternalProfessionals(professionals)
+            filterAndSet(professionals)
         } else {
             // Fallback fetch
             const fetchPros = async () => {
                 const { createClient } = await import("@/lib/supabase/client")
                 const supabase = createClient()
-                const { data } = await supabase.from('profiles').select('id, full_name, organization_id').eq('organization_id', appointment.organization_id || patient.organization_id).order('full_name')
-                if (data) setInternalProfessionals(data)
+                const { data } = await supabase.from('profiles')
+                    .select('id, full_name, organization_id')
+                    .eq('organization_id', appointment.organization_id || patient.organization_id)
+                    .order('full_name')
+
+                if (data) filterAndSet(data)
             }
             fetchPros()
         }
-    }, [professionals, appointment.organization_id])
+    }, [professionals, appointment.organization_id, appointment.professional_id])
 
     // Schedule State
     const [returnDate, setReturnDate] = useState<Date | undefined>(undefined)
@@ -238,7 +260,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     // Fetch Products
     useEffect(() => {
         getProducts().then(setProducts)
-        getServices().then(data => {
+        getServices(slug).then(data => {
             if (data) setServices(data.filter((s: any) => s.active))
         })
     }, [])
@@ -624,15 +646,13 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                     if (retryRes.error) {
                         toast.error(retryRes.error)
                     } else {
-                        // Success - Parent will show the final toast
-                        router.refresh()
+                        toast.success("Atendimento agendado!")
                         await onConfirm()
                         onOpenChange(false)
                     }
                 }
             } else {
-                // Success - Parent will show the final toast
-                router.refresh()
+                toast.success("Atendimento agendado!")
                 await onConfirm() // Finalize everything
                 onOpenChange(false)
             }
@@ -646,6 +666,47 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     const handleSkipSchedule = async () => {
         await onConfirm()
         onOpenChange(false)
+    }
+
+    const handleSendWhatsapp = async (report: any) => {
+        const pPhone = patient.phone?.replace(/\D/g, '')
+        if (!pPhone) {
+            toast.error("Paciente sem telefone cadastrado.")
+            return
+        }
+
+        setIsSendingMsg(report.id)
+        try {
+            setIsSendingMsg(report.id)
+
+            // [NEW] Generate Portal Link for Patient
+            let portalLink = ""
+            const portalRes = await generatePortalToken(patient.id, slug, { mode: 'attendance', recordId })
+            if (portalRes.success && portalRes.url) {
+                portalLink = `\n\nAcesse seu relatório completo pelo link abaixo:\n${portalRes.url}`
+            }
+
+            const pName = (patient.full_name || patient.name || 'Paciente').split(' ')[0]
+            const msg = `Olá ${pName}, aqui está o seu *${report.title}* realizado na ${orgSettings?.name || 'nossa clínica'}.${portalLink}`
+
+            // Call server action
+            const result = await sendMessage(pPhone, msg, undefined, {
+                patientId: patient.id,
+                templateId: report.id,
+                type: 'report'
+            }, slug)
+
+            if (result.success) {
+                toast.success("Relatório enviado via WhatsApp (Z-API)!")
+            } else {
+                // If it fails, we can fallback to manual if a certain error or just stay with error
+                toast.error("Erro no envio automático: " + result.error)
+            }
+        } catch (e: any) {
+            toast.error("Falha ao comunicar com serviço: " + e.message)
+        } finally {
+            setIsSendingMsg(null)
+        }
     }
 
     return (
@@ -1053,21 +1114,19 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
+                                                    disabled={isSendingMsg === report.id}
                                                     className="h-8 text-[10px] text-green-600 font-bold uppercase tracking-wider hover:bg-green-50 w-full"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        const pPhone = patient.phone?.replace(/\D/g, '')
-                                                        if (!pPhone) {
-                                                            toast.error("Paciente sem telefone cadastrado.")
-                                                            return
-                                                        }
-                                                        const pName = patient.name.split(' ')[0]
-                                                        const msg = encodeURIComponent(`Olá ${pName}, aqui está o seu ${report.title} realizado na ${orgSettings?.name || 'nossa clínica'}.`)
-                                                        window.open(`https://wa.me/55${pPhone}?text=${msg}`, '_blank')
-                                                        toast.success("Abrindo WhatsApp...")
+                                                        handleSendWhatsapp(report);
                                                     }}
                                                 >
-                                                    WhatsApp
+                                                    {isSendingMsg === report.id ? (
+                                                        <>
+                                                            <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                                                            Enviando...
+                                                        </>
+                                                    ) : "WhatsApp"}
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
@@ -1201,7 +1260,13 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                                     {services
                                                         .filter(s => {
                                                             // [FIX] Filter services based on professional link
-                                                            if (!serviceLinks.length) return true
+                                                            // Check if THIS specific professional has ANY links defined in the junction table
+                                                            const professionalHasAnyLinks = serviceLinks.some(link => link.profile_id === selectedProfessionalId)
+
+                                                            // If no links at all are defined for this pro, show all active services (fallback)
+                                                            if (!professionalHasAnyLinks) return true
+
+                                                            // Otherwise, show only the ones explicitly linked
                                                             const isLinked = serviceLinks.some(link => link.service_id === s.id && link.profile_id === selectedProfessionalId)
                                                             return isLinked
                                                         })
@@ -1314,21 +1379,22 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                 )
             }
 
-            {/* [FIX] BIOMECHANICS REPORT VIEWER - Rendered directly without Dialog wrapper.
-                BiomechanicsReport uses createPortal internally for fullscreen overlay.
-                The previous Dialog wrapper caused: 1) scroll blocking (overflow-hidden), 
-                2) redirect back after window.print() (Dialog closing on focus loss) */}
+            {/* [FIX] BIOMECHANICS REPORT - Wrapped in Dialog to restore interaction/scrolling */}
             {
                 viewingBiomechanicsReport && (
-                    <BiomechanicsReport
-                        open={true}
-                        onClose={() => setViewingBiomechanicsReport(null)}
-                        data={viewingBiomechanicsReport}
-                        patient={patient}
-                        organizationName={orgSettings?.name}
-                        professional={professionals.find(p => p.id === appointment.professional_id)}
-                        organization={{ address: orgSettings?.address }}
-                    />
+                    <Dialog open={true} onOpenChange={() => setViewingBiomechanicsReport(null)}>
+                        <DialogContent className="max-w-[100vw] w-full h-[100vh] p-0 gap-0 border-none bg-white overflow-hidden">
+                            <BiomechanicsReport
+                                open={true}
+                                onClose={() => setViewingBiomechanicsReport(null)}
+                                data={viewingBiomechanicsReport}
+                                patient={patient}
+                                organizationName={orgSettings?.name}
+                                professional={professionals.find(p => p.id === appointment.professional_id) || professionals[0]}
+                                organization={{ address: orgSettings?.address, logo_url: orgSettings?.logo_url, name: orgSettings?.name }}
+                            />
+                        </DialogContent>
+                    </Dialog>
                 )
             }
         </>

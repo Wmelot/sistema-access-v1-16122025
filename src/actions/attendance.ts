@@ -87,12 +87,38 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
         }
     }
 
-    // 3. Fetch Professional
-    const { data: professional, error: profError } = await supabaseAdmin
+    // 3. Fetch Professional (with fallback to current user)
+    let professional: any = null;
+    const { data: profData, error: profError } = await supabaseAdmin
         .from('profiles')
-        .select('id, full_name, name, council_number, council_type, digital_signature_url')
+        .select('id, full_name, name, council_number, council_type, digital_signature_url, phone, crefito')
         .eq('id', appointmentRaw.professional_id)
         .single()
+
+    professional = profData;
+
+    if (!professional || profError) {
+        console.warn("[getAttendanceData] Professional not found for ID:", appointmentRaw.professional_id, ". Falling back to logged user:", user.id);
+        const { data: currentUserProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('id, full_name, name, council_number, council_type, digital_signature_url, phone, crefito')
+            .eq('id', user.id)
+            .single()
+
+        if (currentUserProfile) {
+            professional = currentUserProfile
+        } else {
+            // Last resort: extract from auth user metadata
+            professional = {
+                id: user.id,
+                full_name: user.user_metadata?.full_name || user.user_metadata?.name || "Profissional Responsável",
+                name: user.user_metadata?.name || user.user_metadata?.full_name || "Profissional Responsável",
+                council_number: user.user_metadata?.crefito || user.user_metadata?.council_number || "---",
+                council_type: "CREFITO",
+                phone: user.phone || ""
+            }
+        }
+    }
 
     // 4. Fetch Service
     let service = null;
@@ -105,18 +131,40 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
         service = data
     }
 
+    // 5. Fetch Organization
+    let organization = null;
+    if (organizationId) {
+        const { data: orgData } = await supabaseAdmin
+            .from('organizations')
+            .select('id, name, logo_url, address, contact_phone, document_id')
+            .eq('id', organizationId)
+            .single()
+        organization = orgData
+    }
+
     // Construct the "Joined" Object manually
     const appointment = {
         ...appointmentRaw,
-        patients: patient,
+        patients: patient ? { ...patient, name: patient.full_name || patient.name || "Paciente" } : null,
         services: service,
-        profiles: professional || {
-            id: appointmentRaw.professional_id,
+        organizations: organization,
+        profiles: professional ? {
+            ...professional,
+            name: professional.full_name || professional.name,
+            crefito: professional.crefito || professional.council_number
+        } : {
+            id: appointmentRaw.professional_id || user.id,
             full_name: "Profissional Responsável",
+            name: "Profissional Responsável",
             council_type: "CREFITO",
             council_number: "---",
             digital_signature_url: null
         }
+    }
+
+    // Ensure appointment.patient is also set for compatibility
+    if (appointment.patients && !appointment.patient) {
+        (appointment as any).patient = appointment.patients;
     }
 
     // 2. Parallel Fetch for related data
@@ -155,7 +203,7 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
             Promise.resolve({ data: [] }),
 
         supabase.from('payment_methods').select('*').eq('active', true).order('name'),
-        supabaseAdmin.from('profiles').select('id, full_name, council_number, council_type, digital_signature_url').eq('organization_id', organizationId!)
+        supabaseAdmin.from('profiles').select('id, full_name, council_number, council_type, digital_signature_url, crefito').eq('organization_id', organizationId!)
     ])
 
     const templates = (templatesResult as any)?.rows || []
@@ -177,7 +225,16 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
     const history = historyResult.data || []
     const assessmentsRaw = assessmentsResult.data || []
     const paymentMethods = paymentMethodsResult.data || []
-    const professionals = professionalsResult.data || []
+
+    // Filter out testers and ensure current professional is present
+    let professionals = (professionalsResult.data || []).filter((p: any) =>
+        !p.full_name?.toLowerCase().includes('tester') &&
+        !p.full_name?.toLowerCase().includes('teste')
+    )
+
+    if (professional && !professionals.find((p: any) => p.id === professional.id)) {
+        professionals.push(professional)
+    }
 
     const assessments = assessmentsRaw.map((item: any) => ({
         ...item,

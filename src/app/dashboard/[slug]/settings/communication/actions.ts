@@ -280,7 +280,7 @@ export async function getWhatsappConfig(slug?: string, checkStatus: boolean = fa
             .eq('provider', 'zapi')
             .eq('is_active', true)
             .eq('organization_id', organizationId)
-            .single()
+            .maybeSingle()
 
         // Fetch Evolution
         const { data: evolution } = await supabase
@@ -289,7 +289,7 @@ export async function getWhatsappConfig(slug?: string, checkStatus: boolean = fa
             .eq('provider', 'evolution')
             .eq('is_active', true)
             .eq('organization_id', organizationId)
-            .single()
+            .maybeSingle()
 
         const activeProvider = zapi ? 'zapi' : (evolution ? 'evolution' : null)
         let connectionStatus = 'unknown'
@@ -786,14 +786,14 @@ export async function sendTestMessage(templateId: string, phone: string, slug?: 
     return result
 }
 
-export async function sendMessage(phone: string, message: string, injectedConfig?: any, metadata?: { patientId?: string, templateId?: string, type?: string }) {
+export async function sendMessage(phone: string, message: string, injectedConfig?: any, metadata?: { patientId?: string, templateId?: string, type?: string }, slug?: string) {
     const supabase = await createClient()
     let config: any = null
     let destinationNumber = phone
     let finalMessage = message
 
     try {
-        config = injectedConfig || await getWhatsappConfig()
+        config = injectedConfig || await getWhatsappConfig(slug)
 
         // --- SAFETY INTERCEPTOR ---
         if (config?.testMode?.isActive) {

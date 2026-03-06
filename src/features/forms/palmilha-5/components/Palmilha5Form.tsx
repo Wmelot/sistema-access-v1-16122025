@@ -491,6 +491,7 @@ export default function Palmilha5Form({
                             onImport={() => setFeegowImportOpen(true)}
                             onCopilotStatusChange={setIsListening}
                             isInsensitiveFoot={isInsensitiveFoot}
+                            professional={professional}
                         />
                     </div>
 
@@ -842,18 +843,20 @@ export default function Palmilha5Form({
                         }}
                     />
 
-                    {previewOpen && (
-                        <BiomechanicsReport
-                            open={previewOpen}
-                            onClose={() => setPreviewOpen(false)}
-                            form={form}
-                            patient={patient || initialData?.patient}
-                            organization={organization}
-                            professional={professional}
-                            data={form.getValues()}
-                            minIndex={0} // Computed inside if needed
-                        />
-                    )}
+                    <Dialog open={previewOpen} onOpenChange={(v) => !v && setPreviewOpen(false)}>
+                        <DialogContent className="max-w-none w-screen h-[100dvh] p-0 border-0 outline-none flex flex-col z-[2147483647]">
+                            <BiomechanicsReport
+                                open={previewOpen}
+                                onClose={() => setPreviewOpen(false)}
+                                form={form}
+                                patient={patient || initialData?.patient}
+                                organization={organization}
+                                professional={professional}
+                                data={form.getValues()}
+                                minIndex={0}
+                            />
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
 

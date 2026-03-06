@@ -15,6 +15,7 @@ interface CompactBiomechanicsCardProps {
     onImport?: () => void;
     onCopilotStatusChange?: (listening: boolean) => void;
     isInsensitiveFoot?: boolean;
+    professional?: any;
 }
 
 export function CompactBiomechanicsCard({
@@ -24,7 +25,8 @@ export function CompactBiomechanicsCard({
     onReport,
     onImport,
     onCopilotStatusChange,
-    isInsensitiveFoot = false
+    isInsensitiveFoot = false,
+    professional
 }: CompactBiomechanicsCardProps) {
     // 1. OLHEIROS (Watchers)
     const hma = form.watch("hma") || {};
@@ -90,6 +92,15 @@ export function CompactBiomechanicsCard({
                 {isInsensitiveFoot ? "Insense Engine" : "Insole Engine"}
             </h1>
             <p className="text-[10px] text-slate-400 font-mono">LABORATÓRIO BIOMECÂNICO v5.0</p>
+            <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-[9px] font-black text-indigo-400 truncate uppercase opacity-80 decoration-indigo-500/30 flex-1">
+                    {professional?.full_name || professional?.name || "CARREGANDO..."}
+                </p>
+                <div className="flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20">
+                    <div className="h-1 w-1 bg-emerald-500 rounded-full animate-pulse" />
+                    <span className="text-[7px] font-black text-emerald-500 tracking-tighter">BACKUP ATIVO</span>
+                </div>
+            </div>
 
             {/* Radar Background Subtle */}
             <div className="absolute -right-16 -bottom-16 opacity-20 pointer-events-none" style={{ width: '200px', height: '200px' }}>

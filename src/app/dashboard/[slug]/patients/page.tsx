@@ -95,14 +95,12 @@ export default async function PatientsPage(props: {
                 </h1>
                 <div className="flex items-center gap-2 w-full md:w-auto">
                     <DuplicateFinderModal slug={slug} />
-                    <Link href={`${dashboardPrefix}/patients/new`} className="w-full md:w-auto">
+                    <NavigatingLink href={`${dashboardPrefix}/patients/new`} className="w-full md:w-auto" message="Preparando formulário...">
                         <Button size="sm" className="h-10 md:h-8 gap-1 w-full md:w-auto">
                             <Plus className="h-3.5 w-3.5" />
-                            <span className="not-sr-only whitespace-nowrap">
-                                Novo Paciente
-                            </span>
+                            Novo Paciente
                         </Button>
-                    </Link>
+                    </NavigatingLink>
                 </div>
             </div>
 

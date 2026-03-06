@@ -61,11 +61,38 @@ export async function GET(request: Request, { params }: { params: { token: strin
             ip: request.headers.get('x-forwarded-for') || 'localhost'
         });
 
+        // Fetch Report if permission exists
+        let reportData = null;
+        const perms: any = tokenData.permissions;
+        if (perms?.view_report?.enabled) {
+            const rid = perms.view_report.record_id;
+            if (rid) {
+                const { data: record } = await supabase
+                    .from('patient_records')
+                    .select('id, content, created_at')
+                    .eq('id', rid)
+                    .single();
+
+                if (record) {
+                    // Filter content to only what's safe/needed for the patient if necessary
+                    // For now, let's include important summary bits
+                    reportData = {
+                        id: record.id,
+                        date: record.created_at,
+                        // Extract clinical reasoning or summary if available
+                        summary: record.content?.aiReport || record.content?.report?.clinical_reasoning || "Relatório disponível",
+                        type: record.content?.report?.clinical_reasoning ? 'smart' : 'standard'
+                    };
+                }
+            }
+        }
+
         return NextResponse.json({
             valid: true,
             patient: patient || { name: 'Paciente', birthdate: null, id: tokenData.patient_id },
             clinic: clinic || { name: 'Clínica', id: tokenData.clinic_id },
-            permissions: tokenData.permissions
+            permissions: tokenData.permissions,
+            report: reportData
         });
 
     } catch (e: any) {

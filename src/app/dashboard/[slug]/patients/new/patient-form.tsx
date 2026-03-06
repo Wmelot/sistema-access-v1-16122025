@@ -285,18 +285,21 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                 const { default: Swal } = await import('sweetalert2')
                 const patients = result.existingPatients || []
 
-                let title = 'Paciente(s) já Cadastrado(s)'
-                let subtitle = 'Identificamos pacientes com este nome. Selecione o cadastro correto para evitar duplicidade ou crie um novo registro se for uma pessoa diferente:'
+                let title = 'CADASTRO JÁ EXISTENTE'
+                let subtitle = 'Identificamos pacientes com dados semelhantes. Selecione o cadastro correto para evitar duplicidade:'
+                let iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#4f46e5;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
 
                 if (result.code === 'DUPLICATE_PHONE') {
-                    title = 'Telefone em uso'
-                    subtitle = 'Este telefone já está cadastrado para outro paciente. Selecione o paciente abaixo ou crie um novo se for uma linha compartilhada:'
+                    title = 'TELEFONE EM USO'
+                    subtitle = 'Este telefone já está vinculado a outro paciente. Deseja utilizar o cadastro existente ou criar um novo para uma linha compartilhada?'
+                    iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#4f46e5;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>'
                 } else if (result.code === 'DUPLICATE_ADDRESS') {
-                    title = 'Mesmo Endereço Detectado'
-                    subtitle = 'Encontramos pacientes morando neste endereço. Há algum grau de parentesco? Você pode vincular os cadastros ou criar um registro independente:'
+                    title = 'MESMO ENDEREÇO DETECTADO'
+                    subtitle = 'Encontramos pacientes morando neste endereço. Trata-se de um familiar ou parente?'
+                    iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#4f46e5;"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>'
                 }
 
-                const patientsHtml = patients.map((p: any, idx: number) => `
+                const patientsHtml = patients.map((p: any) => `
                     <div 
                         class="patient-item-option" 
                         data-patient-id="${p.id}" 
@@ -306,132 +309,119 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                             <div class="radio-inner" style="width:10px; height:10px; border-radius:50%; background:#4f46e5; display:none;"></div>
                         </div>
                         <div style="flex:1;">
-                            <p style="margin:0; font-size:15px; color:#0f172a; font-weight:700;">${p.name || '---'}</p>
+                            <p style="margin:0; font-size:14px; color:#0f172a; font-weight:700; text-transform:uppercase;">${p.name || '---'}</p>
                             <div style="display:flex; gap:12px; margin-top:4px;">
-                                <p style="margin:0; font-size:12px; color:#64748b;"><b>Tel:</b> ${p.phone ? formatPhoneDisplay(p.phone) : '-'}</p>
-                                <p style="margin:0; font-size:12px; color:#64748b;"><b>CPF:</b> ${formatCPF(p.cpf)}</p>
+                                <p style="margin:0; font-size:11px; color:#64748b;"><b>TEL:</b> ${p.phone ? formatPhoneDisplay(p.phone) : '-'}</p>
+                                <p style="margin:0; font-size:11px; color:#64748b;"><b>CPF:</b> ${formatCPF(p.cpf)}</p>
                             </div>
                         </div>
                     </div>
                 `).join('')
 
-                let selectedDuplicateId: string | null = null;
-                const handleItemClick = (clickedItem: HTMLElement) => {
-                    const id = clickedItem.closest('.patient-item-option')?.getAttribute('data-patient-id');
-                    if (!id) return;
-                    selectedDuplicateId = id;
-                    document.querySelectorAll('.patient-item-option').forEach(item => {
-                        const htmlItem = item as HTMLElement;
-                        const isSelected = htmlItem.getAttribute('data-patient-id') === id;
-                        htmlItem.style.borderColor = isSelected ? '#4f46e5' : '#f1f5f9';
-                        htmlItem.style.background = isSelected ? '#f5f3ff' : '#fff';
-                        const inner = htmlItem.querySelector('.radio-inner') as HTMLElement;
-                        const outer = htmlItem.querySelector('.radio-circle') as HTMLElement;
-                        if (inner) inner.style.display = isSelected ? 'block' : 'none';
-                        if (outer) outer.style.borderColor = isSelected ? '#4f46e5' : '#cbd5e1';
-                    });
-                };
+                let selectedDuplicateId: string | null = patients.length === 1 ? patients[0].id : null;
 
                 const choice = await Swal.fire({
-                    title: title,
+                    title: `<div style="display:flex; flex-direction:column; align-items:center; gap:16px;">
+                        <div style="background:#f5f3ff; padding:12px; border-radius:12px;">${iconHtml}</div>
+                        <span style="font-size:18px; font-weight:800; letter-spacing:-0.5px; text-transform:uppercase; color:#1e293b;">${title}</span>
+                    </div>`,
                     html: `
-                        <p style="margin-bottom:18px; color:#64748b; font-size:14px; text-align:left; line-height:1.5;">
+                        <p style="margin-bottom:24px; color:#64748b; font-size:14px; text-align:center; line-height:1.6; font-weight:500;">
                             ${subtitle}
                         </p>
-                        <div id="duplicate-patients-list" style="max-height:400px; overflow-y:auto; padding:4px; margin-bottom:10px; scrollbar-width: thin;">
+                        <div id="duplicate-patients-list" style="max-height:320px; overflow-y:auto; padding:8px 4px; margin-bottom:12px; scrollbar-width: thin; -webkit-overflow-scrolling: touch;">
                             ${patientsHtml}
                         </div>
                     `,
-                    icon: 'warning',
                     showCancelButton: true,
                     showDenyButton: true,
-                    confirmButtonText: 'Usar selecionado',
-                    denyButtonText: 'Criar novo',
+                    confirmButtonText: result.code === 'DUPLICATE_ADDRESS' ? 'Sim, Vincular como Parente' : 'Usar Cadastro Selecionado',
+                    denyButtonText: 'Não, Criar Novo Registro',
                     cancelButtonText: 'Cancelar',
                     confirmButtonColor: '#4f46e5',
                     denyButtonColor: '#10b981',
+                    cancelButtonColor: '#94a3b8',
                     customClass: {
-                        container: 'swal-high-z-index'
+                        container: 'swal-high-z-index',
+                        popup: 'rounded-[1.5rem] border-none shadow-2xl'
                     },
                     didOpen: () => {
-                        document.querySelectorAll('.patient-item-option').forEach(item => {
-                            item.addEventListener('click', () => handleItemClick(item as HTMLElement));
+                        const items = document.querySelectorAll('.patient-item-option');
+                        items.forEach(item => {
+                            const htmlItem = item as HTMLElement;
+                            // Pre-select if only one
+                            if (htmlItem.getAttribute('data-patient-id') === selectedDuplicateId) {
+                                htmlItem.style.borderColor = '#4f46e5';
+                                htmlItem.style.background = '#f5f3ff';
+                                (htmlItem.querySelector('.radio-inner') as HTMLElement).style.display = 'block';
+                                (htmlItem.querySelector('.radio-circle') as HTMLElement).style.borderColor = '#4f46e5';
+                            }
+
+                            item.addEventListener('click', () => {
+                                const id = htmlItem.getAttribute('data-patient-id');
+                                selectedDuplicateId = id;
+                                items.forEach(it => {
+                                    const hit = it as HTMLElement;
+                                    const isSel = hit.getAttribute('data-patient-id') === id;
+                                    hit.style.borderColor = isSel ? '#4f46e5' : '#f1f5f9';
+                                    hit.style.background = isSel ? '#f5f3ff' : '#fff';
+                                    (hit.querySelector('.radio-inner') as HTMLElement).style.display = isSel ? 'block' : 'none';
+                                    (hit.querySelector('.radio-circle') as HTMLElement).style.borderColor = isSel ? '#4f46e5' : '#cbd5e1';
+                                });
+                            });
                         });
                     },
                     preConfirm: () => {
-                        if (!selectedDuplicateId && patients.length > 0) {
-                            Swal.showValidationMessage('Por favor, selecione um paciente na lista acima.');
+                        if (!selectedDuplicateId) {
+                            Swal.showValidationMessage('Selecione um paciente na lista acima.');
                             return false;
                         }
                         return selectedDuplicateId;
                     }
                 })
 
-                // Cleanup global function if desired, though not strictly necessary for memory if it's small
-                // (window as any)._onSelectPatient = undefined;
-
                 if (choice.isConfirmed) {
-                    const existingId = choice.value;
-
-                    // Show loading state with dynamic messages
-                    (await import('sweetalert2')).default.fire({
-                        title: 'Acessando Prontuário...',
-                        html: `
-                            <div style="display:flex; flex-direction:column; align-items:center; gap:20px; padding:20px;">
-                                <div id="swal-loader-container" style="height:50px; display:flex; align-items:center; justify-content:center;">
-                                    <l-quantum size="55" speed="1.75" color="#4f46e5"></l-quantum>
-                                </div>
-                                <p id="dynamic-loading-msg" style="font-weight:bold; color:#4f46e5; min-height:24px; transition:all 0.3s; font-size:16px; margin:0;">
-                                    Localizando ficha técnica...
-                                </p>
-                            </div>
-                        `,
-                        allowOutsideClick: false,
-                        showConfirmButton: false,
-                        didOpen: () => {
-                            const messages = [
-                                "Localizando ficha técnica...",
-                                "Recuperando histórico completo...",
-                                "Carregando registros de evoluções...",
-                                "Sincronizando agendamentos...",
-                                "Quase lá, preparando ambiente..."
-                            ];
-                            let msgIdx = 0;
-                            const interval = setInterval(() => {
-                                msgIdx = (msgIdx + 1) % messages.length;
-                                const msgEl = document.getElementById('dynamic-loading-msg');
-                                if (msgEl) msgEl.innerText = messages[msgIdx];
-                            }, 2500);
-                            (window as any)._loaderInterval = interval;
-                        },
-                        willClose: () => {
-                            if ((window as any)._loaderInterval) clearInterval((window as any)._loaderInterval);
-                        }
-                    });
-
-                    if (appointmentId) {
-                        router.push(`/dashboard/${slug}/patients/${existingId}?appointmentId=${appointmentId}&mode=${mode || 'evolution'}`)
+                    if (result.code === 'DUPLICATE_ADDRESS') {
+                        // CASE: RELATIVE - Auto-Link and Force Create
+                        form.set('related_patient_id', choice.value)
+                        form.set('relationship_degree', 'Outro') // Default relationship
+                        form.set('_force_create', 'true')
                     } else {
-                        router.push(`/dashboard/${slug}/patients/${existingId}`)
-                    }
-                    return
-                } else if (choice.isDenied) {
-                    // Force create: Add _force_create flag and resubmit
-                    form.set('_force_create', 'true')
-                    const forceResult = await (initialData ? updatePatient.bind(null, initialData.id) : createPatient)(form, slug)
-                    if (forceResult?.error) {
-                        toast.error("Erro ao salvar: " + forceResult.error)
-                    } else {
-                        toast.success("Paciente criado com sucesso!")
-                        if ((forceResult as any)?.success && (forceResult as any)?.patient?.id) {
-                            router.push(`/dashboard/${slug}/patients/${(forceResult as any).patient.id}`)
+                        // CASE: USE EXISTING - Redirect
+                        Swal.fire({
+                            title: 'SINCRONIZANDO...',
+                            html: '<div style="padding:20px; display:flex; justify-content:center;"><l-quantum size="45" speed="1.75" color="#4f46e5"></l-quantum></div>',
+                            showConfirmButton: false,
+                            allowOutsideClick: false
+                        });
+                        if (appointmentId) {
+                            router.push(`/dashboard/${slug}/patients/${choice.value}?appointmentId=${appointmentId}&mode=${mode || 'evolution'}`)
                         } else {
-                            router.push(`/dashboard/${slug}/patients`)
+                            router.push(`/dashboard/${slug}/patients/${choice.value}`)
                         }
+                        return
                     }
-                    return
+                } else if (choice.isDenied) {
+                    // Force create without link
+                    form.set('_force_create', 'true')
+                } else {
+                    return // Cancelled
                 }
-                // If cancelled, do nothing
+
+                // Execute the actual creation (either forced with link or forced without link)
+                const finalAction = initialData ? updatePatient.bind(null, initialData.id) : createPatient
+                const forceResult = await finalAction(form, slug) as any
+
+                if (forceResult?.error) {
+                    toast.error("Erro ao salvar: " + forceResult.error)
+                } else {
+                    toast.success(result.code === 'DUPLICATE_ADDRESS' && choice.isConfirmed ? "Paciente vinculado e salvo!" : "Cadastro concluído com sucesso!")
+                    if (forceResult?.patient?.id) {
+                        router.push(`/dashboard/${slug}/patients/${forceResult.patient.id}`)
+                    } else {
+                        router.push(`/dashboard/${slug}/patients`)
+                    }
+                }
                 return
             }
 

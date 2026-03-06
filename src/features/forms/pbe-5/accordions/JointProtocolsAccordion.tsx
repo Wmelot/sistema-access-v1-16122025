@@ -52,6 +52,7 @@ const PROTOCOLS: Record<string, {
             { id: "fadir", label: "Teste de FADIR (Impacto)" },
             { id: "faber", label: "Teste de FABER (SIJ/Quadril)" },
             { id: "thomas", label: "Teste de Thomas (Iliopsoas)" },
+            { id: "slr", label: "SLR / Isquiotibiais (90-90)" },
             { id: "ober", label: "Teste de Ober (Tracto Iliotibial)" },
             { id: "trendelenburg", label: "Sinal de Trendelenburg" }
         ]
@@ -61,6 +62,8 @@ const PROTOCOLS: Record<string, {
         tests: [
             { id: "lunge", label: "Lunge Test (Dorsiflexão)" },
             { id: "navicular_drop", label: "Navicular Drop" },
+            { id: "fpi", label: "FPI-6 (Pontuação Total)" },
+            { id: "jack_test", label: "Teste de Jack" },
             { id: "windlass", label: "Teste de Windlass (Fáscia)" },
             { id: "anterior_drawer", label: "Gaveta Anterior" }
         ]

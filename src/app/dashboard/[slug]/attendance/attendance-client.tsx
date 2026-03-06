@@ -923,11 +923,9 @@ export function AttendanceClient({
                             <Mic className="w-4 h-4" />
                             Foco
                         </Button>
-                        {patient.id && (
-                            <Button id="finish-attendance-btn" onClick={handleFinish} className="text-white shrink-0 bg-green-600 hover:bg-green-700">
-                                {mode === 'assessment' ? 'Finalizar Avaliação' : 'Finalizar Atendimento'}
-                            </Button>
-                        )}
+                        <Button id="finish-attendance-btn" onClick={handleFinish} className="text-white shrink-0 bg-green-600 hover:bg-green-700">
+                            {mode === 'assessment' ? 'Finalizar Avaliação' : 'Finalizar Atendimento'}
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="ml-2 shrink-0">
                             {isSidebarOpen ? <PanelRightClose className="h-5 w-5" /> : <PanelRightOpen className="h-5 w-5" />}
                         </Button>
@@ -969,16 +967,14 @@ export function AttendanceClient({
                                     <Stopwatch startTime={currentRecord?.created_at || appointment.updated_at || appointment.start_time} />
                                 </div>
                             )}
-                            {patient.id && (
-                                <Button
-                                    id="finish-attendance-btn-mobile"
-                                    size="sm"
-                                    onClick={handleFinish}
-                                    className="h-7 px-3 text-white rounded-full text-[10px] font-black uppercase tracking-tight bg-green-600 hover:bg-green-700"
-                                >
-                                    FINALIZAR
-                                </Button>
-                            )}
+                            <Button
+                                id="finish-attendance-btn-mobile"
+                                size="sm"
+                                onClick={handleFinish}
+                                className="h-7 px-3 text-white rounded-full text-[10px] font-black uppercase tracking-tight bg-green-600 hover:bg-green-700"
+                            >
+                                FINALIZAR
+                            </Button>
                         </div>
                     </div>
                 </div>

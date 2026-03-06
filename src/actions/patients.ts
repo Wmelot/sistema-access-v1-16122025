@@ -102,13 +102,17 @@ export async function createPatient(formData: FormData, slug?: string) {
             }
         }
 
-        // [ADDRESS CHECK] - Warning
-        if (!forceCreate && address && number && cep) {
-            const { data: addressMatches } = await supabase
+        // [ADDRESS CHECK] - CEP + Número + Complemento (Parentesco)
+        if (!forceCreate && number && cep) {
+            // Normalize input for search: Use exact values provided in form
+            const searchAddress: any = { zip_code: cep, number: number }
+            if (complement) searchAddress.complement = complement
+
+            const { data: addressMatches } = await supabaseAdmin
                 .from('patients')
                 .select('id, name, cpf, phone')
                 .eq('organization_id', organization_id)
-                .contains('address', { street: address, number: number, zip_code: cep })
+                .contains('address', searchAddress)
                 .limit(5)
 
             if (addressMatches && addressMatches.length > 0) {
@@ -127,7 +131,7 @@ export async function createPatient(formData: FormData, slug?: string) {
                 .select('id, name, phone, cpf')
                 .eq('organization_id', organization_id)
                 .ilike('name', full_name.trim())
-                .limit(100)
+                .limit(5) // Reduced limit for performance, just need a few examples
             if (nameMatches && nameMatches.length > 0) {
                 return {
                     error: 'PATIENT_NAME_EXISTS',
@@ -479,6 +483,7 @@ export async function getPatient(id: string, slug?: string) {
 
 export async function updatePatient(id: string, formData: FormData, slug?: string) {
     const supabase = await createClient()
+    const supabaseAdmin = await createAdminClient()
 
     // 1. Verify User & Organization Scope (Strict Audit)
     const { data: { user } } = await supabase.auth.getUser()
@@ -539,11 +544,16 @@ export async function updatePatient(id: string, formData: FormData, slug?: strin
     // Only update Address if fields are provided to avoid wiping existing JSON
     let addressStorage: any = undefined
     if (address || cep) {
-        const addressData = {
-            street: address, number, complement, neighborhood, city, state, zip_code: cep,
+        addressStorage = {
+            street: address,
+            number,
+            complement,
+            neighborhood,
+            city,
+            state,
+            zip_code: cep,
             full_text: `${address}, ${number}${complement ? ' - ' + complement : ''} - ${neighborhood}, ${city} - ${state}, ${cep}`
         }
-        addressStorage = JSON.stringify(addressData)
     }
 
     const invoice_cpf = formData.get('invoice_cpf') as string || null
@@ -561,30 +571,33 @@ export async function updatePatient(id: string, formData: FormData, slug?: strin
     // [PHONE CHECK] - Warning
     if (!forceCreate && phone) {
         const normalizedPhone = normalizePhone(phone) || phone
-        const { data: phoneMatch } = await supabase
+        const { data: phoneMatches } = await supabaseAdmin // Use admin for reliable search
             .from('patients')
             .select('id, name, cpf, phone')
             .eq('organization_id', userOrgId)
             .eq('phone', normalizedPhone)
             .neq('id', id)
-            .maybeSingle()
+            .limit(5)
 
-        if (phoneMatch) {
+        if (phoneMatches && phoneMatches.length > 0) {
             return {
                 error: 'PATIENT_PHONE_EXISTS',
-                existingPatients: [phoneMatch],
+                existingPatients: phoneMatches,
                 code: 'DUPLICATE_PHONE'
             }
         }
     }
 
-    // [ADDRESS CHECK] - Warning
-    if (!forceCreate && address && number && cep) {
-        const { data: addressMatches } = await supabase
+    // [ADDRESS CHECK] - CEP + Número + Complemento (Parentesco)
+    if (!forceCreate && number && cep) {
+        const searchAddress: any = { zip_code: cep, number: number }
+        if (complement) searchAddress.complement = complement
+
+        const { data: addressMatches } = await supabaseAdmin
             .from('patients')
             .select('id, name, cpf, phone')
             .eq('organization_id', userOrgId)
-            .contains('address', { street: address, number: number, zip_code: cep })
+            .contains('address', searchAddress)
             .neq('id', id)
             .limit(5)
 
@@ -629,7 +642,6 @@ export async function updatePatient(id: string, formData: FormData, slug?: strin
         updatePayload.organization_id = userOrgId
     }
 
-    const supabaseAdmin = await createAdminClient()
     const { error } = await supabaseAdmin.from('patients').update(updatePayload).eq('id', id)
 
     if (error) {

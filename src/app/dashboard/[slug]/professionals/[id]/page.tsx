@@ -13,7 +13,7 @@ export default async function EditProfessionalPage({ params }: { params: Promise
         notFound()
     }
 
-    const services = await getServices()
+    const services = await getServices(slug)
     const linkedServiceIds = await getProfessionalServices(id)
     const roles = await getRoles(slug)
     const canManageRoles = await hasPermission('roles.manage')

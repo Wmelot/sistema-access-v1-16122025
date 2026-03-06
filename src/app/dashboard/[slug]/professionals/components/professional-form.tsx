@@ -20,7 +20,7 @@ import { useRouter, useSearchParams, useParams } from "next/navigation"
 
 import VMasker from "vanilla-masker"
 import { Badge } from "@/components/ui/badge"
-import { X, User, Upload, Crop as CropIcon, RotateCw as RotateIcon, ShieldAlert, Clock, MessageSquare, Settings, MapPin, Briefcase, Percent, Share2, Shield, Lock } from "lucide-react"
+import { X, User, Upload, Crop as CropIcon, RotateCw as RotateIcon, ShieldAlert, Clock, MessageSquare, Settings, MapPin, Briefcase, Percent, Share2, Shield, Lock, CheckCircle2 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { GoogleIntegration } from "./google-integration"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -29,6 +29,7 @@ import getCroppedImg from "@/lib/utils/cropImage"
 import { Slider } from "@/components/ui/slider"
 import { SecuritySettings } from "@/components/security/SecuritySettings"
 import { AdminPasswordCard } from "./admin-password-card"
+import { cn } from "@/lib/utils"
 
 /**
  * Standardized Tab Panel Wrapper to ensure CONSISTENT WIDTH across all tabs.
@@ -99,6 +100,8 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
         phone: professional?.phone || ""
     })
 
+    const [selectedServices, setSelectedServices] = useState<string[]>(professional?.services || [])
+
     // Browser Security Check for FaceID
     useEffect(() => {
         if (activeTab === 'security') {
@@ -149,6 +152,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
             })
             setBirthdate(professional.birthdate ? new Date(professional.birthdate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : "")
             setPhotoPreview(professional.photo_url || "")
+            setSelectedServices(professional.services || [])
         }
     }, [professional])
 
@@ -255,6 +259,14 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
         setSpecialties(specialties.filter(s => s !== spec))
     }
 
+    const toggleService = (serviceId: string) => {
+        setSelectedServices(prev =>
+            prev.includes(serviceId)
+                ? prev.filter(id => id !== serviceId)
+                : [...prev, serviceId]
+        )
+    }
+
     async function handleSubmit(formDataParam: FormData) {
         setLoading(true)
 
@@ -298,6 +310,12 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
         formDataParam.set('receive_daily_agenda_whatsapp', String(receiveDailyAgenda))
         formDataParam.set('whatsapp_reminders_enabled', String(whatsappRemindersEnabled))
         formDataParam.set('has_agenda', String(hasAgenda))
+
+        // Manual Injection of Services
+        formDataParam.delete('services') // Clear any previous values
+        selectedServices.forEach(id => {
+            formDataParam.append('services', id)
+        })
 
         // Replace the file from input with the cropped one if it exists
         if (croppedFile) {
@@ -886,38 +904,95 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
 
                     {/* --- 5. SERVIÇOS --- */}
                     <TabPanel value="services">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Serviços Realizados</CardTitle>
-                                <CardDescription>Selecione quais serviços este profissional está habilitado a atender.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {services.map(service => (
-                                        <div key={service.id} className="flex items-start space-x-2 border p-3 rounded-md hover:bg-muted/50 transition-colors">
-                                            <Checkbox
-                                                id={`service_${service.id}`}
-                                                name="services"
-                                                value={service.id}
-                                                defaultChecked={professional?.services?.includes(service.id)}
-                                            />
-                                            <div className="grid gap-1.5 leading-none">
-                                                <Label
-                                                    htmlFor={`service_${service.id}`}
-                                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                                >
-                                                    {service.name}
-                                                </Label>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {service.duration} min • R$ {service.price}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {services.length === 0 && <p className="text-muted-foreground col-span-full">Nenhum serviço cadastrado no sistema.</p>}
+                        <div className="grid gap-6">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div>
+                                    <h3 className="text-xl font-bold text-slate-800">Serviços Habilitados</h3>
+                                    <p className="text-sm text-muted-foreground">Selecione quais atendimentos este profissional pode realizar.</p>
                                 </div>
-                            </CardContent>
-                        </Card>
+                                <Badge variant="secondary" className="w-fit h-7 px-3 font-bold bg-primary/10 text-primary border-primary/20">
+                                    {selectedServices.length} {selectedServices.length === 1 ? 'Serviço Selecionado' : 'Serviços Selecionados'}
+                                </Badge>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {services.map(service => {
+                                    const isSelected = selectedServices.includes(service.id);
+                                    return (
+                                        <Card
+                                            key={service.id}
+                                            className={cn(
+                                                "relative overflow-hidden cursor-pointer transition-all duration-300 border-2",
+                                                isSelected
+                                                    ? "border-primary bg-primary/5 shadow-md shadow-primary/10 scale-[1.02]"
+                                                    : "border-slate-100 hover:border-slate-200 hover:bg-slate-50 shadow-sm"
+                                            )}
+                                            onClick={() => toggleService(service.id)}
+                                        >
+                                            <CardContent className="p-5">
+                                                <div className="flex items-start justify-between mb-4">
+                                                    <div
+                                                        className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner"
+                                                        style={{ backgroundColor: `${service.color || '#6366f1'}20`, color: service.color || '#6366f1' }}
+                                                    >
+                                                        <Briefcase className="h-6 w-6" />
+                                                    </div>
+                                                    <div className={cn(
+                                                        "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
+                                                        isSelected ? "bg-primary border-primary" : "border-slate-200"
+                                                    )}>
+                                                        {isSelected && <CheckCircle2 className="h-4 w-4 text-white" />}
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-1">
+                                                    <h4 className="font-bold text-slate-800 leading-tight">
+                                                        {service.name}
+                                                    </h4>
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                                                        {service.type === 'smart' ? 'IA Avançado' : 'Padrão'}
+                                                    </p>
+                                                </div>
+
+                                                <div className="mt-4 pt-4 border-t border-slate-100/50 flex items-center justify-between">
+                                                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
+                                                        <Clock className="h-3.5 w-3.5" />
+                                                        {service.duration} min
+                                                    </div>
+                                                    <div className="text-sm font-black text-slate-700">
+                                                        R$ {service.price}
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+
+                                            {/* Decorative Background Element */}
+                                            {isSelected && (
+                                                <div className="absolute -bottom-2 -right-2 opacity-5">
+                                                    <Briefcase className="h-16 w-16 rotate-12" />
+                                                </div>
+                                            )}
+                                        </Card>
+                                    )
+                                })}
+
+                                {services.length === 0 && (
+                                    <div className="col-span-full py-16 text-center border-2 border-dashed border-slate-200 rounded-[2.5rem] bg-slate-50/50">
+                                        <Briefcase className="h-12 w-12 text-slate-300 mx-auto mb-4 opacity-50" />
+                                        <h3 className="text-lg font-bold text-slate-700">Nenhum serviço disponível</h3>
+                                        <p className="text-slate-500 max-w-xs mx-auto mb-6">
+                                            Você precisa cadastrar serviços nas configurações antes de associá-los aos profissionais.
+                                        </p>
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => router.push(`/dashboard/${slug}/services`)}
+                                            className="rounded-xl border-slate-200 font-bold"
+                                        >
+                                            Ir para Gestão de Serviços
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </TabPanel>
 
                     {/* --- 3. ENDEREÇO (Address Only) --- */}
@@ -1031,7 +1106,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                     {/* --- 7. COMISSÕES --- */}
                     {professional?.id && (
                         <TabPanel value="commissions">
-                            <CommissionSettings profileId={professional.id} />
+                            <CommissionSettings profileId={professional.id} slug={slug as string} />
                         </TabPanel>
                     )}
 

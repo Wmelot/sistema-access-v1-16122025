@@ -184,7 +184,7 @@ export function PBE5UnifiedReport({
                                 <div className="relative z-10 grid grid-cols-3 gap-12 text-sm">
                                     <div className="col-span-2">
                                         <span className="block text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">Paciente</span>
-                                        <h2 className="text-2xl font-black text-slate-900 uppercase">{patient?.name || data?.patientName || "Paciente Modelo"}</h2>
+                                        <h2 className="text-2xl font-black text-slate-900 uppercase">{patient?.name || patient?.full_name || data?.patientName || "Paciente Modelo"}</h2>
                                         <div className="flex gap-6 mt-2">
                                             <span className="text-xs font-bold text-indigo-700 uppercase">Idade: {patient?.date_of_birth ? calculateAge(patient.date_of_birth) : (data?.patientAge || "--")} anos</span>
                                             <span className="text-xs font-bold text-slate-500 uppercase">Tel: {patient?.phone || "--"}</span>

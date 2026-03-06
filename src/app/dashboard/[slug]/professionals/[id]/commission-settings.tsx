@@ -22,9 +22,10 @@ import { getServices } from "../../services/actions"
 
 interface CommissionSettingsProps {
     profileId: string
+    slug?: string
 }
 
-export function CommissionSettings({ profileId }: CommissionSettingsProps) {
+export function CommissionSettings({ profileId, slug }: CommissionSettingsProps) {
     const [rules, setRules] = useState<any[]>([])
     const [services, setServices] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
@@ -50,7 +51,7 @@ export function CommissionSettings({ profileId }: CommissionSettingsProps) {
         setLoading(true)
         const [r, s] = await Promise.all([
             getCommissionRules(profileId),
-            getServices()
+            getServices(slug as string)
         ])
         setRules(r || [])
         setServices(s || [])

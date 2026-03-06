@@ -97,32 +97,42 @@ export function parsePBE5FeegowText(text: string) {
     // 8. CONDUCT
     data.conduct.suggestions = extractMultiline('Sugestões de Exercícios', ['Arco', 'FPI']);
 
-    // 9. FOOT DATA (Specific for the user's current request)
-    const fpiTotalE = extractNum('FPI Total E');
-    const fpiTotalD = extractNum('FPI Total D');
-    const jackE = extractStatus('Teste de Jack E');
-    const jackD = extractStatus('Teste de Jack D');
+    // 9. REFINING PROTOCOLS (FOOT/ANKLE)
+    const fpiE = extractNum('FPI Total E') || extractNum('FPI E');
+    const fpiD = extractNum('FPI Total D') || extractNum('FPI D');
+    if (fpiE || fpiD) {
+        data.protocols.tornozelo_pe = data.protocols.tornozelo_pe || {};
+        data.protocols.tornozelo_pe.fpi = { checked: true, result: `E: ${fpiE || '-'} | D: ${fpiD || '-'}` };
+    }
 
-    // Append foot data to HMA if it exists to not lose information
-    if (fpiTotalE || fpiTotalD || jackE) {
-        let footData = "\n\n--- DADOS DOS PÉS (IMPORTADO) ---\n";
-        if (fpiTotalE) footData += `FPI Total E: ${fpiTotalE}\n`;
-        if (fpiTotalD) footData += `FPI Total D: ${fpiTotalD}\n`;
-        if (jackE) footData += `Teste de Jack E: ${jackE}\n`;
-        if (jackD) footData += `Teste de Jack D: ${jackD}\n`;
+    const jackE = extractStatus('Teste de Jack E') || extractStatus('Jack E');
+    const jackD = extractStatus('Teste de Jack D') || extractStatus('Jack D');
+    if (jackE || jackD) {
+        data.protocols.tornozelo_pe = data.protocols.tornozelo_pe || {};
+        data.protocols.tornozelo_pe.jack_test = { checked: true, result: `E: ${jackE || '-'} | D: ${jackD || '-'}` };
+    }
 
-        const shoe = extractStatus('Calçado que Utiliza') || extractStatus('Tênis');
-        if (shoe) footData += `Calçado: ${shoe}\n`;
+    // 10. HIP PROTOCOLS
+    const thomasE = extractStatus('Teste de Thomas E') || extractStatus('Thomas E');
+    const thomasD = extractStatus('Teste de Thomas D') || extractStatus('Thomas D');
+    if (thomasE || thomasD) {
+        data.protocols.quadril = data.protocols.quadril || {};
+        data.protocols.quadril.thomas = { checked: true, result: `E: ${thomasE || '-'} | D: ${thomasD || '-'}` };
+    }
 
-        // Add individual FPI components to the summary as well
-        const components = ['Tálus', 'Maléolo', 'Navicular', 'Arco', 'Calcâneo', 'Dedos'];
-        components.forEach(comp => {
-            const valE = extractStatus(`${comp} E`);
-            const valD = extractStatus(`${comp} D`);
-            if (valE || valD) footData += `${comp}: E=${valE || '-'}, D=${valD || '-'}\n`;
-        });
+    const trend = extractStatus('Trendelenburg');
+    if (trend) {
+        data.protocols.quadril = data.protocols.quadril || {};
+        data.protocols.quadril.trendelenburg = { checked: true, result: trend };
+    }
 
-        data.anamnesis.hma = (data.anamnesis.hma || "") + footData;
+    // Append raw info to HMA for safety
+    let footSummary = "";
+    if (fpiE || fpiD || jackE || jackD) {
+        footSummary += `\n--- DADOS DOS PÉS ---\nFPI: E=${fpiE || '-'}, D=${fpiD || '-'}\nJACK: E=${jackE || '-'}, D=${jackD || '-'}\n`;
+    }
+    if (footSummary) {
+        data.anamnesis.hma = (data.anamnesis.hma || "") + footSummary;
     }
 
     return data;

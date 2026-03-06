@@ -5,7 +5,7 @@ import { hasPermission } from "@/lib/rbac"
 
 export default async function NewProfessionalPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params
-    const services = await getServices()
+    const services = await getServices(slug)
     const roles = await getRoles(slug)
     const canManageRoles = await hasPermission('roles.manage')
 

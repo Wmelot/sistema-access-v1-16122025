@@ -42,8 +42,9 @@ export async function getVoidingDiaryEntries(patientId: string): Promise<Voiding
     }
 }
 
-export async function generatePortalToken(patientId: string, slug?: string) {
+export async function generatePortalToken(patientId: string, slug?: string, options: { mode?: 'diary' | 'attendance', recordId?: string } = {}) {
     try {
+        const { mode = 'diary', recordId } = options;
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { success: false, error: "Usuário não autenticado" };
@@ -54,16 +55,24 @@ export async function generatePortalToken(patientId: string, slug?: string) {
         const token = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
 
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 5);
+        expiresAt.setDate(expiresAt.getDate() + 7); // Increased to 7 days for better experience
+
+        const permissions: any = {
+            view_exercises: { enabled: true }
+        };
+
+        if (mode === 'diary') {
+            permissions.voiding_diary = { enabled: true, duration_days: 7, expires_at: expiresAt.toISOString() };
+        } else if (mode === 'attendance') {
+            permissions.view_report = { enabled: true, record_id: recordId };
+        }
 
         const { data, error } = await supabase.from("patient_portal_tokens").insert({
             patient_id: patientId,
             clinic_id: profile.organization_id,
             created_by: user.id,
             token,
-            permissions: {
-                voiding_diary: { enabled: true, duration_days: 5, expires_at: expiresAt.toISOString() }
-            },
+            permissions,
             expires_at: expiresAt.toISOString()
         }).select('token').single();
 
@@ -74,25 +83,29 @@ export async function generatePortalToken(patientId: string, slug?: string) {
         const host = headerList.get('host') || 'localhost:3000';
         const protocol = headerList.get('x-forwarded-proto') || 'http';
 
-        // Use environment variable in production, fall back to current host in dev/localhost
         const baseUrl = process.env.NODE_ENV === 'production'
             ? (process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`)
             : `${protocol}://${host}`;
 
         const portalUrl = `${baseUrl}/paciente/${token}`;
 
-        // Tentativa de envio inteligente pelo Zapi/Evolution
-        try {
-            const message = `Olá! Mapeamos a necessidade de você preencher o *Diário Miccional* para acompanharmos sua evolução.\n\nAcesse seu Portal do Paciente pelo link abaixo (não precisa criar senha):\n${portalUrl}\n\nLembre-se de anotar cada ida ao banheiro, combinado?`;
+        // Context-aware message
+        let message = '';
+        if (mode === 'attendance') {
+            message = `Olá! Seu relatório de atendimento e as orientações já estão disponíveis no seu *Portal do Paciente*.\n\nAcesse pelo link abaixo (não precisa de senha):\n${portalUrl}\n\nQualquer dúvida, estamos à disposição!`;
+        } else {
+            message = `Olá! Mapeamos a necessidade de você preencher o *Diário Miccional* para acompanharmos sua evolução.\n\nAcesse seu Portal do Paciente pelo link abaixo (não precisa criar senha):\n${portalUrl}\n\nLembre-se de anotar cada ida ao banheiro, combinado?`;
+        }
 
+        try {
             await sendReportViaWhatsapp({
                 patientId,
                 content: message,
-                reportType: 'Portal do Paciente',
+                reportType: mode === 'attendance' ? 'Relatório de Atendimento' : 'Diário Miccional',
                 slug
             });
         } catch (err) {
-            console.error("Erro ao enviar portal pelo whatsapp nativo", err);
+            console.error("Erro ao enviar portal pelo whatsapp", err);
         }
 
         return { success: true, url: portalUrl, token };

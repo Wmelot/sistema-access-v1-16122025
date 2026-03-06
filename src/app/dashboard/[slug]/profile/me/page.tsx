@@ -37,7 +37,7 @@ export default async function MyProfilePage({ params }: { params: { slug: string
     }
 
     // Only fetch these if we have a professional to show
-    const services = await getServices()
+    const services = await getServices(slug)
     const linkedServiceIds = await getProfessionalServices(user.id)
     const roles = await getRoles(slug)
 

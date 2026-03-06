@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
 import { redirect } from "next/navigation"
 import { verifyAdminPassword } from "@/actions/admin-password"
+import { getSecurityContext } from "@/lib/security"
 
 async function getCurrentOrgId() {
     const supabase = await createClient()
@@ -16,9 +17,22 @@ async function getCurrentOrgId() {
     return data?.organization_id
 }
 
-export async function getServices() {
+export async function getServices(slug?: string) {
     const supabase = await createClient()
-    const orgId = await getCurrentOrgId()
+
+    let orgId: string | null = null;
+
+    if (slug) {
+        try {
+            const { activeOrgId } = await getSecurityContext(slug);
+            orgId = activeOrgId;
+        } catch (e) {
+            console.error('Error resolving security context for getServices:', e);
+            orgId = await getCurrentOrgId();
+        }
+    } else {
+        orgId = await getCurrentOrgId();
+    }
 
     if (!orgId) return []
 
