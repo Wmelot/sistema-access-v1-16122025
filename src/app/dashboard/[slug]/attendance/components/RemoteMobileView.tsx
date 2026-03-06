@@ -62,10 +62,10 @@ const GONIO_SLOTS: MediaSlot[] = [
     { id: 'tests.lunge.right', label: 'Lunge Direito', group: 'Goniometria' },
     { id: 'tests.thomas.left', label: 'Thomas Esquerdo', group: 'Goniometria' },
     { id: 'tests.thomas.right', label: 'Thomas Direito', group: 'Goniometria' },
-    { id: 'tests.slr.left', label: 'Isquiosurais Esq (180-X)', group: 'Goniometria' },
-    { id: 'tests.slr.right', label: 'Isquiosurais Dir (180-X)', group: 'Goniometria' },
-    { id: 'tests.ventral.rotation.left', label: 'Rigidez Rotadores Esq', group: 'Goniometria' },
-    { id: 'tests.ventral.rotation.right', label: 'Rigidez Rotadores Dir', group: 'Goniometria' },
+    { id: 'tests.slr.left', label: 'Isquiosurais Esquerdo', group: 'Goniometria' },
+    { id: 'tests.slr.right', label: 'Isquiosurais Direito', group: 'Goniometria' },
+    { id: 'tests.ventral.rotation.left', label: 'Rigidez Rotadores Esquerdo', group: 'Goniometria' },
+    { id: 'tests.ventral.rotation.right', label: 'Rigidez Rotadores Direito', group: 'Goniometria' },
     { id: 'tests.ventral.craig.left', label: 'Craig Esquerdo', group: 'Goniometria' },
     { id: 'tests.ventral.craig.right', label: 'Craig Direito', group: 'Goniometria' },
 ];
@@ -279,12 +279,16 @@ export default function RemoteMobileView({
                 onUpdate(slotId, imageData);
             } else if (numericData !== null) {
                 let finalVal = Number(numericData.toFixed(1));
-                if (!showGonioSign) finalVal = Math.abs(finalVal);
 
-                // Formula especial para Isquiosurais
-                if (slotId.includes('tests.slr')) {
-                    finalVal = Math.round(180 - Math.abs(finalVal));
+                // Fórmulas Especiais
+                if (slotId.includes('tests.thomas')) {
+                    // Thomas: Leitura - 90 (permite negativos conforme solicitado)
+                    finalVal = Number((finalVal - 90).toFixed(1));
+                } else if (!showGonioSign) {
+                    // Se não for Thomas e o sinal estiver desligado, registra o absoluto
+                    finalVal = Math.abs(finalVal);
                 }
+
                 onUpdate(slotId, finalVal);
             }
             await onSave();
