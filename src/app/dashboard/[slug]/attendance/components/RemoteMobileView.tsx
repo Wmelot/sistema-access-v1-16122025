@@ -333,7 +333,7 @@ export default function RemoteMobileView({
     // ══════════════════════════════════════════
     if (view === 'home') {
         return (
-            <div className="fixed inset-0 bg-gradient-to-b from-slate-900 to-slate-950 z-[100] flex flex-col font-sans">
+            <div className="fixed inset-0 h-[100dvh] bg-gradient-to-b from-slate-900 to-slate-950 z-[100] flex flex-col font-sans overflow-hidden">
                 {/* Hidden file input */}
                 <input
                     ref={cameraInputRef}
@@ -407,7 +407,7 @@ export default function RemoteMobileView({
     // ══════════════════════════════════════════
     if (view === 'gonio-prep') {
         return (
-            <div className="fixed inset-0 bg-slate-950 z-[100] flex flex-col font-sans overflow-hidden">
+            <div className="fixed inset-0 h-[100dvh] bg-slate-950 z-[100] flex flex-col font-sans overflow-hidden pb-safe-bottom">
                 <header className="px-6 pt-safe-top py-6">
                     <Button variant="ghost" size="icon" onClick={() => setView('home')} className="rounded-full h-10 w-10 bg-white/10 text-white hover:bg-white/20">
                         <ArrowLeft className="h-5 w-5" />
@@ -461,7 +461,7 @@ export default function RemoteMobileView({
         const dashLength = circumference * (absAngle / 360);
 
         return (
-            <div className="fixed inset-0 bg-slate-950 z-[100] flex flex-col font-sans overflow-hidden">
+            <div className="fixed inset-0 h-[100dvh] bg-slate-950 z-[100] flex flex-col font-sans overflow-hidden pb-safe-bottom">
                 <header className="px-6 pt-safe-top py-6 flex items-center justify-between">
                     <Button variant="ghost" size="icon" onClick={() => setView('home')} className="rounded-full h-10 w-10 bg-white/10 text-white hover:bg-white/20">
                         <ArrowLeft className="h-5 w-5" />
@@ -668,9 +668,9 @@ export default function RemoteMobileView({
         const gonioValue = capturedGonioValue;
 
         return (
-            <div className="fixed inset-0 bg-slate-50 z-[100] flex flex-col font-sans">
+            <div className="fixed inset-0 h-[100dvh] bg-slate-50 z-[100] flex flex-col font-sans overflow-hidden pb-safe-bottom">
                 {/* Header */}
-                <header className="bg-white border-b px-6 py-4 flex items-center justify-between shadow-sm shrink-0">
+                <header className="bg-white border-b px-6 py-4 flex items-center justify-between shadow-sm shrink-0 pt-safe-top">
                     <Button variant="ghost" size="icon" onClick={() => {
                         setCapturedPhoto(null);
                         setCurrentFrame(null);

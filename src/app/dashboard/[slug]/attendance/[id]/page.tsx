@@ -4,15 +4,30 @@ import { AttendanceClient } from "../attendance-client"
 import { createClient } from "@/lib/supabase/server"
 import { canAccessAsset } from "@/lib/rbac"
 import Link from "next/link"
+import { redirect } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft } from "lucide-react"
+import RemoteMobileView from "../components/RemoteMobileView"
 
-export default async function AttendancePage({ params }: { params: Promise<{ id: string, slug: string }> }) {
+export default async function AttendancePage({ params, searchParams }: {
+    params: Promise<{ id: string, slug: string }>,
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
     const { id, slug } = await params
+    const resolvedSearchParams = await searchParams
     const supabase = await createClient()
 
     try {
-        const data = await getAttendanceData(id, slug)
         const { data: { user } } = await supabase.auth.getUser()
-        const userId = user?.id
+
+        // [SAFETY] Always require login, especially for Remote Mode
+        if (!user) {
+            // Better: use redirect with the current URL as callback
+            redirect(`/login?callbackUrl=/dashboard/${slug}/attendance/${id}`);
+        }
+
+        const data = await getAttendanceData(id, slug)
+        const userId = user.id
         const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId!).single()
         const userRole = profile?.role
 
@@ -25,6 +40,48 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
             })
         );
         const filteredTemplates = templatesWithAccess.filter(Boolean);
+
+        // Check if the request is for a remote mobile view
+        const isRemoteMobileView = resolvedSearchParams.remote === 'true';
+
+        if (isRemoteMobileView) {
+            // This block is for the RemoteMobileView, which is typically a separate component
+            // but the instruction implies a change here.
+            // Assuming `data.appointment` is available and contains `id` and `organizations?.slug`
+            const appointment = data.appointment; // Assuming data.appointment is available
+            const PBE5_ID = 'pbe-5' // Define PBE5_ID here for RemoteMobileView context
+
+            return (
+                <div className="min-h-screen bg-gray-900 text-white">
+                    {/* Header */}
+                    <header className="px-6 pt-safe-top py-6 flex items-center justify-between">
+                        <Button variant="ghost" size="icon" onClick={() => {
+                            // Return to the desktop view of the EXACT same record
+                            window.location.href = `/dashboard/${slug}/attendance/${id}`;
+                        }} className="rounded-full h-10 w-10 bg-white/10 text-white hover:bg-white/20">
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                        {/* Add other header elements if needed */}
+                    </header>
+                    {/* Render RemoteMobileView content here, or redirect to a dedicated remote view component */}
+                    <div className="flex-1 overflow-hidden">
+                        <RemoteMobileView
+                            patient={data.patient}
+                            appointment={data.appointment}
+                            currentRecord={data.existingRecord}
+                            templateId={data.existingRecord?.template_id || PBE5_ID}
+                            onUpdate={() => { }} // Not needed for the SSR wrapper if it's just a view
+                            onSave={async () => { }} // Not needed here
+                            onClose={() => {
+                                window.location.href = `/dashboard/${slug}/attendance/${id}`;
+                            }}
+                        />
+                    </div>
+                </div>
+            );
+        }
+
+        const PBE5_ID = 'pbe-5'
 
         return (
             <AttendanceClient
