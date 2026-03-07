@@ -55,7 +55,11 @@ export default async function BookingPage({ params }: BookingPageProps) {
             <div className="max-w-3xl w-full bg-white rounded-xl shadow-lg overflow-hidden border">
                 <div className="bg-primary/5 p-6 text-center border-b">
                     {org.logo_url && (
-                        <img src={org.logo_url} alt={org.name} className="h-16 w-auto mx-auto mb-4" />
+                        <img
+                            src={org.logo_url}
+                            alt={org.name}
+                            className="h-16 w-auto mx-auto mb-4 rounded-2xl shadow-sm border border-slate-100"
+                        />
                     )}
                     <h1 className="text-2xl font-bold text-primary">Agendamento Online</h1>
                     <p className="text-muted-foreground font-medium">{org.name}</p>

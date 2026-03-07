@@ -50,6 +50,9 @@ export function PermissionsProvider({ children, userRole }: { children: ReactNod
     }, [userRole, isMaster, isAdmin])
 
     const hasPermission = (code: PermissionCode) => {
+        // [RESILIENCE] While loading, we can't definitively say NO if it's a basic requirement
+        // but for now we follow the list.
+
         if (isMaster) {
             // Visibility: Respect the configuration (Sidebar and Top Menu)
             if (code.startsWith('sidebar.') || code.startsWith('user_menu.')) {
@@ -62,7 +65,10 @@ export function PermissionsProvider({ children, userRole }: { children: ReactNod
 
         // Standard Users: Strictly follow database
         const list = previewPermissions || permissions
-        return list.includes(code)
+
+        // [FIX] If list is empty but loading is true, we might want to be cautious. 
+        // But the primary fix is in RBAC.ts. Here we just ensure we don't crash.
+        return Array.isArray(list) && list.includes(code)
     }
 
     return (

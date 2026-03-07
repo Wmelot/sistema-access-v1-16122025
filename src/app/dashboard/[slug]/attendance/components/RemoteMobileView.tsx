@@ -387,7 +387,7 @@ export default function RemoteMobileView({
                             >
                                 <Zap className="h-8 w-8 text-white" />
                             </button>
-                            <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em]">Goniômetro</span>
+                            <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em]">Inclinômetro</span>
                         </div>
                     </div>
                 </div>

@@ -417,10 +417,14 @@ function DashboardLayoutContent(props: DashboardLayoutClientProps & { isImperson
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button id="user-menu-trigger" variant="ghost" className="flex items-center gap-2 h-auto py-1.5 px-2">
-                                    <span className="hidden md:block text-sm font-medium">{currentUser?.name || 'Usuário'}</span>
+                                    <span className="hidden md:block text-sm font-medium">
+                                        {(currentUser?.name === 'Vazio' || !currentUser?.name) ? (currentUser?.email?.split('@')[0] || 'Usuário') : currentUser.name}
+                                    </span>
                                     <Avatar className="h-8 w-8 rounded-md">
                                         <AvatarImage src={currentUser?.avatarUrl || undefined} alt={currentUser?.name || 'User'} />
-                                        <AvatarFallback className="rounded-md">{currentUser?.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                                        <AvatarFallback className="rounded-md">
+                                            {currentUser?.name?.charAt(0).toUpperCase() || currentUser?.email?.charAt(0).toUpperCase() || 'U'}
+                                        </AvatarFallback>
                                     </Avatar>
                                 </Button>
                             </DropdownMenuTrigger>

@@ -19,10 +19,10 @@ export const AttendanceService = {
      * Checks if a professional has any active (in_progress or checked_in) attendance.
      * Bypasses RLS to ensure Master users see their appointments across all organizations.
      */
-    async getActiveAttendance(professionalId: string): Promise<any | null> {
+    async getActiveAttendance(professionalId: string, organizationId?: string): Promise<any | null> {
         const supabaseAdmin = await createAdminClient()
 
-        const { data, error } = await supabaseAdmin
+        let query = supabaseAdmin
             .from('appointments')
             .select(`
                 id,
@@ -30,10 +30,17 @@ export const AttendanceService = {
                 created_at,
                 status,
                 patient_id,
-                patient:patients(name)
+                patient:patients(name),
+                organization_id
             `)
             .eq('professional_id', professionalId)
             .in('status', ['in_progress', 'checked_in'])
+
+        if (organizationId) {
+            query = query.eq('organization_id', organizationId)
+        }
+
+        const { data, error } = await query
             .order('status', { ascending: false }) // Prioritize in_progress (alphabetical 'i' vs 'c')
             .order('start_time', { ascending: false })
             .limit(1)

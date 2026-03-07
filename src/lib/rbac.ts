@@ -258,7 +258,7 @@ export async function hasPermission(permission: PermissionCode): Promise<boolean
     const meta = PERMISSION_METADATA.find(p => p.code === permission)
     if (meta?.featureGate) {
         const orgFeatures = (profile.organizations as any)?.features
-        const isFeatureEnabled = (orgFeatures === null || orgFeatures === undefined)
+        const isFeatureEnabled = (orgFeatures === null || orgFeatures === undefined || orgFeatures[meta.featureGate] === undefined)
             ? true
             : !!orgFeatures[meta.featureGate]
 
@@ -362,7 +362,7 @@ export async function getCurrentUserPermissions(): Promise<PermissionCode[]> {
             const meta = PERMISSION_METADATA.find(p => p.code === code)
 
             if (meta?.featureGate) {
-                const isFeatureEnabled = (orgFeatures === null || orgFeatures === undefined)
+                const isFeatureEnabled = (orgFeatures === null || orgFeatures === undefined || orgFeatures[meta.featureGate] === undefined)
                     ? true
                     : !!orgFeatures[meta.featureGate]
                 // Master Bypasses Layer 1 Filter for complete oversight

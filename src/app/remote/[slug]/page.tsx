@@ -5,8 +5,12 @@ import { checkActiveAttendance, getAttendanceData, saveAttendanceRecord } from "
 import RemoteMobileView from "@/app/dashboard/[slug]/attendance/components/RemoteMobileView"
 import { Loader2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useParams } from "next/navigation"
 
-export default function RemotePage() {
+export default function RemoteSlugPage() {
+    const params = useParams()
+    const slug = params?.slug as string
+
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [attendanceData, setAttendanceData] = useState<any>(null)
@@ -15,27 +19,14 @@ export default function RemotePage() {
         setLoading(true)
         setError(null)
         try {
-            const res = await checkActiveAttendance()
+            const res = await checkActiveAttendance(slug)
             if (!res.data) {
-                setError("Nenhuma sessão ativa. Inicie um atendimento no computador primeiro.")
+                setError("Nenhuma sessão ativa nesta clínica. Inicie um atendimento no computador primeiro.")
                 setLoading(false)
                 return
             }
 
-            // [NEW] If we have an active session, try to find the slug and redirect to the new route
-            // This provides the "slug in the link" the user requested even if they start at /remote
-            const { data: org } = await (await import('@/lib/supabase/client')).createClient()
-                .from('organizations')
-                .select('slug')
-                .eq('id', res.data.organization_id)
-                .single()
-
-            if (org?.slug) {
-                window.location.href = `/remote/${org.slug}`
-                return
-            }
-
-            const data = await getAttendanceData(res.data.id)
+            const data = await getAttendanceData(res.data.id, slug)
             setAttendanceData(data)
         } catch (err: any) {
             setError(err.message || "Erro ao carregar sessão.")
@@ -46,7 +37,7 @@ export default function RemotePage() {
 
     useEffect(() => {
         loadActiveSession()
-    }, [])
+    }, [slug])
 
     if (loading) {
         return (
@@ -63,9 +54,14 @@ export default function RemotePage() {
                 <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
                 <h1 className="text-lg font-black text-white mb-2 uppercase tracking-tight">Sem Conexão Ativa</h1>
                 <p className="text-xs text-slate-400 font-bold mb-8 uppercase tracking-widest">{error}</p>
-                <Button onClick={loadActiveSession} className="h-12 w-full max-w-xs bg-white text-slate-950 font-black uppercase tracking-widest rounded-xl hover:bg-white/90 shadow-xl">
-                    Recarregar
-                </Button>
+                <div className="flex flex-col gap-2 w-full max-w-xs">
+                    <Button onClick={loadActiveSession} className="h-12 w-full bg-white text-slate-950 font-black uppercase tracking-widest rounded-xl hover:bg-white/90 shadow-xl">
+                        Recarregar
+                    </Button>
+                    <p className="text-[9px] text-slate-500 uppercase font-bold tracking-tighter">
+                        Clínica: {slug}
+                    </p>
+                </div>
             </div>
         )
     }
@@ -91,7 +87,7 @@ export default function RemotePage() {
                     patient_id: attendanceData.patient.id,
                     template_id: attendanceData.existingRecord?.template_id,
                     content: attendanceData.existingRecord?.content
-                })
+                }, slug)
             }}
             onClose={() => window.location.reload()}
         />

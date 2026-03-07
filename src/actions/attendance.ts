@@ -274,17 +274,21 @@ export async function startAttendance(appointmentId: string, slug?: string, forc
     return { success: true }
 }
 
-export async function checkActiveAttendance() {
+export async function checkActiveAttendance(slug?: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { data: null, error: 'User not authenticated' }
 
-    // Professional ID in appointments table usually matches profiles.id
-    // Profiles.id is USUALLY user.id, but let's be safe and check both or fetch profile
+    let organizationId: string | undefined
+    if (slug) {
+        const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).maybeSingle()
+        if (org) organizationId = org.id
+    }
+
     const { data: profile } = await supabase.from('profiles').select('id').eq('id', user.id).single()
     const effectiveProfId = profile?.id || user.id
 
-    const activeAppt = await AttendanceService.getActiveAttendance(effectiveProfId)
+    const activeAppt = await AttendanceService.getActiveAttendance(effectiveProfId, organizationId)
     return { data: activeAppt, error: null }
 }
 
@@ -383,13 +387,22 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
         }
 
         let organizationId: string | undefined
+
+        // 1. Try Slug
         if (slug) {
-            const { data: org } = await adminSupabase.from('organizations').select('id').eq('slug', slug).single()
+            const { data: org } = await adminSupabase.from('organizations').select('id').eq('slug', slug).maybeSingle()
             if (org) organizationId = org.id
         }
 
+        // 2. Try Appointment Link (Most reliable for existing records)
+        if (!organizationId && finalAppointmentId) {
+            const { data: appt } = await adminSupabase.from('appointments').select('organization_id').eq('id', finalAppointmentId).maybeSingle()
+            if (appt?.organization_id) organizationId = appt.organization_id
+        }
+
+        // 3. Fallback to Profile
         if (!organizationId) {
-            const { data: profile } = await adminSupabase.from('profiles').select('organization_id').eq('id', user.id).single()
+            const { data: profile } = await adminSupabase.from('profiles').select('organization_id').eq('id', user.id).maybeSingle()
             organizationId = profile?.organization_id
         }
 

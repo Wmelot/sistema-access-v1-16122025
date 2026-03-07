@@ -530,6 +530,14 @@ export function AttendanceClient({
         init()
     }, [appointment.id, appointment.status, currentRecord?.id, selectedTemplateId, isCreatingRecord, patient.id, mode, slug, router, setActiveAttendanceId, setPatientName, setStartTime])
 
+    useEffect(() => {
+        console.log('[AttendanceClient] Template State Update:', {
+            selectedTemplateId,
+            currentRecordId: currentRecord?.id,
+            currentRecordTemplate: currentRecord?.template_id
+        });
+    }, [selectedTemplateId, currentRecord]);
+
     // Handle Template Change
     const handleTemplateChange = async (newTemplateId: string) => {
         const newTemplate = templates.find(t => t.id === newTemplateId)
@@ -596,6 +604,20 @@ export function AttendanceClient({
                         record_id: currentRecord.id, // Update existing
                         record_type: newRecordType
                     }, slug)
+
+                    // [NEW] Ghost Record Check
+                    if (!patient.id || patient.id === 'undefined') {
+                        import('sweetalert2').then(Swal => {
+                            Swal.default.fire({
+                                icon: 'warning',
+                                title: 'Atenção: Registro Sem Paciente',
+                                text: 'Este atendimento parece não ter um paciente vinculado. Deseja recarregar ou tentar vincular novamente?',
+                                showCancelButton: true,
+                                confirmButtonText: 'Recarregar Página'
+                            }).then(res => { if (res.isConfirmed) window.location.reload(); });
+                        });
+                    }
+
                     // Update local state
                     setCurrentRecord({ ...currentRecord, template_id: newTemplateId, content: {} })
                     // [NEW] Align service with morphed template
