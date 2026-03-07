@@ -44,6 +44,12 @@ import { CommandMenu } from "@/components/layout/command-menu";
 import { QuickAttendanceButton } from "@/features/attendance/components/QuickAttendanceButton";
 import { DraftsModalButton } from "@/features/attendance/components/DraftsModalButton";
 import { DraftCountBadge } from "@/features/attendance/components/DraftCountBadge";
+import dynamic from "next/dynamic";
+
+const QuantumLoader = dynamic(() => import('@/components/ui/quantum-loader').then(mod => ({ default: mod.QuantumLoader })), {
+    ssr: false,
+    loading: () => <div className="w-4 h-4" />
+});
 
 interface SidebarProps {
     logoUrl?: string;
@@ -64,7 +70,7 @@ export function Sidebar(props: SidebarProps) {
     // We only show the traditional sidebar on desktop
     if (isMobile && !props.isDesktopMode) return null;
 
-    const { showLoading } = useGlobalLoader();
+    const { showLoading, showDiscrete, isDiscrete } = useGlobalLoader();
 
     return (
         <>
@@ -101,6 +107,7 @@ export function SidebarContent({
     showLoading,
     currentUser
 }: SidebarProps & { isCollapsed?: boolean, setIsCollapsed?: (v: boolean) => void, onNavigate?: () => void, showLoading?: () => void }) {
+    const { isDiscrete } = useGlobalLoader();
     const displayName = clinicName || "Minha Clínica";
     const dashboardPrefix = `/dashboard/${slug || ''}`;
     const { hasPermission } = usePermissionsContext();
@@ -125,11 +132,16 @@ export function SidebarContent({
                     onClick={onNavigate}
                 >
                     {logoUrl ? (
-                        <img
-                            src={logoUrl}
-                            alt={displayName}
-                            className={cn("object-contain transition-all rounded-md scale-95", isCollapsed ? "h-8 w-8" : "h-9 w-auto max-w-[40px]")}
-                        />
+                        <div className="relative">
+                            <img
+                                src={logoUrl}
+                                alt={displayName}
+                                className={cn(
+                                    "object-contain transition-all rounded-md scale-95",
+                                    isCollapsed ? "h-8 w-8" : "h-9 w-auto max-w-[40px]"
+                                )}
+                            />
+                        </div>
                     ) : (
                         <Package2 className="h-6 w-6 shrink-0" />
                     )}
@@ -226,6 +238,9 @@ export function SidebarContent({
 
 function NavItem({ id, href, icon: Icon, label, isCollapsed, locked = false, className, onClick, showLoading, badge }: { id?: string, href: string, icon: any, label: string, isCollapsed: boolean, locked?: boolean, className?: string, onClick?: () => void, showLoading?: (msg?: string) => void, badge?: React.ReactNode }) {
     const pathname = usePathname();
+    const { showDiscrete, activeDiscreteId } = useGlobalLoader();
+    const isLoadingThis = activeDiscreteId === href;
+
     if (locked) {
         return (
             <div
@@ -259,9 +274,10 @@ function NavItem({ id, href, icon: Icon, label, isCollapsed, locked = false, cla
                 const isCurrentPath = pathname === href || pathname === href?.split('?')[0];
 
                 if (!href.startsWith('#') && !isCurrentPath) {
-                    if (showLoading) {
+                    if (showDiscrete) {
+                        showDiscrete(href);
+                    } else if (showLoading) {
                         showLoading(`Abrindo ${label}`);
-                        // No need for local setTimeout here as GlobalLoaderProvider has a safety one
                     } else {
                         toast.loading(`Abrindo ${label}...`, { id: `nav-${href}` });
                     }
@@ -274,10 +290,13 @@ function NavItem({ id, href, icon: Icon, label, isCollapsed, locked = false, cla
                 isCollapsed ? "justify-center px-0" : "px-3",
                 className
             )}
-            title={isCollapsed ? label : undefined}
         >
             <div className="relative">
-                <Icon className="h-4 w-4" strokeWidth={2} />
+                {isLoadingThis ? (
+                    <QuantumLoader size="18" speed="1.2" color="#6366f1" />
+                ) : (
+                    <Icon className="h-4 w-4" strokeWidth={2} />
+                )}
                 {isCollapsed && badge && (
                     <div className="absolute -top-2 -right-2">
                         {badge}

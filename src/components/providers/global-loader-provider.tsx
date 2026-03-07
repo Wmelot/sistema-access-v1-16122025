@@ -15,8 +15,11 @@ const QuantumLoader = dynamic(() => import('@/components/ui/quantum-loader').the
 interface GlobalLoaderContextType {
     setIsLoading: (loading: boolean) => void;
     showLoading: (message?: string) => void;
+    showDiscrete: (id?: string) => void;
     hideLoading: () => void;
     isLoading: boolean;
+    isDiscrete: boolean;
+    activeDiscreteId: string | null;
 }
 
 const GlobalLoaderContext = createContext<GlobalLoaderContextType | undefined>(undefined);
@@ -36,12 +39,12 @@ const RouteChangeHandler = () => {
     const searchParams = useSearchParams();
 
     useEffect(() => {
-        // We only hide automatically if the loader was NOT shown manually with a message
-        // This is a bit tricky with the current state. 
-        // Let's just add a small delay to the hide to allow the new page to start rendering
+        // When route changes, we want to hide the loader almost immediately
+        // as the new page segment has already started rendering.
+        // A small delay (300ms) ensures the transition feels smooth.
         const timer = setTimeout(() => {
             hideLoading();
-        }, 5000); // 5000ms safe window to ensure rendering is visible and data fetching has started
+        }, 300);
 
         return () => clearTimeout(timer);
     }, [pathname, searchParams, hideLoading]);
@@ -51,17 +54,27 @@ const RouteChangeHandler = () => {
 
 export const GlobalLoaderProvider = ({ children }: { children: React.ReactNode }) => {
     const [isLoading, setIsLoading] = useState(false);
+    const [isDiscrete, setIsDiscrete] = useState(false);
+    const [activeDiscreteId, setActiveDiscreteId] = useState<string | null>(null);
     const [loadingMessage, setLoadingMessage] = useState("PROCESSANDO...");
     const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         if (typeof document !== 'undefined') {
             document.body.style.overflow = isLoading ? "hidden" : "unset";
+            // [NEW] Hide cursor if discrete loading is active
+            if (isDiscrete && !isLoading) {
+                document.body.style.cursor = "none";
+            } else {
+                document.body.style.cursor = "default";
+            }
         }
-    }, [isLoading]);
+    }, [isLoading, isDiscrete]);
 
     const hideLoading = useCallback(() => {
         setIsLoading(false);
+        setIsDiscrete(false);
+        setActiveDiscreteId(null);
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
@@ -75,15 +88,57 @@ export const GlobalLoaderProvider = ({ children }: { children: React.ReactNode }
 
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-        // Safety timeout: Auto-dismiss after 8 seconds if navigation stalls
+        // Safety timeout: Auto-dismiss after 30 seconds if navigation or action stalls.
+        // Increased from 8s to handle slower database queries or reports without giving up.
         timeoutRef.current = setTimeout(() => {
             setIsLoading(false);
             timeoutRef.current = null;
-        }, 8000);
+        }, 30000);
     }, []);
 
+    const showDiscrete = useCallback((id: string = 'global') => {
+        if (isLoading) return; // Full loader takes priority
+        setIsDiscrete(true);
+        setActiveDiscreteId(id);
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+        // Safety timeout for discrete (max 10s)
+        timeoutRef.current = setTimeout(() => {
+            setIsDiscrete(false);
+            setActiveDiscreteId(null);
+            timeoutRef.current = null;
+        }, 10000);
+    }, [isLoading]);
+
+    // [NEW] Mouse Follower for Discrete Loading
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0, visible: false });
+    useEffect(() => {
+        if (!isDiscrete) {
+            setMousePos(prev => ({ ...prev, visible: false }));
+            return;
+        }
+        const handleMouseMove = (e: MouseEvent) => {
+            setMousePos({ x: e.clientX, y: e.clientY, visible: true });
+        };
+        window.addEventListener('mousemove', handleMouseMove, { passive: true });
+        return () => window.removeEventListener('mousemove', handleMouseMove);
+    }, [isDiscrete]);
+
     return (
-        <GlobalLoaderContext.Provider value={{ setIsLoading, showLoading, hideLoading, isLoading }}>
+        <GlobalLoaderContext.Provider value={{ setIsLoading, showLoading, showDiscrete, hideLoading, isLoading, isDiscrete, activeDiscreteId }}>
+            {/* Discrete Cursor Follower - Quantum Particles */}
+            {isDiscrete && !isLoading && mousePos.visible && (
+                <div
+                    className="fixed pointer-events-none z-[99999] transition-opacity duration-300"
+                    style={{
+                        left: mousePos.x,
+                        top: mousePos.y,
+                        transform: 'translate(-50%, -50%)'
+                    }}
+                >
+                    <QuantumLoader size="35" speed="1.2" color="#6366f1" />
+                </div>
+            )}
             <Suspense fallback={null}>
                 <RouteChangeHandler />
             </Suspense>

@@ -15,6 +15,13 @@ import {
     Menu,
     PlusCircle
 } from "lucide-react";
+import { useGlobalLoader } from "@/components/providers/global-loader-provider";
+import dynamic from "next/dynamic";
+
+const QuantumLoader = dynamic(() => import('@/components/ui/quantum-loader').then(mod => ({ default: mod.QuantumLoader })), {
+    ssr: false,
+    loading: () => <div className="w-4 h-4" />
+});
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -161,10 +168,23 @@ function SectionLabel({ children, className }: { children: React.ReactNode, clas
 }
 
 function NavItem({ href, icon: Icon, label, active, className, onClick }: { href: string, icon: any, label: string, active?: boolean, className?: string, onClick?: () => void }) {
+    const { showDiscrete, activeDiscreteId } = useGlobalLoader();
+    const pathname = usePathname();
+    const isLoadingThis = activeDiscreteId === href;
+
     return (
         <Link
             href={href}
-            onClick={onClick}
+            onClick={() => {
+                const isCurrentPath = pathname === href || pathname === href?.split('?')[0];
+
+                if (!isCurrentPath && !href.startsWith('#')) {
+                    if (showDiscrete) {
+                        showDiscrete(href);
+                    }
+                }
+                if (onClick) onClick();
+            }}
             className={cn(
                 "group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200",
                 active
@@ -173,10 +193,14 @@ function NavItem({ href, icon: Icon, label, active, className, onClick }: { href
                 className
             )}
         >
-            <Icon
-                className={cn("h-4 w-4 transition-colors", active ? "text-zinc-900" : "text-zinc-400 group-hover:text-zinc-900")}
-                strokeWidth={2}
-            />
+            {isLoadingThis ? (
+                <QuantumLoader size="18" speed="1.2" color="#6366f1" />
+            ) : (
+                <Icon
+                    className={cn("h-4 w-4 transition-colors", active ? "text-zinc-900" : "text-zinc-400 group-hover:text-zinc-900")}
+                    strokeWidth={2}
+                />
+            )}
             {label}
         </Link>
     )

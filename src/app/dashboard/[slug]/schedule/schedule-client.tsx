@@ -12,7 +12,7 @@ import { useRouter, useSearchParams, useParams } from "next/navigation"
 import { ScheduleListView } from "./list-view"
 import { AppointmentDialog } from "@/features/schedule/components/AppointmentDialog"
 import { BlockDialog } from "@/features/schedule/components/BlockDialog"
-import { Calendar } from "@/components/ui/calendar"
+import { Calendar, CalendarDayButton } from "@/components/ui/calendar"
 import { Card, CardContent } from "@/components/ui/card"
 import { Views, View } from "react-big-calendar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -1025,6 +1025,53 @@ export default function ScheduleClient({
                             <RefreshCcw className="h-4 w-4" />
                         </Button>
 
+                        {/* [USER REQUEST] Prof/Loc Icons in Header */}
+                        <div className="flex items-center border-l pl-2 gap-1 border-slate-200">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant={selectedProfessionalId === 'all' ? 'ghost' : 'secondary'} size="icon" className="h-8 w-8 text-muted-foreground" title="Filtrar por Profissional">
+                                        <Stethoscope className={cn("h-4 w-4", selectedProfessionalId !== 'all' && "text-primary")} />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" side="bottom" sideOffset={4}>
+                                    <DropdownMenuItem onClick={() => setSelectedProfessionalId('all')}>-- todos profissionais --</DropdownMenuItem>
+                                    {professionals.filter(p => p.has_agenda !== false).map(prof => (
+                                        <DropdownMenuItem key={prof.id} onClick={() => {
+                                            setSelectedProfessionalId(prof.id)
+                                            setSelectedLocationId('all')
+                                        }}>
+                                            <div className="flex items-center gap-2">
+                                                {prof.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: prof.color }} />}
+                                                {prof.full_name}
+                                            </div>
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant={selectedLocationId === 'all' ? 'ghost' : 'secondary'} size="icon" className="h-8 w-8 text-muted-foreground" title="Filtrar por Local">
+                                        <MapPin className={cn("h-4 w-4", selectedLocationId !== 'all' && "text-primary")} />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" side="bottom" sideOffset={4}>
+                                    <DropdownMenuItem onClick={() => setSelectedLocationId('all')}>-- todos locais --</DropdownMenuItem>
+                                    {locations.map(loc => (
+                                        <DropdownMenuItem key={loc.id} onClick={() => {
+                                            setSelectedLocationId(loc.id)
+                                            setSelectedProfessionalId('all')
+                                        }}>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: loc.color || '#94a3b8' }} />
+                                                {loc.name}
+                                            </div>
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+
                         {/* Status Legend - Desktop & Tablet */}
                         <div className="hidden lg:flex items-center gap-1.5 ml-2 px-2.5 py-1.5 bg-slate-50 rounded-md border border-slate-200">
                             <div className="flex items-center gap-1.5" title="Confirmado">
@@ -1306,44 +1353,73 @@ export default function ScheduleClient({
                             </div>
                         </div>
 
-                        {/* 2. Professional Filter */}
-                        <div className="bg-white rounded-md border shadow-sm p-4 space-y-2">
-                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Profissional</label>
-                            <Select value={selectedProfessionalId} onValueChange={setSelectedProfessionalId}>
-                                <SelectTrigger className="w-full bg-slate-50 border-slate-200">
-                                    <SelectValue placeholder="Selecione..." />
-                                </SelectTrigger>
-                                <SelectContent side="bottom" sideOffset={4} position="popper">
-                                    <SelectItem value="all">-- selecione --</SelectItem>
-                                    {professionals.length > 0 && <Separator className="my-1 opacity-50" />}
-                                    {professionals.filter(p => p.has_agenda !== false).map(prof => (
-                                        <SelectItem key={prof.id} value={prof.id}>
-                                            <div className="flex items-center gap-2">
-                                                {prof.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: prof.color }} />}
-                                                {prof.full_name}
-                                            </div>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        {/* [USER REQUEST] Mini Calendar Moved Up (Below Search, Above Buttons) */}
+                        <div className="bg-white rounded-md border shadow-sm p-0 overflow-hidden flex justify-center py-2 flex-col">
+                            <div className="scale-95 origin-top">
+                                <Calendar
+                                    mode="single"
+                                    selected={date}
+                                    onSelect={(d) => {
+                                        if (d) {
+                                            setDate(d)
+                                        }
+                                    }}
+                                    locale={ptBR}
+                                    className="w-full"
+                                    modifiers={modifiers}
+                                    modifiersClassNames={modifiersClassNames}
+                                    components={{
+                                        DayButton: (props) => {
+                                            const handleRightClick = async (e: React.MouseEvent) => {
+                                                e.preventDefault();
+                                                const clickedDate = props.day.date;
 
-                        {/* 3. Location Filter */}
-                        <div className="bg-white rounded-md border shadow-sm p-4 space-y-2">
-                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Local</label>
-                            <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
-                                <SelectTrigger className="w-full bg-slate-50 border-slate-200">
-                                    <SelectValue placeholder="Selecione..." />
-                                </SelectTrigger>
-                                <SelectContent side="bottom" sideOffset={4} position="popper">
-                                    <SelectItem value="all">-- selecione --</SelectItem>
-                                    {locations.map(loc => (
-                                        <SelectItem key={loc.id} value={loc.id}>
-                                            {loc.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                                const result = await MySwal.fire({
+                                                    title: 'Novo Registro',
+                                                    text: `Data: ${format(clickedDate, "dd/MM/yyyy")}. O que deseja criar?`,
+                                                    icon: 'question',
+                                                    showCancelButton: true,
+                                                    showDenyButton: true,
+                                                    confirmButtonText: 'Novo Agendamento',
+                                                    denyButtonText: 'Novo Bloqueio',
+                                                    cancelButtonText: 'Cancelar',
+                                                    confirmButtonColor: '#16a34a',
+                                                    denyButtonColor: '#ef4444',
+                                                });
+
+                                                if (result.isConfirmed) {
+                                                    const start = new Date(clickedDate);
+                                                    start.setHours(8, 0, 0, 0);
+                                                    const end = new Date(clickedDate);
+                                                    end.setHours(8, 30, 0, 0);
+                                                    setSelectedSlot({ start, end });
+                                                    setIsApptDialogOpen(true);
+                                                } else if (result.isDenied) {
+                                                    const start = new Date(clickedDate);
+                                                    start.setHours(8, 0, 0, 0);
+                                                    const end = new Date(clickedDate);
+                                                    end.setHours(8, 30, 0, 0);
+                                                    setSelectedSlot({ start, end });
+                                                    setIsBlockDialogOpen(true);
+                                                }
+                                            };
+
+                                            return (
+                                                <div onContextMenu={handleRightClick} className="w-full h-full">
+                                                    <CalendarDayButton {...props} />
+                                                </div>
+                                            );
+                                        }
+                                    }}
+                                />
+                                {/* Legend */}
+                                <div className="flex justify-center gap-3 mt-2 text-[10px] text-muted-foreground pb-2 flex-wrap px-4">
+                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-green-100 border border-green-200"></div>Livre</div>
+                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-yellow-100 border border-yellow-200"></div>Ocupado</div>
+                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-red-100 border border-red-200"></div>Cheio</div>
+                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-gray-200 border border-gray-300"></div>Bloqueado</div>
+                                </div>
+                            </div>
                         </div>
 
                         {/* 4. View Modes & Actions */}
@@ -1459,27 +1535,6 @@ export default function ScheduleClient({
                             )}
                         </div>
 
-                        {/* 5. Mini Calendar (Scaled Down) */}
-                        <div className="bg-white rounded-md border shadow-sm p-0 overflow-hidden flex justify-center py-2">
-                            <div className="scale-90 origin-top">
-                                <Calendar
-                                    mode="single"
-                                    selected={date}
-                                    onSelect={(d) => d && setDate(d)}
-                                    locale={ptBR}
-                                    className="w-full"
-                                    modifiers={modifiers}
-                                    modifiersClassNames={modifiersClassNames}
-                                />
-                                {/* Legend */}
-                                <div className="flex justify-center gap-3 mt-2 text-[10px] text-muted-foreground pb-2 flex-wrap">
-                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-green-100 border border-green-200"></div>Livre</div>
-                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-yellow-100 border border-yellow-200"></div>Ocupado</div>
-                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-red-100 border border-red-200"></div>Cheio</div>
-                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-gray-200 border border-gray-300"></div>Bloqueado</div>
-                                </div>
-                            </div>
-                        </div>
 
                     </div>
                 </div>

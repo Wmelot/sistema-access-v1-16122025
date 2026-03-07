@@ -14,6 +14,17 @@ import { ptBR } from "date-fns/locale"
 import { getProfessionalsForService, createPublicAppointment, addToWaitlist } from "@/app/book/actions"
 import * as VMasker from "vanilla-masker"
 import { toast } from "sonner"
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+import { useGlobalLoader } from "@/components/providers/global-loader-provider"
+import dynamic from "next/dynamic"
+
+const QuantumLoader = dynamic(() => import('@/components/ui/quantum-loader').then(mod => ({ default: mod.QuantumLoader })), {
+    ssr: false,
+    loading: () => <div className="w-8 h-8" />
+});
+
+const MySwal = withReactContent(Swal)
 import {
     Dialog,
     DialogContent,
@@ -110,6 +121,7 @@ interface BookingWizardProps {
 
 export function BookingWizard({ initialServices, initialLocations, organization }: BookingWizardProps) {
     const [step, setStep] = useState(1)
+    const { showDiscrete, hideLoading } = useGlobalLoader()
 
     // Selection State
     const [selectedService, setSelectedService] = useState<Service | null>(null)
@@ -213,11 +225,24 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                 setStep(5)
                 toast.success("Agendamento realizado com sucesso!")
             } else {
-                toast.error("Erro ao agendar. Tente novamente.")
+                await MySwal.fire({
+                    title: 'Horário Indisponível',
+                    text: res.error || "Infelizmente este horário não está mais disponível. Por favor, escolha uma nova data ou horário para o seu agendamento.",
+                    icon: 'warning',
+                    confirmButtonText: 'Escolher novo horário',
+                    confirmButtonColor: '#6366f1'
+                })
+                setStep(3) // Go back to date/time selection
             }
         } catch (err) {
             console.error(err)
-            toast.error("Erro desconhecido ao processar agendamento.")
+            MySwal.fire({
+                title: 'Ops!',
+                text: "Ocorreu um erro inesperado ao processar seu agendamento. Por favor, tente novamente em instantes.",
+                icon: 'error',
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#6366f1'
+            })
         } finally {
             setLoading(false)
         }
@@ -336,9 +361,9 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                     </div>
 
                     {loading ? (
-                        <div className="text-center py-10 text-muted-foreground flex flex-col items-center gap-2">
-                            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                            Carregando especialistas...
+                        <div className="text-center py-10 text-muted-foreground flex flex-col items-center gap-4">
+                            <QuantumLoader size="40" speed="1.2" color="#6366f1" />
+                            <span className="font-medium">Carregando especialistas...</span>
                         </div>
                     ) : professionals.length === 0 ? (
                         <div className="text-center py-10 text-muted-foreground bg-gray-50 rounded-xl border border-dashed">
@@ -418,9 +443,9 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                             </h3>
 
                             {loading ? (
-                                <div className="text-center py-20 text-muted-foreground flex flex-col items-center gap-3">
-                                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                                    Otimizando sua agenda...
+                                <div className="text-center py-20 text-muted-foreground flex flex-col items-center gap-4">
+                                    <QuantumLoader size="45" speed="1.2" color="#6366f1" />
+                                    <span className="font-medium italic">Otimizando sua agenda...</span>
                                 </div>
                             ) : !smartSuggestions || (!smartSuggestions.morning && !smartSuggestions.afternoon && smartSuggestions.alternativeSlots.length === 0) ? (
                                 <div className="text-center py-10 px-6 text-muted-foreground bg-slate-50 rounded-2xl border border-dashed flex flex-col items-center gap-4">
@@ -581,9 +606,19 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                                             <div className="text-primary font-bold text-2xl">{selectedTime}</div>
                                         </div>
                                     </div>
-                                    <Button className="w-full h-14 text-lg font-bold shadow-lg shadow-primary/20 rounded-xl" onClick={onConfirmBooking} disabled={loading}>
+                                    <Button
+                                        className="w-full h-14 text-lg font-bold shadow-lg shadow-primary/20 rounded-xl"
+                                        onClick={() => {
+                                            showDiscrete('confirm-booking');
+                                            onConfirmBooking();
+                                        }}
+                                        disabled={loading}
+                                    >
                                         {loading ? (
-                                            <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" /> Agendando...</>
+                                            <div className="flex items-center gap-3">
+                                                <QuantumLoader size="20" speed="1.5" color="white" />
+                                                <span>Agendando...</span>
+                                            </div>
                                         ) : 'Confirmar e Agendar'}
                                     </Button>
                                 </CardContent>
