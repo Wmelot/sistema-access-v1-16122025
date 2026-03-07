@@ -539,7 +539,7 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                                         <div className="space-y-2">
                                             <Label className="text-sm font-bold text-slate-700 flex items-center justify-between">
                                                 <span>O que você está sentindo?</span>
-                                                <span className="text-[10px] bg-red-50 text-red-600 px-2 py-0.5 rounded-full uppercase tracking-tighter">Obrigatório</span>
+                                                <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full uppercase tracking-tighter font-bold">Importante</span>
                                             </Label>
                                             <Input
                                                 value={patientForm.injuryRegion}

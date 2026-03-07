@@ -1468,22 +1468,24 @@ export default function ScheduleClient({
                                 </div>
                             )}
 
-                            <div className="flex flex-col gap-2 pt-2 border-t text-left">
+                            <div className="flex flex-row gap-2 pt-2 border-t text-left">
                                 <Button
                                     variant="outline"
-                                    className="w-full justify-start gap-2 h-10 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 font-bold text-sm px-3 transition-all shadow-sm"
+                                    className="flex-1 justify-center gap-2 h-10 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 font-bold text-sm px-2 transition-all shadow-sm"
                                     onClick={() => setIsApptDialogOpen(true)}
+                                    title="Agendar"
                                 >
                                     <CalendarPlus className="h-4 w-4" />
-                                    <span>Novo Agendamento</span>
+                                    <span>Agendar</span>
                                 </Button>
                                 <Button
                                     variant="outline"
-                                    className="w-full justify-start gap-2 h-10 border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-300 font-bold text-sm px-3 transition-all shadow-sm"
+                                    className="flex-1 justify-center gap-2 h-10 border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-300 font-bold text-sm px-2 transition-all shadow-sm"
                                     onClick={() => setIsBlockDialogOpen(true)}
+                                    title="Bloquear"
                                 >
                                     <Lock className="h-4 w-4" />
-                                    <span>Bloquear Horário</span>
+                                    <span>Bloquear</span>
                                 </Button>
                             </div>
 

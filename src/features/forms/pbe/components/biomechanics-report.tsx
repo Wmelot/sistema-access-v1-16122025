@@ -82,13 +82,19 @@ const SectionHeader = ({ title, icon: Icon, color = "blue" }: any) => (
 const InsightBox = ({ text }: { text: string }) => {
     if (!text) return null;
     return (
-        <div className="bg-slate-50 border border-slate-100 p-3 rounded-lg flex gap-3 items-start mt-2 print:mt-1 print:p-2">
+        <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex gap-3 items-start mt-2 print:mt-1 print:p-2 group hover:bg-white transition-all">
             <div className="bg-purple-100 text-purple-600 p-1 rounded mt-0.5 shrink-0 print:bg-purple-50 print:text-purple-800">
                 <Activity className="w-3 h-3" />
             </div>
             <div className="flex-1">
                 <span className="text-[10px] font-black uppercase text-purple-600 block mb-0.5">Insight Clínico</span>
-                <p className="text-[11px] text-slate-700 leading-tight italic">{text}</p>
+                <p
+                    className="text-[11px] text-slate-700 leading-tight italic focus:outline-dashed focus:outline-2 focus:outline-purple-400 p-1 rounded"
+                    contentEditable
+                    suppressContentEditableWarning
+                >
+                    {text}
+                </p>
             </div>
         </div>
     );
@@ -138,6 +144,9 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
     const t = vals.tests || {};
     const p = vals.postural || {};
     const hma = vals.hma || {};
+
+    const org = organization || (professional?.organizations?.length > 0 ? professional.organizations[0] : null) || vals.organization;
+    const orgName = organizationName || org?.name || "Access Fisioterapia";
 
     const prof = useMemo(() => {
         let p = Array.isArray(professional) ? professional[0] : professional;
@@ -242,25 +251,41 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                     <div className="w-full flex flex-col items-center">
                         <div id="report-paper" className="bg-white w-[210mm] shadow-2xl print:shadow-none transition-all duration-300 origin-top overflow-hidden">
                             <div className="p-12 print:p-8">
-                                <header className="flex justify-between items-start border-b-4 border-slate-900 pb-6 mb-10 print:mb-8 print:pb-4 print-color-adjust">
-                                    <div className="flex items-center gap-4">
-                                        {organization?.logo_url ? (
-                                            <div className="w-20 h-20 relative overflow-hidden rounded-[24px] border border-slate-100 shadow-sm print:shadow-none">
-                                                <Image src={organization.logo_url} alt="Logo" fill className="object-cover" unoptimized priority />
-                                            </div>
-                                        ) : (
-                                            <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-black text-3xl print-color-adjust">
-                                                {organization?.name?.[0] || professional?.name?.[0] || "A"}
-                                            </div>
-                                        )}
+                                <header className="flex justify-between items-start border-b-4 border-slate-900 pb-6 mb-10 print:mb-8 print:pb-4 print-color-adjust transition-all">
+                                    <div className="flex items-center gap-6">
+                                        <div className="relative h-20 w-20 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 shadow-inner overflow-hidden print:h-16 print:w-16">
+                                            {org?.logo_url ? (
+                                                <img src={org.logo_url} alt="Logo" className="object-contain p-2 h-full w-full" />
+                                            ) : (
+                                                <div className="font-black text-3xl text-slate-200">W</div>
+                                            )}
+                                        </div>
                                         <div>
-                                            <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none">Relatório Biomecânico</h1>
-                                            <p className="text-sm font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">{organization?.name || "Life Excellence Center"}</p>
+                                            <h1
+                                                className="text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none focus:outline-dashed focus:outline-2 focus:outline-blue-400 focus:outline-offset-4 rounded"
+                                                contentEditable
+                                                suppressContentEditableWarning
+                                            >
+                                                Relatório Biomecânico
+                                            </h1>
+                                            <p
+                                                className="text-sm font-bold text-slate-500 uppercase tracking-[0.3em] mt-1 focus:outline-dashed focus:outline-2 focus:outline-blue-400 focus:outline-offset-4 rounded cursor-text"
+                                                contentEditable
+                                                suppressContentEditableWarning
+                                            >
+                                                {orgName}
+                                            </p>
                                         </div>
                                     </div>
                                     <div className="text-right">
                                         <p className="text-[10px] font-black uppercase text-slate-400">Emissão</p>
-                                        <p className="text-xl font-black text-slate-800">{new Date().toLocaleDateString('pt-BR')}</p>
+                                        <p
+                                            className="text-xl font-black text-slate-800 focus:outline-dashed focus:outline-2 focus:outline-blue-400 rounded"
+                                            contentEditable
+                                            suppressContentEditableWarning
+                                        >
+                                            {new Date().toLocaleDateString('pt-BR')}
+                                        </p>
                                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic">Sistema Axiom • PBE Series</p>
                                     </div>
                                 </header>
@@ -316,7 +341,7 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                     )}
 
                                     {visibleSections.estatica && (
-                                        <div className="space-y-10 page-break">
+                                        <div className="space-y-10 page-break break-inside-avoid">
                                             <SectionHeader title="Estática & Morfometria" icon={Scale} color="blue" />
                                             <div className="grid grid-cols-2 gap-12">
                                                 <div>
@@ -338,40 +363,176 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                                             <p className="text-[11px] text-slate-600 font-medium">Dados correlacionados com queixa de dor.</p>
                                                         </div>
                                                     </div>
-                                                    <p className="text-xs text-slate-700 font-bold italic">"{p.obs || "Alinhamento dentro dos padrões."}"</p>
+                                                    <p
+                                                        className="text-xs text-slate-700 font-bold italic focus:outline-dashed focus:outline-2 focus:outline-blue-400 rounded p-1"
+                                                        contentEditable
+                                                        suppressContentEditableWarning
+                                                    >
+                                                        "{p.obs || "Alinhamento dentro dos padrões."}"
+                                                    </p>
                                                 </div>
+                                            </div>
+
+                                            {/* --- NOVO: TABELA DE TESTES --- */}
+                                            <div className="mt-10 overflow-hidden border border-slate-100 rounded-3xl">
+                                                <table className="w-full text-[10px]">
+                                                    <thead className="bg-slate-900 text-white uppercase font-black tracking-widest print-color-adjust">
+                                                        <tr>
+                                                            <th className="p-3 text-left">Teste Funcional</th>
+                                                            <th className="p-3 text-center">Esquerda</th>
+                                                            <th className="p-3 text-center">Direita</th>
+                                                            <th className="p-3 text-center">Referência</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100">
+                                                        {[
+                                                            { label: "Thomas (Flexores Quadril)", key: "thomas", ref: "< 0°" },
+                                                            { label: "PKET (Isquiotibiais)", key: "pket", ref: "80° - 90°" },
+                                                            { label: "Rotação Interna Quadril", key: "hip_internal", ref: "35° - 45°" },
+                                                            { label: "Rotação Externa Quadril", key: "hip_external", ref: "45°" },
+                                                            { label: "Dorsiflexão (Weight Bearing)", key: "dorsiflexion", ref: "> 35°" }
+                                                        ].map((item, idx) => (
+                                                            <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                                                <td className="p-3 font-bold text-slate-600 uppercase">{item.label}</td>
+                                                                <td className="p-3 text-center font-black text-blue-600" contentEditable suppressContentEditableWarning>
+                                                                    {t?.[item.key]?.left || "--"}
+                                                                </td>
+                                                                <td className="p-3 text-center font-black text-red-600" contentEditable suppressContentEditableWarning>
+                                                                    {t?.[item.key]?.right || "--"}
+                                                                </td>
+                                                                <td className="p-3 text-center text-slate-400 font-mediumitalic">{item.ref}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
                                             </div>
                                         </div>
                                     )}
 
                                     {visibleSections.dinamica && (
-                                        <div className="page-break space-y-10">
-                                            <SectionHeader title="Baropodometria & Dinâmica" icon={Footprints} color="orange" />
-                                            <div className="grid grid-cols-2 gap-10">
-                                                <div className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100">
-                                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 text-center">Pressão (E | D)</h4>
-                                                    <div className="flex justify-around items-end h-32 gap-4">
-                                                        <div className="w-16 bg-blue-600 rounded-t-xl relative h-[50%]" style={{ height: `${t?.baro?.[0]?.left || 50}%` }}>
-                                                            <span className="absolute -top-6 left-0 right-0 text-center text-xs font-black text-blue-700">{t?.baro?.[0]?.left || 50}%</span>
-                                                        </div>
-                                                        <div className="w-16 bg-red-600 rounded-t-xl relative h-[50%]" style={{ height: `${t?.baro?.[0]?.right || 50}%` }}>
-                                                            <span className="absolute -top-6 left-0 right-0 text-center text-xs font-black text-red-700">{t?.baro?.[0]?.right || 50}%</span>
-                                                        </div>
+                                        <div className="page-break space-y-10 break-inside-avoid">
+                                            <SectionHeader title="Análise Dinâmica (Marcha)" icon={Activity} color="emerald" />
+
+                                            <div className="grid grid-cols-2 gap-8">
+                                                {/* Lado Esquerdo */}
+                                                <div className="space-y-4">
+                                                    <h4 className="text-[10px] font-black text-emerald-900 uppercase tracking-widest flex items-center gap-2">
+                                                        <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
+                                                        LADO ESQUERDO
+                                                    </h4>
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        {['rc', 'am', 'fi'].map(phase => (
+                                                            <div key={`left-${phase}`} className="space-y-1">
+                                                                <p className="text-[8px] font-black text-slate-400 uppercase text-center">{phase.toUpperCase()}</p>
+                                                                <div className="bg-slate-50 rounded-lg aspect-[3/4] overflow-hidden border border-slate-100 flex items-center justify-center relative shadow-inner">
+                                                                    {getAnalyzedOrRawGait('left', (phase === 'rc' ? 'initial' : phase === 'am' ? 'mid' : 'terminal') as any) ? (
+                                                                        <img src={getAnalyzedOrRawGait('left', (phase === 'rc' ? 'initial' : phase === 'am' ? 'mid' : 'terminal') as any)} alt={`Gait L ${phase}`} className="object-cover h-full w-full" />
+                                                                    ) : (
+                                                                        <Activity className="w-4 h-4 text-slate-200" />
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Lado Direito */}
+                                                <div className="space-y-4">
+                                                    <h4 className="text-[10px] font-black text-emerald-900 uppercase tracking-widest flex items-center gap-2">
+                                                        <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
+                                                        LADO DIREITO
+                                                    </h4>
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        {['rc', 'am', 'fi'].map(phase => (
+                                                            <div key={`right-${phase}`} className="space-y-1">
+                                                                <p className="text-[8px] font-black text-slate-400 uppercase text-center">{phase.toUpperCase()}</p>
+                                                                <div className="bg-slate-50 rounded-lg aspect-[3/4] overflow-hidden border border-slate-100 flex items-center justify-center relative shadow-inner">
+                                                                    {getAnalyzedOrRawGait('right', (phase === 'rc' ? 'initial' : phase === 'am' ? 'mid' : 'terminal') as any) ? (
+                                                                        <img src={getAnalyzedOrRawGait('right', (phase === 'rc' ? 'initial' : phase === 'am' ? 'mid' : 'terminal') as any)} alt={`Gait R ${phase}`} className="object-cover h-full w-full" />
+                                                                    ) : (
+                                                                        <Activity className="w-4 h-4 text-slate-200" />
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-6 items-start">
+                                                <div className="bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100 shadow-sm">
+                                                    <div className="flex justify-around items-center gap-8 mb-6">
+                                                        <FpiVisualBar label="Marcha Esq (º)" score={t?.dfi?.[0]?.left ? (t.dfi[0].left < 0 ? t.dfi[0].left : 0) : 0} />
+                                                        <FpiVisualBar label="Marcha Dir (º)" score={t?.dfi?.[0]?.right ? (t.dfi[0].right < 0 ? t.dfi[0].right : 0) : 0} />
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-600 leading-relaxed italic border-t border-emerald-100 pt-4" contentEditable suppressContentEditableWarning>
+                                                        A eversão do calcâneo durante a fase de contato inicial e resposta à carga é um componente essencial da absorção de impacto. Valores superiores a 10º podem indicar instabilidade funcional.
+                                                    </p>
+                                                </div>
+                                                <div className="h-44 bg-white p-2 rounded-2xl border border-slate-100 shadow-inner">
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <LineChart data={dfiData}>
+                                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 800, fill: '#64748b' }} />
+                                                            <YAxis hide domain={[-15, 5]} />
+                                                            <ReferenceLine y={1} stroke="#cbd5e1" strokeWidth={1} strokeDasharray="3 3" />
+                                                            <Line type="monotone" dataKey="e" stroke={COLOR_LEFT_FOOT} strokeWidth={3} dot={{ r: 4, fill: COLOR_LEFT_FOOT, strokeWidth: 2, stroke: '#fff' }} animationDuration={2000} />
+                                                            <Line type="monotone" dataKey="d" stroke={COLOR_RIGHT_FOOT} strokeWidth={3} dot={{ r: 4, fill: COLOR_RIGHT_FOOT, strokeWidth: 2, stroke: '#fff' }} animationDuration={2000} />
+                                                            <Legend verticalAlign="top" align="right" iconType="circle" content={({ payload }) => (
+                                                                <div className="flex gap-3 justify-end mb-2">
+                                                                    {payload?.map((entry: any, index: number) => (
+                                                                        <div key={index} className="flex items-center gap-1.5">
+                                                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                                                            <span className="text-[9px] font-black uppercase text-slate-500">{entry.value === 'e' ? 'ESQ' : entry.value === 'd' ? 'DIR' : entry.value}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )} />
+                                                        </LineChart>
+                                                    </ResponsiveContainer>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Baropodometria Section */}
+                                    {visibleSections.dinamica && (
+                                        <div className="page-break space-y-10 break-inside-avoid">
+                                            <SectionHeader title="Baropodometria (Pressão Estática)" icon={Activity} color="indigo" />
+                                            <div className="grid grid-cols-2 gap-8">
+                                                <div className="space-y-4">
+                                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">DISTRIBUIÇÃO DE PRESSÃO</h4>
+                                                    <div className="bg-slate-50 rounded-3xl aspect-[4/3] overflow-hidden border border-slate-100 flex items-center justify-center relative shadow-inner">
+                                                        {vals.baroStaticPhoto ? (
+                                                            <img src={vals.baroStaticPhoto} alt="Baropodometria" className="object-contain h-full w-full" />
+                                                        ) : (
+                                                            <div className="flex flex-col items-center gap-2">
+                                                                <Activity className="w-8 h-8 text-slate-200" />
+                                                                <span className="text-[10px] font-black text-slate-300 uppercase">Mapa de Pressão</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div className="space-y-6">
-                                                    <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest border-l-4 border-orange-500 pl-4 mb-4">Análise DFI</h4>
-                                                    <div className="h-40 w-full">
-                                                        <ResponsiveContainer width="100%" height="100%">
-                                                            <LineChart data={dfiData}>
-                                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                                                <XAxis dataKey="name" tick={{ fontSize: 8, fontWeight: 900 }} />
-                                                                <YAxis hide domain={[0, 4]} />
-                                                                <ReferenceLine y={1} stroke="#cbd5e1" strokeDasharray="3 3" />
-                                                                <Line type="monotone" dataKey="e" stroke={COLOR_LEFT_FOOT} strokeWidth={3} dot={{ r: 4, fill: COLOR_LEFT_FOOT }} />
-                                                                <Line type="monotone" dataKey="d" stroke={COLOR_RIGHT_FOOT} strokeWidth={3} dot={{ r: 4, fill: COLOR_RIGHT_FOOT }} />
-                                                            </LineChart>
-                                                        </ResponsiveContainer>
+                                                    <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 h-full flex flex-col justify-center">
+                                                        <h4 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest mb-4">Análise Computadorizada</h4>
+                                                        <div className="space-y-4">
+                                                            <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                                                <span className="text-[10px] font-black text-slate-400">ANTEPÉ</span>
+                                                                <span className="text-xs font-black text-slate-900">{vals.baroStaticData?.forefoot || "--"}%</span>
+                                                            </div>
+                                                            <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                                                <span className="text-[10px] font-black text-slate-400">RETROPÉ</span>
+                                                                <span className="text-xs font-black text-slate-900">{vals.baroStaticData?.hindfoot || "--"}%</span>
+                                                            </div>
+                                                            <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                                                <span className="text-[10px] font-black text-slate-400">LATERALIDADE</span>
+                                                                <span className="text-xs font-black text-slate-900">{vals.baroStaticData?.lateral || "--"}%</span>
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-[10px] text-slate-600 leading-relaxed italic mt-6 border-t border-slate-200 pt-4" contentEditable suppressContentEditableWarning>
+                                                            A distribuição de pressão estática correlaciona-se com o centro de gravidade e possíveis sobrecargas em estruturas específicas do pé.
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -383,19 +544,28 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                             <SectionHeader title="Estabilidade Unipodal" icon={Activity} color="indigo" />
                                             <div className="grid grid-cols-2 gap-8">
                                                 {['left', 'right'].map(side => (
-                                                    <div key={side} className="space-y-4">
-                                                        <h4 className="text-sm font-black uppercase flex items-center gap-2" style={{ color: side === 'left' ? COLOR_LEFT_FOOT : COLOR_RIGHT_FOOT }}>
-                                                            Lado {side === 'left' ? 'Esquerdo' : 'Direito'}
+                                                    <div key={side} className="space-y-4 bg-slate-50/50 p-6 rounded-[2.5rem] border border-slate-100 break-inside-avoid shadow-sm group hover:shadow-md transition-all">
+                                                        <h4 className="text-sm font-black uppercase flex items-center justify-between" style={{ color: side === 'left' ? COLOR_LEFT_FOOT : COLOR_RIGHT_FOOT }}>
+                                                            <span>Lado {side === 'left' ? 'Esquerdo' : 'Direito'}</span>
+                                                            <CheckCircle2 className="w-4 h-4 opacity-50" />
                                                         </h4>
-                                                        <div className="bg-slate-50 rounded-xl p-4 space-y-2 shadow-sm">
+                                                        <div className="bg-white rounded-2xl p-4 space-y-2 border border-slate-100/50">
                                                             <DataRow label="Valgo Dinâmico" value={t?.single_squat?.[`valgus_${side}`] || "Normal"} />
-                                                            <DataRow label="Tronco" value={t?.single_squat?.[`trunk_${side}`] || "Normal"} />
+                                                            <DataRow label="Inclinação Tronco" value={t?.single_squat?.[`trunk_${side}`] || "Normal"} />
                                                         </div>
                                                         {getAnalyzedOrRawSquat(side as any) && (
-                                                            <div className="h-64 bg-slate-100 rounded-xl relative overflow-hidden">
-                                                                <Image src={getAnalyzedOrRawSquat(side as any)} alt="Squat" fill className="object-contain" unoptimized priority />
+                                                            <div className="h-72 bg-slate-200 rounded-2xl relative overflow-hidden border-2 border-white shadow-inner">
+                                                                <Image src={getAnalyzedOrRawSquat(side as any)} alt="Squat Analysis" fill className="object-contain" unoptimized priority />
+                                                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 to-transparent pointer-events-none" />
                                                             </div>
                                                         )}
+                                                        <div
+                                                            className="text-[10px] text-slate-500 font-bold italic leading-relaxed focus:outline-dashed focus:outline-1 focus:outline-indigo-400 p-2 rounded cursor-text"
+                                                            contentEditable
+                                                            suppressContentEditableWarning
+                                                        >
+                                                            {t?.single_squat?.[`obs_${side}`] || "Instabilidade controlada durante o teste."}
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
@@ -403,7 +573,7 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                     )}
 
                                     {visibleSections.calcado && (
-                                        <div className="page-break space-y-8">
+                                        <div className="page-break space-y-8 break-inside-avoid">
                                             <SectionHeader title="Calçado & Minimalismo" icon={Shell} color="teal" />
                                             <div className="grid grid-cols-2 gap-10 items-center">
                                                 <div className="bg-slate-900 p-10 rounded-[3rem] text-center space-y-2 print-color-adjust">
@@ -427,40 +597,71 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                     {visibleSections.exercicios && (
                                         <div className="page-break space-y-10">
                                             <SectionHeader title="Prescrição & Performance" icon={Activity} color="teal" />
-                                            {vals.plan?.exercises?.length > 0 && (
-                                                <div className="border border-slate-100 rounded-[2.5rem] overflow-hidden">
-                                                    <table className="w-full text-sm">
-                                                        <thead className="bg-[#1e293b] text-white font-black uppercase text-[10px] print-color-adjust">
-                                                            <tr>
-                                                                <th className="p-5 text-left">Prescrição</th>
-                                                                <th className="p-5 text-center">Volume</th>
-                                                                <th className="p-5 text-center">Cadência</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody className="divide-y divide-slate-100">
-                                                            {vals.plan.exercises.map((ex: any, i: number) => (
-                                                                <tr key={i}>
-                                                                    <td className="p-5 font-black uppercase text-[11px]">{typeof ex === 'string' ? ex : ex.name}</td>
-                                                                    <td className="p-5 text-center font-black text-teal-600 bg-teal-50/20">{ex.sets} Séries</td>
-                                                                    <td className="p-5 text-center font-bold text-slate-500">{ex.reps || ex.time}</td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
+
+                                            <div className="grid grid-cols-1 gap-6">
+                                                <div className="bg-teal-50/30 p-8 rounded-[2.5rem] border border-teal-100/50">
+                                                    <h4 className="text-[10px] font-black text-teal-600 uppercase tracking-widest mb-4">Conduta Clínica & Plano de Ação</h4>
+                                                    <p
+                                                        className="text-sm text-slate-700 leading-relaxed font-medium italic focus:outline-dashed focus:outline-2 focus:outline-teal-400 p-4 bg-white rounded-3xl"
+                                                        contentEditable
+                                                        suppressContentEditableWarning
+                                                    >
+                                                        {vals.plan?.conduct || "Baseado nos achados clínicos, recomenda-se protocolo de fortalecimento de cadeia posterior e mobilidade de tornozelo para melhora da biomecânica funcional."}
+                                                    </p>
                                                 </div>
-                                            )}
+
+                                                {vals.plan?.exercises?.length > 0 && (
+                                                    <div className="border border-slate-100 rounded-[2.5rem] overflow-hidden shadow-sm">
+                                                        <table className="w-full text-sm">
+                                                            <thead className="bg-[#1e293b] text-white font-black uppercase text-[10px] print-color-adjust">
+                                                                <tr>
+                                                                    <th className="p-5 text-left">Exercício / Conduta</th>
+                                                                    <th className="p-5 text-center">Volume</th>
+                                                                    <th className="p-5 text-center">Frequência / Notas</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-slate-100">
+                                                                {vals.plan.exercises.map((ex: any, i: number) => (
+                                                                    <tr key={i} className="hover:bg-slate-50 transition-colors">
+                                                                        <td className="p-5 font-black uppercase text-[11px] text-slate-800" contentEditable suppressContentEditableWarning>
+                                                                            {typeof ex === 'string' ? ex : ex.name}
+                                                                        </td>
+                                                                        <td className="p-5 text-center font-black text-teal-600 bg-teal-50/20" contentEditable suppressContentEditableWarning>
+                                                                            {ex.sets ? `${ex.sets} Séries` : "--"}
+                                                                        </td>
+                                                                        <td className="p-5 text-center font-bold text-slate-500" contentEditable suppressContentEditableWarning>
+                                                                            {ex.reps || ex.time || "--"}
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                )}
+                                            </div>
+
                                             <footer className="mt-16 pt-12 border-t flex flex-col items-center">
                                                 {prof?.digital_signature_url ? (
                                                     <div className="h-24 w-64 relative mb-4">
                                                         <Image src={prof.digital_signature_url} alt="Assinatura" fill className="object-contain" unoptimized priority />
                                                     </div>
-                                                ) : <div className="h-20 w-80 border-b-2 border-slate-200 mb-6 flex items-end justify-center"><span className="text-[10px] font-black text-slate-300 uppercase italic">Assinatura Digital</span></div>}
+                                                ) : <div className="h-20 w-80 border-b-2 border-slate-200 mb-6 flex items-end justify-center"><span className="text-[10px] font-black text-slate-300 uppercase italic">Assinatura do Profissional</span></div>}
                                                 <div className="text-center">
-                                                    <h4 className="font-extrabold text-slate-900 uppercase text-lg mb-1">{prof?.full_name || "Dr. Fisioterapeuta"}</h4>
+                                                    <h4
+                                                        className="font-extrabold text-slate-900 uppercase text-lg mb-1 focus:outline-dashed focus:outline-1"
+                                                        contentEditable
+                                                        suppressContentEditableWarning
+                                                    >
+                                                        {prof?.full_name || "Dr. Fisioterapeuta"}
+                                                    </h4>
                                                     <div className="flex justify-center gap-4 text-[10px] text-slate-500 font-black uppercase">
-                                                        <span>{prof?.council_type || "CREFITO"}: {prof?.crefito || "---"}</span>
+                                                        <span contentEditable suppressContentEditableWarning>
+                                                            {prof?.council_type || "CREFITO"}: {prof?.crefito || "---"}
+                                                        </span>
                                                         <span>|</span>
-                                                        <span>{prof?.phone || "BIOMECÂNICA CLÍNICA"}</span>
+                                                        <span contentEditable suppressContentEditableWarning>
+                                                            {prof?.phone || "BIOMECÂNICA CLÍNICA"}
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </footer>
@@ -475,19 +676,74 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
 
             <style jsx global>{`
                 @media print {
-                    @page { size: A4; margin: 0mm !important; }
-                    html, body { visibility: hidden !important; margin: 0 !important; padding: 0 !important; background: white !important; height: 0 !important; overflow: visible !important; }
-                    #report-wrapper { visibility: visible !important; display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 210mm !important; height: auto !important; margin: 0 !important; padding: 0 !important; z-index: 2147483647 !important; }
-                    #report-wrapper * { visibility: visible !important; }
-                    #report-scroll-area { display: block !important; overflow: visible !important; padding: 0 !important; margin: 0 !important; background: white !important; }
-                    #report-paper { width: 210mm !important; margin: 0 !important; padding: 0 !important; transform: none !important; display: block !important; font-size: 11pt !important; }
-                    .page-break { display: block !important; page-break-after: always !important; break-after: page !important; width: 210mm !important; min-height: 285mm !important; margin: 0 !important; padding: 20mm 15mm !important; background: white !important; position: relative !important; box-sizing: border-box !important; }
-                    .page-break:last-child { page-break-after: auto !important; break-after: initial !important; }
-                    header { display: flex !important; break-inside: avoid !important; margin-bottom: 20px !important; }
-                    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                    .recharts-responsive-container { width: 170mm !important; height: 280px !important; display: block !important; }
-                    img { max-width: 100% !important; object-fit: contain !important; }
-                    .no-print { display: none !important; }
+                    @page { 
+                        size: A4; 
+                        margin: 0mm !important; 
+                    }
+                    /* Complete Reset: Hide EVERYTHING by default */
+                    html, body, #__next, body > *, [data-radix-portal] > * {
+                        visibility: hidden !important;
+                        display: none !important;
+                    }
+                    /* Selectively reveal ONLY the report and its necessary containers */
+                    html, body, [data-radix-portal], [role="dialog"]:has(#report-wrapper), #report-wrapper, #report-wrapper * {
+                        visibility: visible !important;
+                        display: block !important;
+                    }
+                    /* Crucial overrides for the report layout */
+                    #report-wrapper {
+                        position: fixed !important;
+                        left: 0 !important;
+                        top: 0 !important;
+                        width: 210mm !important;
+                        height: 100% !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        background: white !important;
+                        z-index: 2147483647 !important;
+                    }
+                    #report-scroll-area {
+                        overflow: visible !important;
+                        height: auto !important;
+                        background: white !important;
+                        padding: 0 !important;
+                    }
+                    #report-paper {
+                        width: 210mm !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        box-shadow: none !important;
+                        transform: none !important;
+                        border: none !important;
+                    }
+                    .no-print, .sm\:max-w-lg, button, .border-b, .h-16 {
+                        display: none !important;
+                        visibility: hidden !important;
+                    }
+                    .page-break {
+                        display: block !important;
+                        page-break-after: always !important;
+                        break-after: page !important;
+                        width: 210mm !important;
+                        min-height: 296mm !important;
+                        padding: 15mm !important;
+                        box-sizing: border-box !important;
+                        background: white !important;
+                        border: none !important;
+                    }
+                    .break-inside-avoid {
+                        break-inside: avoid !important;
+                        page-break-inside: avoid !important;
+                    }
+                    .page-break:last-child {
+                        page-break-after: auto !important;
+                        break-after: initial !important;
+                    }
+                    /* Ensure colors/backgrounds appear */
+                    * {
+                        -webkit-print-color-adjust: exact !important; 
+                        print-color-adjust: exact !important;
+                    }
                 }
                 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }

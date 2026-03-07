@@ -81,7 +81,12 @@ export async function generatePortalToken(patientId: string, slug?: string, opti
         const { headers } = await import('next/headers');
         const headerList = headers();
         const host = headerList.get('host') || 'localhost:3000';
-        const protocol = headerList.get('x-forwarded-proto') || 'http';
+        let protocol = headerList.get('x-forwarded-proto') || 'http';
+
+        // [FIX] Force HTTP if localhost to avoid connection errors in dev
+        if (host.includes('localhost') || host.includes('127.0.0.1')) {
+            protocol = 'http';
+        }
 
         const baseUrl = process.env.NODE_ENV === 'production'
             ? (process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`)

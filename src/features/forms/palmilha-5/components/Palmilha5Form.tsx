@@ -844,7 +844,7 @@ export default function Palmilha5Form({
                     />
 
                     <Dialog open={previewOpen} onOpenChange={(v) => !v && setPreviewOpen(false)}>
-                        <DialogContent className="max-w-none w-screen h-[100dvh] p-0 border-0 outline-none flex flex-col z-[2147483647]">
+                        <DialogContent className="!max-w-none !w-screen !h-screen !fixed !inset-0 !translate-x-0 !translate-y-0 !m-0 !rounded-none p-0 border-0 outline-none flex flex-col z-[2147483647]">
                             <BiomechanicsReport
                                 open={previewOpen}
                                 onClose={() => setPreviewOpen(false)}

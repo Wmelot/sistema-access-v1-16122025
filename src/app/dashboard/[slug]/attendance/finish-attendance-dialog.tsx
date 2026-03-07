@@ -16,6 +16,12 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
+import dynamic from "next/dynamic"
+
+const QuantumLoader = dynamic(() => import('@/components/ui/quantum-loader').then(mod => ({ default: mod.QuantumLoader })), {
+    ssr: false,
+    loading: () => <div className="w-8 h-8" />
+});
 
 const MySwal = withReactContent(Swal)
 import { createInvoice, getProducts } from "@/actions/patients" // Re-use logic
@@ -387,6 +393,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
             if (res.success) {
                 setSelectedPatient(p)
                 toast.success(`Atendimento vinculado a ${p.name}`)
+                onOpenChange(false)
                 router.refresh()
             } else {
                 toast.error("Erro ao vincular: " + res.msg)
@@ -779,7 +786,9 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                         onChange={(e) => setPatientSearch(e.target.value)}
                                     />
                                     {isSearchingPatients && (
-                                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-slate-400" />
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                            <QuantumLoader size="16" speed="1.5" color="#6366f1" />
+                                        </div>
                                     )}
                                 </div>
 
@@ -1122,10 +1131,10 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                                     }}
                                                 >
                                                     {isSendingMsg === report.id ? (
-                                                        <>
-                                                            <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                                                            Enviando...
-                                                        </>
+                                                        <div className="flex items-center gap-2">
+                                                            <QuantumLoader size="14" speed="1.5" color="#16a34a" />
+                                                            <span>Enviando...</span>
+                                                        </div>
                                                     ) : "WhatsApp"}
                                                 </Button>
                                                 <Button
@@ -1315,10 +1324,10 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                                     disabled={isScheduling || !returnDate || !returnTime}
                                                 >
                                                     {isScheduling ? (
-                                                        <>
-                                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                            Agendando...
-                                                        </>
+                                                        <div className="flex items-center gap-3">
+                                                            <QuantumLoader size="20" speed="1.5" color="white" />
+                                                            <span>Agendando...</span>
+                                                        </div>
                                                     ) : (
                                                         "Confirmar Agendamento"
                                                     )}
@@ -1365,7 +1374,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
             {
                 viewingPhysicalReport && (
                     <Dialog open={true} onOpenChange={() => setViewingPhysicalReport(null)}>
-                        <DialogContent className="max-w-[900px] h-[90vh] flex flex-col p-0 gap-0">
+                        <DialogContent className="!max-w-none !w-screen !h-screen !fixed !inset-0 !translate-x-0 !translate-y-0 !m-0 !rounded-none flex flex-col p-0 gap-0 z-[100] border-none bg-white">
                             <div className="flex-1 overflow-y-auto bg-slate-100 p-8">
                                 {/* DETECT TYPE BASED ON CONTENT STRUCTURE */}
                                 {viewingPhysicalReport.clinical_reasoning ? (
@@ -1383,7 +1392,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
             {
                 viewingBiomechanicsReport && (
                     <Dialog open={true} onOpenChange={() => setViewingBiomechanicsReport(null)}>
-                        <DialogContent className="max-w-[100vw] w-full h-[100vh] p-0 gap-0 border-none bg-white overflow-hidden">
+                        <DialogContent className="!max-w-none !w-screen !h-screen !fixed !inset-0 !translate-x-0 !translate-y-0 !m-0 !rounded-none p-0 gap-0 border-none bg-white overflow-hidden z-[100]">
                             <BiomechanicsReport
                                 open={true}
                                 onClose={() => setViewingBiomechanicsReport(null)}

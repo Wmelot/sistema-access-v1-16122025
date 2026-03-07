@@ -811,31 +811,33 @@ export default function PBE5Form({
                     />
                 )}
 
-                {previewOpen && (
-                    specialty === 'biomecanica' ? (
-                        <BiomechanicsReport
-                            open={previewOpen}
-                            onClose={() => setPreviewOpen(false)}
-                            form={form}
-                            patient={patient || initialData?.patient}
-                            organization={organization}
-                            professional={professional}
-                            data={form.getValues()}
-                            minIndex={0}
-                        />
-                    ) : (
-                        <PBE5UnifiedReport
-                            open={previewOpen}
-                            onClose={() => setPreviewOpen(false)}
-                            data={form.getValues()}
-                            patient={patient || initialData?.patient}
-                            organization={organization}
-                            professional={professional}
-                            specialty={specialty}
-                            selectedSections={selectedSections}
-                        />
-                    )
-                )}
+                <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+                    <DialogContent className="!max-w-none !w-screen !h-screen !fixed !inset-0 !translate-x-0 !translate-y-0 !m-0 !rounded-none p-0 border-0 outline-none flex flex-col z-[2147483647]">
+                        {specialty === 'biomecanica' ? (
+                            <BiomechanicsReport
+                                open={previewOpen}
+                                onClose={() => setPreviewOpen(false)}
+                                form={form}
+                                patient={patient || initialData?.patient}
+                                organization={organization}
+                                professional={professional}
+                                data={form.getValues()}
+                                minIndex={0}
+                            />
+                        ) : (
+                            <PBE5UnifiedReport
+                                open={previewOpen}
+                                onClose={() => setPreviewOpen(false)}
+                                data={form.getValues()}
+                                patient={patient || initialData?.patient}
+                                organization={organization}
+                                professional={professional}
+                                specialty={specialty}
+                                selectedSections={selectedSections}
+                            />
+                        )}
+                    </DialogContent>
+                </Dialog>
 
 
                 <RapidAssessmentModal
