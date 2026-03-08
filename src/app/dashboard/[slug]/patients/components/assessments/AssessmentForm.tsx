@@ -24,13 +24,14 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { WomensHealthForm } from '@/features/forms/womens-health/components/WomensHealthForm'
 
 interface AssessmentFormProps {
-    patientId: string
+    patientId?: string
     type: AssessmentType
-    onSuccess: () => void
+    onSuccess?: () => void
     mode?: 'default' | 'patient'
+    isPreview?: boolean
 }
 
-export function AssessmentForm({ patientId, type, onSuccess, mode = 'default' }: AssessmentFormProps) {
+export function AssessmentForm({ patientId, type, onSuccess, mode = 'default', isPreview = false }: AssessmentFormProps) {
     const params = useParams()
     const slug = params?.slug as string
     const definition = ASSESSMENTS[type]
@@ -202,11 +203,13 @@ export function AssessmentForm({ patientId, type, onSuccess, mode = 'default' }:
                 </Card>
             )}
 
-            <div className="pt-4">
-                <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full" size="lg">
-                    {isSubmitting ? 'Salvando...' : 'Salvar Avaliação'}
-                </Button>
-            </div>
+            {!isPreview && (
+                <div className="pt-4">
+                    <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full" size="lg">
+                        {isSubmitting ? 'Salvando...' : 'Salvar Avaliação'}
+                    </Button>
+                </div>
+            )}
         </div>
     )
 }

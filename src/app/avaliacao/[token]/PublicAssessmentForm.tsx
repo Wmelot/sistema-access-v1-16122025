@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { ASSESSMENTS, AssessmentType, Question } from '@/app/dashboard/[slug]/patients/components/assessments/definitions'
+import { AssessmentForm } from '@/app/dashboard/[slug]/patients/components/assessments/AssessmentForm'
 import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { toast } from 'sonner'
@@ -145,6 +146,41 @@ export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessme
         };
     }
 
+    const handleAdjustmentRequest = async () => {
+        const res = await requestAdjustment(item)
+        if (res.success) setActiveView('adjustment_booking')
+    }
+
+    const isFollowUp = ['insoles_40d', 'insoles_1y'].includes(definition.id);
+
+    // [MOD] If it's a standardized assessment but NOT a follow-up, use the Technical View (AssessmentForm)
+    // even for the public/patient view, as requested by the user.
+    if (definition && !isFollowUp && activeView !== 'success') {
+        return (
+            <div className="min-h-screen bg-slate-50 p-4 md:p-12 flex flex-col items-center">
+                <div className="max-w-4xl w-full bg-white rounded-3xl shadow-xl border p-6 md:p-10">
+                    <div className="mb-8 text-center border-b pb-6">
+                        <div className="mx-auto w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-md border mb-4">
+                            {item.organization?.logo_url ? (
+                                <img src={item.organization.logo_url} alt={item.organization.name} className="w-full h-full object-contain p-2" />
+                            ) : (
+                                <span className="text-2xl font-black">{item.organization?.name?.charAt(0)}</span>
+                            )}
+                        </div>
+                        <h1 className="text-3xl font-black text-slate-800">{definition.title}</h1>
+                        <p className="text-slate-500 mt-2">{definition.description}</p>
+                    </div>
+                    <AssessmentForm
+                        type={definition.id}
+                        patientId={item.patient_id}
+                        onSuccess={() => setActiveView('success')}
+                        mode="patient"
+                    />
+                </div>
+            </div>
+        )
+    }
+
     const handleSubmit = async () => {
         setIsSubmitting(true)
         try {
@@ -186,11 +222,6 @@ export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessme
                 })
             }
         } finally { setIsSubmitting(false) }
-    }
-
-    const handleAdjustmentRequest = async () => {
-        const res = await requestAdjustment(item)
-        if (res.success) setActiveView('adjustment_booking')
     }
 
     // Checkout Calculations
@@ -565,5 +596,48 @@ function QuestionRenderer({ question, value, onChange, primaryColor }: { questio
         )
     }
 
-    return null
+    if (question.type === 'custom_text') {
+        const isTextArea = question.text.length > 50 || mainQuestion.length > 50;
+        return (
+            <div className="space-y-10 md:space-y-16 text-center w-full">
+                <div className="space-y-4 md:space-y-6">
+                    <h2 className="text-2xl md:text-5xl font-black text-white tracking-tighter leading-tight drop-shadow-2xl">
+                        {mainQuestion}
+                    </h2>
+                    {instructionPart && (
+                        <p className="text-lg md:text-3xl font-bold tracking-tight opacity-50 italic" style={{ color: primaryColor }}>
+                            ({instructionPart})
+                        </p>
+                    )}
+                </div>
+
+                <div className="max-w-2xl mx-auto pt-6 lg:pt-8 w-full">
+                    {isTextArea ? (
+                        <textarea
+                            value={value ?? ''}
+                            onChange={(e) => onChange(e.target.value)}
+                            className="w-full h-40 bg-slate-900/50 border-2 border-slate-800 rounded-[1.5rem] md:rounded-[3rem] p-6 md:p-10 text-white text-lg md:text-2xl font-medium focus:border-emerald-500 outline-none transition-all"
+                            placeholder="Toque aqui para escrever sua resposta..."
+                        />
+                    ) : (
+                        <input
+                            type="text"
+                            value={value ?? ''}
+                            onChange={(e) => onChange(e.target.value)}
+                            className="w-full h-20 md:h-32 bg-slate-900/50 border-2 border-slate-800 rounded-[1.5rem] md:rounded-[3rem] px-8 md:px-12 text-white text-lg md:text-3xl font-black focus:border-emerald-500 outline-none transition-all text-center"
+                            placeholder="Sua resposta..."
+                        />
+                    )}
+                </div>
+            </div>
+        )
+    }
+
+    // [MOD] Fallback for unknown or complex types (like scale)
+    return (
+        <div className="space-y-10 text-center">
+            <h2 className="text-2xl md:text-5xl font-black text-white">{mainQuestion}</h2>
+            <p className="text-slate-500">Este tipo de pergunta não é suportado no visualizador passo-a-passo. Use o visualizador técnico.</p>
+        </div>
+    );
 }

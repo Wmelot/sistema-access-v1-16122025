@@ -23,7 +23,7 @@ export default async function PriceTablesPage({ params }: PageProps) {
             <ManagementHeader
                 slug={slug}
                 title="Tabelas de Preços"
-                description="Gerencie preços diferenciados por convênio ou categoria de paciente."
+                description="Gerencie preços diferenciados para parcerias, estabelecimentos ou pacientes especiais."
             >
                 <PriceTableDialog />
             </ManagementHeader>
