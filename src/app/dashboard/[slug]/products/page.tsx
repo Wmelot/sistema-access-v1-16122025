@@ -32,7 +32,7 @@ export default async function ProductsPage({ params }: { params: Promise<{ slug:
             <ManagementHeader
                 slug={slug}
                 title="Produtos e Estoque"
-                description="Gerencie o inventário de venda."
+                description="Gerencie o inventário e acompanhe suas vendas."
             >
                 <ProductsDialog />
             </ManagementHeader>

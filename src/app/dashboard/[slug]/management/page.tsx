@@ -120,15 +120,6 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
                     bg: "bg-cyan-50",
                     permission: "settings.questionnaires.view" as PermissionCode
                 },
-                {
-                    title: "Demonstrativo de Resultado do Exercício (DRE)",
-                    description: "Gere relatórios e demonstrativos financeiros com os resultados da sua clínica.",
-                    icon: TrendingUp,
-                    href: `${dashboardPrefix}/financial?tab=dre`,
-                    color: "text-emerald-700",
-                    bg: "bg-emerald-100",
-                    permission: "settings.dre.view" as PermissionCode
-                }
             ]
         },
         {
