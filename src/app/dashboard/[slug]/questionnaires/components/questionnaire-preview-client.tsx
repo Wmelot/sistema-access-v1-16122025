@@ -31,11 +31,11 @@ export function QuestionnairePreviewClient({ template, slug, id }: Questionnaire
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 pb-20 pt-6 px-4 transition-all duration-300">
+        <div className="min-h-screen bg-slate-50 pb-10 pt-4 px-2 sm:px-4 transition-all duration-300">
             {/* Dynamic Container to occupy more space */}
             <div className={cn(
                 "mx-auto transition-all duration-300",
-                isCollapsed ? "max-w-[95%]" : "max-w-[85%]"
+                isCollapsed ? "max-w-[98%]" : "max-w-[94%]"
             )}>
                 <Link href={`/dashboard/${slug}/questionnaires`}>
                     <Button variant="ghost" size="sm" className="mb-6 hover:bg-slate-200">
