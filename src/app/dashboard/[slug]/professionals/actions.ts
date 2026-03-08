@@ -221,6 +221,19 @@ export async function updateProfessional(id: string, formData: FormData) {
     return { success: true }
 }
 
+export async function updateProfessionalPartnerSettings(id: string, partnerData: { is_partner: boolean, tax_percent: number, professional_expenses: number }) {
+    const supabase = await createAdminClient()
+    const context = await getSecurityContext()
+    const canManage = await hasPermission('roles.manage')
+    if (!canManage && !context.isMaster && context.userId !== id) return { error: 'Sem permissão.' }
+
+    const { error } = await supabase.from('profiles').update(partnerData).eq('id', id)
+    if (error) return { error: `Erro ao atualizar: ${error.message}` }
+
+    revalidatePath('/dashboard/professionals')
+    return { success: true }
+}
+
 export async function getProfessional(id: string) {
     const supabase = await createAdminClient()
     const { data } = await supabase.from('profiles').select('*').eq('id', id).single()

@@ -88,11 +88,13 @@ export const FinancialService = {
                 }
             }
 
-            // 2. Apply Partner Taxes and Personal Expenses
-            const taxAmount = (gross * ((prof.tax_percent || 0) / 100))
-            const expenses = Number(prof.professional_expenses || 0)
+            // 2. Apply Reserva Técnica (%)
+            // Note: ‘tax_percent’ in DB represents ‘Reserva Técnica’ for partners
+            const technicalReserve = (gross * ((prof.tax_percent || 0) / 100))
 
-            let commissionValue = gross - feeAmount - taxAmount - expenses
+            // Note: ‘professional_expenses’ are NOT deducted here for partners
+            // as they are calculated centrally in the payroll extrato.
+            let commissionValue = gross - feeAmount - technicalReserve
             if (commissionValue < 0) commissionValue = 0
 
             const { data: existingComm } = await supabase.from('financial_commissions').select('id, status').eq('appointment_id', appointmentId).single()

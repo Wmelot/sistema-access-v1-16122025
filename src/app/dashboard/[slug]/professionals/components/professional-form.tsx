@@ -551,7 +551,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                             <SelectItem value="personal">Dados Pessoais</SelectItem>
                             <SelectItem value="services">Serviços</SelectItem>
                             {professional?.id && <SelectItem value="availability">Horários</SelectItem>}
-                            {professional?.id && <SelectItem value="commissions">Comissões</SelectItem>}
+                            {professional?.id && canManageRoles && <SelectItem value="commissions">Comissões</SelectItem>}
                             {professional?.id && <SelectItem value="scheduling">Agendamento</SelectItem>}
                             {professional?.id && <SelectItem value="integrations">Integrações</SelectItem>}
                             {professional?.id && <SelectItem value="security">Segurança</SelectItem>}
@@ -595,7 +595,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                 Horários
                             </TabsTrigger>
                         )}
-                        {professional?.id && (
+                        {professional?.id && canManageRoles && (
                             <TabsTrigger
                                 value="commissions"
                                 className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
@@ -848,7 +848,9 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                             onChange={(e) => setSpecialtyInput(e.target.value)}
                                             placeholder="Ex: Fisioterapia Esportiva"
                                             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSpecialty())}
-                                            autoComplete="new-password"
+                                            autoComplete="off"
+                                            readOnly
+                                            onFocus={(e) => e.target.readOnly = false}
                                             data-lpignore="true"
                                         />
                                         <Button type="button" onClick={addSpecialty} variant="secondary">Adicionar</Button>
@@ -982,7 +984,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                     )}
 
                     {/* --- 7. COMISSÕES --- */}
-                    {professional?.id && (
+                    {professional?.id && canManageRoles && (
                         <TabPanel value="commissions">
                             <CommissionSettings profileId={professional.id} slug={slug as string} />
                         </TabPanel>

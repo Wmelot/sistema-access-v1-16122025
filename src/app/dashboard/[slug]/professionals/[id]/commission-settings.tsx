@@ -17,7 +17,7 @@ import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
 
 const MySwal = withReactContent(Swal)
-import { getCommissionRules, upsertCommissionRule, deleteCommissionRule } from "../actions"
+import { getCommissionRules, upsertCommissionRule, deleteCommissionRule, updateProfessionalPartnerSettings, getProfessional } from "../actions"
 import { getServices } from "../../services/actions"
 
 interface CommissionSettingsProps {
@@ -56,10 +56,8 @@ export function CommissionSettings({ profileId, slug }: CommissionSettingsProps)
         setRules(r || [])
         setServices(s || [])
 
-        // Load profile data for partners (we might need a getProfile action)
-        const { createClient } = await import("@/lib/supabase/client")
-        const supabase = createClient()
-        const { data: profile } = await supabase.from('profiles').select('is_partner, tax_percent, professional_expenses').eq('id', profileId).single()
+        // Load profile data for partners using server action
+        const profile = await getProfessional(profileId)
         if (profile) {
             setIsPartner(profile.is_partner || false)
             setTaxPercent(String(profile.tax_percent || 0))
@@ -95,19 +93,18 @@ export function CommissionSettings({ profileId, slug }: CommissionSettingsProps)
 
     const handleSavePartner = async () => {
         setSaving(true)
-        const { createClient } = await import("@/lib/supabase/client")
-        const supabase = createClient()
-        const { error } = await supabase.from('profiles')
-            .update({
-                is_partner: isPartner,
-                tax_percent: Number(taxPercent),
-                professional_expenses: Number(profExpenses)
-            })
-            .eq('id', profileId)
+        const res = await updateProfessionalPartnerSettings(profileId, {
+            is_partner: isPartner,
+            tax_percent: Number(taxPercent),
+            professional_expenses: Number(profExpenses)
+        })
 
         setSaving(false)
-        if (error) toast.error("Erro ao salvar acordo: " + error.message)
-        else toast.success("Acordo societário atualizado!")
+        if (res.error) toast.error("Erro ao salvar acordo: " + res.error)
+        else {
+            toast.success("Acordo societário atualizado!")
+            loadData()
+        }
     }
 
     const handleSave = async () => {
@@ -296,34 +293,31 @@ export function CommissionSettings({ profileId, slug }: CommissionSettingsProps)
                 </CardHeader>
                 <CardContent className="pt-6 space-y-4">
                     {isPartner ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
+                        <div className="grid grid-cols-1 gap-4 animate-in fade-in slide-in-from-top-2">
                             <div className="space-y-2">
-                                <Label className="text-xs font-bold text-slate-500 uppercase">Impostos sobre Bruto (%)</Label>
+                                <Label className="text-xs font-bold text-slate-500 uppercase">Reserva Técnica (%)</Label>
                                 <Input
                                     type="number"
                                     value={taxPercent}
                                     onChange={(e) => setTaxPercent(e.target.value)}
-                                    placeholder="Ex: 15"
+                                    placeholder="Ex: 5"
                                 />
-                                <p className="text-[10px] text-muted-foreground italic">Será descontado do valor bruto do atendimento.</p>
+                                <p className="text-[10px] text-muted-foreground italic">Percentual retido pela clínica para reserva técnica/liquidez.</p>
                             </div>
-                            <div className="space-y-2">
-                                <Label className="text-xs font-bold text-slate-500 uppercase">Despesas Profissionais Fixas (R$)</Label>
-                                <CurrencyInput
-                                    value={profExpenses}
-                                    onValueChange={(val) => setProfExpenses(String(val || 0))}
-                                    placeholder="0,00"
-                                />
-                                <p className="text-[10px] text-muted-foreground italic">Ex: Despesas de consultório por sessão/mês.</p>
-                            </div>
-                            <div className="md:col-span-2 pt-2">
+
+                            <div className="pt-2">
                                 <Button onClick={handleSavePartner} disabled={saving} size="sm" className="w-full">
                                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar Configuração de Sócio"}
                                 </Button>
                             </div>
-                            <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-[11px] text-blue-700 leading-relaxed">
-                                <strong>Logica Societária:</strong> O valor que este profissional (Sócio) recebe é calculado como: <br />
-                                <code className="bg-blue-100 px-1 rounded">Bruto - Taxas da Maquininha - Impostos ({taxPercent}%) - Despesas</code>
+                            <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-[11px] text-blue-700 leading-relaxed">
+                                <strong>Logica de Sócio:</strong> O valor que o sócio recebe é calculado da seguinte forma: <br />
+                                <code className="bg-blue-100 px-1 rounded block mt-1">
+                                    Produção Bruta - Imposto - Taxas Maquininha - Despesas da Clínica - Reserva Técnica ({taxPercent}%)
+                                </code>
+                                <p className="mt-2 opacity-80">
+                                    * O Imposto e as Despesas da Clínica são calculados centralmente no fechamento do mês (Folha de Pagamento).
+                                </p>
                             </div>
                         </div>
                     ) : (

@@ -938,7 +938,7 @@ export async function getCommissionsOverview(isoStartDate: string, isoEndDate: s
         .select(`
             amount,
             status,
-            professional:profiles(id, full_name, photo_url)
+            professional:profiles(id, full_name, photo_url, is_partner)
         `)
         .gte('created_at', start)
         .lte('created_at', end)
@@ -1035,7 +1035,10 @@ export async function getProfessionalStatement(professionalId: string, isoStartD
     }
 
     // Fetch Rules & Fees for enrichment
-    const { data: rules } = await supabase.from('professional_commission_rules').select('*').eq('professional_id', professionalId)
+    const [{ data: rules }, { data: targetProfile }] = await Promise.all([
+        supabase.from('professional_commission_rules').select('*').eq('professional_id', professionalId),
+        supabase.from('profiles').select('tax_percent, is_partner').eq('id', professionalId).single()
+    ])
 
     // Fetch Organization Fees for Fallback
     const { data: { user } } = await supabase.auth.getUser()
@@ -1100,8 +1103,12 @@ export async function getProfessionalStatement(professionalId: string, isoStartD
             ruleApplied = exactRule.type === 'percentage' ? `${exactRule.value}%` : `R$ ${exactRule.value}`
         }
 
+        const technicalReserveRate = targetProfile?.is_partner ? Number(targetProfile.tax_percent || 0) : 0
+        const technicalReserveAmount = (grossPrice * technicalReserveRate) / 100
+
         return {
             ...comm,
+            technicalReserveAmount,
             appointment: {
                 ...appt,
                 paymentMethodName: appt.payment_method?.name,

@@ -25,6 +25,7 @@ import { useParams } from "next/navigation"
 
 import { startOfMonth, endOfMonth, format, parseISO } from "date-fns"
 import { DateInput } from "@/components/ui/date-input"
+import { useSidebar } from "@/hooks/use-sidebar"
 
 export function PayrollTab() {
     const params = useParams()
@@ -47,6 +48,8 @@ export function PayrollTab() {
     const [taxRate, setTaxRate] = useState<number>(0) // Monthly Tax Rate
     const [otherDeductions, setOtherDeductions] = useState<number>(0)
     const [savingConfigs, setSavingConfigs] = useState(false)
+
+    const { isCollapsed } = useSidebar()
 
     useEffect(() => {
         loadData()
@@ -152,6 +155,7 @@ export function PayrollTab() {
     const pendingStatementItems = statement.filter(i => i.status === 'pending')
     const pendingStatementTotal = pendingStatementItems.reduce((acc, curr) => acc + Number(curr.amount), 0)
     const pendingGrossTotal = pendingStatementItems.reduce((acc, curr) => acc + Number(curr.appointment?.price || 0), 0)
+    const pendingTechnicalReserveTotal = pendingStatementItems.reduce((acc, curr) => acc + (Number(curr.technicalReserveAmount) || 0), 0)
 
     // Sorting for Statement
     const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null)
@@ -354,9 +358,25 @@ export function PayrollTab() {
                 </CardContent>
             </Card>
 
-            {/* Detail Dialog */}
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-5xl max-h-[80vh] overflow-y-auto w-full">
+            {/* Detail Dialog - Set modal={false} to allow sidebar toggle while open */}
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen} modal={false}>
+                <DialogContent
+                    overlayClassName="pointer-events-none"
+                    className={cn(
+                        "max-w-[95vw] max-h-[95vh] overflow-y-auto w-full transition-all duration-300 shadow-2xl border",
+                        "lg:right-6 lg:translate-x-0 lg:max-w-none lg:w-auto",
+                        isCollapsed ? "lg:left-[84px]" : "lg:left-[274px]"
+                    )}
+                    onPointerDownOutside={(e) => {
+                        // Prevent closure when clicking anywhere outside (like the sidebar)
+                        // This ensures the modal stays open while toggling sidebar or interacting with the page
+                        e.preventDefault();
+                    }}
+                    onInteractOutside={(e) => {
+                        // Also prevent other interactions from closing the dialog
+                        e.preventDefault();
+                    }}
+                >
                     <DialogHeader>
                         <DialogTitle>Extrato: {selectedPro?.professional.full_name}</DialogTitle>
                         <DialogDescription>
@@ -377,13 +397,42 @@ export function PayrollTab() {
                                         <div className="text-xs text-muted-foreground">Comissão: {formatCurrency(pendingStatementTotal)}</div>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-base">Alíquota (%)</Label>
+                                        <Label className="text-base">Alíquota ({taxRate}%)</Label>
                                         <PercentageInput
                                             value={taxRate}
                                             onValueChange={setTaxRate}
                                             className="bg-white text-lg h-12 w-full"
                                         />
+                                        <p className="text-[10px] text-muted-foreground italic">Imposto sobre o bruto (Central).</p>
                                     </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-base">Imposto Devido</Label>
+                                        <div className="text-2xl font-semibold text-red-500 truncate">
+                                            - {formatCurrency(pendingGrossTotal * (taxRate / 100))}
+                                        </div>
+                                    </div>
+
+                                    {selectedPro?.professional?.is_partner && (
+                                        <>
+                                            <div className="space-y-2">
+                                                <Label className="text-base">Reserva Técnica</Label>
+                                                <div className="text-2xl font-semibold text-blue-600 truncate">
+                                                    - {formatCurrency(pendingTechnicalReserveTotal)}
+                                                </div>
+                                                <p className="text-[10px] text-muted-foreground italic">Retenção configurada no perfil.</p>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label className="text-base">Cota de Despesa (Clínica)</Label>
+                                                <div className="text-2xl font-semibold text-amber-600 truncate">
+                                                    - {formatCurrency(monthlyExpenses / (allProfessionals.filter(p => p.is_partner).length || 3))}
+                                                </div>
+                                                <p className="text-[10px] text-muted-foreground italic">Rateio entre {allProfessionals.filter(p => p.is_partner).length || 3} sócios.</p>
+                                            </div>
+                                        </>
+                                    )}
+
                                     <div className="space-y-2">
                                         <Label className="text-base">Outros Descontos</Label>
                                         <CurrencyInput
@@ -393,16 +442,16 @@ export function PayrollTab() {
                                             placeholder="R$ 0,00"
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-base">Valor do Imposto</Label>
-                                        <div className="text-2xl font-semibold text-red-500 truncate">
-                                            - {formatCurrency(pendingGrossTotal * (taxRate / 100))}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
+
+                                    <div className="space-y-2 md:col-span-1">
                                         <Label className="text-base">Valor Líquido</Label>
                                         <div className="text-3xl font-bold text-green-600 truncate">
-                                            {formatCurrency(pendingStatementTotal - (pendingGrossTotal * (taxRate / 100)) - otherDeductions)}
+                                            {formatCurrency(
+                                                pendingStatementTotal
+                                                - (pendingGrossTotal * (taxRate / 100))
+                                                - (selectedPro?.professional?.is_partner ? (monthlyExpenses / (allProfessionals.filter(p => p.is_partner).length || 3)) : 0)
+                                                - otherDeductions
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -489,7 +538,11 @@ export function PayrollTab() {
                                             <TableRow key={item.id}>
                                                 <TableCell>{new Date(appt.date).toLocaleDateString()}</TableCell>
                                                 <TableCell className={cn("flex items-center gap-2", appt.isDeleted && "text-red-500 font-bold")}>
-                                                    {appt.isDeleted && <AlertCircle className="h-3 w-3" title={`Justificativa: ${appt.justification}`} />}
+                                                    {appt.isDeleted && (
+                                                        <span title={`Justificativa: ${appt.justification}`}>
+                                                            <AlertCircle className="h-3 w-3" />
+                                                        </span>
+                                                    )}
                                                     {appt.patient?.name}
                                                 </TableCell>
                                                 <TableCell>{appt.service?.name}</TableCell>
