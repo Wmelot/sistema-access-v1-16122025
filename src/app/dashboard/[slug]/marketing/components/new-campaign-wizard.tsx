@@ -16,7 +16,12 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { format } from "date-fns"
 
-export function NewCampaignWizard() {
+interface NewCampaignWizardProps {
+    onSuccess?: () => void;
+    onCancel?: () => void;
+}
+
+export function NewCampaignWizard({ onSuccess, onCancel }: NewCampaignWizardProps) {
     const router = useRouter()
     const [step, setStep] = useState(1)
     const [isLoading, setIsLoading] = useState(false)
@@ -137,9 +142,13 @@ export function NewCampaignWizard() {
                 toast.success("Campanha iniciada com sucesso!")
             }
 
-            // Redirect
-            router.push('/dashboard/marketing')
-            router.refresh()
+            // Redirect or callback
+            if (onSuccess) {
+                onSuccess()
+            } else {
+                router.push('/dashboard/marketing')
+                router.refresh()
+            }
 
         } catch (error) {
             console.error(error)
@@ -149,7 +158,7 @@ export function NewCampaignWizard() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8">
+        <div className="space-y-8">
             {/* Stepper Indicator */}
             <div className="flex justify-between items-center px-10">
                 <div className={`flex flex-col items-center gap-2 ${step >= 1 ? 'text-primary' : 'text-muted-foreground'}`}>
@@ -307,7 +316,10 @@ export function NewCampaignWizard() {
                         </div>
 
                     </CardContent>
-                    <CardFooter className="justify-end">
+                    <CardFooter className="justify-end gap-2">
+                        {onCancel && (
+                            <Button variant="ghost" onClick={onCancel}>Cancelar</Button>
+                        )}
                         <Button onClick={() => setStep(2)} disabled={finalContacts.length === 0 || isLoading}>
                             Próximo: Mensagem
                             <ChevronRight className="h-4 w-4 ml-2" />

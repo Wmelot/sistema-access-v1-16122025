@@ -29,7 +29,7 @@ export function CommunicationNavigation({ defaultTab }: CommunicationNavigationP
 
     const tabs = [
         { value: 'templates', label: 'Modelos de Mensagem', icon: MessageSquare },
-        { value: 'campaigns', label: 'Campanhas', icon: Zap },
+        { value: 'campaigns', label: 'Envio em Massa', icon: Zap },
         { value: 'history', label: 'Histórico de Disparos', icon: History },
         { value: 'whatsapp_config', label: 'Configuração WhatsApp', icon: Settings },
     ]

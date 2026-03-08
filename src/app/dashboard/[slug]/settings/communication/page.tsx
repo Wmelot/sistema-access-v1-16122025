@@ -25,7 +25,7 @@ export default async function CommunicationPage({
         <div className="space-y-6">
             <ManagementHeader
                 slug={slug}
-                title="Comunicação e Automação"
+                title="Comunicação (WhatsApp)"
                 description="Gerencie modelos de mensagem e configure automações do WhatsApp."
             />
 
