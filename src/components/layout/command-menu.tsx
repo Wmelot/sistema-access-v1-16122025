@@ -162,7 +162,7 @@ export function CommandMenu() {
                         value={query}
                         onValueChange={setQuery}
                         onKeyDown={handleKeyDown}
-                        className="border-none focus:ring-0 h-14"
+                        className="border-none focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none h-14"
                     />
                 </div>
                 <CommandList className="max-h-[min(450px,70vh)]">

@@ -160,6 +160,10 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
         setFormData(prev => ({ ...prev, [field]: value }))
     }
 
+    const currentTargetRoleId = formData.role_id || professional?.role_id
+    const currentTargetRole = roles.find(r => r.id === currentTargetRoleId)
+    const isTargetAdmin = currentTargetRole?.name === 'Administrador' || currentTargetRole?.name === 'Dono'
+
     const handleDisplayPhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const v = VMasker.toPattern(e.target.value.replace(/\D/g, ""), "(99) 99999-9999")
         e.target.value = v // Update UI
@@ -830,16 +834,22 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                     </div>
                                 </div>
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="specialty">Especialidades</Label>
+                                <div className="grid gap-2" key="specialty-card-axiom">
+                                    <Label htmlFor="specialty_axiom_v3_input">Especialidades</Label>
+
+                                    {/* Dummy input to catch Chrome's autofill email and prevent it from hitting the specialties field */}
+                                    <input type="text" style={{ position: 'absolute', opacity: 0, height: 0, width: 0, zIndex: -1 }} tabIndex={-1} autoComplete="email" name="axiom_dummy_email_trap" />
+
                                     <div className="flex gap-2">
                                         <Input
-                                            id="specialty_input"
+                                            id="specialty_axiom_v3_input"
+                                            name="specialty_axiom_v3_input"
                                             value={specialtyInput}
                                             onChange={(e) => setSpecialtyInput(e.target.value)}
                                             placeholder="Ex: Fisioterapia Esportiva"
                                             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSpecialty())}
-                                            autoComplete="off"
+                                            autoComplete="new-password"
+                                            data-lpignore="true"
                                         />
                                         <Button type="button" onClick={addSpecialty} variant="secondary">Adicionar</Button>
                                     </div>
@@ -1181,11 +1191,16 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                     </CardFooter>
                                 </Card>
 
-                                <AdminPasswordCard />
-
-                                <div className="w-full">
-                                    <SecuritySettings />
-                                </div>
+                                {isTargetAdmin && canManageRoles && (
+                                    <>
+                                        <AdminPasswordCard />
+                                        {isCurrentUser && (
+                                            <div className="w-full">
+                                                <SecuritySettings />
+                                            </div>
+                                        )}
+                                    </>
+                                )}
                             </div>
                         </TabPanel>
                     )}
@@ -1247,6 +1262,6 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                     )}
                 </Tabs>
             </fieldset>
-        </form>
+        </form >
     )
 }

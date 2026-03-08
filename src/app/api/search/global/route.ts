@@ -102,7 +102,7 @@ export async function GET(request: Request) {
                             OR cpf ILIKE $2 
                             OR phone ILIKE $2
                             OR REPLACE(REPLACE(REPLACE(REPLACE(phone, '(', ''), ')', ''), '-', ''), ' ', '') ILIKE $3
-                            OR name ILIKE $4
+                            OR translate(LOWER(name), 'áàâãäéèêëíìîïóòôõöúùûüç', 'aaaaaeeeeiiiiooooouuuuc') ILIKE $4
                         )
                         ORDER BY name 
                         LIMIT 10
@@ -134,9 +134,9 @@ export async function GET(request: Request) {
                         FROM profiles p
                         LEFT JOIN roles r ON p.role_id = r.id
                         WHERE p.organization_id = $1
-                        AND (p.full_name ILIKE $2 OR p.email ILIKE $2)
+                        AND (p.full_name ILIKE $2 OR p.email ILIKE $2 OR translate(LOWER(p.full_name), 'áàâãäéèêëíìîïóòôõöúùûüç', 'aaaaaeeeeiiiiooooouuuuc') ILIKE $4)
                         LIMIT 5
-                    `, [organizationId, qLike]),
+                    `, [organizationId, qLike, qCleanLike, qNormalizedLike]),
 
                     // Search Appointments
                     db.query(`
@@ -153,12 +153,13 @@ export async function GET(request: Request) {
                         WHERE a.organization_id = $1
                         AND (
                             p.name ILIKE $2 
+                            OR translate(LOWER(p.name), 'áàâãäéèêëíìîïóòôõöúùûüç', 'aaaaaeeeeiiiiooooouuuuc') ILIKE $4
                             OR p.phone ILIKE $2 
                             OR REPLACE(REPLACE(REPLACE(REPLACE(p.phone, '(', ''), ')', ''), '-', ''), ' ', '') ILIKE $3
                         )
                         ORDER BY a.start_time DESC
                         LIMIT 5
-                    `, [organizationId, qLike, qCleanLike]),
+                    `, [organizationId, qLike, qCleanLike, qNormalizedLike]),
                 ])
 
                 // Process Results
