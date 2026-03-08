@@ -20,9 +20,14 @@ interface QuestionnaireBrowserProps {
 
 const CATEGORIES = [
     {
-        name: "Coluna Vertebral",
+        name: "Coluna Cervical",
         icon: "🦴",
-        keywords: ["coluna", "lombar", "cervical", "vertebral", "back", "neck", "spine", "roland", "oswestry", "ndi", "quebec", "start"]
+        keywords: ["cervical", "pescoço", "neck", "ndi"]
+    },
+    {
+        name: "Coluna Lombar",
+        icon: "🦴",
+        keywords: ["lombar", "back", "back pain", "roland", "oswestry", "quebec", "start", "spine", "vertebral", "coluna"]
     },
     {
         name: "Membro Superior",
@@ -30,9 +35,19 @@ const CATEGORIES = [
         keywords: ["ombro", "cotovelo", "punho", "mão", "braço", "shoulder", "arm", "hand", "wrist", "elbow", "dash", "spadi", "prwe"]
     },
     {
-        name: "Membro Inferior",
+        name: "Quadril",
+        icon: "🦴",
+        keywords: ["quadril", "hip", "harris", "hoos"]
+    },
+    {
+        name: "Joelho",
+        icon: "🦵",
+        keywords: ["joelho", "knee", "koos", "ikdc", "lysholm", "kujala"]
+    },
+    {
+        name: "Tornozelo e Pé",
         icon: "🦶",
-        keywords: ["quadril", "joelho", "tornozelo", "pé", "perna", "hip", "knee", "ankle", "foot", "leg", "lefs", "koos", "hoos", "ikdc", "lysholm", "faam", "faos", "aofas", "visa", "harris", "kujala", "fadi"]
+        keywords: ["tornozelo", "pé", "perna", "ankle", "foot", "leg", "lefs", "faam", "faos", "aofas", "fadi", "visa"]
     },
     {
         name: "Saúde da Mulher & Pélvica",
@@ -47,7 +62,17 @@ const CATEGORIES = [
     {
         name: "Pé Insensível (Neuropático)",
         icon: "🩺",
-        keywords: ["diabetes", "diabético", "neuropatia", "insensível", "sensibilidade", "mnsi", "michigan", "perda de sensibilidade", "monofilamento", "perfil clínico", "controle do diabetes", "pé"]
+        keywords: ["diabetes", "diabético", "neuropatia", "insensível", "sensibilidade", "mnsi", "michigan", "perda de sensibilidade", "monofilamento", "perfil clínico", "controle do diabetes"]
+    },
+    {
+        name: "ATM & Mandíbula",
+        icon: "👄",
+        keywords: ["atm", "dtm", "mandíbula", "fonseca", "jfls"]
+    },
+    {
+        name: "Neuro & Pediatria",
+        icon: "👶",
+        keywords: ["pediátrico", "criança", "gmfcs", "pbs", "ecab", "aims", "mfm", "gmfm", "neurológico", "paralisia"]
     }
 ];
 
@@ -149,7 +174,7 @@ export function QuestionnaireBrowser({ questionnaires, followups, user, slug, pr
                             const catInfo = CATEGORIES.find(c => c.name === category);
 
                             return (
-                                <Accordion key={category} type="single" collapsible defaultValue={category === "Membro Inferior" ? category : undefined} className="bg-white rounded-lg border shadow-sm">
+                                <Accordion key={category} type="single" collapsible defaultValue={category === "Coluna Lombar" ? category : undefined} className="bg-white rounded-lg border shadow-sm">
                                     <AccordionItem value={category} className="border-none">
                                         <AccordionTrigger className="px-6 hover:no-underline py-4">
                                             <div className="flex items-center gap-3">

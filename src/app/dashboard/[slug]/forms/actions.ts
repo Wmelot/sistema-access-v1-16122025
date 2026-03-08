@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getSecurityContext } from '@/lib/security';
 
-export async function getFormTemplates(slug?: string) {
+export async function getFormTemplates(slug?: string, options?: { forceIncludeSystem?: boolean }) {
     // 1. Get Security Context (Resolução unificada de Master vs Clínica)
     const { isMaster, activeOrgId } = await getSecurityContext(slug);
     const targetOrgId = activeOrgId;
@@ -43,7 +43,7 @@ export async function getFormTemplates(slug?: string) {
         return [];
     }
 
-    // 3. Filter: Always show target org forms. Show system forms only if in allowedAccess.
+    // 3. Filter: Always show target org forms. Show system forms only if in allowedAccess or forced.
     const filteredTemplates = (data || []).filter(t => {
         const isOwn = t.organization_id === targetOrgId;
         if (isOwn) return true;
@@ -51,7 +51,8 @@ export async function getFormTemplates(slug?: string) {
         const isSystem = !t.organization_id || t.organization_id === '00000000-0000-0000-0000-000000000001';
         if (isSystem) {
             // [FIX] Master Admin always sees all standardized content (bypass granular access)
-            return isMaster || allowedSystemIds.includes(t.id);
+            // Or if forceIncludeSystem is true (used for Library view)
+            return isMaster || options?.forceIncludeSystem || allowedSystemIds.includes(t.id);
         }
 
         return false;

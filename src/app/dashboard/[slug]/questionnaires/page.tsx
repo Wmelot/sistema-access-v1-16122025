@@ -15,7 +15,7 @@ export default async function QuestionnairesPage({ params }: { params: Promise<{
     const { data: { user } } = await supabase.auth.getUser()
 
     // Fetch all templates
-    const allTemplates = await getFormTemplates(slug);
+    const allTemplates = await getFormTemplates(slug, { forceIncludeSystem: true });
 
     // Layer 3 Filter: Can the user VIEW these assets?
     const templatesWithViewAccess = await Promise.all(
