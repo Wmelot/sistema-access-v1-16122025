@@ -27,6 +27,8 @@ export function TransactionsTab() {
 
     const [startDate, setStartDate] = useState<string>(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
     const [endDate, setEndDate] = useState<string>(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
+    const [nature, setNature] = useState<'income' | 'expense' | 'all'>('all')
+    const [kind, setKind] = useState<'products' | 'services' | 'all'>('all')
 
     // Create State
     const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -48,12 +50,12 @@ export function TransactionsTab() {
 
     useEffect(() => {
         fetchData()
-    }, [startDate, endDate])
+    }, [startDate, endDate, nature, kind])
 
     const fetchData = async () => {
         setLoading(true)
         const [transData, catData] = await Promise.all([
-            getTransactions(startDate, endDate),
+            getTransactions(startDate, endDate, nature, kind),
             getFinancialCategories()
         ])
         setTransactions(transData || [])
@@ -364,7 +366,7 @@ export function TransactionsTab() {
                     </Dialog>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end mb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 items-end mb-6">
                         <div className="relative col-span-1 sm:col-span-2">
                             <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Buscar transações</Label>
                             <div className="relative">
@@ -376,6 +378,32 @@ export function TransactionsTab() {
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
+                        </div>
+                        <div>
+                            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Natureza</Label>
+                            <Select value={nature} onValueChange={(v: any) => setNature(v)}>
+                                <SelectTrigger className="bg-white">
+                                    <SelectValue placeholder="Natureza" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todas</SelectItem>
+                                    <SelectItem value="income">Entradas</SelectItem>
+                                    <SelectItem value="expense">Saídas</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Tipo</Label>
+                            <Select value={kind} onValueChange={(v: any) => setKind(v)}>
+                                <SelectTrigger className="bg-white">
+                                    <SelectValue placeholder="Tipo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todos</SelectItem>
+                                    <SelectItem value="services">Serviços</SelectItem>
+                                    <SelectItem value="products">Produtos</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div>
                             <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Data Inicial</Label>

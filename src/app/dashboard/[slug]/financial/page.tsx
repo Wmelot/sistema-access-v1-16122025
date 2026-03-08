@@ -9,6 +9,7 @@ import { MyStatementTab } from "./my-statement-tab"
 import ReconciliationPage from "./reconciliation/page"
 import DREPage from "./dre/page"
 import { AccountingExportButton } from "./accounting-export-button"
+import { SalesTab } from "./sales-tab"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
@@ -106,6 +107,12 @@ export default async function FinancialPage({
                 {canViewDRE && (
                     <TabsContent value="dre">
                         <DREPage />
+                    </TabsContent>
+                )}
+
+                {canViewOverview && (
+                    <TabsContent value="sales">
+                        <SalesTab />
                     </TabsContent>
                 )}
 

@@ -5,7 +5,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation"
 import { useState, useTransition } from "react"
 import { QuantumLoader } from "@/components/ui/quantum-loader"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LayoutDashboard, Wallet, History, AlertCircle, Users, Handshake, Percent, FileText, TrendingUp } from "lucide-react"
+import { LayoutDashboard, Wallet, History, AlertCircle, Users, Handshake, Percent, FileText, TrendingUp, ShoppingCart } from "lucide-react"
 
 import { usePermissionsContext } from "@/components/providers/permissions-provider"
 import { PermissionCode } from "@/lib/rbac"
@@ -36,6 +36,7 @@ export function FinancialNavigation({ canViewClinic, canViewTransparency, defaul
     const availableTabs = [
         { value: 'overview', label: 'Visão Geral', icon: LayoutDashboard, permission: 'financial.tabs.general_statement' as PermissionCode },
         { value: 'dre', label: 'DRE', icon: TrendingUp, permission: 'financial.tabs.dre' as PermissionCode },
+        { value: 'sales', label: 'Vendas', icon: ShoppingCart, permission: 'financial.tabs.general_statement' as PermissionCode },
         { value: 'payables', label: 'Despesas', icon: Wallet, permission: 'financial.tabs.cash_flow' as PermissionCode },
         { value: 'transactions', label: 'Transações', icon: History, permission: 'financial.tabs.cash_flow' as PermissionCode },
         { value: 'overdue', label: 'Inadimplência', icon: AlertCircle, permission: 'financial.tabs.general_statement' as PermissionCode },

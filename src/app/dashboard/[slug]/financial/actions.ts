@@ -7,8 +7,8 @@ import { getBrazilStartOfMonth, getBrazilEndOfMonth, getBrazilDate } from "@/lib
 import { verifyAdminPassword } from "@/actions/admin-password"
 import { createReminder } from "@/app/dashboard/[slug]/reminders/actions"
 
-// [UPDATED] for Payables
-export async function getTransactions(startDate?: string, endDate?: string) {
+// [UPDATED] for Payables and Sales Analysis
+export async function getTransactions(startDate?: string, endDate?: string, type?: 'income' | 'expense' | 'all', kind?: 'products' | 'services' | 'all') {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
@@ -30,15 +30,24 @@ export async function getTransactions(startDate?: string, endDate?: string) {
             is_recurring,
             production_cost,
             attachment_url,
+            product_id,
             patient:patients(name),
             product:products(name),
             creator:profiles!created_by(full_name)
         `)
-        .eq('organization_id', userOrgId as string) // FIX: Cast to string
-        .order('date', { ascending: false })
+        .eq('organization_id', userOrgId as string)
 
     if (startDate) query = query.gte('date', startDate)
     if (endDate) query = query.lte('date', endDate)
+    if (type && type !== 'all') query = query.eq('type', type)
+
+    if (kind === 'products') {
+        query = query.not('product_id', 'is', null)
+    } else if (kind === 'services') {
+        query = query.is('product_id', null).eq('type', 'income')
+    }
+
+    query = query.order('date', { ascending: false })
 
     const { data, error } = await query
 
@@ -1261,4 +1270,83 @@ export async function getOverdueInvoices() {
     })
 
     return overdue
+}
+
+export async function getSalesAnalytics(startDate: string, endDate: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const userOrgId = profile?.organization_id
+
+    // Fetch all product transactions in the period
+    const { data: transactions, error } = await supabase
+        .from('transactions')
+        .select(`
+            amount,
+            production_cost,
+            quantity,
+            date,
+            status,
+            product:products(id, name, category)
+        `)
+        .eq('organization_id', userOrgId as string)
+        .eq('type', 'income')
+        .not('product_id', 'is', null)
+        .gte('date', startDate)
+        .lte('date', endDate)
+
+    if (error) {
+        console.error('Error fetching sales analytics:', error)
+        return null
+    }
+
+    // Process data
+    let totalRevenue = 0
+    let totalCost = 0
+    let totalItems = 0
+    const productSales: Record<string, { name: string, quantity: number, revenue: number, cost: number }> = {}
+    const dailyData: Record<string, { date: string, revenue: number, cost: number }> = {}
+
+    transactions.forEach(t => {
+        const rev = Number(t.amount) || 0
+        const cost = Number(t.production_cost) || 0
+        const qty = Number(t.quantity) || 0
+        const productName = (t.product as any)?.name || 'Desconhecido'
+        const productId = (t.product as any)?.id || 'unknown'
+        const date = t.date
+
+        totalRevenue += rev
+        totalCost += cost
+        totalItems += qty
+
+        if (!productSales[productId]) {
+            productSales[productId] = { name: productName, quantity: 0, revenue: 0, cost: 0 }
+        }
+        productSales[productId].quantity += qty
+        productSales[productId].revenue += rev
+        productSales[productId].cost += cost
+
+        if (!dailyData[date]) {
+            dailyData[date] = { date, revenue: 0, cost: 0 }
+        }
+        dailyData[date].revenue += rev
+        dailyData[date].cost += cost
+    })
+
+    const topProducts = Object.values(productSales)
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 10)
+
+    const chartData = Object.values(dailyData).sort((a, b) => a.date.localeCompare(b.date))
+
+    return {
+        totalRevenue,
+        totalCost,
+        grossProfit: totalRevenue - totalCost,
+        margin: totalRevenue > 0 ? ((totalRevenue - totalCost) / totalRevenue) * 100 : 0,
+        totalItems,
+        topProducts,
+        chartData
+    }
 }
