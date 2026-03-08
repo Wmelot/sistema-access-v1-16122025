@@ -1,19 +1,21 @@
 
-import { createClient } from "@supabase/supabase-js"
+import { createAdminClient } from "@/lib/supabase/server"
 import { sendMessage } from '@/app/dashboard/[slug]/settings/communication/actions'
 import { NextResponse } from "next/server"
+import { toZonedTime, format as formatTZ } from 'date-fns-tz'
+import { addDays, format } from 'date-fns'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const supabase = await createAdminClient()
 
-    const now = new Date()
-    const tomorrow = new Date(now)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const dateStr = tomorrow.toISOString().split('T')[0]
+    const TIMEZONE = 'America/Sao_Paulo'
+    const nowInTZ = toZonedTime(new Date(), TIMEZONE)
+    const tomorrowInTZ = addDays(nowInTZ, 1)
+
+    // dateStr for SQL query (YYYY-MM-DD)
+    const dateStr = format(tomorrowInTZ, 'yyyy-MM-dd')
     const startStr = dateStr + 'T00:00:00'
     const endStr = dateStr + 'T23:59:59'
 
@@ -61,7 +63,7 @@ export async function GET(request: Request) {
         if (!config || !config.instanceId || !config.token) continue
 
         // 4. Build Summary Message
-        const dateDisplay = tomorrow.toLocaleDateString('pt-BR')
+        const dateDisplay = format(tomorrowInTZ, 'dd/MM/yyyy')
         let messageText = `📅 *Sua Agenda de Amanhã (${dateDisplay})*\n\n`
 
         appts.forEach((appt: any) => {
