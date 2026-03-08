@@ -3,7 +3,8 @@ import { createAdminClient } from '@/lib/supabase/server' // Use Admin Client
 import { NextResponse } from 'next/server'
 import { sendMessage } from '@/app/dashboard/[slug]/settings/communication/actions'
 
-// NOTE: in Vercel/NextJS, this route can be triggered via a GET request.
+export const dynamic = 'force-dynamic'
+
 // NOTE: in Vercel/NextJS, this route can be triggered via a GET request.
 export async function GET(request: Request) {
     // 1. Initialize Admin Client (Bypass RLS)

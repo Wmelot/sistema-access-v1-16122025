@@ -4,6 +4,8 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         const migrationPath = path.join(process.cwd(), 'supabase/migrations/20270206000000_cleanup_and_fix_fees.sql');
