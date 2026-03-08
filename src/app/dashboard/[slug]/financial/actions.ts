@@ -3,9 +3,10 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
-import { getBrazilStartOfMonth, getBrazilEndOfMonth, getBrazilDate } from "@/lib/date-utils"
+import { getBrazilStartOfMonth, getBrazilEndOfMonth, getBrazilDate, parseBrazilDate } from "@/lib/date-utils"
 import { verifyAdminPassword } from "@/actions/admin-password"
 import { createReminder } from "@/app/dashboard/[slug]/reminders/actions"
+import { registerInsoleDelivery } from "@/app/dashboard/[slug]/patients/actions/insoles"
 
 // [UPDATED] for Payables and Sales Analysis
 export async function getTransactions(startDate?: string, endDate?: string, type?: 'income' | 'expense' | 'all', kind?: 'products' | 'services' | 'all') {
@@ -207,8 +208,8 @@ export async function createTransaction(formData: FormData) {
 
     // 3. Create Transactions (Loop for installments)
     const installmentAmount = totalAmount / installments
-    const baseDate = getBrazilDate(date)
-    const baseDueDate = dueDateInput ? getBrazilDate(dueDateInput) : getBrazilDate(date)
+    const baseDate = parseBrazilDate(date)
+    const baseDueDate = dueDateInput ? parseBrazilDate(dueDateInput) : parseBrazilDate(date)
 
     const transactionsToInsert = []
 
@@ -256,6 +257,20 @@ export async function createTransaction(formData: FormData) {
     }
 
     await logAction("CREATE_TRANSACTION", { type, totalAmount, description, installments, status })
+
+    // [SIDE EFFECT] If it's a Palmilha sale for a patient, register in the TECHNICAL insole menu
+    if (type === 'income' && product_id && patient_id && patient_id !== 'none') {
+        const { data: prod } = await supabase.from('products').select('name').eq('id', product_id).single()
+        if (prod?.name?.toLowerCase().includes('palmilha')) {
+            await registerInsoleDelivery({
+                patientId: patient_id,
+                deliveryDate: baseDate,
+                note: `Venda registrada via Financeiro: ${description}`,
+                isAdjustment: false
+            })
+        }
+    }
+
     revalidatePath('/dashboard/financial')
     revalidatePath('/dashboard/products')
 }
@@ -325,13 +340,24 @@ export async function updateTransaction(id: string, formData: FormData) {
         }
     }
 
+    const patient_id = formData.get('patient_id') as string || null
+    const product_id = formData.get('product_id') as string || null
+    const professional_id = formData.get('professional_id') as string || null
+    const quantity = Number(formData.get('quantity')) || 1
+    const production_cost = Number(formData.get('production_cost')) || 0
+
     const updateData: any = {
         description,
         amount,
         category: categoryName,
-        date: date ? getBrazilDate(date).toISOString().split('T')[0] : undefined,
-        due_date: dueDateInput ? getBrazilDate(dueDateInput).toISOString().split('T')[0] : undefined,
+        date: date ? date : undefined,
+        due_date: dueDateInput ? dueDateInput : undefined,
         is_recurring: isRecurring,
+        patient_id,
+        product_id,
+        professional_id,
+        quantity,
+        production_cost
     }
 
     const { error } = await supabase
