@@ -13,7 +13,8 @@ import {
     Users,
     Search,
     Plus,
-    Loader2
+    Loader2,
+    Stethoscope
 } from "lucide-react"
 import { useRouter, useParams } from "next/navigation"
 import { getPatients } from "@/actions/patients"
@@ -102,6 +103,10 @@ export function CommandMenu() {
                 return results.filter(r => r.type === 'financial' || (r.type === 'action' && r.url.includes('financial')))
             case 'forms':
                 return results.filter(r => r.type === 'action' && (r.url.includes('forms') || r.url.includes('questionnaire')))
+            case 'agenda':
+                return results.filter(r => r.type === 'appointment' || (r.type === 'action' && r.url.includes('schedule')))
+            case 'users':
+                return results.filter(r => r.type === 'professional' || (r.type === 'action' && r.url.includes('settings')))
             default:
                 return results
         }
@@ -196,6 +201,16 @@ export function CommandMenu() {
                                     <span className="font-medium">Financeiro</span>
                                     <CommandShortcut>Escopo</CommandShortcut>
                                 </CommandItem>
+                                <CommandItem onSelect={() => setScope({ id: 'agenda', label: 'Agenda', icon: Calendar })}>
+                                    <Calendar className="mr-3 h-4 w-4 text-slate-400" />
+                                    <span className="font-medium">Agenda</span>
+                                    <CommandShortcut>Escopo</CommandShortcut>
+                                </CommandItem>
+                                <CommandItem onSelect={() => setScope({ id: 'users', label: 'Equipe', icon: User })}>
+                                    <User className="mr-3 h-4 w-4 text-slate-400" />
+                                    <span className="font-medium">Profissionais</span>
+                                    <CommandShortcut>Escopo</CommandShortcut>
+                                </CommandItem>
                                 <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/reports`))}>
                                     <FileText className="mr-3 h-4 w-4 text-slate-400" />
                                     <span className="font-medium">Relatórios</span>
@@ -211,7 +226,7 @@ export function CommandMenu() {
                                     <Plus className="mr-3 h-4 w-4 text-emerald-500" />
                                     <span className="font-medium">Agendar Horário</span>
                                 </CommandItem>
-                                <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/patients?new=true`))}>
+                                <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/patients/new`))}>
                                     <Plus className="mr-3 h-4 w-4 text-blue-500" />
                                     <span className="font-medium">Cadastrar Paciente</span>
                                 </CommandItem>
@@ -252,6 +267,48 @@ export function CommandMenu() {
                                         >
                                             <div className="mr-3 h-9 w-9 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100 shrink-0">
                                                 <User className="h-5 w-5 text-blue-600" />
+                                            </div>
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="font-bold text-slate-800">{item.title}</span>
+                                                <span className="text-[10px] text-muted-foreground font-medium">{item.subtitle}</span>
+                                            </div>
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            )}
+
+                            {/* Professionals */}
+                            {filteredResults.filter(r => r.type === 'professional').length > 0 && (
+                                <CommandGroup heading="Profissionais">
+                                    {filteredResults.filter(r => r.type === 'professional').map((item) => (
+                                        <CommandItem
+                                            key={item.id}
+                                            value={`${item.title} ${item.subtitle} ${query}`}
+                                            onSelect={() => runCommand(() => router.push(item.url))}
+                                        >
+                                            <div className="mr-3 h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100 shrink-0">
+                                                <Stethoscope className="h-5 w-5 text-slate-600" />
+                                            </div>
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="font-bold text-slate-800">{item.title}</span>
+                                                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">{item.subtitle}</span>
+                                            </div>
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            )}
+
+                            {/* Appointments */}
+                            {filteredResults.filter(r => r.type === 'appointment').length > 0 && (
+                                <CommandGroup heading="Agendamentos">
+                                    {filteredResults.filter(r => r.type === 'appointment').map((item) => (
+                                        <CommandItem
+                                            key={item.id}
+                                            value={`${item.title} ${item.subtitle} ${query}`}
+                                            onSelect={() => runCommand(() => router.push(item.url))}
+                                        >
+                                            <div className="mr-3 h-9 w-9 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100 shrink-0">
+                                                <Calendar className="h-5 w-5 text-emerald-600" />
                                             </div>
                                             <div className="flex flex-col gap-0.5">
                                                 <span className="font-bold text-slate-800">{item.title}</span>

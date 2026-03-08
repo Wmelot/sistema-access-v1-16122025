@@ -34,17 +34,11 @@ export function LocationsClient({ locations, slug }: { locations: any[], slug: s
             <ManagementHeader
                 slug={slug}
                 title="Locais de Atendimento"
-                description="Gerencie onde os atendimentos podem ocorrer e a capacidade de cada local."
+                description="Gerencie onde os atendimentos serão realizados e a capacidade máxima de ocupação de cada local."
             >
                 <LocationsDialog existingNames={locations.map(l => l.name)} />
             </ManagementHeader>
             <Card className="border-none shadow-none bg-transparent sm:border sm:shadow-sm sm:bg-white">
-                <CardHeader className="hidden sm:block">
-                    <CardTitle>Salas e Espaços</CardTitle>
-                    <CardDescription>
-                        Gerencie onde os atendimentos podem ocorrer e a capacidade de cada local.
-                    </CardDescription>
-                </CardHeader>
                 <CardContent className="p-0 sm:p-6">
                     {/* Desktop View */}
                     <div className="hidden md:block">

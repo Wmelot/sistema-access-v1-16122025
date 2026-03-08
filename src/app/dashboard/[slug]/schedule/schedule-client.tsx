@@ -561,7 +561,7 @@ export default function ScheduleClient({
         const phone = searchParams.get('phone')
         const returnTo = searchParams.get('returnTo')
 
-        if ((openDialog === 'true' && patientId) || patientName) {
+        if (openDialog === 'true' || patientName || patientId) {
             if (returnTo) setReturnToPath(returnTo)
             // If we have an ID, excellent. If not, we pass Name/Phone for pre-fill.
             setPreSelectedPatient({

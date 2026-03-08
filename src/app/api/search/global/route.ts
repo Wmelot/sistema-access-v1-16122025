@@ -1,5 +1,5 @@
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { db } from "@/lib/db"
 import { NextResponse } from "next/server"
 
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
 
         const systemActions = [
             { title: "Nova Consulta", subtitle: "Agendar atendimento", url: `/dashboard/${slug}/schedule?openDialog=true`, keywords: ['agendar', 'agenda', 'nova', 'consulta', 'horario', 'marcar'] },
-            { title: "Novo Paciente", subtitle: "Cadastrar ficha", url: `/dashboard/${slug}/patients?new=true`, keywords: ['paciente', 'novo', 'cadastro', 'ficha', 'prontuario'] },
+            { title: "Novo Paciente", subtitle: "Cadastrar ficha", url: `/dashboard/${slug}/patients/new`, keywords: ['paciente', 'novo', 'cadastro', 'ficha', 'prontuario'] }, // Fixed URL
             { title: "Fluxo de Caixa", subtitle: "Financeiro > Relatórios", url: `/dashboard/${slug}/financial?tab=overview`, keywords: ['fluxo', 'caixa', 'financeiro', 'dre', 'balancete', 'lucro', 'movimentacao'] },
             { title: "Contas a Pagar", subtitle: "Financeiro > Despesas", url: `/dashboard/${slug}/financial?tab=payables`, keywords: ['pagar', 'despesa', 'conta', 'saida', 'custo', 'boleto', 'compra'] },
             { title: "Contas a Receber", subtitle: "Financeiro > Receitas", url: `/dashboard/${slug}/financial?tab=transactions`, keywords: ['receber', 'fatura', 'venda', 'receita', 'entrada', 'pagamento'] },
@@ -41,11 +41,12 @@ export async function GET(request: Request) {
             { title: "Formulários Customizados", subtitle: "Builder & Templates", url: `/dashboard/${slug}/forms`, keywords: ['formulario', 'personalizado', 'teste', 'builder', 'anamnese', 'modelo', 'gestao'] },
             { title: "Configurações Gerais", subtitle: "Ajustes do sistema", url: `/dashboard/${slug}/settings`, keywords: ['configuracao', 'ajuste', 'perfil', 'clinica', 'logo', 'gestao', 'configuracoes'] },
             { title: "Perfis de Acesso", subtitle: "Controle de permissões", url: `/dashboard/${slug}/settings?tab=roles`, keywords: ['perfil', 'perfis', 'acesso', 'permissao', 'rbac', 'gestao', 'seguranca'] },
+            { title: "Gestão de Profissionais", subtitle: "Equipe e horários", url: `/dashboard/${slug}/settings?tab=users`, keywords: ['profissional', 'profissionais', 'equipe', 'usuario', 'colaborador'] },
         ]
 
         const results: any[] = []
 
-        // 1. Filter System Actions (Search title and keywords)
+        // 1. Filter System Actions
         const matchedActions = systemActions.filter(action =>
             normalize(action.title).includes(qNormalized) ||
             action.keywords.some(k => normalize(k).includes(qNormalized))
@@ -60,39 +61,52 @@ export async function GET(request: Request) {
                 url: action.url
             })
         })
-        console.log('[GlobalSearch] System Actions matched:', matchedActions.length)
 
-        // 2. Database Search (Requires Auth)
+        // 2. Database Search
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
 
         if (user) {
             let organizationId: string | null = null
 
-            // Get Org ID from slug or user profile
+            // Get Org ID from slug (Use admin client to bypass RLS)
             if (slug) {
-                const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).maybeSingle()
-                if (org) organizationId = org.id
-            }
-            if (!organizationId) {
+                const adminClient = await createAdminClient()
+                const { data: org } = await adminClient.from('organizations').select('id').eq('slug', slug).maybeSingle()
+                if (org) {
+                    organizationId = org.id
+                } else {
+                    // Fallback to searching by profile if org not found by slug (RLS?)
+                    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).maybeSingle()
+                    organizationId = profile?.organization_id
+                }
+            } else {
                 const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).maybeSingle()
                 organizationId = profile?.organization_id
             }
 
-            console.log('[GlobalSearch] Using Organization ID:', organizationId)
-
             if (organizationId) {
-                // Parallelize search for better performance
-                const [patientsRes, formsRes, financialRes] = await Promise.allSettled([
-                    // Search Patients
+                const qClean = query.replace(/[^\w\s]/gi, '') // For numbers search (CPF/Phone)
+                const qLike = `%${query}%`
+                const qNormalizedLike = `%${qNormalized}%`
+                const qCleanLike = `%${qClean}%`
+
+                const [patientsRes, formsRes, financialRes, professionalsRes, appointmentsRes] = await Promise.allSettled([
+                    // Search Patients (ByName, CPF, Phone)
                     db.query(`
                         SELECT id, name, phone, email, cpf
                         FROM patients 
                         WHERE organization_id = $1 
-                        AND (name ILIKE $2 OR cpf ILIKE $2 OR name ILIKE $3)
+                        AND (
+                            name ILIKE $2 
+                            OR cpf ILIKE $2 
+                            OR phone ILIKE $2
+                            OR REPLACE(REPLACE(REPLACE(REPLACE(phone, '(', ''), ')', ''), '-', ''), ' ', '') ILIKE $3
+                            OR name ILIKE $4
+                        )
                         ORDER BY name 
                         LIMIT 10
-                    `, [organizationId, `%${query}%`, `%${qNormalized}%`]),
+                    `, [organizationId, qLike, qCleanLike, qNormalizedLike]),
 
                     // Search Custom Forms
                     db.query(`
@@ -102,9 +116,9 @@ export async function GET(request: Request) {
                         AND title ILIKE $2
                         AND status = 'active'
                         LIMIT 5
-                    `, [organizationId, `%${query}%`]),
+                    `, [organizationId, qLike]),
 
-                    // Search Financial Entries (Expenses/Incomes)
+                    // Search Financial Entries
                     db.query(`
                         SELECT id, title, description, amount, type, date
                         FROM financial_entries
@@ -112,24 +126,83 @@ export async function GET(request: Request) {
                         AND (title ILIKE $2 OR description ILIKE $2)
                         ORDER BY date DESC
                         LIMIT 5
-                    `, [organizationId, `%${query}%`]),
+                    `, [organizationId, qLike]),
+
+                    // Search Professionals (Profiles)
+                    db.query(`
+                        SELECT p.id, p.full_name, p.email, r.name as role_name
+                        FROM profiles p
+                        LEFT JOIN roles r ON p.role_id = r.id
+                        WHERE p.organization_id = $1
+                        AND (p.full_name ILIKE $2 OR p.email ILIKE $2)
+                        LIMIT 5
+                    `, [organizationId, qLike]),
+
+                    // Search Appointments
+                    db.query(`
+                        SELECT 
+                            a.id, 
+                            a.start_time, 
+                            a.status,
+                            p.name as patient_name,
+                            p.phone as patient_phone,
+                            prof.full_name as professional_name
+                        FROM appointments a
+                        JOIN patients p ON a.patient_id = p.id
+                        LEFT JOIN profiles prof ON a.professional_id = prof.id
+                        WHERE a.organization_id = $1
+                        AND (
+                            p.name ILIKE $2 
+                            OR p.phone ILIKE $2 
+                            OR REPLACE(REPLACE(REPLACE(REPLACE(p.phone, '(', ''), ')', ''), '-', ''), ' ', '') ILIKE $3
+                        )
+                        ORDER BY a.start_time DESC
+                        LIMIT 5
+                    `, [organizationId, qLike, qCleanLike]),
                 ])
 
-                // Process Patients
+                // Process Results
                 if (patientsRes.status === 'fulfilled') {
                     patientsRes.value.rows.forEach((p: any) => {
                         results.push({
                             id: `patient-${p.id}`,
                             type: 'patient',
                             title: p.name,
-                            subtitle: `Prontuário | ${p.email || 'Sem email'}`,
+                            subtitle: `Prontuário | ${p.cpf || 'CPF não inf.'} | ${p.phone || 'Sem tel.'}`,
                             url: `/dashboard/${slug}/patients/${p.id}`,
                             meta: p
                         })
                     })
                 }
 
-                // Process Forms
+                if (professionalsRes.status === 'fulfilled') {
+                    professionalsRes.value.rows.forEach((prof: any) => {
+                        results.push({
+                            id: `prof-${prof.id}`,
+                            type: 'professional',
+                            title: prof.full_name,
+                            subtitle: `${prof.role_name || 'Profissional'} | ${prof.email}`,
+                            url: `/dashboard/${slug}/settings?tab=users&id=${prof.id}`,
+                            meta: prof
+                        })
+                    })
+                }
+
+                if (appointmentsRes.status === 'fulfilled') {
+                    appointmentsRes.value.rows.forEach((apt: any) => {
+                        const date = new Date(apt.start_time).toLocaleDateString('pt-BR')
+                        const time = new Date(apt.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                        results.push({
+                            id: `apt-${apt.id}`,
+                            type: 'appointment',
+                            title: `Agendamento: ${apt.patient_name}`,
+                            subtitle: `${date} às ${time} | Prof: ${apt.professional_name || 'N/A'}`,
+                            url: `/dashboard/${slug}/schedule?date=${apt.start_time.split('T')[0]}&id=${apt.id}`,
+                            meta: apt
+                        })
+                    })
+                }
+
                 if (formsRes.status === 'fulfilled') {
                     formsRes.value.rows.forEach((f: any) => {
                         results.push({
@@ -144,7 +217,6 @@ export async function GET(request: Request) {
                     })
                 }
 
-                // Process Financial Entries
                 if (financialRes.status === 'fulfilled') {
                     financialRes.value.rows.forEach((entry: any) => {
                         results.push({
@@ -160,7 +232,6 @@ export async function GET(request: Request) {
             }
         }
 
-        console.log('[GlobalSearch] Final Results Count:', results.length)
         return NextResponse.json(results)
     } catch (error) {
         console.error('[GlobalSearch] API Search Error:', error)

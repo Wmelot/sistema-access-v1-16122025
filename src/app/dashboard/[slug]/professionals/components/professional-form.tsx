@@ -545,7 +545,6 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-slate-200 shadow-xl">
                             <SelectItem value="personal">Dados Pessoais</SelectItem>
-                            <SelectItem value="address">Endereço</SelectItem>
                             <SelectItem value="services">Serviços</SelectItem>
                             {professional?.id && <SelectItem value="availability">Horários</SelectItem>}
                             {professional?.id && <SelectItem value="commissions">Comissões</SelectItem>}
@@ -568,16 +567,6 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                         >
                             <User className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
                             Dados Pessoais
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="address"
-                            className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
-                                     data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
-                                     data-[state=active]:text-primary data-[state=active]:shadow-md
-                                     hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
-                        >
-                            <MapPin className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
-                            Endereço
                         </TabsTrigger>
                         <TabsTrigger
                             value="services"
@@ -850,6 +839,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                             onChange={(e) => setSpecialtyInput(e.target.value)}
                                             placeholder="Ex: Fisioterapia Esportiva"
                                             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSpecialty())}
+                                            autoComplete="off"
                                         />
                                         <Button type="button" onClick={addSpecialty} variant="secondary">Adicionar</Button>
                                     </div>
@@ -877,27 +867,6 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                         onChange={(e) => handleFormChange('bio', e.target.value)}
                                     />
                                 </div>
-                                {canManageRoles && roles.length > 0 && (
-                                    <div className="grid gap-2 pt-2">
-                                        <Label htmlFor="role_id">Perfil de Acesso</Label>
-                                        <Select
-                                            name="role_id"
-                                            value={formData.role_id || ""}
-                                            onValueChange={(val) => handleFormChange('role_id', val)}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Selecione um perfil..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {roles.map(role => (
-                                                    <SelectItem key={role.id} value={role.id}>
-                                                        {role.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                )}
                             </CardContent>
                         </Card>
                     </TabPanel>
@@ -993,107 +962,6 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                 )}
                             </div>
                         </div>
-                    </TabPanel>
-
-                    {/* --- 3. ENDEREÇO (Address Only) --- */}
-                    <TabPanel value="address">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Endereço Residencial</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-
-                                {/* LINHA 1: CEP (Sozinho) */}
-                                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                                    <div className="md:col-span-3 grid gap-2">
-                                        <Label htmlFor="address_zip">CEP</Label>
-                                        <Input
-                                            id="address_zip"
-                                            name="address_zip"
-                                            value={addressData.zip}
-                                            onChange={handleCepChange}
-                                            placeholder="00000-000"
-                                            maxLength={9}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* LINHA 2: Rua, Número, Complemento */}
-                                <div className="grid grid-cols-12 gap-4">
-                                    {/* Rua (8/12) */}
-                                    <div className="col-span-8 grid gap-2">
-                                        <Label htmlFor="address_street">Rua/Logradouro</Label>
-                                        <Input
-                                            id="address_street"
-                                            name="address_street"
-                                            value={addressData.street}
-                                            onChange={(e) => setAddressData({ ...addressData, street: e.target.value })}
-                                        />
-                                    </div>
-
-                                    {/* Número (2/12) */}
-                                    <div className="col-span-2 grid gap-2">
-                                        <Label htmlFor="address_number">Número</Label>
-                                        <Input
-                                            ref={addressNumberRef}
-                                            id="address_number"
-                                            name="address_number"
-                                            defaultValue={professional?.address_number}
-                                        />
-                                    </div>
-
-                                    {/* Complemento (2/12) */}
-                                    <div className="col-span-2 grid gap-2">
-                                        <Label htmlFor="address_complement">Complemento</Label>
-                                        <Input
-                                            id="address_complement"
-                                            name="address_complement"
-                                            value={addressData.complement}
-                                            onChange={(e) => setAddressData({ ...addressData, complement: e.target.value })}
-                                            placeholder="Apto, Bloco..."
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* LINHA 3: Bairro, Cidade, UF */}
-                                <div className="grid grid-cols-12 gap-4">
-                                    {/* Bairro (6/12) */}
-                                    <div className="col-span-6 grid gap-2">
-                                        <Label htmlFor="address_neighborhood">Bairro</Label>
-                                        <Input
-                                            id="address_neighborhood"
-                                            name="address_neighborhood"
-                                            value={addressData.neighborhood}
-                                            onChange={(e) => setAddressData({ ...addressData, neighborhood: e.target.value })}
-                                        />
-                                    </div>
-
-                                    {/* Cidade (4/12) - Aumentei um pouco */}
-                                    <div className="col-span-4 grid gap-2">
-                                        <Label htmlFor="address_city">Cidade</Label>
-                                        <Input
-                                            id="address_city"
-                                            name="address_city"
-                                            value={addressData.city}
-                                            onChange={(e) => setAddressData({ ...addressData, city: e.target.value })}
-                                        />
-                                    </div>
-
-                                    {/* UF (2/12) - Ajustei para 3 */}
-                                    <div className="col-span-2 grid gap-2">
-                                        <Label htmlFor="address_state">UF</Label>
-                                        <Input
-                                            id="address_state"
-                                            name="address_state"
-                                            maxLength={2}
-                                            value={addressData.state}
-                                            onChange={(e) => setAddressData({ ...addressData, state: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-
-                            </CardContent>
-                        </Card>
                     </TabPanel>
 
                     {/* --- 6. HORÁRIOS --- */}
