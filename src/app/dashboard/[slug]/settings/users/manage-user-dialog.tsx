@@ -16,7 +16,11 @@ import { toast } from 'sonner';
 import { updateUserPassword, updateUserProfile, assignUserRole } from './actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User, Lock, Shield } from 'lucide-react';
+import { User, Lock, Shield, BadgePercent } from 'lucide-react';
+import { useSidebar } from '@/hooks/use-sidebar';
+import { cn } from '@/lib/utils';
+import { CommissionSettings } from '../../professionals/[id]/commission-settings';
+import { useParams } from 'next/navigation';
 
 interface ManageUserDialogProps {
     user: any;
@@ -27,6 +31,9 @@ interface ManageUserDialogProps {
 }
 
 export function ManageUserDialog({ user, availableRoles, open, onOpenChange, onUserUpdated }: ManageUserDialogProps) {
+    const { isCollapsed } = useSidebar();
+    const params = useParams();
+    const slug = params.slug as string;
     const [loading, setLoading] = useState(false);
 
     // Form States
@@ -99,8 +106,17 @@ export function ManageUserDialog({ user, availableRoles, open, onOpenChange, onU
     if (!user) return null;
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
+        <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
+            <DialogContent
+                overlayClassName="pointer-events-none"
+                className={cn(
+                    "max-w-[95vw] max-h-[95vh] overflow-y-auto w-full transition-all duration-300 shadow-2xl border",
+                    "lg:right-6 lg:translate-x-0 lg:max-w-none lg:w-auto",
+                    isCollapsed ? "lg:left-[84px]" : "lg:left-[274px]"
+                )}
+                onPointerDownOutside={(e) => e.preventDefault()}
+                onInteractOutside={(e) => e.preventDefault()}
+            >
                 <DialogHeader>
                     <DialogTitle>Gerenciar Usuário</DialogTitle>
                     <DialogDescription>
@@ -109,7 +125,7 @@ export function ManageUserDialog({ user, availableRoles, open, onOpenChange, onU
                 </DialogHeader>
 
                 <Tabs defaultValue="profile" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
+                    <TabsList className="grid w-full grid-cols-4">
                         <TabsTrigger value="profile">
                             <User className="h-4 w-4 mr-2" />
                             Dados
@@ -121,6 +137,10 @@ export function ManageUserDialog({ user, availableRoles, open, onOpenChange, onU
                         <TabsTrigger value="access">
                             <Shield className="h-4 w-4 mr-2" />
                             Acesso
+                        </TabsTrigger>
+                        <TabsTrigger value="commissions">
+                            <BadgePercent className="h-4 w-4 mr-2" />
+                            Comissões
                         </TabsTrigger>
                     </TabsList>
 
@@ -192,6 +212,19 @@ export function ManageUserDialog({ user, availableRoles, open, onOpenChange, onU
                         <Button onClick={handleUpdateRole} disabled={loading} className="w-full">
                             {loading ? 'Salvando...' : 'Atualizar Permissões'}
                         </Button>
+                    </TabsContent>
+
+                    {/* TAB: COMMISSIONS */}
+                    <TabsContent value="commissions" className="py-4">
+                        {user.profile?.id ? (
+                            <CommissionSettings profileId={user.profile.id} slug={slug} />
+                        ) : (
+                            <div className="p-10 text-center border-2 border-dashed rounded-xl border-slate-200">
+                                <p className="text-muted-foreground text-sm">
+                                    Este usuário não possui um perfil vinculado para gerenciar comissões.
+                                </p>
+                            </div>
+                        )}
                     </TabsContent>
                 </Tabs>
             </DialogContent>

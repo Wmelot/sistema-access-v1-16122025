@@ -551,7 +551,6 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                             <SelectItem value="personal">Dados Pessoais</SelectItem>
                             <SelectItem value="services">Serviços</SelectItem>
                             {professional?.id && <SelectItem value="availability">Horários</SelectItem>}
-                            {professional?.id && canManageRoles && <SelectItem value="commissions">Comissões</SelectItem>}
                             {professional?.id && <SelectItem value="scheduling">Agendamento</SelectItem>}
                             {professional?.id && <SelectItem value="integrations">Integrações</SelectItem>}
                             {professional?.id && <SelectItem value="security">Segurança</SelectItem>}
@@ -595,18 +594,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                 Horários
                             </TabsTrigger>
                         )}
-                        {professional?.id && canManageRoles && (
-                            <TabsTrigger
-                                value="commissions"
-                                className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
-                                         data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
-                                         data-[state=active]:text-primary data-[state=active]:shadow-md
-                                         hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
-                            >
-                                <Percent className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
-                                Comissões
-                            </TabsTrigger>
-                        )}
+
                         {professional?.id && (
                             <TabsTrigger
                                 value="scheduling"
@@ -983,12 +971,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                         </TabPanel>
                     )}
 
-                    {/* --- 7. COMISSÕES --- */}
-                    {professional?.id && canManageRoles && (
-                        <TabPanel value="commissions">
-                            <CommissionSettings profileId={professional.id} slug={slug as string} />
-                        </TabPanel>
-                    )}
+
 
                     {/* --- 10. CONFIGURAÇÕES DE AGENDAMENTO --- */}
                     {professional?.id && (
