@@ -38,12 +38,6 @@ export default async function ServicesPage({ params }: { params: Promise<{ slug:
                 <ServicesDialog existingNames={services?.map(s => s.name)} />
             </ManagementHeader>
             <Card>
-                <CardHeader>
-                    <CardTitle>Catálogo de Serviços</CardTitle>
-                    <CardDescription>
-                        Padronize os nomes, preços e duração dos atendimentos.
-                    </CardDescription>
-                </CardHeader>
                 <CardContent>
                     {/* Desktop View - Table */}
                     <div className="hidden md:block">

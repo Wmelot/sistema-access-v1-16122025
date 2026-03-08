@@ -88,7 +88,15 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
                     color: "text-indigo-600",
                     bg: "bg-indigo-50",
                     permission: "settings.services.view" as PermissionCode
-                }
+                },                {
+                    title: "Tabela de Preços",
+                    description: "Gerencie tabelas persanalizadas de serviços.",
+                    icon: Tag,
+                    href: `${dashboardPrefix}/prices`,
+                    color: "text-purple-600",
+                    bg: "bg-purple-50",
+                    permission: "settings.prices.view" as PermissionCode
+                },
             ]
         },
         {
@@ -111,15 +119,6 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
                     color: "text-cyan-600",
                     bg: "bg-cyan-50",
                     permission: "settings.questionnaires.view" as PermissionCode
-                },
-                {
-                    title: "Tabela de Preços",
-                    description: "Gerencie tabelas persanalizadas de serviços.",
-                    icon: Tag,
-                    href: `${dashboardPrefix}/prices`,
-                    color: "text-purple-600",
-                    bg: "bg-purple-50",
-                    permission: "settings.prices.view" as PermissionCode
                 },
                 {
                     title: "Demonstrativo de Resultado do Exercício (DRE)",
