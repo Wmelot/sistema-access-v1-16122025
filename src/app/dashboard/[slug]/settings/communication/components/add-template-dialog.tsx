@@ -25,8 +25,11 @@ import { Switch } from "@/components/ui/switch"
 import { useState, useRef, useEffect } from "react"
 import { toast } from "sonner"
 import { updateTemplate, createTemplate, getFormTemplatesAction } from "../actions"
+import { useSidebar } from "@/hooks/use-sidebar"
+import { cn } from "@/lib/utils"
 
 export function TemplateDialog({ template, children, slug }: { template?: any, children?: React.ReactNode, slug?: string }) {
+    const { isCollapsed } = useSidebar()
     const [availableQuestionnaires, setAvailableQuestionnaires] = useState<any[]>([])
 
     useEffect(() => {
@@ -121,10 +124,11 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
         }
     }
 
-    const showDelayInput = ['post_attendance', 'insole_delivery', 'insole_maintenance', 'appointment_confirmation', 'appointment_confirmation_immediate', 'appointment_confirmation_8h', 'appointment_confirmation_2h'].includes(triggerType)
+    const showDelayAndQuestionnaire = ['post_attendance', 'insole_delivery', 'insole_maintenance', 'appointment_confirmation', 'appointment_confirmation_immediate'].includes(triggerType)
+    const showGenericRetry = ['post_attendance', 'insole_delivery', 'insole_maintenance', 'appointment_confirmation_immediate', 'manual'].includes(triggerType)
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={setOpen} modal={false}>
             <DialogTrigger asChild>
                 {children || (
                     <Button className="gap-2">
@@ -133,7 +137,20 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col">
+            <DialogContent
+                overlayClassName="hidden"
+                className={cn(
+                    "fixed z-40 transition-all duration-300 ease-in-out",
+                    "top-[84px] bottom-6 right-6",
+                    "!translate-x-0 !translate-y-0",
+                    "!w-auto !max-w-none h-auto overflow-y-auto shadow-2xl border-2 border-slate-200 bg-white",
+                    isCollapsed
+                        ? "left-[84px]"
+                        : "left-[274px]"
+                )}
+                onPointerDownOutside={(e) => e.preventDefault()}
+                onInteractOutside={(e) => e.preventDefault()}
+            >
                 <DialogHeader>
                     <DialogTitle>{template ? "Editar Modelo" : "Criar Modelo de Mensagem"}</DialogTitle>
                     <DialogDescription>
@@ -271,7 +288,7 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
                             </div>
                         )}
 
-                        {showDelayInput && (
+                        {showDelayAndQuestionnaire && (
                             <div className="grid gap-4 bg-slate-50 p-3 rounded-md border border-slate-100 animate-in fade-in slide-in-from-top-1">
                                 <div className="grid gap-2">
                                     <Label htmlFor="delay_days" className="flex items-center gap-2 text-primary">
@@ -292,7 +309,7 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
                                 <div className="grid gap-2">
                                     <Label htmlFor="questionnaire_type" className="flex items-center gap-2 text-primary">
                                         <Sparkles className="w-4 h-4" />
-                                        Questionário Vinculado (Opcional)
+                                        Questionário Vinculado
                                     </Label>
                                     <Select name="questionnaire_type" defaultValue={template?.questionnaire_type || "none"}>
                                         <SelectTrigger className="bg-white text-xs">
@@ -316,40 +333,42 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
                                     </p>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200 mt-2">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="max_retries" className="text-[11px] font-bold uppercase text-slate-500">
-                                            Tentativas de Reenvio
-                                        </Label>
-                                        <Select name="max_retries" defaultValue={String(template?.max_retries || 0)}>
-                                            <SelectTrigger className="bg-white h-8 text-xs">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="0">Não repetir</SelectItem>
-                                                <SelectItem value="1">Reenviar 1 vez</SelectItem>
-                                                <SelectItem value="2">Reenviar 2 vezes</SelectItem>
-                                                <SelectItem value="3">Reenviar 3 vezes</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                {showGenericRetry && (
+                                    <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200 mt-2">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="max_retries" className="text-[11px] font-bold uppercase text-slate-500">
+                                                Tentativas de Reenvio
+                                            </Label>
+                                            <Select name="max_retries" defaultValue={String(template?.max_retries || 0)}>
+                                                <SelectTrigger className="bg-white h-8 text-xs">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="0">Não repetir</SelectItem>
+                                                    <SelectItem value="1">Reenviar 1 vez</SelectItem>
+                                                    <SelectItem value="2">Reenviar 2 vezes</SelectItem>
+                                                    <SelectItem value="3">Reenviar 3 vezes</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="retry_interval_hours" className="text-[11px] font-bold uppercase text-slate-500">
+                                                Intervalo (Horas)
+                                            </Label>
+                                            <Input
+                                                type="number"
+                                                id="retry_interval_hours"
+                                                name="retry_interval_hours"
+                                                defaultValue={template?.retry_interval_hours || 24}
+                                                min={1}
+                                                className="bg-white h-8 text-xs"
+                                            />
+                                        </div>
+                                        <p className="col-span-2 text-[10px] text-muted-foreground bg-yellow-50 p-2 rounded border border-yellow-200">
+                                            ⚠️ O sistema reenviará a mensagem X vezes se o paciente <b>não responder/confirmar</b>. Caso ele confirme, o envio é interrompido.
+                                        </p>
                                     </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="retry_interval_hours" className="text-[11px] font-bold uppercase text-slate-500">
-                                            Intervalo (Horas)
-                                        </Label>
-                                        <Input
-                                            type="number"
-                                            id="retry_interval_hours"
-                                            name="retry_interval_hours"
-                                            defaultValue={template?.retry_interval_hours || 24}
-                                            min={1}
-                                            className="bg-white h-8 text-xs"
-                                        />
-                                    </div>
-                                    <p className="col-span-2 text-[10px] text-muted-foreground bg-yellow-50 p-2 rounded border border-yellow-200">
-                                        ⚠️ O sistema reenviará a mensagem X vezes se o paciente <b>não responder/confirmar</b>. Caso ele confirme, o envio é interrompido.
-                                    </p>
-                                </div>
+                                )}
                             </div>
                         )}
 

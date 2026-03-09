@@ -364,13 +364,13 @@ async function ensureDefaultTemplates(organizationId: string) {
             is_active: true
         },
         {
-            title: 'Envio de Questionários (12h antes)',
+            title: 'Questionários/Pré-Atendimento',
             trigger_type: 'questionnaire_12h',
             content: 'Olá {{paciente}}, para agilizar seu atendimento e garantir o melhor cuidado, por favor preencha os formulários abaixo antes da sua consulta com {{profissional}}:\n\n{{links_questionarios}}',
             is_active: true
         },
         {
-            title: 'Pós-Atendimento / Feedback',
+            title: 'Feedback/Pós-Atendimento',
             trigger_type: 'post_attendance',
             content: 'Olá {{paciente}}, como você se sentiu após o atendimento hoje com o(a) {{profissional}}? 😊\n\nSua opinião é fundamental para mantermos a excelência do nosso cuidado. Se puder, deixe uma breve avaliação no Google: {{link_avaliacao}}\n\nConte sempre conosco para o que precisar!',
             is_active: true
@@ -1467,8 +1467,9 @@ export async function getFormTemplatesAction() {
 
     const { data, error } = await supabase
         .from('form_templates')
-        .select('id, title')
+        .select('id, title, type, category')
         .is('deleted_at', null)
+        .eq('is_active', true)
         .order('title', { ascending: true })
 
     if (error) {
@@ -1476,7 +1477,32 @@ export async function getFormTemplatesAction() {
         return []
     }
 
-    return data
+    // Filter to show only patient-facing questionnaires and standardized scales
+    const filtered = (data || []).filter(template => {
+        const title = template.title?.toLowerCase() || ''
+        const type = template.type || ''
+
+        // 1. Explicit exclusion of clinical/professional forms
+        if (title.includes('evolução')) return false
+        if (title.includes('avaliação clínica')) return false
+        if (title.includes('consulta')) return false
+        if (title.includes('feegow')) return false
+        if (title.includes('backup')) return false
+
+        // 2. Explicit inclusion of questionnaires and scales
+        if (type === 'questionnaire') return true
+
+        const isStandardizedScale = [
+            'koos', 'hoos', 'aofas', 'faam', 'tsk', 'rmdq', 'odi',
+            'dash', 'lefs', 'start back', 'mcgill', 'psfs', 'spadi',
+            'prwe', 'ihot', 'womac', 'ikdc', 'lysholm', 'quebec',
+            'acompanhamento', 'manutenção', 'feedback'
+        ].some(keyword => title.includes(keyword))
+
+        return isStandardizedScale
+    })
+
+    return filtered
 }
 
 export async function getMarketplaceItems(slug: string) {

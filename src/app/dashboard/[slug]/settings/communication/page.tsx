@@ -35,8 +35,8 @@ export default async function CommunicationPage({
                 <TabsContent value="templates" className="space-y-4">
                     <div className="flex justify-between items-center">
                         <div className="space-y-1">
-                            <h2 className="text-xl font-semibold">Seus Modelos</h2>
-                            <p className="text-sm text-muted-foreground">Gerencie sua biblioteca de mensagens</p>
+                            <h2 className="text-xl font-semibold">Modelos de Mensagem WhatsApp</h2>
+                            <p className="text-sm text-muted-foreground">Gerencie os modelos de mensagem que serão utilizados nas campanhas de marketing</p>
                         </div>
                         <TemplateDialog slug={slug} />
                     </div>
@@ -65,9 +65,9 @@ export default async function CommunicationPage({
                 <TabsContent value="history">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Histórico de Disparos</CardTitle>
+                            <CardTitle>Histórico de Mensagens Enviadas</CardTitle>
                             <CardDescription>
-                                Visualize o log de todas as mensagens automáticas e manuais enviadas.
+                                Visualize o registro de todas as mensagens automáticas e manuais enviadas utilizando o sistema.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
