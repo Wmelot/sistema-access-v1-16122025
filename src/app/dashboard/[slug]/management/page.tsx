@@ -88,7 +88,7 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
                     color: "text-indigo-600",
                     bg: "bg-indigo-50",
                     permission: "settings.services.view" as PermissionCode
-                },                {
+                }, {
                     title: "Tabela de Preços",
                     description: "Gerencie tabelas persanalizadas de serviços.",
                     icon: Tag,
@@ -119,6 +119,15 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
                     color: "text-cyan-600",
                     bg: "bg-cyan-50",
                     permission: "settings.questionnaires.view" as PermissionCode
+                },
+                {
+                    title: "Documentos e Atestados",
+                    description: "Gerencie modelos de atestados e declarações.",
+                    icon: FileText,
+                    href: `${dashboardPrefix}/settings/reports`,
+                    color: "text-blue-600",
+                    bg: "bg-blue-50",
+                    permission: "settings.documents.view" as PermissionCode
                 },
             ]
         },
@@ -170,25 +179,16 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
                     title: "Identidade da Clínica",
                     description: "Configure informações básicas, gerencie sua logo, personalize as cores e detalhes do seu sistema.",
                     icon: Settings,
-                    href: `${dashboardPrefix}/settings?tab=general`,
+                    href: `${dashboardPrefix}/settings/general`,
                     color: "text-zinc-600",
                     bg: "bg-zinc-100",
                     permission: "settings.identity.view" as PermissionCode
                 },
                 {
-                    title: "Documentos e Atestados",
-                    description: "Gerencie modelos de atestados e declarações.",
-                    icon: FileText,
-                    href: `${dashboardPrefix}/settings?tab=reports`,
-                    color: "text-blue-600",
-                    bg: "bg-blue-50",
-                    permission: "settings.documents.view" as PermissionCode
-                },
-                {
                     title: "Protocolos & IA",
                     description: "Gerencie, analise e Configure protocolos de disfunções baseados em evidências e o comportamento do seu assistênte de IA.",
                     icon: Brain,
-                    href: `${dashboardPrefix}/settings?tab=intelligence`,
+                    href: `${dashboardPrefix}/settings/intelligence`,
                     color: "text-purple-600",
                     bg: "bg-purple-50",
                     permission: "settings.intelligence.view" as PermissionCode
@@ -197,7 +197,7 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
                     title: "Controle de Usuários",
                     description: "Gerencie perfis de usuário, senhas e os acessos dos membros da sua equipe.",
                     icon: UserCog,
-                    href: `${dashboardPrefix}/settings?tab=users`,
+                    href: `${dashboardPrefix}/settings/users`,
                     color: "text-orange-600",
                     bg: "bg-orange-50",
                     permission: "settings.users.view" as PermissionCode
@@ -206,7 +206,7 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
                     title: "Perfis de Acesso",
                     description: "Controle permissões de acordo com o cargo ou a função.",
                     icon: Shield,
-                    href: `${dashboardPrefix}/settings?tab=roles`,
+                    href: `${dashboardPrefix}/settings/roles`,
                     color: "text-red-600",
                     bg: "bg-red-50",
                     permission: "settings.roles.view" as PermissionCode
@@ -233,7 +233,7 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
                     title: "Saúde e Suporte do Sistema",
                     description: "Diagnóstico técnico e solicitações de ajuda para o suporte.",
                     icon: Cpu,
-                    href: `${dashboardPrefix}/settings?tab=general`,
+                    href: `${dashboardPrefix}/settings/general`,
                     color: "text-indigo-600",
                     bg: "bg-indigo-50",
                     permission: "settings.support.view" as PermissionCode

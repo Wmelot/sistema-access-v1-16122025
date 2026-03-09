@@ -1,65 +1,36 @@
-import { getAllPermissions, getRoles } from "./actions"
-import { RolesList } from "./roles-list"
-import { RoleFormDialog } from "./role-form-dialog"
-import { hasPermission } from "@/lib/rbac"
-import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft, LayoutGrid } from "lucide-react"
-import Link from "next/link"
+import { getRoles, getAllPermissions } from './actions';
+import { RolesList } from './roles-list';
+import { RoleFormDialog } from './role-form-dialog';
+import { Button } from '@/components/ui/button';
+import { Table2 } from 'lucide-react';
+import Link from 'next/link';
 
-export default async function RolesPage(props: { params: Promise<{ slug: string }> }) {
-    const { slug } = await props.params
-
-    const canManage = await hasPermission('roles.manage')
-
-    // DEBUG: Diagnose why user is redirected
-    const supabase = await createClient() // Create client to fetch debug info
-    const { data: { user } } = await supabase.auth.getUser()
-    // @ts-ignore
-    const { data: profile } = await supabase.from('profiles').select('*, role_id(name)').eq('id', user?.id!).single()
-    // @ts-ignore
-    const { data: rolePerms } = await supabase.from('role_permissions').select('permissions(code)').eq('role_id', profile?.role_id?.id || profile?.role_id)
-    const codes = rolePerms?.map((p: any) => p.permissions?.code) || []
-
-    if (!canManage) {
-        redirect(`/dashboard/${slug}`)
-    }
-
-    const roles = await getRoles(slug)
-    const permissions = await getAllPermissions()
+export default async function RolesSettingsPage({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params;
+    const roles = await getRoles(slug) || [];
+    const allPermissions = await getAllPermissions() || [];
 
     return (
-        <div className="container mx-auto py-10 max-w-5xl">
-            <div className="mb-6">
-                <Link href={`/dashboard/${slug}/settings`}>
-                    <Button variant="ghost" size="sm" className="gap-2 px-0 sm:px-3 text-slate-500 hover:text-slate-900">
-                        <ArrowLeft className="h-5 w-5 sm:h-4 sm:w-4" />
-                        <span className="hidden sm:inline">Voltar para Configurações</span>
-                    </Button>
-                </Link>
-            </div>
-
-            <div className="flex items-center justify-between mb-8">
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Perfis de Acesso</h1>
-                    <p className="text-muted-foreground">
-                        Gerencie os níveis de acesso e o que cada função pode realizar no sistema.
-                    </p>
+                    <h2 className="text-2xl font-bold tracking-tight">Perfis de Acesso</h2>
+                    <p className="text-muted-foreground text-sm">Gerencie quem pode fazer o que no sistema.</p>
                 </div>
-                <div className="flex gap-2">
-                    <Link href={`/dashboard/${slug}/settings/permissions`}>
-                        <Button variant="outline" className="gap-2">
-                            <LayoutGrid className="h-4 w-4" />
+                <div className="flex flex-col sm:flex-row gap-2">
+                    <Button variant="outline" asChild className="w-full sm:w-auto">
+                        <Link href={`/dashboard/${slug}/settings/permissions`}>
+                            <Table2 className="mr-2 h-4 w-4" />
                             Ver Matriz
-                        </Button>
-                    </Link>
-                    {canManage && <RoleFormDialog allPermissions={permissions} />}
+                        </Link>
+                    </Button>
+                    <div className="w-full sm:w-auto">
+                        <RoleFormDialog allPermissions={allPermissions} />
+                    </div>
                 </div>
             </div>
 
-            <RolesList roles={roles || []} allPermissions={permissions || []} />
+            <RolesList roles={roles} allPermissions={allPermissions} />
         </div>
-    )
+    );
 }
-
