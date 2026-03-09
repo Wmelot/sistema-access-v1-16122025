@@ -11,7 +11,6 @@ interface ManagementHeaderProps {
     description?: string
     children?: React.ReactNode
     backHref?: string
-    backLabel?: string
 }
 
 export function ManagementHeader({
@@ -19,8 +18,7 @@ export function ManagementHeader({
     title,
     description,
     children,
-    backHref,
-    backLabel = "Voltar para Gestão"
+    backHref
 }: ManagementHeaderProps) {
     const { showLoading } = useGlobalLoader()
     const finalBackHref = backHref || `/dashboard/${slug}/management`
@@ -30,13 +28,12 @@ export function ManagementHeader({
             <div className="flex items-center gap-4">
                 <Link href={finalBackHref}>
                     <Button
-                        variant="ghost"
-                        size="sm"
-                        className="rounded-xl h-9 px-3 border border-slate-200 bg-white hover:bg-slate-50 transition-all shadow-sm group gap-2"
-                        onClick={() => showLoading(backLabel)}
+                        variant="outline"
+                        size="icon"
+                        className="rounded-full h-9 w-9 border-slate-200 hover:bg-slate-50 transition-all shadow-sm group"
+                        onClick={() => showLoading("Voltando...")}
                     >
-                        <ChevronLeft className="h-4 w-4 text-slate-500 group-hover:text-blue-600 group-hover:-translate-x-0.5 transition-all" />
-                        <span className="text-xs font-bold uppercase tracking-tight text-slate-600 group-hover:text-blue-600">{backLabel}</span>
+                        <ChevronLeft className="h-5 w-5 text-slate-500 group-hover:text-blue-600 group-hover:-translate-x-0.5 transition-all" />
                     </Button>
                 </Link>
                 <div className="flex-1">
