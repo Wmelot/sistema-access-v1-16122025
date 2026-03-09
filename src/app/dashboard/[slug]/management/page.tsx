@@ -173,7 +173,7 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
             ]
         },
         {
-            title: "Sistema e Segurança",
+            title: "Configurações do Sistema e Segurança",
             items: [
                 {
                     title: "Identidade da Clínica",
@@ -183,6 +183,15 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
                     color: "text-zinc-600",
                     bg: "bg-zinc-100",
                     permission: "settings.identity.view" as PermissionCode
+                },
+                {
+                    title: "Configurações de Perfil",
+                    description: "Gerencie seus dados e foto de perfil.",
+                    icon: CircleUser,
+                    href: `${dashboardPrefix}/profile/me`,
+                    color: "text-zinc-700",
+                    bg: "bg-zinc-50",
+                    permission: "sidebar.home.view" as PermissionCode // Always visible if they have basic access
                 },
                 {
                     title: "Protocolos & IA",
@@ -220,6 +229,29 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
                     bg: "bg-zinc-100",
                     permission: "settings.audit.view" as PermissionCode
                 },
+            ]
+        },
+        {
+            title: "Ajuda e Suporte",
+            items: [
+                {
+                    title: "Tutoriais",
+                    description: "Central de ajuda e suporte técnico.",
+                    icon: HelpCircle,
+                    href: `${dashboardPrefix}/support`,
+                    color: "text-orange-700",
+                    bg: "bg-orange-50",
+                    permission: "sidebar.home.view" as PermissionCode
+                },
+                {
+                    title: "Saúde do Sistema e Suporte",
+                    description: "Diagnóstico técnico e solicitações de ajuda para o suporte.",
+                    icon: Cpu,
+                    href: `${dashboardPrefix}/settings/general`,
+                    color: "text-indigo-600",
+                    bg: "bg-indigo-50",
+                    permission: "settings.support.view" as PermissionCode
+                },
                 {
                     title: "Assistente de Migração",
                     description: "Importe dados de outros sistemas de prontuário eletrónico para o Axiom.",
@@ -229,38 +261,6 @@ export default function ManagementHubPage({ params }: { params: { slug: string }
                     bg: "bg-slate-100",
                     permission: "settings.migration.view" as PermissionCode
                 },
-                {
-                    title: "Saúde e Suporte do Sistema",
-                    description: "Diagnóstico técnico e solicitações de ajuda para o suporte.",
-                    icon: Cpu,
-                    href: `${dashboardPrefix}/settings/general`,
-                    color: "text-indigo-600",
-                    bg: "bg-indigo-50",
-                    permission: "settings.support.view" as PermissionCode
-                }
-            ]
-        },
-        {
-            title: "Meu Perfil e Ajuda",
-            items: [
-                {
-                    title: "Configurações de Perfil",
-                    description: "Gerencie seus dados e foto de perfil.",
-                    icon: CircleUser,
-                    href: `${dashboardPrefix}/profile/me`,
-                    color: "text-zinc-700",
-                    bg: "bg-zinc-50",
-                    permission: "sidebar.home.view" as PermissionCode // Always visible if they have basic access
-                },
-                {
-                    title: "Tutoriais e Suporte",
-                    description: "Central de ajuda e suporte técnico.",
-                    icon: HelpCircle,
-                    href: `${dashboardPrefix}/support`,
-                    color: "text-orange-700",
-                    bg: "bg-orange-50",
-                    permission: "sidebar.home.view" as PermissionCode
-                }
             ]
         }
     ].map(category => ({

@@ -4,6 +4,7 @@ import { RoleFormDialog } from './role-form-dialog';
 import { Button } from '@/components/ui/button';
 import { Table2 } from 'lucide-react';
 import Link from 'next/link';
+import { ManagementHeader } from '@/components/dashboard/management-header';
 
 export default async function RolesSettingsPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
@@ -12,11 +13,11 @@ export default async function RolesSettingsPage({ params }: { params: Promise<{ 
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-                <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Perfis de Acesso</h2>
-                    <p className="text-muted-foreground text-sm">Gerencie quem pode fazer o que no sistema.</p>
-                </div>
+            <ManagementHeader
+                slug={slug}
+                title="Perfis de Acesso"
+                description="Gerencie quem pode fazer o que no sistema."
+            >
                 <div className="flex flex-col sm:flex-row gap-2">
                     <Button variant="outline" asChild className="w-full sm:w-auto">
                         <Link href={`/dashboard/${slug}/settings/permissions`}>
@@ -28,7 +29,7 @@ export default async function RolesSettingsPage({ params }: { params: Promise<{ 
                         <RoleFormDialog allPermissions={allPermissions} />
                     </div>
                 </div>
-            </div>
+            </ManagementHeader>
 
             <RolesList roles={roles} allPermissions={allPermissions} />
         </div>

@@ -1,5 +1,6 @@
 import { AsaasConfigCard } from '../asaas-config-card';
 import { SystemIntegrationsCard } from '../system/system-integrations-card';
+import { ManagementHeader } from '@/components/dashboard/management-header';
 
 export default async function IntegrationsSettingsPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
@@ -7,10 +8,11 @@ export default async function IntegrationsSettingsPage({ params }: { params: Pro
 
     return (
         <div className="space-y-6">
-            <div className="mb-6">
-                <h2 className="text-2xl font-bold tracking-tight">Integrações de Terceiros</h2>
-                <p className="text-muted-foreground text-sm">Conecte sua clínica a ferramentas externas para automatizar processos.</p>
-            </div>
+            <ManagementHeader
+                slug={slug}
+                title="Integrações de Terceiros"
+                description="Conecte sua clínica a ferramentas externas para automatizar processos."
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <AsaasConfigCard slug={slug} />

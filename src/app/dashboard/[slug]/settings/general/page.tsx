@@ -2,6 +2,7 @@ import { getClinicSettings } from '../actions';
 import { SettingsForm } from '../settings-form';
 import { createClient } from '@/lib/supabase/server';
 import { isMasterUser } from '@/lib/auth-master';
+import { ManagementHeader } from '@/components/dashboard/management-header';
 
 export default async function GeneralSettingsPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
@@ -16,10 +17,11 @@ export default async function GeneralSettingsPage({ params }: { params: Promise<
 
     return (
         <div className="space-y-6">
-            <div className="mb-6">
-                <h2 className="text-2xl font-bold tracking-tight">Geral</h2>
-                <p className="text-muted-foreground text-sm">Informações básicas da clínica.</p>
-            </div>
+            <ManagementHeader
+                slug={slug}
+                title="Identidade da Clínica"
+                description="Informações básicas e personalização visual."
+            />
             <SettingsForm
                 initialSettings={settings}
                 hasGoogleIntegration={hasGoogleIntegration}
